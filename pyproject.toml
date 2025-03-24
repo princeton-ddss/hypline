@@ -1,0 +1,22 @@
+[project]
+name = "hypline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Sangyoon Park", email = "datumvitae@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "nibabel>=5.3.2",
+    "numpy>=2.2.4",
+    "polars>=1.26.0",
+    "pydantic>=2.10.6",
+]
+
+[project.scripts]
+hypline = "hypline:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
