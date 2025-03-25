@@ -7,6 +7,7 @@ from types import MappingProxyType
 import nibabel as nib
 import numpy as np
 import polars as pl
+from natsort import natsorted
 
 from .config import Config, ModelSpec
 
@@ -136,10 +137,138 @@ class ConfoundRegression:
 
         # Gather all confounds
 
-    @staticmethod
+    @classmethod
     def _extract_confounds(
+        cls,
         confounds_df: pl.DataFrame,
         confounds_meta: dict[str, dict],
         model_spec: ModelSpec,
     ) -> pl.DataFrame:
-        pass
+        """
+        Extract confounds (including CompCor ones).
+
+        Notes
+        -----
+        Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
+        """
+        # Pop out confound groups of variable number
+        groups = set(model_spec.confounds).intersection({"cosine", "motion_outlier"})
+
+        # Grab the requested (non-group) confounds
+        confounds = confounds_df[[c for c in model_spec.confounds if c not in groups]]
+
+        # Grab confound groups if requested
+        if groups:
+            group_cols = [
+                col
+                for col in confounds_df.columns
+                if any(group in col for group in groups)
+            ]
+            confounds = pl.concat(
+                [confounds, confounds_df[group_cols]], how="horizontal"
+            )
+
+        # Grab CompCor confounds if requested
+        compcors = model_spec.model_fields_set.intersection(["aCompCor", "tCompCor"])
+        if compcors:
+            compcor_dfs = [
+                cls._extract_compcor(
+                    confounds_df,
+                    confounds_meta,
+                    method=compcor,
+                    **kwargs,
+                )
+                for compcor in compcors
+                for kwargs in getattr(model_spec, compcor)
+            ]
+            confounds = pl.concat([confounds] + compcor_dfs, how="horizontal")
+
+        return confounds
+
+    @staticmethod
+    def _extract_compcor(
+        confounds_df: pl.DataFrame,
+        confounds_meta: dict[str, dict],
+        method: str = "tCompCor",
+        n_comps: int = 5,
+        tissue: str | None = None,
+    ) -> pl.DataFrame:
+        """
+        Extract CompCor confounds.
+
+        Notes
+        -----
+        Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
+        """
+        # Check that we sensible number of components
+        assert n_comps > 0
+
+        # Check that method is specified correctly
+        assert method in ["aCompCor", "tCompCor"]
+
+        # Check that tissue is specified for aCompCor
+        if method == "aCompCor" and tissue not in ["combined", "CSF", "WM"]:
+            raise AssertionError(
+                "Must specify a tissue type (combined, CSF, or WM) for aCompCor"
+            )
+
+        # Ignore tissue if specified for tCompCor
+        if method == "tCompCor" and tissue:
+            print(
+                "Warning: tCompCor is not restricted to a tissue "
+                f"mask - ignoring tissue specification ({tissue})"
+            )
+            tissue = None
+
+        # Get CompCor metadata for relevant method
+        compcor_meta = {
+            c: confounds_meta[c]
+            for c in confounds_meta
+            if confounds_meta[c]["Method"] == method and confounds_meta[c]["Retained"]
+        }
+
+        # If aCompCor, filter metadata for tissue mask
+        if method == "aCompCor":
+            compcor_meta = {
+                c: compcor_meta[c]
+                for c in compcor_meta
+                if compcor_meta[c]["Mask"] == tissue
+            }
+
+        # Make sure metadata components are sorted properly
+        comp_sorted = natsorted(compcor_meta)
+        for i, comp in enumerate(comp_sorted):
+            if comp != comp_sorted[-1]:
+                comp_next = comp_sorted[i + 1]
+                assert (
+                    compcor_meta[comp]["SingularValue"]
+                    > compcor_meta[comp_next]["SingularValue"]
+                )
+
+        # Either get top n components
+        if n_comps >= 1.0:
+            n_comps = int(n_comps)
+            if len(comp_sorted) >= n_comps:
+                comp_selector = comp_sorted[:n_comps]
+            else:
+                comp_selector = comp_sorted
+                print(
+                    f"Warning: Only {len(comp_sorted)} {method} "
+                    f"components available ({n_comps} requested)"
+                )
+
+        # Or components necessary to capture n proportion of variance
+        else:
+            comp_selector = []
+            for comp in comp_sorted:
+                comp_selector.append(comp)
+                if compcor_meta[comp]["CumulativeVarianceExplained"] > n_comps:
+                    break
+
+        # Check we didn't end up with degenerate 0 components
+        assert len(comp_selector) > 0
+
+        # Grab the actual component time series
+        confounds_compcor = confounds_df[comp_selector]
+
+        return confounds_compcor
