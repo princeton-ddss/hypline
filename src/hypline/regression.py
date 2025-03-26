@@ -1,6 +1,4 @@
-import json
 import re
-from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
@@ -8,19 +6,10 @@ import nibabel as nib
 import numpy as np
 import polars as pl
 from natsort import natsorted
+from pydantic import PositiveFloat, PositiveInt, TypeAdapter
 
-from .config import Config, ModelSpec
-
-
-class VolumeSpace(Enum):
-    MNI_152_NLIN_6_ASYM = "MNI152NLin6Asym"
-    MNI_152_NLIN_2009_C_ASYM = "MNI152NLin2009cAsym"
-
-
-class SurfaceSpace(Enum):
-    FS_AVERAGE_5 = "fsaverage5"
-    FS_AVERAGE_6 = "fsaverage6"
-
+from .enums import CompCor, CompCorTissue, SurfaceSpace, VolumeSpace
+from .schemas import Config, ConfoundMetadata, ModelSpec
 
 # Read-only mapping between a data space name and its enum variant
 DATA_SPACES = MappingProxyType(
@@ -129,8 +118,9 @@ class ConfoundRegression:
             .fill_nan(None)  # For interpolation
             .fill_null(strategy="backward")  # Assume missing data in the beginning only
         )
-        with open(confounds_filepath.with_suffix(".json")) as f:
-            confounds_meta: dict[str, dict] = json.load(f)
+        confounds_meta = TypeAdapter(dict[str, ConfoundMetadata]).validate_json(
+            confounds_filepath.with_suffix(".json").read_text()
+        )
         confounds_df = self._extract_confounds(confounds_df, confounds_meta, model_spec)
 
         # Load custom confounds required for the model (if necessary)
@@ -141,7 +131,7 @@ class ConfoundRegression:
     def _extract_confounds(
         cls,
         confounds_df: pl.DataFrame,
-        confounds_meta: dict[str, dict],
+        confounds_meta: dict[str, ConfoundMetadata],
         model_spec: ModelSpec,
     ) -> pl.DataFrame:
         """
@@ -169,17 +159,18 @@ class ConfoundRegression:
             )
 
         # Grab CompCor confounds if requested
-        compcors = model_spec.model_fields_set.intersection(["aCompCor", "tCompCor"])
+        compcors = [c for c in CompCor if c.value in model_spec.model_fields_set]
         if compcors:
             compcor_dfs = [
                 cls._extract_compcor(
                     confounds_df,
                     confounds_meta,
                     method=compcor,
-                    **kwargs,
+                    n_comps=options.n_comps,
+                    tissue=options.tissue,
                 )
                 for compcor in compcors
-                for kwargs in getattr(model_spec, compcor)
+                for options in getattr(model_spec, compcor.value)
             ]
             confounds = pl.concat([confounds] + compcor_dfs, how="horizontal")
 
@@ -188,10 +179,10 @@ class ConfoundRegression:
     @staticmethod
     def _extract_compcor(
         confounds_df: pl.DataFrame,
-        confounds_meta: dict[str, dict],
-        method: str = "tCompCor",
-        n_comps: int = 5,
-        tissue: str | None = None,
+        confounds_meta: dict[str, ConfoundMetadata],
+        method: CompCor,
+        n_comps: PositiveInt | PositiveFloat = 5,
+        tissue: CompCorTissue | None = None,
     ) -> pl.DataFrame:
         """
         Extract CompCor confounds.
@@ -200,20 +191,8 @@ class ConfoundRegression:
         -----
         Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
         """
-        # Check that we sensible number of components
-        assert n_comps > 0
-
-        # Check that method is specified correctly
-        assert method in ["aCompCor", "tCompCor"]
-
-        # Check that tissue is specified for aCompCor
-        if method == "aCompCor" and tissue not in ["combined", "CSF", "WM"]:
-            raise AssertionError(
-                "Must specify a tissue type (combined, CSF, or WM) for aCompCor"
-            )
-
         # Ignore tissue if specified for tCompCor
-        if method == "tCompCor" and tissue:
+        if method == CompCor.TEMPORAL and tissue:
             print(
                 "Warning: tCompCor is not restricted to a tissue "
                 f"mask - ignoring tissue specification ({tissue})"
@@ -222,18 +201,14 @@ class ConfoundRegression:
 
         # Get CompCor metadata for relevant method
         compcor_meta = {
-            c: confounds_meta[c]
-            for c in confounds_meta
-            if confounds_meta[c]["Method"] == method and confounds_meta[c]["Retained"]
+            k: v
+            for k, v in confounds_meta.items()
+            if v.Method == method and v.Retained is True
         }
 
         # If aCompCor, filter metadata for tissue mask
-        if method == "aCompCor":
-            compcor_meta = {
-                c: compcor_meta[c]
-                for c in compcor_meta
-                if compcor_meta[c]["Mask"] == tissue
-            }
+        if method == CompCor.ANATOMICAL:
+            compcor_meta = {k: v for k, v in confounds_meta.items() if v.Mask == tissue}
 
         # Make sure metadata components are sorted properly
         comp_sorted = natsorted(compcor_meta)
@@ -241,8 +216,8 @@ class ConfoundRegression:
             if comp != comp_sorted[-1]:
                 comp_next = comp_sorted[i + 1]
                 assert (
-                    compcor_meta[comp]["SingularValue"]
-                    > compcor_meta[comp_next]["SingularValue"]
+                    compcor_meta[comp].SingularValue
+                    > compcor_meta[comp_next].SingularValue
                 )
 
         # Either get top n components
@@ -262,7 +237,7 @@ class ConfoundRegression:
             comp_selector = []
             for comp in comp_sorted:
                 comp_selector.append(comp)
-                if compcor_meta[comp]["CumulativeVarianceExplained"] > n_comps:
+                if compcor_meta[comp].CumulativeVarianceExplained > n_comps:
                     break
 
         # Check we didn't end up with degenerate 0 components
