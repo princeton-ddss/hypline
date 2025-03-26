@@ -9,7 +9,7 @@ from natsort import natsorted
 from pydantic import PositiveFloat, PositiveInt, TypeAdapter
 
 from .enums import CompCor, CompCorTissue, SurfaceSpace, VolumeSpace
-from .schemas import Config, ConfoundMetadata, ModelSpec
+from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
 
 # Read-only mapping between a data space name and its enum variant
 DATA_SPACES = MappingProxyType(
@@ -161,31 +161,33 @@ class ConfoundRegression:
         # Grab CompCor confounds if requested
         compcors = [c for c in CompCor if c.value in model_spec.model_fields_set]
         if compcors:
-            compcor_dfs = [
-                cls._extract_compcor(
-                    confounds_df,
-                    confounds_meta,
-                    method=compcor,
-                    n_comps=options.n_comps,
-                    tissue=options.tissue,
-                )
-                for compcor in compcors
-                for options in getattr(model_spec, compcor.value)
-            ]
-            confounds = pl.concat([confounds] + compcor_dfs, how="horizontal")
+            comps_selected: list[str] = []
+            for compcor in compcors:
+                for options in getattr(model_spec, compcor.value):
+                    assert isinstance(options, CompCorOptions)
+                    comps_selected.extend(
+                        cls._select_comps(
+                            confounds_meta,
+                            compcor,
+                            n_comps=options.n_comps,
+                            tissue=options.tissue,
+                        )
+                    )
+            confounds = pl.concat(
+                [confounds, confounds_df[comps_selected]], how="horizontal"
+            )
 
         return confounds
 
     @staticmethod
-    def _extract_compcor(
-        confounds_df: pl.DataFrame,
+    def _select_comps(
         confounds_meta: dict[str, ConfoundMetadata],
         method: CompCor,
         n_comps: PositiveInt | PositiveFloat = 5,
         tissue: CompCorTissue | None = None,
-    ) -> pl.DataFrame:
+    ) -> list[str]:
         """
-        Extract CompCor confounds.
+        Select relevant CompCor components.
 
         Notes
         -----
@@ -243,7 +245,4 @@ class ConfoundRegression:
         # Check we didn't end up with degenerate 0 components
         assert len(comps_selected) > 0
 
-        # Grab the actual component time series
-        confounds_compcor = confounds_df[comps_selected]
-
-        return confounds_compcor
+        return comps_selected
