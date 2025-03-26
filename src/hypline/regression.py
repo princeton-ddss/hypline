@@ -211,10 +211,10 @@ class ConfoundRegression:
             compcor_meta = {k: v for k, v in confounds_meta.items() if v.Mask == tissue}
 
         # Make sure metadata components are sorted properly
-        comp_sorted = natsorted(compcor_meta)
-        for i, comp in enumerate(comp_sorted):
-            if comp != comp_sorted[-1]:
-                comp_next = comp_sorted[i + 1]
+        comps_sorted = natsorted(compcor_meta)
+        for i, comp in enumerate(comps_sorted):
+            if comp != comps_sorted[-1]:
+                comp_next = comps_sorted[i + 1]
                 assert (
                     compcor_meta[comp].SingularValue
                     > compcor_meta[comp_next].SingularValue
@@ -223,27 +223,27 @@ class ConfoundRegression:
         # Either get top n components
         if n_comps >= 1.0:
             n_comps = int(n_comps)
-            if len(comp_sorted) >= n_comps:
-                comp_selector = comp_sorted[:n_comps]
+            if len(comps_sorted) >= n_comps:
+                comps_selected = comps_sorted[:n_comps]
             else:
-                comp_selector = comp_sorted
+                comps_selected = comps_sorted
                 print(
-                    f"Warning: Only {len(comp_sorted)} {method} "
+                    f"Warning: Only {len(comps_sorted)} {method} "
                     f"components available ({n_comps} requested)"
                 )
 
         # Or components necessary to capture n proportion of variance
         else:
-            comp_selector = []
-            for comp in comp_sorted:
-                comp_selector.append(comp)
+            comps_selected = []
+            for comp in comps_sorted:
+                comps_selected.append(comp)
                 if compcor_meta[comp].CumulativeVarianceExplained > n_comps:
                     break
 
         # Check we didn't end up with degenerate 0 components
-        assert len(comp_selector) > 0
+        assert len(comps_selected) > 0
 
         # Grab the actual component time series
-        confounds_compcor = confounds_df[comp_selector]
+        confounds_compcor = confounds_df[comps_selected]
 
         return confounds_compcor
