@@ -5,6 +5,7 @@ from types import MappingProxyType
 import nibabel as nib
 import numpy as np
 import polars as pl
+import yaml
 from natsort import natsorted
 from nibabel.gifti import GiftiDataArray, GiftiImage
 from nilearn import signal
@@ -27,8 +28,13 @@ class ConfoundRegression:
         output_dir: str | None = None,
         custom_confounds_dir: str | None = None,
     ):
-        # TODO: Parse and validate config file
-        self._config: Config
+        # Parse and validate config data
+        config_filepath = Path(config)
+        if config_filepath.exists() is False:
+            raise FileNotFoundError(f"Path does not exist: {config}")
+        self._config = Config.model_validate(
+            yaml.safe_load(config_filepath.read_text())
+        )
 
         # Set the directory path to fMRIPrep data
         self._fmriprep_dir = Path(fmriprep_dir)
