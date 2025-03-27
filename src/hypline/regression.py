@@ -6,6 +6,7 @@ import nibabel as nib
 import numpy as np
 import polars as pl
 from natsort import natsorted
+from nibabel.gifti import GiftiDataArray, GiftiImage
 from nilearn import signal
 from pydantic import PositiveFloat, PositiveInt, TypeAdapter
 
@@ -91,7 +92,7 @@ class ConfoundRegression:
         for filepath in files:
             # Read raw BOLD data
             img = nib.load(filepath)
-            assert isinstance(img, nib.GiftiImage)
+            assert isinstance(img, GiftiImage)
             bold = img.agg_data()
             assert isinstance(bold, np.ndarray)
             bold = bold.T  # Shape of (TRs, voxels)
@@ -121,7 +122,19 @@ class ConfoundRegression:
                 standardize_confounds=True,
             )
 
-            # Store cleaned BOLD data (different for volume vs. surface space)
+            # Store cleaned BOLD data
+            new_img = GiftiImage(
+                darrays=[
+                    GiftiDataArray(data=row, intent="NIFTI_INTENT_TIME_SERIES")
+                    for row in cleaned_bold
+                ],
+                header=img.header,
+                extra=img.extra,
+            )
+            new_filepath = self._output_dir / filepath.name.replace(
+                "bold.func.gii", "desc-clean_bold.func.gii"
+            )
+            nib.save(new_img, new_filepath)
 
     def _load_confounds(
         self, bold_filepath: Path, model_spec: ModelSpec
