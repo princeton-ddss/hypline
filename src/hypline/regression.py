@@ -6,6 +6,7 @@ import nibabel as nib
 import numpy as np
 import polars as pl
 from natsort import natsorted
+from nilearn import signal
 from pydantic import PositiveFloat, PositiveInt, TypeAdapter
 
 from .enums import CompCor, CompCorTissue, SurfaceSpace, VolumeSpace
@@ -95,6 +96,12 @@ class ConfoundRegression:
             assert isinstance(bold, np.ndarray)
             bold = bold.T  # Shape of (TRs, voxels)
 
+            # Extract TR value (assumed constant in a given run)
+            repetition_time = img.darrays[0].meta.get("TimeStep")  # In milliseconds
+            if repetition_time is None:
+                raise ValueError(f"TR metadata is missing: {filepath.name}")
+            TR = float(repetition_time) / 1000  # Convert to seconds
+
             # Load confounds for the requested model
             confounds_df = self._load_confounds(filepath, model_spec)
             confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
@@ -103,7 +110,16 @@ class ConfoundRegression:
                     f"Unequal number of rows (TRs) between BOLD and confounds data: {filepath.name}"
                 )
 
-            # Perform confound regression (use different functions for volume vs. surface space)
+            # Perform confound regression
+            cleaned_bold = signal.clean(
+                bold,
+                confounds=confounds,
+                detrend=True,
+                t_r=TR,
+                ensure_finite=True,
+                standardize="zscore_sample",
+                standardize_confounds=True,
+            )
 
             # Store cleaned BOLD data (different for volume vs. surface space)
 
