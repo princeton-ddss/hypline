@@ -87,32 +87,40 @@ class ConfoundRegression:
             f"sub-{subject_id}/**/*space-{data_space.value}*bold.func.gii"
         )
 
-        for f in files:
+        for filepath in files:
             # Read raw BOLD data
-            img = nib.load(f)
+            img = nib.load(filepath)
             assert isinstance(img, nib.GiftiImage)
             bold = img.agg_data()
             assert isinstance(bold, np.ndarray)
             bold = bold.T  # Shape of (TRs, voxels)
 
-            # Load confounds required for the model
+            # Load confounds for the requested model
+            confounds_df = self._load_confounds(filepath, model_spec)
+            confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
+            if confounds.shape[0] != bold.shape[0]:
+                raise ValueError(
+                    f"Unequal number of rows (TRs) between BOLD and confounds data: {filepath.name}"
+                )
 
             # Perform confound regression (use different functions for volume vs. surface space)
 
             # Store cleaned BOLD data (different for volume vs. surface space)
 
-    def _load_confounds(self, bold_filepath: Path, model_spec: ModelSpec) -> np.ndarray:
+    def _load_confounds(
+        self, bold_filepath: Path, model_spec: ModelSpec
+    ) -> pl.DataFrame:
         # Extract file name up to the run number segment
         match = re.search(r"^(.*?run-\d+)", bold_filepath.name)
         if match is None:
             raise ValueError(f"Run number is missing: {bold_filepath.name}")
         identifier = match.group(1)  # Includes subject/session/task/run info
 
-        # Load standard confounds required for the model
+        # Load standard confounds for the requested model
         files = bold_filepath.parent.glob(f"{identifier}*desc-confounds*timeseries.*")
         confounds_filepath = next(files, None)
         if confounds_filepath is None:
-            raise FileNotFoundError(f"Confounds data not found for: {identifier}")
+            raise FileNotFoundError(f"Confounds not found for: {identifier}")
         confounds_df = (
             pl.read_csv(confounds_filepath.with_suffix(".tsv"), separator="\t")
             .fill_nan(None)  # For interpolation
@@ -123,9 +131,32 @@ class ConfoundRegression:
         )
         confounds_df = self._extract_confounds(confounds_df, confounds_meta, model_spec)
 
-        # Load custom confounds required for the model (if necessary)
+        # Load custom confounds for the requested model
+        if model_spec.custom_confounds:
+            files = self._custom_confounds_dir.glob(
+                f"**/{identifier}*desc-customConfounds*timeseries.tsv"
+            )
+            custom_confounds_filepath = next(files, None)
+            if custom_confounds_filepath is None:
+                raise FileNotFoundError(f"Custom confounds not found for: {identifier}")
+            custom_confounds_df = pl.read_csv(
+                custom_confounds_filepath,
+                separator="\t",
+                columns=model_spec.custom_confounds,
+            )
+            if custom_confounds_df.fill_nan(None).null_count().pipe(sum).item() > 0:
+                raise ValueError(
+                    f"Missing / NaN values in custom confounds data: {identifier}"
+                )
+            if custom_confounds_df.height != confounds_df.height:
+                raise ValueError(
+                    f"Unequal number of rows (TRs) between standard and custom confounds data: {identifier}"
+                )
+            confounds_df = pl.concat(
+                [confounds_df, custom_confounds_df], how="horizontal"
+            )
 
-        # Gather all confounds
+        return confounds_df
 
     @classmethod
     def _extract_confounds(
