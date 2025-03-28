@@ -137,9 +137,12 @@ class ConfoundRegression:
                 header=img.header,
                 extra=img.extra,
             )
-            new_filepath = self._output_dir / filepath.name.replace(
-                "bold.func.gii", "desc-clean_bold.func.gii"
+            new_filepath = (
+                self._output_dir
+                / filepath.relative_to(self._fmriprep_dir).parent
+                / filepath.name.replace("bold.func.gii", "desc-clean_bold.func.gii")
             )
+            new_filepath.parent.mkdir(parents=True, exist_ok=True)
             nib.save(new_img, new_filepath)
 
     def _load_confounds(
