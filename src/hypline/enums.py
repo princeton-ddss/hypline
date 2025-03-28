@@ -1,11 +1,6 @@
 from enum import Enum
 
 
-class CompCor(Enum):
-    ANATOMICAL = "aCompCor"
-    TEMPORAL = "tCompCor"
-
-
 class CompCorMethod(Enum):
     ANATOMICAL = "aCompCor"
     TEMPORAL = "tCompCor"

@@ -11,7 +11,7 @@ from nibabel.gifti import GiftiDataArray, GiftiImage
 from nilearn import signal
 from pydantic import PositiveFloat, PositiveInt, TypeAdapter
 
-from .enums import CompCor, CompCorTissue, SurfaceSpace, VolumeSpace
+from .enums import CompCorMethod, CompCorTissue, SurfaceSpace, VolumeSpace
 from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
 
 # Read-only mapping between a data space name and its enum variant
@@ -225,7 +225,7 @@ class ConfoundRegression:
             )
 
         # Grab CompCor confounds if requested
-        compcors = [c for c in CompCor if c.value in model_spec.model_fields_set]
+        compcors = [c for c in CompCorMethod if c.value in model_spec.model_fields_set]
         if compcors:
             comps_selected: list[str] = []
             for compcor in compcors:
@@ -248,7 +248,7 @@ class ConfoundRegression:
     @staticmethod
     def _select_comps(
         confounds_meta: dict[str, ConfoundMetadata],
-        method: CompCor,
+        method: CompCorMethod,
         n_comps: PositiveInt | PositiveFloat = 5,
         tissue: CompCorTissue | None = None,
     ) -> list[str]:
@@ -260,7 +260,7 @@ class ConfoundRegression:
         Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
         """
         # Ignore tissue if specified for tCompCor
-        if method == CompCor.TEMPORAL and tissue:
+        if method == CompCorMethod.TEMPORAL and tissue:
             print(
                 "Warning: tCompCor is not restricted to a tissue "
                 f"mask - ignoring tissue specification ({tissue})"
@@ -275,7 +275,7 @@ class ConfoundRegression:
         }
 
         # If aCompCor, filter metadata for tissue mask
-        if method == CompCor.ANATOMICAL:
+        if method == CompCorMethod.ANATOMICAL:
             compcor_meta = {k: v for k, v in compcor_meta.items() if v.Mask == tissue}
 
         # Make sure metadata components are sorted properly
