@@ -276,7 +276,7 @@ class ConfoundRegression:
 
         # If aCompCor, filter metadata for tissue mask
         if method == CompCor.ANATOMICAL:
-            compcor_meta = {k: v for k, v in confounds_meta.items() if v.Mask == tissue}
+            compcor_meta = {k: v for k, v in compcor_meta.items() if v.Mask == tissue}
 
         # Make sure metadata components are sorted properly
         comps_sorted = natsorted(compcor_meta)
