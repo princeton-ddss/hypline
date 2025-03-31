@@ -64,7 +64,7 @@ class ConfoundRegression:
         subject_ids: list[int],
         session_name: str = "*",
         task_name: str = "*",
-        data_space_name: str = VolumeSpace.MNI_152_NLIN_2009_C_ASYM.value,
+        data_space_name: str = "MNI152NLin2009cAsym",
         n_processes: int = 1,
     ):
         if n_processes < 2:
@@ -84,9 +84,9 @@ class ConfoundRegression:
         self,
         model_name: str,
         subject_id: int,
-        session_name: str = "*",
-        task_name: str = "*",
-        data_space_name: str = VolumeSpace.MNI_152_NLIN_2009_C_ASYM.value,
+        session_name: str,
+        task_name: str,
+        data_space_name: str,
     ):
         model_spec = self._config.model_specs.get(model_name)
         if model_spec is None:
@@ -276,8 +276,8 @@ class ConfoundRegression:
     def _select_comps(
         confounds_meta: dict[str, ConfoundMetadata],
         method: CompCorMethod,
-        n_comps: int | float = 5,
-        tissue: CompCorTissue | None = None,
+        n_comps: int | float,
+        tissue: CompCorTissue | None,
     ) -> list[str]:
         """
         Select relevant CompCor components.
@@ -346,9 +346,9 @@ class ConfoundRegression:
     @staticmethod
     def _compose_glob_pattern_for_bold(
         subject_id: int,
-        session_name: str = "*",
-        task_name: str = "*",
-        data_space: VolumeSpace | SurfaceSpace = VolumeSpace.MNI_152_NLIN_2009_C_ASYM,
+        session_name: str,
+        task_name: str,
+        data_space: VolumeSpace | SurfaceSpace,
     ) -> str:
         SUFFIX_MAP = {VolumeSpace: "bold.nii.gz", SurfaceSpace: "bold.func.gii"}
 
