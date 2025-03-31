@@ -1,4 +1,5 @@
 import re
+from copy import deepcopy
 from pathlib import Path
 from types import MappingProxyType
 from typing import Iterator
@@ -57,6 +58,22 @@ class ConfoundRegression:
             self._custom_confounds_dir = Path(custom_confounds_dir)
             if self._custom_confounds_dir.exists() is False:
                 raise FileNotFoundError(f"Path does not exist: {custom_confounds_dir}")
+
+    @property
+    def config(self) -> Config:
+        return deepcopy(self._config)
+
+    @property
+    def fmriprep_dir(self) -> Path:
+        return deepcopy(self._fmriprep_dir)
+
+    @property
+    def output_dir(self) -> Path:
+        return deepcopy(self._output_dir)
+
+    @property
+    def custom_confounds_dir(self) -> Path | None:
+        return deepcopy(self._custom_confounds_dir)
 
     def clean_bold(
         self,
