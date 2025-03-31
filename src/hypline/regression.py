@@ -61,7 +61,7 @@ class ConfoundRegression:
     def clean_bold(
         self,
         model_name: str,
-        subject_ids: list[int],
+        subject_ids: list[str],
         session_name: str = "*",
         task_name: str = "*",
         data_space_name: str = "MNI152NLin2009cAsym",
@@ -83,7 +83,7 @@ class ConfoundRegression:
     def _clean_bold(
         self,
         model_name: str,
-        subject_id: int,
+        subject_id: str,
         session_name: str,
         task_name: str,
         data_space_name: str,
@@ -345,7 +345,7 @@ class ConfoundRegression:
 
     @staticmethod
     def _compose_glob_pattern_for_bold(
-        subject_id: int,
+        subject_id: str,
         session_name: str,
         task_name: str,
         data_space: VolumeSpace | SurfaceSpace,
