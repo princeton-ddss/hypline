@@ -10,7 +10,7 @@ import yaml
 from natsort import natsorted
 from nibabel.gifti import GiftiDataArray, GiftiImage
 from nilearn import signal
-from pydantic import PositiveFloat, PositiveInt, TypeAdapter
+from pydantic import TypeAdapter
 
 from .enums import CompCorMethod, CompCorTissue, SurfaceSpace, VolumeSpace
 from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
@@ -276,7 +276,7 @@ class ConfoundRegression:
     def _select_comps(
         confounds_meta: dict[str, ConfoundMetadata],
         method: CompCorMethod,
-        n_comps: PositiveInt | PositiveFloat = 5,
+        n_comps: int | float = 5,
         tissue: CompCorTissue | None = None,
     ) -> list[str]:
         """
@@ -286,6 +286,9 @@ class ConfoundRegression:
         -----
         Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
         """
+        # Check that we sensible number of components
+        assert n_comps > 0
+
         # Ignore tissue if specified for tCompCor
         if method == CompCorMethod.TEMPORAL and tissue:
             print(
