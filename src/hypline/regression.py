@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 from types import MappingProxyType
+from typing import Iterator
 
 import nibabel as nib
 import numpy as np
@@ -57,18 +58,34 @@ class ConfoundRegression:
             if self._custom_confounds_dir.exists() is False:
                 raise FileNotFoundError(f"Path does not exist: {custom_confounds_dir}")
 
-    def clean_bold_for_all_subjects(
-        self,
-        model_name: str,
-        data_space_name: str = VolumeSpace.MNI_152_NLIN_2009_C_ASYM.value,
-    ):
-        # TODO: Use multiprocessing
-        pass
-
     def clean_bold(
         self,
-        subject_id: int,
         model_name: str,
+        subject_ids: list[int],
+        session_name: str = "*",
+        task_name: str = "*",
+        data_space_name: str = VolumeSpace.MNI_152_NLIN_2009_C_ASYM.value,
+        n_processes: int = 1,
+    ):
+        if n_processes < 2:
+            for sub_id in subject_ids:
+                self._clean_bold(
+                    model_name=model_name,
+                    subject_id=sub_id,
+                    session_name=session_name,
+                    task_name=task_name,
+                    data_space_name=data_space_name,
+                )
+        else:
+            # TODO: Perform multiprocessing
+            raise NotImplementedError("Perform multiprocessing")
+
+    def _clean_bold(
+        self,
+        model_name: str,
+        subject_id: int,
+        session_name: str = "*",
+        task_name: str = "*",
         data_space_name: str = VolumeSpace.MNI_152_NLIN_2009_C_ASYM.value,
     ):
         model_spec = self._config.model_specs.get(model_name)
@@ -76,26 +93,33 @@ class ConfoundRegression:
             raise ValueError(f"Undefined model: {model_name}")
 
         data_space = DATA_SPACES.get(data_space_name)
-        if isinstance(data_space, VolumeSpace):
-            self._clean_bold_in_volume_space(subject_id, model_spec, data_space)
-        elif isinstance(data_space, SurfaceSpace):
-            self._clean_bold_in_surface_space(subject_id, model_spec, data_space)
-        else:
+        if data_space is None:
             raise ValueError(f"Unsupported data space: {data_space_name}")
 
+        bold_pattern = self._compose_glob_pattern_for_bold(
+            subject_id=subject_id,
+            session_name=session_name,
+            task_name=task_name,
+            data_space=data_space,
+        )
+        bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
+
+        if isinstance(data_space, VolumeSpace):
+            self._clean_bold_in_volume_space(model_spec, bold_filepaths)
+        elif isinstance(data_space, SurfaceSpace):
+            self._clean_bold_in_surface_space(model_spec, bold_filepaths)
+        else:
+            raise ValueError(f"Unsupported data space: {data_space}")
+
     def _clean_bold_in_volume_space(
-        self, subject_id: int, model_spec: ModelSpec, data_space: VolumeSpace
+        self, model_spec: ModelSpec, bold_filepaths: Iterator[Path]
     ):
         pass
 
     def _clean_bold_in_surface_space(
-        self, subject_id: int, model_spec: ModelSpec, data_space: SurfaceSpace
+        self, model_spec: ModelSpec, bold_filepaths: Iterator[Path]
     ):
-        files = self._fmriprep_dir.glob(
-            f"sub-{subject_id}/**/*space-{data_space.value}*bold.func.gii"
-        )
-
-        for filepath in files:
+        for filepath in bold_filepaths:
             # Read raw BOLD data
             img = nib.load(filepath)
             assert isinstance(img, GiftiImage)
@@ -315,3 +339,24 @@ class ConfoundRegression:
         assert len(comps_selected) > 0
 
         return comps_selected
+
+    @staticmethod
+    def _compose_glob_pattern_for_bold(
+        subject_id: int,
+        session_name: str = "*",
+        task_name: str = "*",
+        data_space: VolumeSpace | SurfaceSpace = VolumeSpace.MNI_152_NLIN_2009_C_ASYM,
+    ) -> str:
+        SUFFIX_MAP = {VolumeSpace: "bold.nii.gz", SurfaceSpace: "bold.func.gii"}
+
+        subject = f"sub-{subject_id}"
+        session = "" if session_name == "*" else f"ses-{session_name}"
+        task = "" if task_name == "*" else f"task-{task_name}"
+        space = f"space-{data_space.value}"
+        suffix = SUFFIX_MAP[type(data_space)]
+
+        filepath_pattern = "*".join(
+            filter(None, [subject, session, task, space, suffix])
+        )
+
+        return f"{subject}/**/{filepath_pattern}"
