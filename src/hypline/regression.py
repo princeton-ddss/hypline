@@ -24,15 +24,15 @@ DATA_SPACES = MappingProxyType(
 class ConfoundRegression:
     def __init__(
         self,
-        config: str,
+        config_file: str,
         fmriprep_dir: str,
         output_dir: str | None = None,
         custom_confounds_dir: str | None = None,
     ):
         # Parse and validate config data
-        config_filepath = Path(config)
+        config_filepath = Path(config_file)
         if config_filepath.exists() is False:
-            raise FileNotFoundError(f"Path does not exist: {config}")
+            raise FileNotFoundError(f"Path does not exist: {config_file}")
         self._config = Config.model_validate(
             yaml.safe_load(config_filepath.read_text())
         )
