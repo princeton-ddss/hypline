@@ -15,6 +15,7 @@ dependencies = [
     "polars>=1.26.0",
     "pydantic>=2.10.6",
     "pyyaml>=6.0.2",
+    "typer>=0.15.2",
 ]
 
 [project.scripts]

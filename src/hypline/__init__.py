@@ -1,2 +1,5 @@
-def main() -> None:
-    print("Hello from hypline!")
+from .cli import app
+
+
+def main():
+    app()

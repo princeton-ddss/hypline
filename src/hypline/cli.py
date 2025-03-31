@@ -1,0 +1,96 @@
+import typer
+from typing_extensions import Annotated
+
+from .regression import ConfoundRegression
+
+app = typer.Typer()
+
+
+@app.command()
+def clean(
+    config_file: Annotated[
+        str,
+        typer.Argument(
+            help="Configuration file",
+            show_default=False,
+        ),
+    ],
+    fmriprep_dir: Annotated[
+        str,
+        typer.Argument(
+            help="Directory containing fMRIPrep outputs",
+            show_default=False,
+        ),
+    ],
+    model_name: Annotated[
+        str,
+        typer.Argument(
+            help="Confound regression model to run (defined in config)",
+            show_default=False,
+        ),
+    ],
+    output_dir: Annotated[
+        str | None,
+        typer.Option(
+            help="Directory to store cleaned BOLD data",
+            show_default="<fmriprep_dir>_cleaned",
+        ),
+    ] = None,
+    custom_confounds_dir: Annotated[
+        str | None,
+        typer.Option(help="Directory containing custom confounds"),
+    ] = None,
+    session_name: Annotated[
+        str,
+        typer.Option(
+            help="Target session name",
+            show_default="all",
+        ),
+    ] = "*",
+    task_name: Annotated[
+        str,
+        typer.Option(
+            help="Target task name",
+            show_default="all",
+        ),
+    ] = "*",
+    data_space_name: Annotated[
+        str,
+        typer.Option(help="Target BOLD data space"),
+    ] = "MNI152NLin2009cAsym",
+    n_processes: Annotated[
+        int,
+        typer.Option(help="Number of processes to run in parallel"),
+    ] = 1,
+):
+    """
+    Clean BOLD data for all subjects in the given fMRIPrep outputs.
+    """
+    reg = ConfoundRegression(
+        config_file=config_file,
+        fmriprep_dir=fmriprep_dir,
+        output_dir=output_dir,
+        custom_confounds_dir=custom_confounds_dir,
+    )
+
+    subject_ids = [
+        path.name[4:] for path in reg.fmriprep_dir.glob("sub-*") if path.is_dir()
+    ]
+
+    reg.clean_bold(
+        model_name=model_name,
+        subject_ids=subject_ids,
+        session_name=session_name,
+        task_name=task_name,
+        data_space_name=data_space_name,
+        n_processes=n_processes,
+    )
+
+
+@app.callback()
+def callback():
+    """
+    An opinionated framework/toolbox for conducting
+    data cleaning and analysis in hyperscanning studies
+    involving dyadic conversations.
+    """
