@@ -246,12 +246,12 @@ class ConfoundRegression:
         identifier = match.group(1)  # Includes subject/session/task/run info
 
         # Load standard confounds for the requested model
-        files = bold_filepath.parent.glob(f"{identifier}*desc-confounds*timeseries.*")
+        files = bold_filepath.parent.glob(f"{identifier}*desc-confounds*timeseries.tsv")
         confounds_filepath = next(files, None)
         if confounds_filepath is None:
             raise FileNotFoundError(f"Confounds not found for: {identifier}")
         confounds_df = (
-            pl.read_csv(confounds_filepath.with_suffix(".tsv"), separator="\t")
+            pl.read_csv(confounds_filepath, separator="\t")
             .fill_nan(None)  # For interpolation
             .fill_null(strategy="backward")  # Assume missing data in the beginning only
         )
