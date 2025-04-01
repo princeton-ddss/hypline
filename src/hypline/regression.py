@@ -202,7 +202,7 @@ class ConfoundRegression:
             confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
             if confounds.shape[0] != bold.shape[0]:
                 raise ValueError(
-                    f"Unequal number of rows (TRs) between BOLD and confounds data: {filepath.name}"
+                    f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
                 )
 
             # Perform confound regression
@@ -225,11 +225,14 @@ class ConfoundRegression:
                 header=img.header,
                 extra=img.extra,
             )
-            new_filepath = (
-                self._output_dir
-                / filepath.relative_to(self._fmriprep_dir).parent
-                / filepath.name.replace("bold.func.gii", "desc-clean_bold.func.gii")
-            )
+            entities = filepath.name.split("_")
+            if entities[-2].startswith("desc-"):
+                entities[-2] = "desc-clean"
+            else:
+                entities.insert(-1, "desc-clean")
+            new_filename = "_".join(entities)
+            intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
+            new_filepath = self._output_dir / intermediate_dir / new_filename
             new_filepath.parent.mkdir(parents=True, exist_ok=True)
             nib.save(new_img, new_filepath)
 
