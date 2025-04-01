@@ -8,17 +8,17 @@ app = typer.Typer()
 
 @app.command()
 def clean(
-    config_file: Annotated[
-        str,
-        typer.Argument(
-            help="Configuration file",
-            show_default=False,
-        ),
-    ],
     fmriprep_dir: Annotated[
         str,
         typer.Argument(
             help="Directory containing fMRIPrep outputs",
+            show_default=False,
+        ),
+    ],
+    config_file: Annotated[
+        str,
+        typer.Argument(
+            help="Configuration file",
             show_default=False,
         ),
     ],
