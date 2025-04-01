@@ -1,3 +1,4 @@
+import json
 import re
 from copy import deepcopy
 from pathlib import Path
@@ -10,6 +11,8 @@ import polars as pl
 import yaml
 from natsort import natsorted
 from nibabel.gifti import GiftiDataArray, GiftiImage
+from nibabel.nifti1 import Nifti1Image
+from nilearn import image as nimg
 from nilearn import signal
 from pydantic import TypeAdapter
 
@@ -131,7 +134,51 @@ class ConfoundRegression:
     def _clean_bold_in_volume_space(
         self, model_spec: ModelSpec, bold_filepaths: Iterator[Path]
     ):
-        pass
+        for filepath in bold_filepaths:
+            bold = nimg.load_img(filepath)  # Shape of (x, y, z, TRs)
+            assert isinstance(bold, Nifti1Image)
+
+            # Extract TR value (assumed constant in a given run)
+            p = filepath.parent / (filepath.name.split(".")[0] + ".json")
+            with open(p, "r") as f:
+                data = json.load(f)
+            assert isinstance(data, dict)
+            repetition_time = data.get("RepetitionTime")  # In seconds
+            if repetition_time is None:
+                raise ValueError(f"TR metadata is missing: {p.name}")
+            TR = float(repetition_time)
+
+            # Load confounds for the requested model
+            confounds_df = self._load_confounds(filepath, model_spec)
+            confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
+            if confounds.shape[0] != bold.shape[-1]:
+                raise ValueError(
+                    f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
+                )
+
+            # Perform confound regression
+            cleaned_bold = nimg.clean_img(
+                bold,
+                confounds=confounds,
+                detrend=True,
+                t_r=TR,
+                ensure_finite=True,
+                standardize="zscore_sample",
+                standardize_confounds=True,
+            )
+            assert isinstance(cleaned_bold, Nifti1Image)
+
+            # Store cleaned BOLD data
+            entities = filepath.name.split("_")
+            if entities[-2].startswith("desc-"):
+                entities[-2] = "desc-clean"
+            else:
+                entities.insert(-1, "desc-clean")
+            new_filename = "_".join(entities)
+            intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
+            new_filepath = self._output_dir / intermediate_dir / new_filename
+            new_filepath.parent.mkdir(parents=True, exist_ok=True)
+            nib.save(cleaned_bold, new_filepath)
 
     def _clean_bold_in_surface_space(
         self, model_spec: ModelSpec, bold_filepaths: Iterator[Path]
