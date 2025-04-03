@@ -85,12 +85,19 @@ class ConfoundRegression:
         task_name: str = "*",
         data_space_name: str = "MNI152NLin2009cAsym",
     ):
+        # Mapping between a data space type and the corresponding method
+        CLEAN_BOLD = {
+            VolumeSpace: self._clean_bold_in_volume_space,
+            SurfaceSpace: self._clean_bold_in_surface_space,
+        }
+
         model_spec = self._config.model_specs.get(model_name)
         if model_spec is None:
             raise ValueError(f"Undefined model: {model_name}")
 
         data_space = DATA_SPACES.get(data_space_name)
-        if data_space is None:
+        data_space_type = type(data_space)
+        if data_space_type not in CLEAN_BOLD:
             raise ValueError(f"Unsupported data space: {data_space_name}")
 
         for sub_id in subject_ids:
@@ -101,15 +108,8 @@ class ConfoundRegression:
                 data_space=data_space,
             )
             bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
-
-            if isinstance(data_space, VolumeSpace):
-                for filepath in bold_filepaths:
-                    self._clean_bold_in_volume_space(filepath, model_spec)
-            elif isinstance(data_space, SurfaceSpace):
-                for filepath in bold_filepaths:
-                    self._clean_bold_in_surface_space(filepath, model_spec)
-            else:
-                raise ValueError(f"Unsupported data space: {data_space}")
+            for filepath in bold_filepaths:
+                CLEAN_BOLD[data_space_type](filepath, model_spec)
 
     def _clean_bold_in_volume_space(self, filepath: Path, model_spec: ModelSpec):
         # Read raw BOLD data
