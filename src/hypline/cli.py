@@ -1,7 +1,10 @@
+import multiprocessing as mp
+
 import typer
 from typing_extensions import Annotated
 
 from .regression import ConfoundRegression
+from .utils import DillProcess
 
 app = typer.Typer()
 
@@ -73,18 +76,34 @@ def clean(
         custom_confounds_dir=custom_confounds_dir,
     )
 
+    def clean_bold(subject_ids: list[str]):
+        reg.clean_bold(
+            model_name=model_name,
+            subject_ids=subject_ids,
+            session_name=session_name,
+            task_name=task_name,
+            data_space_name=data_space_name,
+        )
+
     subject_ids = [
         path.name[4:] for path in reg.fmriprep_dir.glob("sub-*") if path.is_dir()
     ]
 
-    reg.clean_bold(
-        model_name=model_name,
-        subject_ids=subject_ids,
-        session_name=session_name,
-        task_name=task_name,
-        data_space_name=data_space_name,
-        n_processes=n_processes,
-    )
+    if n_processes < 2:
+        clean_bold(subject_ids)
+    else:
+        max_processes = mp.cpu_count()
+        if n_processes > max_processes:
+            # TODO: Print warning
+            n_processes = max_processes
+        if mp.current_process().name == "MainProcess":
+            processes: list[DillProcess] = []
+            for i in range(n_processes):
+                p = DillProcess(target=clean_bold, args=(subject_ids[i::n_processes],))
+                processes.append(p)
+                p.start()
+            for p in processes:
+                p.join()
 
 
 @app.callback()

@@ -85,20 +85,15 @@ class ConfoundRegression:
         session_name: str = "*",
         task_name: str = "*",
         data_space_name: str = "MNI152NLin2009cAsym",
-        n_processes: int = 1,
     ):
-        if n_processes < 2:
-            for sub_id in subject_ids:
-                self._clean_bold(
-                    model_name=model_name,
-                    subject_id=sub_id,
-                    session_name=session_name,
-                    task_name=task_name,
-                    data_space_name=data_space_name,
-                )
-        else:
-            # TODO: Perform multiprocessing
-            raise NotImplementedError("Perform multiprocessing")
+        for sub_id in subject_ids:
+            self._clean_bold(
+                model_name=model_name,
+                subject_id=sub_id,
+                session_name=session_name,
+                task_name=task_name,
+                data_space_name=data_space_name,
+            )
 
     def _clean_bold(
         self,
