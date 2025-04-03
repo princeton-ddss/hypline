@@ -18,13 +18,13 @@ from pydantic import TypeAdapter
 from .enums import CompCorMethod, CompCorTissue, SurfaceSpace, VolumeSpace
 from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
 
-# Read-only mapping between a data space name and its enum variant
-DATA_SPACES = MappingProxyType(
-    {space.value: space for space in list(VolumeSpace) + list(SurfaceSpace)}
-)
-
 
 class ConfoundRegression:
+    # Read-only mapping between a data space name and its enum variant
+    DATA_SPACES = MappingProxyType(
+        {space.value: space for space in list(VolumeSpace) + list(SurfaceSpace)}
+    )
+
     def __init__(
         self,
         config_file: str,
@@ -95,7 +95,7 @@ class ConfoundRegression:
         if model_spec is None:
             raise ValueError(f"Undefined model: {model_name}")
 
-        data_space = DATA_SPACES.get(data_space_name)
+        data_space = self.DATA_SPACES.get(data_space_name)
         data_space_type = type(data_space)
         if data_space_type not in CLEAN_BOLD:
             raise ValueError(f"Unsupported data space: {data_space_name}")
