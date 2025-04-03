@@ -3,7 +3,6 @@ import re
 from copy import deepcopy
 from pathlib import Path
 from types import MappingProxyType
-from typing import Iterator
 
 import nibabel as nib
 import numpy as np
@@ -86,23 +85,6 @@ class ConfoundRegression:
         task_name: str = "*",
         data_space_name: str = "MNI152NLin2009cAsym",
     ):
-        for sub_id in subject_ids:
-            self._clean_bold(
-                model_name=model_name,
-                subject_id=sub_id,
-                session_name=session_name,
-                task_name=task_name,
-                data_space_name=data_space_name,
-            )
-
-    def _clean_bold(
-        self,
-        model_name: str,
-        subject_id: str,
-        session_name: str,
-        task_name: str,
-        data_space_name: str,
-    ):
         model_spec = self._config.model_specs.get(model_name)
         if model_spec is None:
             raise ValueError(f"Undefined model: {model_name}")
@@ -111,125 +93,123 @@ class ConfoundRegression:
         if data_space is None:
             raise ValueError(f"Unsupported data space: {data_space_name}")
 
-        bold_pattern = self._compose_glob_pattern_for_bold(
-            subject_id=subject_id,
-            session_name=session_name,
-            task_name=task_name,
-            data_space=data_space,
+        for sub_id in subject_ids:
+            bold_pattern = self._compose_glob_pattern_for_bold(
+                subject_id=sub_id,
+                session_name=session_name,
+                task_name=task_name,
+                data_space=data_space,
+            )
+            bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
+
+            if isinstance(data_space, VolumeSpace):
+                for filepath in bold_filepaths:
+                    self._clean_bold_in_volume_space(filepath, model_spec)
+            elif isinstance(data_space, SurfaceSpace):
+                for filepath in bold_filepaths:
+                    self._clean_bold_in_surface_space(filepath, model_spec)
+            else:
+                raise ValueError(f"Unsupported data space: {data_space}")
+
+    def _clean_bold_in_volume_space(self, filepath: Path, model_spec: ModelSpec):
+        # Read raw BOLD data
+        bold = nimg.load_img(filepath)  # Shape of (x, y, z, TRs)
+        assert isinstance(bold, Nifti1Image)
+
+        # Extract TR value (assumed constant in a given run)
+        p = filepath.parent / (filepath.name.split(".")[0] + ".json")
+        with open(p, "r") as f:
+            data = json.load(f)
+        assert isinstance(data, dict)
+        repetition_time = data.get("RepetitionTime")  # In seconds
+        if repetition_time is None:
+            raise ValueError(f"TR metadata is missing: {p.name}")
+        TR = float(repetition_time)
+
+        # Load confounds for the requested model
+        confounds_df = self._load_confounds(filepath, model_spec)
+        confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
+        if confounds.shape[0] != bold.shape[-1]:
+            raise ValueError(
+                f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
+            )
+
+        # Perform confound regression
+        cleaned_bold = nimg.clean_img(
+            bold,
+            confounds=confounds,
+            detrend=True,
+            t_r=TR,
+            ensure_finite=True,
+            standardize="zscore_sample",
+            standardize_confounds=True,
         )
-        bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
+        assert isinstance(cleaned_bold, Nifti1Image)
 
-        if isinstance(data_space, VolumeSpace):
-            self._clean_bold_in_volume_space(model_spec, bold_filepaths)
-        elif isinstance(data_space, SurfaceSpace):
-            self._clean_bold_in_surface_space(model_spec, bold_filepaths)
+        # Store cleaned BOLD data
+        entities = filepath.name.split("_")
+        if entities[-2].startswith("desc-"):
+            entities[-2] = "desc-clean"
         else:
-            raise ValueError(f"Unsupported data space: {data_space}")
+            entities.insert(-1, "desc-clean")
+        new_filename = "_".join(entities)
+        intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
+        new_filepath = self._output_dir / intermediate_dir / new_filename
+        new_filepath.parent.mkdir(parents=True, exist_ok=True)
+        nib.save(cleaned_bold, new_filepath)
 
-    def _clean_bold_in_volume_space(
-        self, model_spec: ModelSpec, bold_filepaths: Iterator[Path]
-    ):
-        for filepath in bold_filepaths:
-            bold = nimg.load_img(filepath)  # Shape of (x, y, z, TRs)
-            assert isinstance(bold, Nifti1Image)
+    def _clean_bold_in_surface_space(self, filepath: Path, model_spec: ModelSpec):
+        # Read raw BOLD data
+        img = nib.load(filepath)
+        assert isinstance(img, GiftiImage)
+        bold = img.agg_data()
+        assert isinstance(bold, np.ndarray)
+        bold = bold.T  # Shape of (TRs, voxels)
 
-            # Extract TR value (assumed constant in a given run)
-            p = filepath.parent / (filepath.name.split(".")[0] + ".json")
-            with open(p, "r") as f:
-                data = json.load(f)
-            assert isinstance(data, dict)
-            repetition_time = data.get("RepetitionTime")  # In seconds
-            if repetition_time is None:
-                raise ValueError(f"TR metadata is missing: {p.name}")
-            TR = float(repetition_time)
+        # Extract TR value (assumed constant in a given run)
+        repetition_time = img.darrays[0].meta.get("TimeStep")  # In milliseconds
+        if repetition_time is None:
+            raise ValueError(f"TR metadata is missing: {filepath.name}")
+        TR = float(repetition_time) / 1000  # Convert to seconds
 
-            # Load confounds for the requested model
-            confounds_df = self._load_confounds(filepath, model_spec)
-            confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
-            if confounds.shape[0] != bold.shape[-1]:
-                raise ValueError(
-                    f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
-                )
-
-            # Perform confound regression
-            cleaned_bold = nimg.clean_img(
-                bold,
-                confounds=confounds,
-                detrend=True,
-                t_r=TR,
-                ensure_finite=True,
-                standardize="zscore_sample",
-                standardize_confounds=True,
-            )
-            assert isinstance(cleaned_bold, Nifti1Image)
-
-            # Store cleaned BOLD data
-            entities = filepath.name.split("_")
-            if entities[-2].startswith("desc-"):
-                entities[-2] = "desc-clean"
-            else:
-                entities.insert(-1, "desc-clean")
-            new_filename = "_".join(entities)
-            intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
-            new_filepath = self._output_dir / intermediate_dir / new_filename
-            new_filepath.parent.mkdir(parents=True, exist_ok=True)
-            nib.save(cleaned_bold, new_filepath)
-
-    def _clean_bold_in_surface_space(
-        self, model_spec: ModelSpec, bold_filepaths: Iterator[Path]
-    ):
-        for filepath in bold_filepaths:
-            # Read raw BOLD data
-            img = nib.load(filepath)
-            assert isinstance(img, GiftiImage)
-            bold = img.agg_data()
-            assert isinstance(bold, np.ndarray)
-            bold = bold.T  # Shape of (TRs, voxels)
-
-            # Extract TR value (assumed constant in a given run)
-            repetition_time = img.darrays[0].meta.get("TimeStep")  # In milliseconds
-            if repetition_time is None:
-                raise ValueError(f"TR metadata is missing: {filepath.name}")
-            TR = float(repetition_time) / 1000  # Convert to seconds
-
-            # Load confounds for the requested model
-            confounds_df = self._load_confounds(filepath, model_spec)
-            confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
-            if confounds.shape[0] != bold.shape[0]:
-                raise ValueError(
-                    f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
-                )
-
-            # Perform confound regression
-            cleaned_bold = signal.clean(
-                bold,
-                confounds=confounds,
-                detrend=True,
-                t_r=TR,
-                ensure_finite=True,
-                standardize="zscore_sample",
-                standardize_confounds=True,
+        # Load confounds for the requested model
+        confounds_df = self._load_confounds(filepath, model_spec)
+        confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
+        if confounds.shape[0] != bold.shape[0]:
+            raise ValueError(
+                f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
             )
 
-            # Store cleaned BOLD data
-            new_img = GiftiImage(
-                darrays=[
-                    GiftiDataArray(data=row, intent="NIFTI_INTENT_TIME_SERIES")
-                    for row in cleaned_bold
-                ],
-                header=img.header,
-                extra=img.extra,
-            )
-            entities = filepath.name.split("_")
-            if entities[-2].startswith("desc-"):
-                entities[-2] = "desc-clean"
-            else:
-                entities.insert(-1, "desc-clean")
-            new_filename = "_".join(entities)
-            intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
-            new_filepath = self._output_dir / intermediate_dir / new_filename
-            new_filepath.parent.mkdir(parents=True, exist_ok=True)
-            nib.save(new_img, new_filepath)
+        # Perform confound regression
+        cleaned_bold = signal.clean(
+            bold,
+            confounds=confounds,
+            detrend=True,
+            t_r=TR,
+            ensure_finite=True,
+            standardize="zscore_sample",
+            standardize_confounds=True,
+        )
+
+        # Store cleaned BOLD data
+        new_img = GiftiImage(
+            darrays=[
+                GiftiDataArray(data=row, intent="NIFTI_INTENT_TIME_SERIES")
+                for row in cleaned_bold
+            ],
+            header=img.header,
+            extra=img.extra,
+        )
+        entities = filepath.name.split("_")
+        if entities[-2].startswith("desc-"):
+            entities[-2] = "desc-clean"
+        else:
+            entities.insert(-1, "desc-clean")
+        new_filename = "_".join(entities)
+        intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
+        new_filepath = self._output_dir / intermediate_dir / new_filename
+        new_filepath.parent.mkdir(parents=True, exist_ok=True)
+        nib.save(new_img, new_filepath)
 
     def _load_confounds(
         self, bold_filepath: Path, model_spec: ModelSpec
