@@ -14,6 +14,8 @@ from nibabel.nifti1 import Nifti1Image
 from nilearn import image as nimg
 from nilearn import signal
 from pydantic import TypeAdapter
+from rich import print
+from rich.progress import track
 
 from .enums import CompCorMethod, CompCorTissue, SurfaceSpace, VolumeSpace
 from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
@@ -100,7 +102,8 @@ class ConfoundRegression:
         if data_space_type not in CLEAN_BOLD:
             raise ValueError(f"Unsupported data space: {data_space_name}")
 
-        for sub_id in subject_ids:
+        failed_filenames = []
+        for sub_id in track(subject_ids, description="Processing..."):
             bold_pattern = self._compose_glob_pattern_for_bold(
                 subject_id=sub_id,
                 session_name=session_name,
@@ -109,7 +112,17 @@ class ConfoundRegression:
             )
             bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
             for filepath in bold_filepaths:
-                CLEAN_BOLD[data_space_type](filepath, model_spec)
+                try:
+                    CLEAN_BOLD[data_space_type](filepath, model_spec)
+                except Exception:
+                    failed_filenames.append(filepath.name)
+
+        if failed_filenames:
+            print(
+                "[red]Failed files:[/red]",
+                failed_filenames,
+                "[red]Please check logs for more details.[/red]",
+            )
 
     def _clean_bold_in_volume_space(self, filepath: Path, model_spec: ModelSpec):
         # Read raw BOLD data
