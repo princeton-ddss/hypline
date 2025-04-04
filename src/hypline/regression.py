@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from copy import deepcopy
 from pathlib import Path
@@ -53,8 +54,7 @@ class ConfoundRegression:
             if output_dir
             else self._fmriprep_dir.with_name(self._fmriprep_dir.name + "_cleaned")
         )
-        if self._output_dir.exists() is False:
-            self._output_dir.mkdir()
+        self._output_dir.mkdir(parents=True, exist_ok=True)
 
         # Set the directory path to custom confounds
         self._custom_confounds_dir = None
@@ -62,6 +62,16 @@ class ConfoundRegression:
             self._custom_confounds_dir = Path(custom_confounds_dir)
             if self._custom_confounds_dir.exists() is False:
                 raise FileNotFoundError(f"Path does not exist: {custom_confounds_dir}")
+
+        # Create logging-related attributes
+        self._log_dir = self._output_dir / "logs"
+        self._log_dir.mkdir(parents=True, exist_ok=True)
+        self._logger = logging.getLogger(__name__)
+        self._logger.setLevel(logging.INFO)
+        self._formatter = logging.Formatter(
+            fmt="%(asctime)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
     @property
     def config(self) -> Config:
@@ -102,8 +112,11 @@ class ConfoundRegression:
         if data_space_type not in CLEAN_BOLD:
             raise ValueError(f"Unsupported data space: {data_space_name}")
 
-        failed_filenames = []
         for sub_id in track(subject_ids, description="Processing..."):
+            file_handler = logging.FileHandler(self._log_dir / f"sub-{sub_id}.log")
+            file_handler.setFormatter(self._formatter)
+            self._logger.addHandler(file_handler)
+
             bold_pattern = self._compose_glob_pattern_for_bold(
                 subject_id=sub_id,
                 session_name=session_name,
@@ -111,18 +124,17 @@ class ConfoundRegression:
                 data_space=data_space,
             )
             bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
+
             for filepath in bold_filepaths:
+                self._logger.info("Cleaning started: %s", filepath.name)
                 try:
                     CLEAN_BOLD[data_space_type](filepath, model_spec)
-                except Exception:
-                    failed_filenames.append(filepath.name)
+                    self._logger.info("Cleaning completed: %s", filepath.name)
+                except Exception as e:
+                    self._logger.error(e)
+                    print("[red]Processing failed:[/red]", filepath.name)
 
-        if failed_filenames:
-            print(
-                "[red]Failed files:[/red]",
-                failed_filenames,
-                "[red]Please check logs for more details.[/red]",
-            )
+            self._logger.removeHandler(file_handler)  # Reset for next iteration
 
     def _clean_bold_in_volume_space(self, filepath: Path, model_spec: ModelSpec):
         # Read raw BOLD data
@@ -275,9 +287,8 @@ class ConfoundRegression:
 
         return confounds_df
 
-    @classmethod
     def _extract_confounds(
-        cls,
+        self,
         confounds_df: pl.DataFrame,
         confounds_meta: dict[str, ConfoundMetadata],
         model_spec: ModelSpec,
@@ -314,7 +325,7 @@ class ConfoundRegression:
                 for options in getattr(model_spec, compcor.value):
                     assert isinstance(options, CompCorOptions)
                     comps_selected.extend(
-                        cls._select_comps(
+                        self._select_comps(
                             confounds_meta,
                             compcor,
                             n_comps=options.n_comps,
@@ -327,8 +338,8 @@ class ConfoundRegression:
 
         return confounds
 
-    @staticmethod
     def _select_comps(
+        self,
         confounds_meta: dict[str, ConfoundMetadata],
         method: CompCorMethod,
         n_comps: int | float,
@@ -346,9 +357,9 @@ class ConfoundRegression:
 
         # Ignore tissue if specified for tCompCor
         if method == CompCorMethod.TEMPORAL and tissue:
-            print(
-                "Warning: tCompCor is not restricted to a tissue "
-                f"mask - ignoring tissue specification ({tissue})"
+            self._logger.warning(
+                "tCompCor is not restricted to a tissue mask - ignoring tissue specification (%s)",
+                tissue.value,
             )
             tissue = None
 
@@ -380,9 +391,11 @@ class ConfoundRegression:
                 comps_selected = comps_sorted[:n_comps]
             else:
                 comps_selected = comps_sorted
-                print(
-                    f"Warning: Only {len(comps_sorted)} {method} "
-                    f"components available ({n_comps} requested)"
+                self._logger.warning(
+                    "Only %d %s components available (%d requested)",
+                    len(comps_sorted),
+                    method.value,
+                    n_comps,
                 )
 
         # Or components necessary to capture n proportion of variance
