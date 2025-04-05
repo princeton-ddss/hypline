@@ -126,10 +126,10 @@ class ConfoundRegression:
             bold_filepaths = self._fmriprep_dir.glob(bold_pattern)
 
             for filepath in bold_filepaths:
-                self._logger.info("Cleaning started: %s", filepath.name)
+                self._logger.info("Cleaning starting: %s", filepath.name)
                 try:
                     CLEAN_BOLD[data_space_type](filepath, model_spec)
-                    self._logger.info("Cleaning completed: %s", filepath.name)
+                    self._logger.info("Cleaning complete: %s", filepath.name)
                 except Exception as e:
                     self._logger.error(e)
                     print("[red]Processing failed:[/red]", filepath.name)
