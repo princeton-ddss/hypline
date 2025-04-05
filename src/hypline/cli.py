@@ -2,6 +2,7 @@ import multiprocessing as mp
 from pathlib import Path
 
 import typer
+from rich import print
 from typing_extensions import Annotated
 
 from .regression import ConfoundRegression
@@ -93,11 +94,16 @@ def clean(
     if n_processes < 2:
         clean_bold(subject_ids)
     else:
-        max_processes = mp.cpu_count()
-        if n_processes > max_processes:
-            # TODO: Print warning
-            n_processes = max_processes
         if mp.current_process().name == "MainProcess":
+            max_processes = mp.cpu_count()
+            if n_processes > max_processes:
+                n_processes = max_processes
+                print(
+                    "[bold yellow]Warning:[/bold yellow] "
+                    "Requested processes exceed available CPU "
+                    "cores. Resetting to match available cores."
+                )
+
             processes: list[DillProcess] = []
             for i in range(n_processes):
                 p = DillProcess(target=clean_bold, args=(subject_ids[i::n_processes],))
