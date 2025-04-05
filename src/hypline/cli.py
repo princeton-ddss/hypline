@@ -1,4 +1,5 @@
 import multiprocessing as mp
+from pathlib import Path
 
 import typer
 from typing_extensions import Annotated
@@ -69,14 +70,18 @@ def clean(
     """
     Clean BOLD data for all subjects in the given fMRIPrep outputs.
     """
-    reg = ConfoundRegression(
-        config_file=config_file,
-        fmriprep_dir=fmriprep_dir,
-        output_dir=output_dir,
-        custom_confounds_dir=custom_confounds_dir,
-    )
+    subject_ids = [
+        path.name[4:] for path in Path(fmriprep_dir).glob("sub-*") if path.is_dir()
+    ]
 
     def clean_bold(subject_ids: list[str]):
+        reg = ConfoundRegression(
+            config_file=config_file,
+            fmriprep_dir=fmriprep_dir,
+            output_dir=output_dir,
+            custom_confounds_dir=custom_confounds_dir,
+        )
+
         reg.clean_bold(
             model_name=model_name,
             subject_ids=subject_ids,
@@ -84,10 +89,6 @@ def clean(
             task_name=task_name,
             data_space_name=data_space_name,
         )
-
-    subject_ids = [
-        path.name[4:] for path in reg.fmriprep_dir.glob("sub-*") if path.is_dir()
-    ]
 
     if n_processes < 2:
         clean_bold(subject_ids)
