@@ -1,7 +1,7 @@
 [project]
 name = "hypline"
 version = "0.1.0"
-description = "Add your description here"
+description = "Data Cleaning and Analysis Pipeline for Hyperscanning Research"
 readme = "README.md"
 authors = [
     { name = "Sangyoon Park", email = "datumvitae@gmail.com" }
