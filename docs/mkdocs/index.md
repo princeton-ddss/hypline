@@ -1,16 +1,28 @@
-# Hypline
+# Welcome to Hypline
 
 Hypline is a Python package that provides a CLI tool for cleaning and analyzing data from hyperscanning studies involving dyadic conversations.
 
 ## Installation
 
-Hypline can be installed using `pip`:
+Hypline can be installed using `pip` or other package managers such as [`uv`](https://docs.astral.sh/uv/) and [`poetry`](https://python-poetry.org/docs/).
 
-```bash
-pip install hypline
-```
+=== "pip"
 
-It can also be installed using other package managers such as [`uv`](https://docs.astral.sh/uv/) and [`poetry`](https://python-poetry.org/docs/).
+    ```bash
+    pip install hypline
+    ```
+
+=== "uv"
+
+    ```bash
+    uv add hypline
+    ```
+
+=== "poetry"
+
+    ```bash
+    poetry add hypline
+    ```
 
 ## Quick Start
 
@@ -30,4 +42,4 @@ hypline clean --help
 
 ## What Next
 
-If you want to learn more about Hypline, please check out the official project [documentation](https://princeton-ddss.github.io/hypline/).
+Please check out user [guides](guides/clean.md) for more detailed instructions and examples.

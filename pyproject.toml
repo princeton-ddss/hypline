@@ -20,9 +20,18 @@ dependencies = [
     "typer>=0.15.2",
 ]
 
+[project.urls]
+Repository = "https://github.com/princeton-ddss/hypline"
+Documentation = "https://princeton-ddss.github.io/hypline/"
+
 [project.scripts]
 hypline = "hypline:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.6.11",
+]
