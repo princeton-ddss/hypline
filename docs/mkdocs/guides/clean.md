@@ -140,7 +140,7 @@ hypline clean \
   data/derivatives/hypline/config.yml \
   default_task \
   --custom-confounds-dir  data/derivatives/hypline/custom_confounds/ \
-  --data-space fsaverage6
+  --data-space fsaverage6 \
   --n-processes 8
 ```
 
