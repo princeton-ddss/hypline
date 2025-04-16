@@ -45,6 +45,14 @@ def clean(
         str | None,
         typer.Option(help="Directory containing custom confounds"),
     ] = None,
+    subject_ids_input: Annotated[
+        str,
+        typer.Option(
+            "--subject-ids",
+            help="Target subject IDs (comma-separated, with no spaces)",
+            show_default="all",
+        ),
+    ] = "*",
     session_name: Annotated[
         str,
         typer.Option(
@@ -69,11 +77,14 @@ def clean(
     ] = 1,
 ):
     """
-    Clean BOLD data for all subjects in the given fMRIPrep outputs.
+    Clean BOLD data in the given fMRIPrep outputs.
     """
-    subject_ids = [
-        path.name[4:] for path in Path(fmriprep_dir).glob("sub-*") if path.is_dir()
-    ]
+    if subject_ids_input == "*":
+        subject_ids = [
+            path.name[4:] for path in Path(fmriprep_dir).glob("sub-*") if path.is_dir()
+        ]
+    else:
+        subject_ids = subject_ids_input.split(",")
 
     def clean_bold(subject_ids: list[str]):
         reg = ConfoundRegression(
