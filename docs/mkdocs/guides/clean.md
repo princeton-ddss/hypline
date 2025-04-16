@@ -24,6 +24,7 @@ and several options:
 | ------------------------- | --------------------------------------- | ------------------------- |
 | `--output-dir`            | Directory to store cleaned BOLD data    | `<fmriprep_dir>_cleaned`  |
 | `--custom-confounds-dir`  | Directory containing custom confounds   | None                      |
+| `--subject-ids`           | Target subject IDs (comma-separated)    | All                       |
 | `--session-name`          | Target session name                     | All                       |
 | `--task-name`             | Target task name                        | All                       |
 | `--data-space-name`       | Target BOLD data space                  | `MNI152NLin2009cAsym`     |
