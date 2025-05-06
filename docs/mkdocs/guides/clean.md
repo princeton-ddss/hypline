@@ -30,6 +30,15 @@ and several options:
 | `--data-space-name`       | Target BOLD data space                  | `MNI152NLin2009cAsym`     |
 | `--n-processes`           | Number of processes to run in parallel  | `1`                       |
 
+!!! info
+
+    Hypline supports the following data spaces at the moment:
+
+    - `fsaverage5`
+    - `fsaverage6`
+    - `MNI152NLin6Asym`
+    - `MNI152NLin2009cAsym`
+
 ## Example
 
 For illustration, consider we have the fMRIPrep outputs stored in the following location:
@@ -89,6 +98,19 @@ model_specs:
         tissue: "WM"
 ```
 
+!!! info
+
+    The configuration file above defines two models, named `default` and `default_task`, respectively.
+    The `default` model is defined to use standard and CompCor confounds from fMRIPrep outputs (i.e.,
+    `confounds` and `aCompCor` sections above, respectively). The `default_task` model is defined to
+    use [custom confounds](#using-custom-confounds) (i.e., `custom_confounds` section above) in addition
+    to confounds from fMRIPrep outputs.
+
+!!! note
+
+    Configuration should be provided as a valid YAML file. Check this
+    [tutorial](https://www.datacamp.com/blog/what-is-yaml) to learn the basics of YAML.
+
 We can store the configuration file anywhere we want. Let's say we stored it as follows:
 
 ``` hl_lines="3-4"
@@ -136,13 +158,13 @@ data/
 With this setup, we can run the following to clean surface-level BOLD data for all subjects:
 
 ```bash
-hypline clean \
-  data/derivatives/fmriprep/ \
-  data/derivatives/hypline/config.yml \
-  default_task \
-  --custom-confounds-dir  data/derivatives/hypline/custom_confounds/ \
-  --data-space fsaverage6 \
-  --n-processes 8
+hypline  clean  \
+  data/derivatives/fmriprep/  \
+  data/derivatives/hypline/config.yml  \
+  default_task  \
+  --custom-confounds-dir  data/derivatives/hypline/custom_confounds/  \
+  --data-space  fsaverage6  \
+  --n-processes  8
 ```
 
 Note that we are here leveraging multiprocessing (i.e., 8 parallel processes) to speed up the cleaning.
