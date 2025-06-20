@@ -172,15 +172,7 @@ class ConfoundRegression:
         assert isinstance(cleaned_bold, Nifti1Image)
 
         # Store cleaned BOLD data
-        entities = filepath.name.split("_")
-        if entities[-2].startswith("desc-"):
-            entities[-2] = "desc-clean"
-        else:
-            entities.insert(-1, "desc-clean")
-        new_filename = "_".join(entities)
-        intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
-        new_filepath = self._output_dir / intermediate_dir / new_filename
-        new_filepath.parent.mkdir(parents=True, exist_ok=True)
+        new_filepath = self._make_new_filepath(filepath)
         nib.save(cleaned_bold, new_filepath)
 
     def _clean_bold_in_surface_space(self, filepath: Path, model_spec: ModelSpec):
@@ -225,6 +217,13 @@ class ConfoundRegression:
             header=img.header,
             extra=img.extra,
         )
+        new_filepath = self._make_new_filepath(filepath)
+        nib.save(new_img, new_filepath)
+
+    def _make_new_filepath(self, filepath: Path) -> Path:
+        """
+        Make a new file path to store cleaned data.
+        """
         entities = filepath.name.split("_")
         if entities[-2].startswith("desc-"):
             entities[-2] = "desc-clean"
@@ -234,7 +233,8 @@ class ConfoundRegression:
         intermediate_dir = filepath.relative_to(self._fmriprep_dir).parent
         new_filepath = self._output_dir / intermediate_dir / new_filename
         new_filepath.parent.mkdir(parents=True, exist_ok=True)
-        nib.save(new_img, new_filepath)
+
+        return new_filepath
 
     def _load_confounds(
         self, bold_filepath: Path, model_spec: ModelSpec
