@@ -34,4 +34,5 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "mkdocs-material>=9.6.11",
+    "pytest>=8.4.1",
 ]
