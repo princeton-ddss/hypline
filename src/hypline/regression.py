@@ -418,6 +418,27 @@ class ConfoundRegression:
         task_name: str,
         data_space: VolumeSpace | SurfaceSpace,
     ) -> str:
+        """
+        Compose a file name pattern to match.
+
+        Parameters
+        ----------
+        subject_id : str
+            ID of the study participant (should correspond to fMRIPrep output).
+        session_name : str
+            Name of the hyperscanning session (should correspond to fMRIPrep output).
+        task_name : str
+            Name of the hyperscanning task (should correspond to fMRIPrep output).
+        data_space : VolumeSpace or SurfaceSpace
+            A spatial representation of the dataset.
+            Use `VolumeSpace` for volumetric data (e.g., MNI152NLin2009cAsym),
+            and `SurfaceSpace` for surface-based data (e.g., fsaverage6).
+
+        Returns
+        -------
+        str
+            Corresponding file name pattern.
+        """
         SUFFIX_MAP = {VolumeSpace: "bold.nii.gz", SurfaceSpace: "bold.func.gii"}
 
         subject = f"sub-{subject_id}"
