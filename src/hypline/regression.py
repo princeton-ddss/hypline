@@ -347,6 +347,24 @@ class ConfoundRegression:
         """
         Select relevant CompCor components.
 
+        Parameters
+        ----------
+        confounds_meta : dict of str to ConfoundMetadata
+            Mapping between component name and data.
+        method : CompCorMethod
+            Either anatomical or temporal CompCor.
+        n_comps : int or float
+            If integer, the number of top components to select.
+            If float, the proportion of cumulative variance to capture.
+        mask: CompCorMask or None
+            ROI where the decomposition that generated the component was performed.
+            Applicable for anatomical CompCor only.
+
+        Returns
+        -------
+        list of str
+            Selected component names.
+
         Notes
         -----
         Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
