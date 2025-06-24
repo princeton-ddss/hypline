@@ -35,4 +35,5 @@ build-backend = "hatchling.build"
 dev = [
     "mkdocs-material>=9.6.11",
     "pytest>=8.4.1",
+    "pytest-mock>=3.14.1",
 ]
