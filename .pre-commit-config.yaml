@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: testing
+        name: testing
+        entry: pytest
+        args: [ tests ]
+        language: python
+        pass_filenames: false
+
+      - id: linting
+        name: linting
+        entry: ruff
+        args: [ check, --fix ]
+        language: python
+        pass_filenames: false
+
+      - id: formatting
+        name: formatting
+        entry: ruff
+        args: [ format ]
+        language: python
+        pass_filenames: false

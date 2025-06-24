@@ -155,7 +155,8 @@ class ConfoundRegression:
         confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
         if confounds.shape[0] != bold.shape[-1]:
             raise ValueError(
-                f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
+                "Unequal number of TRs between BOLD and "
+                f"confounds data: {filepath.name}"
             )
 
         # Perform confound regression
@@ -193,7 +194,8 @@ class ConfoundRegression:
         confounds = confounds_df.to_numpy()  # Shape of (TRs, confounds)
         if confounds.shape[0] != bold.shape[0]:
             raise ValueError(
-                f"Unequal number of TRs between BOLD and confounds data: {filepath.name}"
+                "Unequal number of TRs between BOLD and "
+                f"confounds data: {filepath.name}"
             )
 
         # Perform confound regression
@@ -278,7 +280,8 @@ class ConfoundRegression:
                 )
             if custom_confounds_df.height != confounds_df.height:
                 raise ValueError(
-                    f"Unequal number of rows (TRs) between standard and custom confounds data: {identifier}"
+                    "Unequal number of rows (TRs) between standard and "
+                    f"custom confounds data: {identifier}"
                 )
             confounds_df = pl.concat(
                 [confounds_df, custom_confounds_df], how="horizontal"
@@ -386,7 +389,8 @@ class ConfoundRegression:
         elif method == CompCorMethod.TEMPORAL:
             if mask:
                 self._logger.warning(
-                    "tCompCor is not restricted to a mask - ignoring mask specification (%s)",
+                    "tCompCor is not restricted to a mask "
+                    "- ignoring mask specification (%s)",
                     mask.value,
                 )
                 mask = None  # Ignore (not applicable)

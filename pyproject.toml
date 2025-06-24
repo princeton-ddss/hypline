@@ -33,6 +33,16 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "mkdocs-material>=9.6.11",
+    "pre-commit>=4.2.0",
     "pytest>=8.4.1",
     "pytest-mock>=3.14.1",
+    "ruff>=0.12.0",
+]
+
+[tool.ruff.lint]
+select = [
+    "F",    # Pyflakes rules
+    "W",    # PyCodeStyle warnings
+    "E",    # PyCodeStyle errors
+    "I",    # Sort imports properly
 ]
