@@ -9,7 +9,6 @@ import nibabel as nib
 import numpy as np
 import polars as pl
 import yaml
-from natsort import natsorted
 from nibabel.gifti import GiftiDataArray, GiftiImage
 from nibabel.nifti1 import Nifti1Image
 from nilearn import image as nimg
@@ -374,15 +373,10 @@ class ConfoundRegression:
         if method == CompCorMethod.ANATOMICAL:
             compcor_meta = {k: v for k, v in compcor_meta.items() if v.Mask == mask}
 
-        # Make sure metadata components are sorted properly
-        comps_sorted = natsorted(compcor_meta)
-        for i, comp in enumerate(comps_sorted):
-            if comp != comps_sorted[-1]:
-                comp_next = comps_sorted[i + 1]
-                assert (
-                    compcor_meta[comp].SingularValue
-                    > compcor_meta[comp_next].SingularValue
-                )
+        # Sort metadata components
+        comps_sorted = sorted(
+            compcor_meta, key=lambda k: compcor_meta[k].SingularValue, reverse=True
+        )
 
         # Either get top n components
         if n_comps >= 1.0:
