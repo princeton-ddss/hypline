@@ -351,16 +351,8 @@ class ConfoundRegression:
         -----
         Adapted from https://github.com/snastase/narratives/blob/master/code/extract_confounds.py.
         """
-        # Check that we sensible number of components
-        assert n_comps > 0
-
-        # Ignore mask if specified for tCompCor
-        if method == CompCorMethod.TEMPORAL and mask:
-            self._logger.warning(
-                "tCompCor is not restricted to a mask - ignoring mask specification (%s)",
-                mask.value,
-            )
-            mask = None
+        # Ensure a sensible number of components is requested
+        assert n_comps > 0, "`n_comps` must be positive"
 
         # Get CompCor metadata for relevant method
         compcor_meta = {
@@ -369,9 +361,19 @@ class ConfoundRegression:
             if v.Method == method and v.Retained is True
         }
 
-        # If aCompCor, filter metadata for mask
+        # Apply method-specific processing
         if method == CompCorMethod.ANATOMICAL:
+            assert mask is not None, "Mask must be specified for aCompCor"
             compcor_meta = {k: v for k, v in compcor_meta.items() if v.Mask == mask}
+        elif method == CompCorMethod.TEMPORAL:
+            if mask:
+                self._logger.warning(
+                    "tCompCor is not restricted to a mask - ignoring mask specification (%s)",
+                    mask.value,
+                )
+                mask = None  # Ignore (not applicable)
+        else:
+            raise ValueError(f"Unsupported CompCor method: {method}")
 
         # Sort metadata components
         comps_sorted = sorted(
@@ -401,7 +403,7 @@ class ConfoundRegression:
                     break
 
         # Check we didn't end up with degenerate 0 components
-        assert len(comps_selected) > 0
+        assert len(comps_selected) > 0, "Zero components selected"
 
         return comps_selected
 
