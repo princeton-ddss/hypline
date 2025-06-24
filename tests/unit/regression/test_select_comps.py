@@ -126,3 +126,47 @@ def test_select_comps(
         mask=mask,
     )
     assert output == expected_output
+
+
+def test_invalid_n_comps(
+    # Fixture(s)
+    confound_regression: ConfoundRegression,
+    confounds_meta: ConfoundMetadata,
+):
+    with pytest.raises(AssertionError, match="`n_comps` must be positive"):
+        confound_regression._select_comps(
+            confounds_meta=confounds_meta,
+            method=CompCorMethod.TEMPORAL,
+            n_comps=-1,
+            mask=None,
+        )
+
+
+def test_missing_mask_for_acompcor(
+    # Fixture(s)
+    confound_regression: ConfoundRegression,
+    confounds_meta: ConfoundMetadata,
+):
+    with pytest.raises(AssertionError, match="Mask must be specified for aCompCor"):
+        confound_regression._select_comps(
+            confounds_meta=confounds_meta,
+            method=CompCorMethod.ANATOMICAL,
+            n_comps=1,
+            mask=None,
+        )
+
+
+def test_unsupported_method(
+    # Fixture(s)
+    confound_regression: ConfoundRegression,
+    confounds_meta: ConfoundMetadata,
+):
+    with pytest.raises(
+        ValueError, match=f"Unsupported CompCor method: {CompCorMethod.MEAN}"
+    ):
+        confound_regression._select_comps(
+            confounds_meta=confounds_meta,
+            method=CompCorMethod.MEAN,
+            n_comps=1,
+            mask=None,
+        )
