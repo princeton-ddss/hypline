@@ -7,7 +7,7 @@ class CompCorMethod(Enum):
     MEAN = "Mean"
 
 
-class CompCorTissue(Enum):
+class CompCorMask(Enum):
     CSF = "CSF"
     WM = "WM"
     COMBINED = "combined"

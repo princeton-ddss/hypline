@@ -1,30 +1,30 @@
 import pytest
 
-from hypline.enums import CompCorMethod, CompCorTissue
+from hypline.enums import CompCorMask, CompCorMethod
 from hypline.regression import ConfoundRegression
 from hypline.schemas import ConfoundMetadata
 
 
 @pytest.mark.parametrize(
-    "method, n_comps, tissue, expected_output",
+    "method, n_comps, mask, expected_output",
     [
-        # aCompCor with CSF tissue
+        # aCompCor with CSF mask
         (
             CompCorMethod.ANATOMICAL,
             1,
-            CompCorTissue.CSF,
+            CompCorMask.CSF,
             ["a_comp_cor_00"],
         ),
         (
             CompCorMethod.ANATOMICAL,
             3,
-            CompCorTissue.CSF,
+            CompCorMask.CSF,
             ["a_comp_cor_00", "a_comp_cor_01", "a_comp_cor_02"],
         ),
         (
             CompCorMethod.ANATOMICAL,
             10,
-            CompCorTissue.CSF,
+            CompCorMask.CSF,
             [
                 "a_comp_cor_00",
                 "a_comp_cor_01",
@@ -41,7 +41,7 @@ from hypline.schemas import ConfoundMetadata
         (
             CompCorMethod.ANATOMICAL,
             0.3,
-            CompCorTissue.CSF,
+            CompCorMask.CSF,
             [
                 "a_comp_cor_00",
                 "a_comp_cor_01",
@@ -50,30 +50,30 @@ from hypline.schemas import ConfoundMetadata
                 "a_comp_cor_04",
             ],
         ),
-        # aCompCor with WM tissue
+        # aCompCor with WM mask
         (
             CompCorMethod.ANATOMICAL,
             3,
-            CompCorTissue.WM,
+            CompCorMask.WM,
             ["a_comp_cor_12", "a_comp_cor_13", "a_comp_cor_14"],
         ),
         (
             CompCorMethod.ANATOMICAL,
             0.1,
-            CompCorTissue.WM,
+            CompCorMask.WM,
             ["a_comp_cor_12", "a_comp_cor_13"],
         ),
-        # aCompCor with combined tissue
+        # aCompCor with combined mask
         (
             CompCorMethod.ANATOMICAL,
             3,
-            CompCorTissue.COMBINED,
+            CompCorMask.COMBINED,
             ["a_comp_cor_100", "a_comp_cor_101", "a_comp_cor_102"],
         ),
         (
             CompCorMethod.ANATOMICAL,
             0.1,
-            CompCorTissue.COMBINED,
+            CompCorMask.COMBINED,
             ["a_comp_cor_100", "a_comp_cor_101"],
         ),
         # tCompCor
@@ -104,7 +104,7 @@ from hypline.schemas import ConfoundMetadata
         (
             CompCorMethod.TEMPORAL,
             0.4,
-            CompCorTissue.CSF,  # Expected to be ignored
+            CompCorMask.CSF,  # Expected to be ignored
             ["t_comp_cor_00", "t_comp_cor_01"],
         ),
     ],
@@ -116,13 +116,13 @@ def test_select_comps(
     # Parameter(s)
     method: CompCorMethod,
     n_comps: int | float,
-    tissue: CompCorTissue | None,
+    mask: CompCorMask | None,
     expected_output: list[str],
 ):
     output = confound_regression._select_comps(
         confounds_meta=confounds_meta,
         method=method,
         n_comps=n_comps,
-        tissue=tissue,
+        mask=mask,
     )
     assert output == expected_output

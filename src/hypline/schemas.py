@@ -1,17 +1,17 @@
 from pydantic import BaseModel, PositiveFloat, PositiveInt
 
-from .enums import CompCorMethod, CompCorTissue
+from .enums import CompCorMask, CompCorMethod
 
 
 class CompCorOptions(BaseModel):
     n_comps: PositiveInt | PositiveFloat = 5
-    tissue: CompCorTissue | None = None
+    mask: CompCorMask | None = None
 
 
 class ConfoundMetadata(BaseModel):
     Method: CompCorMethod
     Retained: bool | None = None
-    Mask: CompCorTissue | None = None
+    Mask: CompCorMask | None = None
     SingularValue: float | None = None
     VarianceExplained: float | None = None
     CumulativeVarianceExplained: float | None = None

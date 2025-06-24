@@ -70,9 +70,9 @@ model_specs:
       - "cosine"
     aCompCor:
       - n_comps: 5
-        tissue: "CSF"
+        mask: "CSF"
       - n_comps: 5
-        tissue: "WM"
+        mask: "WM"
 
   default_task:
     confounds:
@@ -93,9 +93,9 @@ model_specs:
       - "screen_change"
     aCompCor:
       - n_comps: 5
-        tissue: "CSF"
+        mask: "CSF"
       - n_comps: 5
-        tissue: "WM"
+        mask: "WM"
 ```
 
 !!! info

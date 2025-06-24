@@ -18,7 +18,7 @@ from pydantic import TypeAdapter
 from rich import print
 from rich.progress import track
 
-from .enums import CompCorMethod, CompCorTissue, SurfaceSpace, VolumeSpace
+from .enums import CompCorMask, CompCorMethod, SurfaceSpace, VolumeSpace
 from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
 
 
@@ -329,7 +329,7 @@ class ConfoundRegression:
                             confounds_meta,
                             compcor,
                             n_comps=options.n_comps,
-                            tissue=options.tissue,
+                            mask=options.mask,
                         )
                     )
             confounds = pl.concat(
@@ -343,7 +343,7 @@ class ConfoundRegression:
         confounds_meta: dict[str, ConfoundMetadata],
         method: CompCorMethod,
         n_comps: int | float,
-        tissue: CompCorTissue | None,
+        mask: CompCorMask | None,
     ) -> list[str]:
         """
         Select relevant CompCor components.
@@ -355,13 +355,13 @@ class ConfoundRegression:
         # Check that we sensible number of components
         assert n_comps > 0
 
-        # Ignore tissue if specified for tCompCor
-        if method == CompCorMethod.TEMPORAL and tissue:
+        # Ignore mask if specified for tCompCor
+        if method == CompCorMethod.TEMPORAL and mask:
             self._logger.warning(
-                "tCompCor is not restricted to a tissue mask - ignoring tissue specification (%s)",
-                tissue.value,
+                "tCompCor is not restricted to a mask - ignoring mask specification (%s)",
+                mask.value,
             )
-            tissue = None
+            mask = None
 
         # Get CompCor metadata for relevant method
         compcor_meta = {
@@ -370,9 +370,9 @@ class ConfoundRegression:
             if v.Method == method and v.Retained is True
         }
 
-        # If aCompCor, filter metadata for tissue mask
+        # If aCompCor, filter metadata for mask
         if method == CompCorMethod.ANATOMICAL:
-            compcor_meta = {k: v for k, v in compcor_meta.items() if v.Mask == tissue}
+            compcor_meta = {k: v for k, v in compcor_meta.items() if v.Mask == mask}
 
         # Make sure metadata components are sorted properly
         comps_sorted = natsorted(compcor_meta)
