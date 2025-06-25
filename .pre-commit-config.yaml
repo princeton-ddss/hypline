@@ -21,3 +21,10 @@ repos:
         args: [ format ]
         language: python
         pass_filenames: false
+
+      - id: typechecking
+        name: typechecking
+        entry: mypy
+        args: [ src, --ignore-missing-imports ]
+        language: python
+        pass_filenames: false

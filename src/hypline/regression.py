@@ -8,7 +8,7 @@ from types import MappingProxyType
 import nibabel as nib
 import numpy as np
 import polars as pl
-import yaml
+import yaml  # type: ignore
 from nibabel.gifti import GiftiDataArray, GiftiImage
 from nibabel.nifti1 import Nifti1Image
 from nilearn import image as nimg
@@ -107,9 +107,9 @@ class ConfoundRegression:
             raise ValueError(f"Undefined model: {model_name}")
 
         data_space = self.DATA_SPACES.get(data_space_name)
-        data_space_type = type(data_space)
-        if data_space_type not in CLEAN_BOLD:
+        if data_space is None:
             raise ValueError(f"Unsupported data space: {data_space_name}")
+        data_space_type = type(data_space)
 
         for sub_id in track(subject_ids, description="Processing..."):
             file_handler = logging.FileHandler(self._log_dir / f"sub-{sub_id}.log")
@@ -263,6 +263,9 @@ class ConfoundRegression:
 
         # Load custom confounds for the requested model
         if model_spec.custom_confounds:
+            assert self._custom_confounds_dir is not None, (
+                "Missing directory path for custom confounds"
+            )
             files = self._custom_confounds_dir.glob(
                 f"**/{identifier}*desc-customConfounds*timeseries.tsv"
             )
@@ -274,7 +277,7 @@ class ConfoundRegression:
                 separator="\t",
                 columns=model_spec.custom_confounds,
             )
-            if custom_confounds_df.fill_nan(None).null_count().pipe(sum).item() > 0:
+            if sum(custom_confounds_df.fill_nan(None).null_count().row(0)) > 0:
                 raise ValueError(
                     f"Missing / NaN values in custom confounds data: {identifier}"
                 )
@@ -399,7 +402,9 @@ class ConfoundRegression:
 
         # Sort metadata components
         comps_sorted = sorted(
-            compcor_meta, key=lambda k: compcor_meta[k].SingularValue, reverse=True
+            compcor_meta,
+            key=lambda k: (compcor_meta[k].SingularValue or 0.0),
+            reverse=True,
         )
 
         # Either get top n components
@@ -421,7 +426,7 @@ class ConfoundRegression:
             comps_selected = []
             for comp in comps_sorted:
                 comps_selected.append(comp)
-                if compcor_meta[comp].CumulativeVarianceExplained > n_comps:
+                if (compcor_meta[comp].CumulativeVarianceExplained or 1.0) > n_comps:
                     break
 
         # Check we didn't end up with degenerate 0 components
