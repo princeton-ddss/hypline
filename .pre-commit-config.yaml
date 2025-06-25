@@ -11,14 +11,14 @@ repos:
       - id: linting
         name: linting
         entry: ruff
-        args: [ check, --fix ]
+        args: [ check, src, --fix ]
         language: python
         pass_filenames: false
 
       - id: formatting
         name: formatting
         entry: ruff
-        args: [ format ]
+        args: [ format, src ]
         language: python
         pass_filenames: false
 
