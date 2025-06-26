@@ -1,0 +1,80 @@
+name: CD
+
+on:
+  push:
+    tags:
+        - v*.*.*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Git credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.15"
+
+      - name: Sync version with tag name
+        run: |
+          uv version ${{ github.ref_name }}
+          git add .
+          git commit -m "Update package version" || echo "Package version up to date"
+
+      - name: Build the package
+        run: uv build
+
+      - name: Publish the package
+        run: uv publish --token ${{ secrets.PYPI_API_TOKEN }}
+
+  docs:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Git credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Create cache key
+        run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+
+      - name: Cache build files
+        uses: actions/cache@v4
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+
+      - name: Install dependencies
+        run: pip install mkdocs-material
+
+      - name: Publish docs to gh-pages
+        run: |
+          cd docs
+          mkdocs gh-deploy --force
