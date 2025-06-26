@@ -71,9 +71,9 @@ jobs:
             mkdocs-material-
 
       - name: Install dependencies
-        run: pip install mkdocs-material
+        run: pip install mkdocs-material mike
 
       - name: Publish docs to gh-pages
         run: |
           cd docs
-          mkdocs gh-deploy --force
+          mike deploy --push --update-aliases ${{ github.event.release.tag_name }} latest
