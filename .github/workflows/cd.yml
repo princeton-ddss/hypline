@@ -1,9 +1,8 @@
 name: CD
 
 on:
-  push:
-    tags:
-        - v*.*.*
+  release:
+    types: [published]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,7 +33,7 @@ jobs:
 
       - name: Sync version with tag name
         run: |
-          uv version ${{ github.ref_name }}
+          uv version ${{ github.event.release.tag_name }}
           git add .
           git commit -m "Update package version" || echo "Package version up to date"
 
