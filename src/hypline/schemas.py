@@ -1,4 +1,4 @@
-from pydantic import BaseModel, PositiveFloat, PositiveInt
+from pydantic import BaseModel, Field, PositiveFloat, PositiveInt
 
 from .enums import CompCorMask, CompCorMethod
 
@@ -18,7 +18,7 @@ class ConfoundMetadata(BaseModel):
 
 
 class ModelSpec(BaseModel):
-    confounds: list[str]
+    confounds: list[str] = Field(min_length=1)
     custom_confounds: list[str] | None = None
     aCompCor: list[CompCorOptions] | None = None
     tCompCor: list[CompCorOptions] | None = None
