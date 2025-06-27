@@ -309,7 +309,7 @@ class ConfoundRegression:
         groups = set(model_spec.confounds).intersection({"cosine", "motion_outlier"})
 
         # Grab the requested (non-group) confounds
-        confounds = confounds_df[[c for c in model_spec.confounds if c not in groups]]
+        confounds = [c for c in model_spec.confounds if c not in groups]
 
         # Grab confound groups if requested
         if groups:
@@ -318,9 +318,7 @@ class ConfoundRegression:
                 for col in confounds_df.columns
                 if any(group in col for group in groups)
             ]
-            confounds = pl.concat(
-                [confounds, confounds_df[group_cols]], how="horizontal"
-            )
+            confounds.extend(group_cols)
 
         # Grab CompCor confounds if requested
         compcors = [c for c in CompCorMethod if c.value in model_spec.model_fields_set]
@@ -337,11 +335,9 @@ class ConfoundRegression:
                             mask=options.mask,
                         )
                     )
-            confounds = pl.concat(
-                [confounds, confounds_df[comps_selected]], how="horizontal"
-            )
+            confounds.extend(comps_selected)
 
-        return confounds
+        return confounds_df[confounds]
 
     def _select_comps(
         self,
