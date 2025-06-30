@@ -299,7 +299,23 @@ class ConfoundRegression:
         model_spec: ModelSpec,
     ) -> pl.DataFrame:
         """
-        Extract confounds (including CompCor ones).
+        Extract standard confounds (including CompCor ones).
+
+        Parameters
+        ----------
+        confounds_df : pl.DataFrame
+            Table containing all standard confounds (columns)
+            and their values across TRs (rows).
+        confounds_meta : dict of str to ConfoundMetadata
+            Mapping between component name and data.
+        model_spec : ModelSpec
+            Model specification for confound regression.
+
+        Returns
+        -------
+        pl.DataFrame
+            Table containing standards confounds
+            necessary for confound regression.
 
         Notes
         -----
