@@ -24,7 +24,7 @@ def confound_regression(mocker: MockerFixture):
     return confound_regression
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def confounds_meta():
     path = Path(__file__).parents[2] / "data" / "confounds_timeseries.json"
     text = path.read_text()
