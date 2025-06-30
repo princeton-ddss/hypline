@@ -337,6 +337,9 @@ class ConfoundRegression:
                     )
             confounds.extend(comps_selected)
 
+        if not set(confounds).issubset(confounds_df.columns):
+            raise ValueError("Model confounds missing from confound data")
+
         return confounds_df[confounds]
 
     def _select_comps(
