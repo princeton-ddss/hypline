@@ -240,6 +240,22 @@ class ConfoundRegression:
     def _load_confounds(
         self, bold_filepath: Path, model_spec: ModelSpec
     ) -> pl.DataFrame:
+        """
+        Load all confounds required for the given model.
+
+        Parameters
+        ----------
+        bold_filepath : Path
+            Path to the BOLD data to be cleaned.
+        model_spec : ModelSpec
+            Model specification for confound regression.
+
+        Returns
+        -------
+        pl.DataFrame
+            Table containing all confounds
+            necessary for confound regression.
+        """
         # Extract file name up to the run number segment
         match = re.search(r"^(.*?run-\d+)", bold_filepath.name)
         if match is None:
@@ -257,6 +273,7 @@ class ConfoundRegression:
             .fill_null(strategy="backward")  # Assume missing data in the beginning only
         )
         confounds_meta = TypeAdapter(dict[str, ConfoundMetadata]).validate_json(
+            # JSON assumed present with TSV
             confounds_filepath.with_suffix(".json").read_text()
         )
         confounds_df = self._extract_confounds(confounds_df, confounds_meta, model_spec)
