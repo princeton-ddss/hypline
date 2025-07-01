@@ -22,6 +22,22 @@ from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
 
 
 class ConfoundRegression:
+    """
+    Performs confound regression to remove noise from BOLD fMRI data.
+
+    Parameters
+    ----------
+    config_file : str
+        Configuration file containing model specs, etc.
+    fmriprep_dir : str
+        Directory containing fMRIPrep outputs.
+    output_dir : str, optional
+        Directory to store cleaned BOLD data.
+        Defaults to `<fmriprep_dir>_cleaned` if unspecified.
+    custom_confounds_dir: str, optional
+        Directory containing custom confounds.
+    """
+
     # Read-only mapping between a data space name and its enum variant
     DATA_SPACES = MappingProxyType(
         {space.value: space for space in list(VolumeSpace) + list(SurfaceSpace)}
@@ -96,6 +112,26 @@ class ConfoundRegression:
         task_name: str = "*",
         data_space_name: str = "MNI152NLin2009cAsym",
     ):
+        """
+        Perform confound regression to clean BOLD data.
+
+        Parameters
+        ----------
+        model_name : str
+            Confound regression model to run (defined in configuration).
+        subject_ids : list of str
+            Target subject IDs.
+        session_name : str, optional
+            Target session name. Defaults to all if unspecified.
+        task_name : str, optional
+            Target task name. Defaults to all if unspecified.
+        data_space_name : str, optional
+            Target BOLD data space. Defaults to `MNI152NLin2009cAsym` if unspecified.
+
+        Returns
+        -------
+        None
+        """
         # Mapping between a data space type and the corresponding method
         CLEAN_BOLD = {
             VolumeSpace: self._clean_bold_in_volume_space,
@@ -136,6 +172,20 @@ class ConfoundRegression:
             self._logger.removeHandler(file_handler)  # Reset for next iteration
 
     def _clean_bold_in_volume_space(self, filepath: Path, model_spec: ModelSpec):
+        """
+        Clean BOLD data stored in volumetric space.
+
+        Parameters
+        ----------
+        filepath : Path
+            Path to BOLD data to be cleaned.
+        model_spec : ModelSpec
+            Model specification for confound regression.
+
+        Returns
+        -------
+        None
+        """
         # Read raw BOLD data
         bold = nimg.load_img(filepath)  # Shape of (x, y, z, TRs)
         assert isinstance(bold, Nifti1Image)
@@ -176,6 +226,20 @@ class ConfoundRegression:
         nib.save(cleaned_bold, new_filepath)
 
     def _clean_bold_in_surface_space(self, filepath: Path, model_spec: ModelSpec):
+        """
+        Clean BOLD data stored in surface space.
+
+        Parameters
+        ----------
+        filepath : Path
+            Path to BOLD data to be cleaned.
+        model_spec : ModelSpec
+            Model specification for confound regression.
+
+        Returns
+        -------
+        None
+        """
         # Read raw BOLD data
         img = nib.load(filepath)
         assert isinstance(img, GiftiImage)
