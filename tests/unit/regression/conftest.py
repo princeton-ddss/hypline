@@ -9,16 +9,19 @@ from hypline.schemas import ConfoundMetadata
 
 
 @pytest.fixture(scope="function")
-def confound_regression(mocker: MockerFixture):
+def confound_regression(mocker: MockerFixture, tmp_path: Path):
     """
     An instance of `ConfoundRegression` with mock initiation.
     """
-    mocker.patch("hypline.regression.Path")
-    mocker.patch("hypline.regression.Config")
-    mocker.patch("hypline.regression.yaml")
     mocker.patch("hypline.regression.logging")
-    config_file = ""
-    fmriprep_dir = ""
+    mocker.patch("hypline.regression.yaml")
+    mocker.patch("hypline.regression.Config")
+
+    config_filepath = tmp_path / "config.yaml"
+    config_filepath.write_text("")
+
+    config_file = str(config_filepath)
+    fmriprep_dir = str(tmp_path)
     confound_regression = ConfoundRegression(config_file, fmriprep_dir)
 
     return confound_regression

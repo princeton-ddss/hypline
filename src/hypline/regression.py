@@ -224,6 +224,16 @@ class ConfoundRegression:
     def _make_new_filepath(self, filepath: Path) -> Path:
         """
         Make a new file path to store cleaned data.
+
+        Parameters
+        ----------
+        filepath : Path
+            Path to the data to be cleaned.
+
+        Returns
+        -------
+        Path
+            Path to save the cleaned data.
         """
         entities = filepath.name.split("_")
         if entities[-2].startswith("desc-"):
