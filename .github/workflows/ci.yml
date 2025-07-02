@@ -68,7 +68,7 @@ jobs:
           uv add pytest pytest-mock
 
       - name: Run tests
-        run: uv pytest tests
+        run: uv run pytest tests
 
   build:
     needs: test
