@@ -19,12 +19,3 @@ repos:
       - id: mypy
         args: [ --ignore-missing-imports ]
         files: ^src/
-
-  - repo: local
-    hooks:
-      - id: testing
-        name: testing
-        entry: pytest
-        args: [ tests ]
-        language: python
-        pass_filenames: false
