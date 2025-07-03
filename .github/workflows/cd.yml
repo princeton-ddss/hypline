@@ -34,11 +34,10 @@ jobs:
           git commit -m "Update package version" || echo "Package version up to date"
           git push origin HEAD:main
 
-      - name: Build the package
-        run: uv build
-
-      - name: Publish the package
-        run: uv publish --token ${{ secrets.PYPI_API_TOKEN }}
+      - name: Build and publish the package
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_API_TOKEN }}
 
   docs:
     needs: publish
