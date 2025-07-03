@@ -32,7 +32,7 @@ jobs:
           uv version ${{ github.event.release.tag_name }}
           git add .
           git commit -m "Update package version" || echo "Package version up to date"
-          git push
+          git push origin HEAD:main
 
       - name: Build the package
         run: uv build
