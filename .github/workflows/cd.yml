@@ -51,6 +51,11 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
+      - name: Checkout merge branch
+        run: |
+          git fetch origin
+          git checkout ${{ github.ref_name }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
