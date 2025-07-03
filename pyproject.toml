@@ -1,6 +1,6 @@
 [project]
 name = "hypline"
-version = "0.2.0"
+version = "0.2.3"
 description = "Data Cleaning and Analysis Pipeline for Hyperscanning Research"
 readme = "README.md"
 authors = [
