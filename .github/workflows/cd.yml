@@ -61,17 +61,6 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Create cache key
-        run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
-
-      - name: Cache build files
-        uses: actions/cache@v4
-        with:
-          key: mkdocs-material-${{ env.cache_id }}
-          path: .cache
-          restore-keys: |
-            mkdocs-material-
-
       - name: Install dependencies
         run: pip install mkdocs-material mike
 
