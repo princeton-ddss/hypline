@@ -30,4 +30,4 @@ hypline clean --help
 
 ## What Next
 
-If you want to learn more about Hypline, please check out the official project [documentation](https://princeton-ddss.github.io/hypline/).
+If you want to learn more about Hypline, please check out the official project [documentation](https://princeton-ddss.github.io/hypline/latest/).
