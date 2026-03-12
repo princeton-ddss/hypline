@@ -1,17 +1,14 @@
 import multiprocessing as mp
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from rich import print
-from typing_extensions import Annotated
 
-from .regression import ConfoundRegression
-from .utils import DillProcess
-
-app = typer.Typer()
+from hypline.regression import ConfoundRegression
+from hypline.utils import DillProcess
 
 
-@app.command()
 def clean(
     fmriprep_dir: Annotated[
         str,
@@ -122,12 +119,3 @@ def clean(
                 p.start()
             for p in processes:
                 p.join()
-
-
-@app.callback()
-def callback():
-    """
-    An opinionated framework/toolbox for conducting
-    data cleaning and analysis in hyperscanning studies
-    involving dyadic conversations.
-    """
