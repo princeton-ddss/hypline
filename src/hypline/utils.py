@@ -16,6 +16,7 @@ class DillProcess(Process):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._target = dill.dumps(self._target)
+        self._args, self._kwargs = self._args, self._kwargs  # For type checker
 
     def run(self):
         if self._target:

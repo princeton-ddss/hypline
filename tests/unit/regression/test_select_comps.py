@@ -112,7 +112,7 @@ from hypline.schemas import ConfoundMetadata
 def test_select_comps(
     # Fixture(s)
     confound_regression: ConfoundRegression,
-    confounds_meta: ConfoundMetadata,
+    confounds_meta: dict[str, ConfoundMetadata],
     # Parameter(s)
     method: CompCorMethod,
     n_comps: int | float,
@@ -131,7 +131,7 @@ def test_select_comps(
 def test_invalid_n_comps(
     # Fixture(s)
     confound_regression: ConfoundRegression,
-    confounds_meta: ConfoundMetadata,
+    confounds_meta: dict[str, ConfoundMetadata],
 ):
     with pytest.raises(AssertionError, match="`n_comps` must be positive"):
         confound_regression._select_comps(
@@ -145,7 +145,7 @@ def test_invalid_n_comps(
 def test_missing_mask_for_acompcor(
     # Fixture(s)
     confound_regression: ConfoundRegression,
-    confounds_meta: ConfoundMetadata,
+    confounds_meta: dict[str, ConfoundMetadata],
 ):
     with pytest.raises(AssertionError, match="Mask must be specified for aCompCor"):
         confound_regression._select_comps(
@@ -159,7 +159,7 @@ def test_missing_mask_for_acompcor(
 def test_unsupported_method(
     # Fixture(s)
     confound_regression: ConfoundRegression,
-    confounds_meta: ConfoundMetadata,
+    confounds_meta: dict[str, ConfoundMetadata],
 ):
     with pytest.raises(
         ValueError, match=f"Unsupported CompCor method: {CompCorMethod.MEAN}"

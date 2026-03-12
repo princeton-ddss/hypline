@@ -32,8 +32,19 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    {include-group = "docs"},
+    {include-group = "lint"},
+    {include-group = "test"},
+]
+docs = [
+    "mike>=2.1.4",
     "mkdocs-material>=9.6.11",
+]
+lint = [
     "pre-commit>=4.2.0",
+    "ty>=0.0.22",
+]
+test = [
     "pytest>=8.4.1",
     "pytest-mock>=3.14.1",
 ]

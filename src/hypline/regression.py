@@ -8,7 +8,7 @@ from types import MappingProxyType
 import nibabel as nib
 import numpy as np
 import polars as pl
-import yaml  # type: ignore
+import yaml
 from nibabel.gifti import GiftiDataArray, GiftiImage
 from nibabel.nifti1 import Nifti1Image
 from nilearn import image as nimg
@@ -509,7 +509,7 @@ class ConfoundRegression:
         # Sort metadata components
         comps_sorted = sorted(
             compcor_meta,
-            key=lambda k: (compcor_meta[k].SingularValue or 0.0),
+            key=lambda k: compcor_meta[k].SingularValue or 0.0,
             reverse=True,
         )
 
