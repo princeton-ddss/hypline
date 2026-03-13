@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Sangyoon Park", email = "datumvitae@gmail.com" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "dill>=0.3.9",
     "nibabel>=5.3.2",
