@@ -1,6 +1,40 @@
+import re
 from multiprocessing import Process
+from pathlib import Path
 
 import dill
+
+_BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
+
+
+def validate_dirs(*paths: Path) -> None:
+    for path in paths:
+        if not path.is_dir():
+            raise FileNotFoundError(f"Directory does not exist: {path}")
+
+
+def validate_bids_entities(*tags: str) -> None:
+    for tag in tags:
+        if not _BIDS_ENTITY_RE.match(tag):
+            raise ValueError(f"Invalid BIDS entity tag: {tag!r}")
+
+
+def find_files(
+    directory: Path,
+    ext: str,
+    *,
+    filters: list[str] | None = None,
+) -> list[Path]:
+    ext = ext.strip()
+    if not ext.startswith("."):
+        ext = f".{ext}"
+
+    tags = filters or []
+    return sorted(
+        file
+        for file in directory.iterdir()
+        if file.suffix == ext and all(tag in file.name for tag in tags)
+    )
 
 
 class DillProcess(Process):

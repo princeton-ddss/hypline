@@ -17,6 +17,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "rich>=14.0.0",
     "typer>=0.15.2",
+    "whisperx>=3.8.2",
 ]
 
 [project.urls]
