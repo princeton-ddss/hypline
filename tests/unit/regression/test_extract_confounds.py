@@ -1,8 +1,7 @@
 import polars as pl
 import pytest
 
-from hypline.regression import ConfoundRegression
-from hypline.schemas import ModelSpec
+from hypline.regression import ConfoundRegression, ModelSpec
 
 
 @pytest.fixture(scope="module")

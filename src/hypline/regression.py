@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from copy import deepcopy
+from enum import Enum
 from pathlib import Path
 from types import MappingProxyType
 
@@ -13,12 +14,48 @@ from nibabel.gifti import GiftiDataArray, GiftiImage
 from nibabel.nifti1 import Nifti1Image
 from nilearn import image as nimg
 from nilearn import signal
-from pydantic import TypeAdapter
+from pydantic import BaseModel, Field, PositiveFloat, PositiveInt, TypeAdapter
 from rich import print
 from rich.progress import track
 
-from .enums import CompCorMask, CompCorMethod, SurfaceSpace, VolumeSpace
-from .schemas import CompCorOptions, Config, ConfoundMetadata, ModelSpec
+from hypline.spaces import SurfaceSpace, VolumeSpace
+
+
+class CompCorMethod(Enum):
+    ANATOMICAL = "aCompCor"
+    TEMPORAL = "tCompCor"
+    MEAN = "Mean"
+
+
+class CompCorMask(Enum):
+    CSF = "CSF"
+    WM = "WM"
+    COMBINED = "combined"
+
+
+class CompCorOptions(BaseModel):
+    n_comps: PositiveInt | PositiveFloat = 5
+    mask: CompCorMask | None = None
+
+
+class ConfoundMetadata(BaseModel):
+    Method: CompCorMethod
+    Retained: bool | None = None
+    Mask: CompCorMask | None = None
+    SingularValue: float | None = None
+    VarianceExplained: float | None = None
+    CumulativeVarianceExplained: float | None = None
+
+
+class ModelSpec(BaseModel):
+    confounds: list[str] = Field(min_length=1)
+    custom_confounds: list[str] | None = None
+    aCompCor: list[CompCorOptions] | None = None
+    tCompCor: list[CompCorOptions] | None = None
+
+
+class Config(BaseModel):
+    model_specs: dict[str, ModelSpec]
 
 
 class ConfoundRegression:

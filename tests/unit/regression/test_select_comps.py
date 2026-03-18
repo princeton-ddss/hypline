@@ -1,8 +1,11 @@
 import pytest
 
-from hypline.enums import CompCorMask, CompCorMethod
-from hypline.regression import ConfoundRegression
-from hypline.schemas import ConfoundMetadata
+from hypline.regression import (
+    CompCorMask,
+    CompCorMethod,
+    ConfoundMetadata,
+    ConfoundRegression,
+)
 
 
 @pytest.mark.parametrize(

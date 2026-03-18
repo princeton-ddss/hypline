@@ -1,18 +1,6 @@
 from enum import Enum
 
 
-class CompCorMethod(Enum):
-    ANATOMICAL = "aCompCor"
-    TEMPORAL = "tCompCor"
-    MEAN = "Mean"
-
-
-class CompCorMask(Enum):
-    CSF = "CSF"
-    WM = "WM"
-    COMBINED = "combined"
-
-
 class SurfaceSpace(Enum):
     FS_AVERAGE_5 = "fsaverage5"
     FS_AVERAGE_6 = "fsaverage6"

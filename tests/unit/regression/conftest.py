@@ -4,8 +4,7 @@ import pytest
 from pydantic import TypeAdapter
 from pytest_mock import MockerFixture
 
-from hypline.regression import ConfoundRegression
-from hypline.schemas import ConfoundMetadata
+from hypline.regression import ConfoundMetadata, ConfoundRegression
 
 
 @pytest.fixture(scope="function")
