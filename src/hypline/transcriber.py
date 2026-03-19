@@ -5,7 +5,7 @@ from pathlib import Path
 import polars as pl
 from pydantic import BaseModel, field_validator
 
-from hypline.utils import find_files, validate_bids_entities, validate_dirs
+from hypline.utils import find_files, validate_dirs
 
 
 class WhisperModel(str, Enum):
@@ -78,10 +78,8 @@ class Transcriber:
         import whisperx
 
         validate_dirs(input_dir, output_dir)
-        if bids_filters:
-            validate_bids_entities(*bids_filters)
 
-        audio_files = find_files(input_dir, audio_ext, filters=bids_filters)
+        audio_files = find_files(input_dir, audio_ext, bids_filters=bids_filters)
 
         batch_size = self.config.batch_size
         if batch_size is None:

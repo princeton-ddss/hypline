@@ -13,27 +13,60 @@ def validate_dirs(*paths: Path) -> None:
             raise FileNotFoundError(f"Directory does not exist: {path}")
 
 
-def validate_bids_entities(*tags: str) -> None:
-    for tag in tags:
-        if not _BIDS_ENTITY_RE.match(tag):
-            raise ValueError(f"Invalid BIDS entity tag: {tag!r}")
+def validate_bids_entities(*entities: str) -> None:
+    for entity in entities:
+        if not _BIDS_ENTITY_RE.match(entity):
+            raise ValueError(f"Invalid BIDS entity: {entity!r}")
 
 
 def find_files(
     directory: Path,
     ext: str,
     *,
-    filters: list[str] | None = None,
+    bids_filters: list[str] | None = None,
 ) -> list[Path]:
+    """
+    Find files in a directory matching the given extension.
+
+    When BIDS filters are provided, filters sharing the same key
+    (e.g., run-1 and run-2) are OR'd, while filters with different
+    keys (e.g., run-1 and sub-01) are AND'd.
+
+    Parameters
+    ----------
+    directory : Path
+        Directory to search for files.
+    ext : str
+        File extension to match (e.g., ".wav" or "wav").
+    bids_filters : list of str, optional
+        BIDS entities to filter filenames by (e.g., ["run-1", "sub-01"]).
+
+    Returns
+    -------
+    list of Path
+        Matching files, sorted by name.
+    """
     ext = ext.strip()
     if not ext.startswith("."):
         ext = f".{ext}"
 
-    tags = filters or []
+    if not bids_filters:
+        return sorted(f for f in directory.iterdir() if f.suffix == ext)
+
+    validate_bids_entities(*bids_filters)
+
+    groups: dict[str, list[str]] = {}
+    for entity in bids_filters:
+        key = entity.split("-")[0]
+        groups.setdefault(key, []).append(entity)
+
     return sorted(
         file
         for file in directory.iterdir()
-        if file.suffix == ext and all(tag in file.name for tag in tags)
+        if file.suffix == ext
+        and all(
+            any(entity in file.name for entity in group) for group in groups.values()
+        )
     )
 
 

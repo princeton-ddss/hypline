@@ -50,10 +50,14 @@ def transcribe(
             help="Hardware target for running the model",
         ),
     ] = Device.CPU,
-    bids_filter: Annotated[
+    bids_filters: Annotated[
         list[str] | None,
         typer.Option(
-            help="BIDS entity tag to filter (e.g., run-5; repeatable)",
+            "--bids-filter",
+            help="""
+            [Repeatable] Filter input files by BIDS entity
+            (e.g., run-5) present in the filenames
+            """,
             show_default=False,
         ),
     ] = None,
@@ -73,5 +77,5 @@ def transcribe(
         input_dir=input_dir,
         output_dir=output_dir,
         audio_ext=file_ext,
-        bids_filters=bids_filter,
+        bids_filters=bids_filters,
     )
