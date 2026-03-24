@@ -1,22 +1,15 @@
-import re
 from multiprocessing import Process
 from pathlib import Path
 
 import dill
 
-_BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
+from hypline.bids import validate_bids_entities as validate_bids_entities
 
 
 def validate_dirs(*paths: Path) -> None:
     for path in paths:
         if not path.is_dir():
             raise FileNotFoundError(f"Directory does not exist: {path}")
-
-
-def validate_bids_entities(*entities: str) -> None:
-    for entity in entities:
-        if not _BIDS_ENTITY_RE.match(entity):
-            raise ValueError(f"Invalid BIDS entity: {entity!r}")
 
 
 def find_files(
