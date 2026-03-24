@@ -130,15 +130,15 @@ class TestReadFeature:
         with pytest.raises(ValueError, match="must be a numeric type"):
             read_feature(path)
 
-    def test_wrong_feature_dtype(self, tmp_path: Path):
+    def test_int_list_cast_to_float64_array(self, tmp_path: Path):
         path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
         df = pl.DataFrame(
             {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
-            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Int64, 2)},
+            schema={"start_time": pl.Float64, "feature": pl.List(pl.Int64)},
         )
         pq.write_table(df.to_arrow(), path)
-        with pytest.raises(ValueError, match="must be an Array\\(Float64\\)"):
-            read_feature(path)
+        loaded, _ = read_feature(path)
+        assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
     def test_metadata_roundtrip(self, bids_path: Path, sample_df: pl.DataFrame):
         save_feature(sample_df, bids_path, metadata={"sr": "16000"})
