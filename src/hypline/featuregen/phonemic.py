@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
+from hypline.bids import BIDSPath
+from hypline.featuregen.utils import save_feature
 from hypline.utils import find_files, validate_dirs
 
 ARPABET_PHONEMES = [
@@ -131,6 +133,6 @@ class PhonemicFeature:
                 )
             )
 
-            stem = transcript.stem + "_feature-phonemic"
-            out_path = output_dir / (stem + ".parquet")
-            df.write_parquet(out_path)
+            bids_path = BIDSPath(transcript).with_entity("feature", "phonemic")
+            out_path = output_dir / (bids_path.path.stem + ".parquet")
+            save_feature(df, out_path)
