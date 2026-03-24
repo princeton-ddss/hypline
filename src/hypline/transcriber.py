@@ -106,6 +106,12 @@ class Transcriber:
                 return_char_alignments=False,
             )
 
-            df = pl.DataFrame(result["word_segments"])
+            df = pl.DataFrame(result["word_segments"]).rename(
+                {
+                    "start": "start_time",
+                    "end": "end_time",
+                    "score": "confidence_score",
+                }
+            )
             output_file = output_dir / f"{audio_file.stem}.csv"
             df.write_csv(output_file)

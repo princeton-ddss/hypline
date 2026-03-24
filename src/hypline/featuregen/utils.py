@@ -6,6 +6,8 @@ import pyarrow.parquet as pq
 
 from hypline.bids import BIDSPath
 
+REQUIRED_COLUMNS = frozenset({"start_time", "feature"})
+
 
 def save_feature(
     df: pl.DataFrame,
@@ -15,7 +17,8 @@ def save_feature(
 ):
     """Save a feature DataFrame to a BIDS-compliant Parquet file.
 
-    The DataFrame must contain a `feature` column of Array or List type.
+    The DataFrame must contain `start_time` and `feature` columns. The
+    `feature` column must be of Array or List type.
     The column is normalized to `Array(Float64)` before writing. Parent
     directories are created automatically if they do not exist.
 
@@ -33,11 +36,16 @@ def save_feature(
     Raises
     ------
     ValueError
-        If the DataFrame is missing a `feature` column, the column has
-        an unsupported dtype, or the path lacks a `feature` entity.
+        If the DataFrame is missing a `start_time` or `feature` column,
+        the `feature` column has an unsupported dtype, or the path lacks
+        a `feature` entity.
     """
-    if "feature" not in df.columns:
-        raise ValueError("DataFrame must contain a 'feature' column")
+    missing = REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        raise ValueError(f"DataFrame missing required columns: {sorted(missing)}")
+
+    if not df.get_column("start_time").dtype.is_numeric():
+        raise ValueError("'start_time' column must be a numeric type")
 
     bids_path = BIDSPath(path)
 
@@ -86,7 +94,8 @@ def read_feature(path: Path) -> tuple[pl.DataFrame, dict[str, str]]:
     ------
     ValueError
         If the path lacks a `feature` entity, the file is missing a
-        `feature` column, or the column is not `Array(Float64)`.
+        `start_time` or `feature` column, or the `feature` column is
+        not `Array(Float64)`.
     """
     bids_path = BIDSPath(path)
 
@@ -100,8 +109,12 @@ def read_feature(path: Path) -> tuple[pl.DataFrame, dict[str, str]]:
 
     df = pl.DataFrame(pl.from_arrow(table))
 
-    if "feature" not in df.columns:
-        raise ValueError("DataFrame must contain a 'feature' column")
+    missing = REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        raise ValueError(f"DataFrame missing required columns: {sorted(missing)}")
+
+    if not df.get_column("start_time").dtype.is_numeric():
+        raise ValueError("'start_time' column must be a numeric type")
 
     feature_col = df.get_column("feature")
     if (

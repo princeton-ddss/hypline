@@ -16,10 +16,10 @@ def bids_path(tmp_path: Path) -> Path:
 def sample_df() -> pl.DataFrame:
     return pl.DataFrame(
         {
-            "onset": [0.0, 0.5, 1.0],
+            "start_time": [0.0, 0.5, 1.0],
             "feature": [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
         },
-        schema={"onset": pl.Float64, "feature": pl.Array(pl.Float64, 3)},
+        schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 3)},
     )
 
 
@@ -36,8 +36,8 @@ class TestSaveFeature:
 
     def test_list_column_cast_to_array(self, bids_path: Path):
         df = pl.DataFrame(
-            {"feature": [[1.0, 2.0], [3.0, 4.0]]},
-            schema={"feature": pl.List(pl.Float64)},
+            {"start_time": [0.0, 0.5], "feature": [[1.0, 2.0], [3.0, 4.0]]},
+            schema={"start_time": pl.Float64, "feature": pl.List(pl.Float64)},
         )
         save_feature(df, bids_path)
         loaded, _ = read_feature(bids_path)
@@ -45,8 +45,8 @@ class TestSaveFeature:
 
     def test_int_list_cast_to_float64(self, bids_path: Path):
         df = pl.DataFrame(
-            {"feature": [[1, 2], [3, 4]]},
-            schema={"feature": pl.Array(pl.Int64, 2)},
+            {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Int64, 2)},
         )
         save_feature(df, bids_path)
         loaded, _ = read_feature(bids_path)
@@ -63,13 +63,29 @@ class TestSaveFeature:
         _, meta = read_feature(bids_path)
         assert meta == {}
 
-    def test_missing_feature_column(self, bids_path: Path):
+    def test_missing_required_columns(self, bids_path: Path):
         df = pl.DataFrame({"onset": [0.0, 1.0]})
-        with pytest.raises(ValueError, match="must contain a 'feature' column"):
+        with pytest.raises(ValueError, match="missing required columns"):
+            save_feature(df, bids_path)
+
+    def test_missing_start_time_column(self, bids_path: Path):
+        df = pl.DataFrame(
+            {"feature": [[1.0, 2.0], [3.0, 4.0]]},
+            schema={"feature": pl.Array(pl.Float64, 2)},
+        )
+        with pytest.raises(ValueError, match="missing required columns"):
+            save_feature(df, bids_path)
+
+    def test_non_numeric_start_time(self, bids_path: Path):
+        df = pl.DataFrame(
+            {"start_time": ["1.2", "3.5"], "feature": [[1.0, 2.0], [3.0, 4.0]]},
+            schema={"start_time": pl.String, "feature": pl.Array(pl.Float64, 2)},
+        )
+        with pytest.raises(ValueError, match="must be a numeric type"):
             save_feature(df, bids_path)
 
     def test_unsupported_feature_dtype(self, bids_path: Path):
-        df = pl.DataFrame({"feature": ["a", "b"]})
+        df = pl.DataFrame({"start_time": [0.0, 0.5], "feature": ["a", "b"]})
         with pytest.raises(ValueError, match="must be an Array or List type"):
             save_feature(df, bids_path)
 
@@ -87,18 +103,38 @@ class TestReadFeature:
         with pytest.raises(ValueError, match="must contain a 'feature' entity"):
             read_feature(path)
 
-    def test_missing_feature_column(self, tmp_path: Path):
+    def test_missing_required_columns(self, tmp_path: Path):
         path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
         table = pl.DataFrame({"onset": [0.0]}).to_arrow()
         pq.write_table(table, path)
-        with pytest.raises(ValueError, match="must contain a 'feature' column"):
+        with pytest.raises(ValueError, match="missing required columns"):
+            read_feature(path)
+
+    def test_missing_start_time_column(self, tmp_path: Path):
+        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        df = pl.DataFrame(
+            {"feature": [[1.0, 2.0], [3.0, 4.0]]},
+            schema={"feature": pl.Array(pl.Float64, 2)},
+        )
+        pq.write_table(df.to_arrow(), path)
+        with pytest.raises(ValueError, match="missing required columns"):
+            read_feature(path)
+
+    def test_non_numeric_start_time(self, tmp_path: Path):
+        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        df = pl.DataFrame(
+            {"start_time": ["1.2", "3.5"], "feature": [[1.0, 2.0], [3.0, 4.0]]},
+            schema={"start_time": pl.String, "feature": pl.Array(pl.Float64, 2)},
+        )
+        pq.write_table(df.to_arrow(), path)
+        with pytest.raises(ValueError, match="must be a numeric type"):
             read_feature(path)
 
     def test_wrong_feature_dtype(self, tmp_path: Path):
         path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
         df = pl.DataFrame(
-            {"feature": [[1, 2], [3, 4]]},
-            schema={"feature": pl.Array(pl.Int64, 2)},
+            {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Int64, 2)},
         )
         pq.write_table(df.to_arrow(), path)
         with pytest.raises(ValueError, match="must be an Array\\(Float64\\)"):
