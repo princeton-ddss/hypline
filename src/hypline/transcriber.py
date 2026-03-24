@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 from enum import Enum
 from pathlib import Path
@@ -44,6 +45,13 @@ class Transcriber:
     def __init__(self, config: TranscriberConfig):
         import torch
         import whisperx
+
+        if shutil.which("ffmpeg") is None:
+            raise RuntimeError(
+                "ffmpeg is required but not found on PATH. "
+                "Install it with: brew install ffmpeg (macOS) "
+                "or apt install ffmpeg (Ubuntu/Debian)"
+            )
 
         if config.device is Device.CUDA and not torch.cuda.is_available():
             raise RuntimeError("CUDA is requested but not available")
