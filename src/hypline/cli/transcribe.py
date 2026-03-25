@@ -17,7 +17,7 @@ def transcribe(
     output_dir: Annotated[
         Path,
         typer.Argument(
-            help="Directory to store word-level transcripts",
+            help="Directory to store word-level transcripts (CSV files)",
             show_default=False,
         ),
     ],

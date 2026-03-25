@@ -91,20 +91,6 @@ class PhonemicFeature:
                     vec[feature_index[row[col]]] = 1
             cls._articulatory_vectors[row["phoneme"]] = vec
 
-    def _get_word_phoneme_vector(self, word: str) -> np.ndarray:
-        vec = np.zeros(len(ARPABET_PHONEMES))
-        if pronunciations := self._pronunciations.get(word.lower()):
-            for phoneme in pronunciations[0]:
-                vec[self._phoneme_index[phoneme.strip("012")]] = 1
-        return vec
-
-    def _get_word_articulatory_vector(self, word: str) -> np.ndarray:
-        vec = np.zeros(self._n_articulatory_features)
-        if pronunciations := self._pronunciations.get(word.lower()):
-            for phoneme in pronunciations[0]:
-                vec += self._articulatory_vectors[phoneme.strip("012")]
-        return vec
-
     def generate(
         self,
         input_dir: str | os.PathLike[str],
@@ -139,3 +125,17 @@ class PhonemicFeature:
             bids_path = BIDSPath(transcript).with_entity("feature", "phonemic")
             out_path = output_dir / (bids_path.path.stem + ".parquet")
             save_feature(df, out_path)
+
+    def _get_word_phoneme_vector(self, word: str) -> np.ndarray:
+        vec = np.zeros(len(ARPABET_PHONEMES))
+        if pronunciations := self._pronunciations.get(word.lower()):
+            for phoneme in pronunciations[0]:
+                vec[self._phoneme_index[phoneme.strip("012")]] = 1
+        return vec
+
+    def _get_word_articulatory_vector(self, word: str) -> np.ndarray:
+        vec = np.zeros(self._n_articulatory_features)
+        if pronunciations := self._pronunciations.get(word.lower()):
+            for phoneme in pronunciations[0]:
+                vec += self._articulatory_vectors[phoneme.strip("012")]
+        return vec
