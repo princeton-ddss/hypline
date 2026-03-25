@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 from enum import Enum
@@ -77,14 +78,16 @@ class Transcriber:
 
     def transcribe(
         self,
-        input_dir: Path,
-        output_dir: Path,
+        input_dir: str | os.PathLike[str],
+        output_dir: str | os.PathLike[str],
         audio_ext: str,
         *,
         bids_filters: list[str] | None = None,
     ):
         import whisperx
 
+        input_dir = Path(input_dir)
+        output_dir = Path(output_dir)
         validate_dirs(input_dir, output_dir)
 
         audio_files = find_files(input_dir, audio_ext, bids_filters=bids_filters)

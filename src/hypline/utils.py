@@ -1,3 +1,4 @@
+import os
 from multiprocessing import Process
 from pathlib import Path
 
@@ -6,14 +7,15 @@ import dill
 from hypline.bids import validate_bids_entities as validate_bids_entities
 
 
-def validate_dirs(*paths: Path) -> None:
+def validate_dirs(*paths: str | os.PathLike[str]) -> None:
     for path in paths:
+        path = Path(path)
         if not path.is_dir():
             raise FileNotFoundError(f"Directory does not exist: {path}")
 
 
 def find_files(
-    directory: Path,
+    directory: str | os.PathLike[str],
     ext: str,
     *,
     bids_filters: list[str] | None = None,
@@ -27,7 +29,7 @@ def find_files(
 
     Parameters
     ----------
-    directory : Path
+    directory : str or os.PathLike
         Directory to search for files.
     ext : str
         File extension to match (e.g., ".wav" or "wav").
@@ -39,6 +41,7 @@ def find_files(
     list of Path
         Matching files, sorted by name.
     """
+    directory = Path(directory)
     ext = ext.strip()
     if not ext.startswith("."):
         ext = f".{ext}"

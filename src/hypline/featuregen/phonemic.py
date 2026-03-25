@@ -1,3 +1,4 @@
+import os
 from importlib.resources import files
 from pathlib import Path
 
@@ -106,12 +107,14 @@ class PhonemicFeature:
 
     def generate(
         self,
-        input_dir: Path,
-        output_dir: Path,
+        input_dir: str | os.PathLike[str],
+        output_dir: str | os.PathLike[str],
         *,
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
     ):
+        input_dir = Path(input_dir)
+        output_dir = Path(output_dir)
         validate_dirs(input_dir, output_dir)
 
         feature_fn = (

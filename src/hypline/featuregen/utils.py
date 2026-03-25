@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import polars as pl
@@ -37,7 +38,7 @@ def _normalize_feature_df(df: pl.DataFrame) -> pl.DataFrame:
 
 def save_feature(
     df: pl.DataFrame,
-    path: Path,
+    path: str | os.PathLike[str],
     *,
     metadata: dict[str, str] | None = None,
 ):
@@ -53,7 +54,7 @@ def save_feature(
     df : pl.DataFrame
         DataFrame with a `feature` column (Array or List of numerics)
         and any additional metadata columns.
-    path : Path
+    path : str or os.PathLike
         Output file path. Must be a valid BIDS path containing a
         `feature` entity (e.g., `feature-mfcc`).
     metadata : dict[str, str] | None
@@ -66,6 +67,7 @@ def save_feature(
         the `feature` column has an unsupported dtype, or the path lacks
         a `feature` entity.
     """
+    path = Path(path)
     _validate_bids_feature_path(path)
 
     df = _normalize_feature_df(df)
@@ -79,7 +81,7 @@ def save_feature(
     pq.write_table(table, path)
 
 
-def read_feature(path: Path) -> tuple[pl.DataFrame, dict[str, str]]:
+def read_feature(path: str | os.PathLike[str]) -> tuple[pl.DataFrame, dict[str, str]]:
     """Read a feature DataFrame from a BIDS-compliant Parquet file.
 
     Validates that the file contains a `feature` column stored as
@@ -87,7 +89,7 @@ def read_feature(path: Path) -> tuple[pl.DataFrame, dict[str, str]]:
 
     Parameters
     ----------
-    path : Path
+    path : str or os.PathLike
         Path to the Parquet file. Must be a valid BIDS path containing
         a `feature` entity (e.g., `feature-mfcc`).
 
@@ -104,6 +106,7 @@ def read_feature(path: Path) -> tuple[pl.DataFrame, dict[str, str]]:
         `start_time` or `feature` column, or the `feature` column is
         not `Array(Float64)`.
     """
+    path = Path(path)
     _validate_bids_feature_path(path)
 
     table = pq.read_table(path)
