@@ -1,6 +1,11 @@
 from enum import Enum
 
 
+class Device(str, Enum):
+    CPU = "cpu"
+    CUDA = "cuda"
+
+
 class SurfaceSpace(Enum):
     FS_AVERAGE_5 = "fsaverage5"
     FS_AVERAGE_6 = "fsaverage6"

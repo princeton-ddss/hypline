@@ -7,6 +7,7 @@ from pathlib import Path
 import polars as pl
 from pydantic import BaseModel, field_validator
 
+from hypline.enums import Device
 from hypline.utils import find_files, validate_dirs
 
 
@@ -17,11 +18,6 @@ class WhisperModel(str, Enum):
     MEDIUM = "medium"
     LARGE_V2 = "large-v2"
     LARGE_V3 = "large-v3"
-
-
-class Device(str, Enum):
-    CPU = "cpu"
-    CUDA = "cuda"
 
 
 class TranscriberConfig(BaseModel):

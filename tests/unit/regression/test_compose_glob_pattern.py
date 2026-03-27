@@ -1,7 +1,7 @@
 import pytest
 
 from hypline.regression import ConfoundRegression
-from hypline.spaces import SurfaceSpace, VolumeSpace
+from hypline.enums import SurfaceSpace, VolumeSpace
 
 
 @pytest.mark.parametrize(

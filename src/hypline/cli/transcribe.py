@@ -3,7 +3,8 @@ from typing import Annotated
 
 import typer
 
-from hypline.transcriber import Device, Transcriber, TranscriberConfig, WhisperModel
+from hypline.enums import Device
+from hypline.transcriber import Transcriber, TranscriberConfig, WhisperModel
 
 
 def transcribe(

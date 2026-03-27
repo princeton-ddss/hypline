@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field, PositiveFloat, PositiveInt, TypeAdapter
 from rich import print
 from rich.progress import track
 
-from hypline.spaces import SurfaceSpace, VolumeSpace
+from hypline.enums import SurfaceSpace, VolumeSpace
 
 
 class CompCorMethod(Enum):
