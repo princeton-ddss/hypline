@@ -4,7 +4,6 @@ import re
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from types import MappingProxyType
 
 import nibabel as nib
 import numpy as np
@@ -19,6 +18,7 @@ from rich import print
 from rich.progress import track
 
 from hypline.enums import SurfaceSpace, VolumeSpace
+from hypline.utils import parse_bold_space
 
 
 class CompCorMethod(Enum):
@@ -74,11 +74,6 @@ class ConfoundRegression:
     custom_confounds_dir: str, optional
         Directory containing custom confounds.
     """
-
-    # Read-only mapping between a data space name and its enum variant
-    DATA_SPACES = MappingProxyType(
-        {space.value: space for space in list(VolumeSpace) + list(SurfaceSpace)}
-    )
 
     def __init__(
         self,
@@ -179,9 +174,7 @@ class ConfoundRegression:
         if model_spec is None:
             raise ValueError(f"Undefined model: {model_name}")
 
-        data_space = self.DATA_SPACES.get(data_space_name)
-        if data_space is None:
-            raise ValueError(f"Unsupported data space: {data_space_name}")
+        data_space = parse_bold_space(data_space_name)
         data_space_type = type(data_space)
 
         for sub_id in track(subject_ids, description="Processing..."):

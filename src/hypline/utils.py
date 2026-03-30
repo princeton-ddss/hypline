@@ -5,6 +5,24 @@ from pathlib import Path
 import dill
 
 from hypline.bids import validate_bids_entities as validate_bids_entities
+from hypline.enums import SurfaceSpace, VolumeSpace
+
+# Mapping between a BOLD data space name and its enum variant
+_BOLD_SPACES = {
+    space.value: space
+    for space_type in (SurfaceSpace, VolumeSpace)
+    for space in space_type
+}
+
+
+def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
+    bold_space = _BOLD_SPACES.get(value)
+    if bold_space is None:
+        valid = ", ".join(_BOLD_SPACES.keys())
+        raise ValueError(
+            f"Unsupported BOLD data space: {value}. Must be one of: {valid}"
+        )
+    return bold_space
 
 
 def validate_dirs(*paths: str | os.PathLike[str]) -> None:
