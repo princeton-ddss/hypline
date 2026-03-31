@@ -1,7 +1,7 @@
 import os
 import shutil
 import tempfile
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 import polars as pl
@@ -11,7 +11,7 @@ from hypline.enums import Device
 from hypline.utils import find_files, validate_dirs
 
 
-class WhisperModel(str, Enum):
+class WhisperModel(StrEnum):
     TINY = "tiny"
     BASE = "base"
     SMALL = "small"
@@ -58,8 +58,8 @@ class Transcriber:
         self.config = config
 
         self.model = whisperx.load_model(
-            whisper_arch=config.model.value,
-            device=config.device.value,
+            whisper_arch=config.model,
+            device=config.device,
             compute_type="float16" if config.device is Device.CUDA else "int8",
             download_root=str(config.model_dir),
             vad_method="silero",  # Good enough as we need no diarization
@@ -68,7 +68,7 @@ class Transcriber:
 
         self.align_model, self.align_metadata = whisperx.load_align_model(
             language_code="en",
-            device=config.device.value,
+            device=config.device,
             model_dir=str(config.model_dir),
         )
 
@@ -101,7 +101,7 @@ class Transcriber:
                 model=self.align_model,
                 align_model_metadata=self.align_metadata,
                 audio=audio,
-                device=self.config.device.value,
+                device=self.config.device,
                 return_char_alignments=False,
             )
 

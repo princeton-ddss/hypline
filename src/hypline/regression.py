@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from copy import deepcopy
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 import nibabel as nib
@@ -21,13 +21,13 @@ from hypline.enums import SurfaceSpace, VolumeSpace
 from hypline.utils import parse_bold_space
 
 
-class CompCorMethod(Enum):
+class CompCorMethod(StrEnum):
     ANATOMICAL = "aCompCor"
     TEMPORAL = "tCompCor"
     MEAN = "Mean"
 
 
-class CompCorMask(Enum):
+class CompCorMask(StrEnum):
     CSF = "CSF"
     WM = "WM"
     COMBINED = "combined"
@@ -458,11 +458,11 @@ class ConfoundRegression:
             confounds.extend(group_cols)
 
         # Grab CompCor confounds if requested
-        compcors = [c for c in CompCorMethod if c.value in model_spec.model_fields_set]
+        compcors = [c for c in CompCorMethod if c in model_spec.model_fields_set]
         if compcors:
             comps_selected: list[str] = []
             for compcor in compcors:
-                for options in getattr(model_spec, compcor.value):
+                for options in getattr(model_spec, compcor):
                     assert isinstance(options, CompCorOptions)
                     comps_selected.extend(
                         self._select_comps(
@@ -530,7 +530,7 @@ class ConfoundRegression:
                 self._logger.warning(
                     "tCompCor is not restricted to a mask "
                     "- ignoring mask specification (%s)",
-                    mask.value,
+                    mask,
                 )
                 mask = None  # Ignore (not applicable)
         else:
@@ -553,7 +553,7 @@ class ConfoundRegression:
                 self._logger.warning(
                     "Only %d %s components available (%d requested)",
                     len(comps_sorted),
-                    method.value,
+                    method,
                     n_comps,
                 )
 
@@ -603,7 +603,7 @@ class ConfoundRegression:
         subject = f"sub-{subject_id}"
         session = "" if session_name == "*" else f"ses-{session_name}"
         task = "" if task_name == "*" else f"task-{task_name}"
-        space = f"space-{data_space.value}"
+        space = f"space-{data_space}"
         suffix = SUFFIX_MAP[type(data_space)]
 
         filepath_pattern = "*".join(
