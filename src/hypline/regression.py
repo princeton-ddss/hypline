@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 from copy import deepcopy
@@ -221,14 +220,9 @@ class ConfoundRegression:
         assert isinstance(bold, Nifti1Image)
 
         # Extract TR value (assumed constant in a given run)
-        p = filepath.parent / (filepath.name.split(".")[0] + ".json")
-        with open(p, "r") as f:
-            data = json.load(f)
-        assert isinstance(data, dict)
-        repetition_time = data.get("RepetitionTime")  # In seconds
-        if repetition_time is None:
-            raise ValueError(f"TR metadata is missing: {p.name}")
-        TR = float(repetition_time)
+        TR = bold.header.get_zooms()[3]
+        if TR <= 0:
+            raise ValueError(f"TR is zero or unset in NIfTI header: {filepath.name}")
 
         # Load confounds for the requested model
         confounds_df = self._load_confounds(filepath, model_spec)
@@ -278,10 +272,10 @@ class ConfoundRegression:
         bold = bold.T  # Shape of (TRs, voxels)
 
         # Extract TR value (assumed constant in a given run)
-        repetition_time = img.darrays[0].meta.get("TimeStep")  # In milliseconds
-        if repetition_time is None:
+        time_step = img.darrays[0].meta.get("TimeStep")
+        if time_step is None:
             raise ValueError(f"TR metadata is missing: {filepath.name}")
-        TR = float(repetition_time) / 1000  # Convert to seconds
+        TR = float(time_step) / 1000  # milliseconds to seconds
 
         # Load confounds for the requested model
         confounds_df = self._load_confounds(filepath, model_spec)

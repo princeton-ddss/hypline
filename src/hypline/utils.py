@@ -14,6 +14,8 @@ _BOLD_SPACES = {
     for space in space_type
 }
 
+_BOLD_EXTENSIONS = (".nii.gz", ".func.gii")
+
 
 def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
     bold_space = _BOLD_SPACES.get(value)
@@ -23,6 +25,68 @@ def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
             f"Unsupported BOLD data space: {value}. Must be one of: {valid}"
         )
     return bold_space
+
+
+def _strip_bold_extension(filepath: Path) -> str:
+    """Return the filename stem with the imaging extension removed."""
+    name = filepath.name
+    for ext in _BOLD_EXTENSIONS:
+        if name.endswith(ext):
+            return name[: -len(ext)]
+    raise ValueError(f"Unrecognized BOLD file extension: {name}")
+
+
+def get_repetition_time(filepath: str | os.PathLike[str]) -> float:
+    """
+    Extract the repetition time (TR) in seconds from a BOLD file.
+
+    Reads TR from the BIDS JSON sidecar if available, otherwise
+    falls back to the NIfTI header for volume data or GIfTI darray
+    metadata for surface data.
+
+    Parameters
+    ----------
+    filepath : str or os.PathLike
+        Path to a BOLD file (.nii, .nii.gz, or .func.gii).
+
+    Returns
+    -------
+    float
+        Repetition time in seconds.
+
+    Raises
+    ------
+    ValueError
+        If TR cannot be determined from any source.
+    """
+    import json
+
+    import nibabel as nib
+
+    filepath = Path(filepath)
+
+    # Primary: BIDS JSON sidecar
+    stem = _strip_bold_extension(filepath)
+    sidecar = filepath.with_name(stem + ".json")
+    if sidecar.exists():
+        with open(sidecar) as f:
+            TR = json.load(f).get("RepetitionTime")
+        if TR is not None:
+            return float(TR)
+
+    # Fallback: format-specific header/metadata
+    img = nib.load(filepath)
+    if isinstance(img, nib.Nifti1Image):
+        TR = img.header.get_zooms()[3]
+        if TR > 0:
+            return float(TR)
+        raise ValueError(f"TR is zero or unset in NIfTI header: {filepath.name}")
+    if isinstance(img, nib.GiftiImage):
+        time_step = img.darrays[0].meta.get("TimeStep")
+        if time_step is not None:
+            return float(time_step) / 1000  # milliseconds to seconds
+        raise ValueError(f"TimeStep missing from GIfTI metadata: {filepath.name}")
+    raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
 
 def validate_dirs(*paths: str | os.PathLike[str]) -> None:
