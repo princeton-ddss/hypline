@@ -6,7 +6,7 @@ import numpy as np
 import polars as pl
 
 from hypline.bids import BIDSPath
-from hypline.featuregen.utils import save_feature
+from hypline.features.utils import save_feature
 from hypline.utils import find_files, validate_dirs
 
 ARPABET_PHONEMES = [
@@ -109,7 +109,12 @@ class PhonemicFeature:
             else self._get_word_phoneme_vector
         )
 
-        transcripts = find_files(input_dir, ".csv", bids_filters=bids_filters)
+        transcripts = find_files(
+            input_dir,
+            ends_with=".csv",
+            bids_filters=bids_filters,
+        )
+
         for transcript in transcripts:
             df = pl.read_csv(transcript)
             words = df.get_column("word").cast(pl.Utf8).str.strip_chars(PUNCTUATION)

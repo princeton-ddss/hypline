@@ -1,11 +1,93 @@
 import json
 import os
+from enum import StrEnum
 from pathlib import Path
 
+import numpy as np
 import polars as pl
 import pyarrow.parquet as pq
 
 from hypline.bids import BIDSPath
+
+
+class Downsample(StrEnum):
+    MEAN = "mean"
+
+
+def resample_feature(
+    feature_df: pl.DataFrame,
+    *,
+    n_trs: int,
+    repetition_time: float,
+    method: str | Downsample,
+) -> np.ndarray:
+    """Resample a feature DataFrame to TR-level resolution.
+
+    If rows already align to TRs (count matches and intervals equal
+    repetition_time), the feature values are passed through unchanged.
+    Otherwise, each row is assigned to a TR bin by start_time and
+    aggregated per method. Returns an array of shape (n_trs, feature_dim).
+
+    NOTE: Assumes each event's duration is shorter than the TR. Events
+    spanning multiple TRs would be misassigned; revisit when end_time is
+    added to the feature schema.
+
+    Parameters
+    ----------
+    feature_df : pl.DataFrame
+        Feature DataFrame with `start_time` (numeric) and `feature`
+        (Array or List of floats) columns.
+    n_trs : int
+        Number of TRs in the output.
+    repetition_time : float
+        TR duration in seconds.
+    method : str or Downsample
+        Aggregation strategy for rows that fall in the same TR bin.
+        Only applied when input is not already TR-aligned. String values
+        are coerced to `Downsample`; invalid values raise `ValueError`.
+
+    Raises
+    ------
+    ValueError
+        If `n_trs` is not positive, or `method` is an invalid string.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape `(n_trs, feature_dim)` with TR-aligned feature values.
+    """
+    if n_trs <= 0:
+        raise ValueError(f"n_trs must be positive, got {n_trs}")
+
+    method = Downsample(method)
+    start_times = feature_df.get_column("start_time").to_numpy()
+    feature_col = feature_df.get_column("feature")
+    feature_dim = feature_col.dtype.size  # type: ignore[union-attr]
+    features = (
+        np.vstack(feature_col.to_list())
+        if len(start_times) > 0
+        else np.empty((0, feature_dim))
+    )
+
+    # Pass through if already at TR level
+    if len(start_times) == n_trs:
+        intervals = np.diff(start_times)
+        if len(intervals) > 0 and np.allclose(intervals, repetition_time):
+            return features
+
+    result = np.zeros((n_trs, feature_dim), dtype=np.float64)
+    bins = np.floor(start_times / repetition_time).astype(int)
+
+    if method is Downsample.MEAN:
+        counts = np.zeros(n_trs, dtype=int)
+        for i, b in enumerate(bins):
+            if 0 <= b < n_trs:
+                result[b] += features[i]
+                counts[b] += 1
+        nonzero = counts > 0
+        result[nonzero] /= counts[nonzero, np.newaxis]
+
+    return result
 
 
 def _validate_bids_feature_path(path: Path) -> BIDSPath:

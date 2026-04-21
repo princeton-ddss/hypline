@@ -1,4 +1,6 @@
+import os
 import re
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 
 _BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
@@ -11,7 +13,7 @@ class BIDSPath:
     _extension: str
     _path: Path
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | os.PathLike[str]):
         self._path = Path(path)
         self._entities = {}
         self._suffix = None
@@ -95,3 +97,14 @@ def validate_bids_entities(*entities: str) -> None:
     for entity in entities:
         if not _BIDS_ENTITY_RE.match(entity):
             raise ValueError(f"Invalid BIDS entity: {entity!r}")
+
+
+def validate_entity_invariance(
+    paths: Sequence[BIDSPath], entities: Iterable[str]
+) -> None:
+    """Raise if any entity has more than one distinct value across paths."""
+    for entity in entities:
+        values = {p.entities.get(entity) for p in paths}
+        if len(values) > 1:
+            display = sorted(v if v is not None else "(none)" for v in values)
+            raise ValueError(f"Inconsistent {entity!r} across files: found {display}.")

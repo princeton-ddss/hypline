@@ -42,7 +42,7 @@ def generate_phonemic_feature(
     ] = None,
 ):
     """Generate phonemic feature from word-level transcripts."""
-    from hypline.featuregen.phonemic import PhonemicFeature
+    from hypline.features.phonemic import PhonemicFeature
 
     feature = PhonemicFeature()
 

@@ -4,7 +4,6 @@ import tempfile
 from enum import StrEnum
 from pathlib import Path
 
-import polars as pl
 from pydantic import BaseModel, field_validator
 
 from hypline.enums import Device
@@ -80,13 +79,18 @@ class Transcriber:
         *,
         bids_filters: list[str] | None = None,
     ):
+        import polars as pl
         import whisperx
 
         input_dir = Path(input_dir)
         output_dir = Path(output_dir)
         validate_dirs(input_dir, output_dir)
 
-        audio_files = find_files(input_dir, audio_ext, bids_filters=bids_filters)
+        audio_files = find_files(
+            input_dir,
+            ends_with=audio_ext,
+            bids_filters=bids_filters,
+        )
 
         batch_size = self.config.batch_size
         if batch_size is None:
