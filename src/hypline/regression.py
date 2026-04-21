@@ -16,8 +16,8 @@ from pydantic import BaseModel, Field, PositiveFloat, PositiveInt, TypeAdapter
 from rich import print
 from rich.progress import track
 
+from hypline.bold import parse_bold_space
 from hypline.enums import SurfaceSpace, VolumeSpace
-from hypline.utils import parse_bold_space
 
 
 class CompCorMethod(StrEnum):

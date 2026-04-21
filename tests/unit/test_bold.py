@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from hypline.utils import load_events
+from hypline.bold import load_events
 
 
 def _write_events(

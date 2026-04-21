@@ -8,16 +8,15 @@ import polars as pl
 from pydantic import BaseModel
 
 from hypline.bids import BIDSPath, validate_bids_entities, validate_entity_invariance
-from hypline.enums import Device
-from hypline.features.utils import Downsample, read_feature, resample_feature
-from hypline.utils import (
+from hypline.bold import (
     BOLD_EXTENSIONS,
-    find_files,
     get_repetition_time,
     load_events,
     parse_bold_space,
-    validate_dirs,
 )
+from hypline.enums import Device
+from hypline.features.utils import Downsample, read_feature, resample_feature
+from hypline.utils import find_files, validate_dirs
 
 # Entities provided via dedicated arguments — not allowed in bids_filters.
 _RESERVED_ENTITIES = frozenset(("sub", "space", "feature"))
