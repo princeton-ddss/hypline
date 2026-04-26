@@ -37,3 +37,9 @@ Some entity names look tempting for custom use but are already reserved:
 - `chunk` — segmented acquisitions
 
 Check the BIDS spec before introducing a new custom entity.
+
+## Structural entities in hypline
+
+Hypline does not register a fixed entity name for partitions. User-chosen BIDS key-value
+names in events.tsv (e.g. `block`, `trial`) are inferred as structural at discovery time
+via a tiling check. See [../decisions/semantic-entity.md](../decisions/semantic-entity.md).

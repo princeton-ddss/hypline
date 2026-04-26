@@ -1,6 +1,7 @@
 # Feature files
 
-Design record for hypline's feature file format — schema, naming rules, and alignment contract with BOLD data.
+Design record for hypline's feature file format — schema, naming rules, and
+alignment contract with BOLD data.
 
 Hypline's own derivative type — stimulus-derived features paired to BOLD
 runs for encoding models.
@@ -18,12 +19,16 @@ Feature I/O is implemented in `hypline/features/utils.py` (formerly `hypline/fea
 ## Naming
 
 Feature files inherit **stimulus-side identity entities** from the source
-BOLD (`sub`, `ses`, `task`, `run`), plus hypline's own entities (`partition`,
-`feature`):
+BOLD (`sub`, `ses`, `task`, `run`), plus any semantic entities that define
+the time window (e.g. the partition entity inferred from events.tsv), plus
+hypline's own `feature` entity:
 
 ```
-sub-01_ses-01_task-movie_run-1_partition-part1_feature-clip.parquet
+sub-01_ses-01_task-movie_run-1_block-1_feature-clip.parquet
 ```
+
+Feature files must be provided at the partition entity granularity. Additional descriptive
+entities are allowed (e.g. `condition`, `trial`) — see [semantic-entity.md](semantic-entity.md).
 
 Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`,
 `dir`). Features are stimulus-derived — the same stimulus embedding applies

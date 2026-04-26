@@ -1,6 +1,7 @@
 # Encoding — scope and assumptions
 
-What a single encoding training run operates on, what it requires, and what assumptions could break it.
+What a single encoding training run operates on, what it requires, and
+what assumptions could break it.
 
 The encoding pipeline fits a model from stimulus-derived features (X) to
 BOLD responses (Y) — typically banded ridge regression.
@@ -17,8 +18,10 @@ A single `train(sub_id)` call is scoped to:
   BOLD or feature files, the pipeline raises.
 - **Multiple sessions and runs: allowed and expected.** Same task, more
   data — concatenated into a single X/Y.
-- **Multiple partitions per run: allowed.** Each partition is a separate row
-  block. See [../decisions/partition-entity.md](../decisions/partition-entity.md).
+- **Multiple cells per run: allowed.** The partition entity is inferred from
+  events.tsv at discovery time. Each partition value is a separate row block,
+  identified by a `CellKey` carrying all non-excluded filename entities.
+  See [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 
 ## Alignment contract
 
@@ -51,16 +54,34 @@ external callers should too.
 intentional — fMRIPrep derivatives are often organized in per-subject subdirectories
 (`sub-01/func/`), so flat-directory search would miss them.
 
+## `bids_filters` routing
+
+User-supplied `bids_filters` are routed automatically — no need to specify separate feature
+vs. BOLD filters:
+
+- **Shared entities** (`ses`, `task`, `run`): forwarded to both feature and BOLD discovery.
+- **BOLD-exclusive entities** (`desc`, `res`, `den`, `echo`, `acq`, `ce`, `rec`, `dir`):
+  forwarded to BOLD discovery only; stripped from feature-side filters since feature files
+  never carry them.
+- **Feature entities** (any other entity, e.g. `block-1`): forwarded to feature discovery
+  only.
+- **Reserved entities** (`sub`, `space`, `feature`): rejected at construction — use the
+  dedicated arguments instead.
+
+Filter entity validation is **fail-then-diagnose**: when filtered discovery yields no files
+but an unfiltered scan finds some, every filter entity is checked against the union of keys
+on those files — any absent entity raises `ValueError` before `FileNotFoundError`. This
+applies uniformly to all entity types including `ses`, `task`, `run` — no exemptions.
+Rationale: a session-less dataset has no `ses` on filenames; filtering on `ses-99` against
+such a dataset is a misuse worth flagging, not silently absorbing.
+
 ## Assumptions that could break
 
 - **Consistent TR across all runs** for a subject. Mixed-TR datasets would
   need per-run TR handling.
 - **Feature files mirror BOLD identity entities.** See
   [../decisions/feature-files.md](../decisions/feature-files.md).
-- **Partitions declared in events** use the `"partition-{value}"` trial_type
-  convention. Changing this affects validation and lookup sites.
-- **Partitions must tile the full run.** Contiguity and zero-start are checked
-  in `_discover_bold`; full BOLD length coverage is checked in `_build_xy`
-  once arrays are loaded. See [../decisions/partition-entity.md](../decisions/partition-entity.md).
-- **One feature file per (feature, run, partition) cell.** Multiple files is
+- **Partition contract** (inference, tiling, cross-run agreement, cell schema invariance):
+  see [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
+- **One feature file per (CellKey, feature) pair.** Multiple files for the same pair is
   ambiguous provenance, not something to merge.

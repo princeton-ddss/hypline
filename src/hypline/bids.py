@@ -3,7 +3,7 @@ import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
-_BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
+BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
 _BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
 
 
@@ -31,7 +31,7 @@ class BIDSPath:
         for i, segment in enumerate(segments):
             if "-" in segment:
                 key, _, value = segment.partition("-")
-                if not _BIDS_ENTITY_RE.match(segment):
+                if not BIDS_ENTITY_RE.match(segment):
                     raise ValueError(f"Invalid BIDS entity: {segment!r}")
                 if key in self._entities:
                     raise ValueError(f"Duplicate BIDS entity key: {key!r}")
@@ -76,7 +76,7 @@ class BIDSPath:
 
     def with_entity(self, key: str, value: str) -> "BIDSPath":
         entity = f"{key}-{value}"
-        if not _BIDS_ENTITY_RE.match(entity):
+        if not BIDS_ENTITY_RE.match(entity):
             raise ValueError(f"Invalid BIDS entity: {entity!r}")
 
         entities = dict(self._entities)
@@ -95,7 +95,7 @@ class BIDSPath:
 
 def validate_bids_entities(*entities: str) -> None:
     for entity in entities:
-        if not _BIDS_ENTITY_RE.match(entity):
+        if not BIDS_ENTITY_RE.match(entity):
             raise ValueError(f"Invalid BIDS entity: {entity!r}")
 
 
