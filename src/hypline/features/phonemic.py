@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
-from hypline.bids import BIDSPath
+from hypline.bids import BIDSPath, validate_bids_entities
 from hypline.features.utils import save_feature
 from hypline.utils import find_files, validate_dirs
 
@@ -53,6 +53,9 @@ ARPABET_PHONEMES = [
 
 PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
+# Entities provided via dedicated arguments — not allowed in bids_filters
+_RESERVED_ENTITIES = frozenset({"sub"})
+
 
 class PhonemicFeature:
     _pronunciations: dict
@@ -60,8 +63,32 @@ class PhonemicFeature:
     _articulatory_vectors: dict[str, np.ndarray]
     _n_articulatory_features: int
 
-    def __init__(self):
+    def __init__(
+        self,
+        input_dir: str | os.PathLike[str],
+        output_dir: str | os.PathLike[str],
+        *,
+        use_articulatory: bool = True,
+        bids_filters: list[str] | None = None,
+    ):
         self._load()
+
+        validate_dirs(input_dir, output_dir)
+        self._input_dir = Path(input_dir)
+        self._output_dir = Path(output_dir)
+
+        self._use_articulatory = use_articulatory
+
+        bids_filters = list(bids_filters or [])
+        validate_bids_entities(*bids_filters)
+        for entity in bids_filters:
+            key = entity.split("-", 1)[0]
+            if key in _RESERVED_ENTITIES:
+                raise ValueError(
+                    f"bids_filters cannot contain {key!r} "
+                    "— use the dedicated argument instead"
+                )
+        self._bids_filters = bids_filters
 
     @classmethod
     def _load(cls):
@@ -91,28 +118,17 @@ class PhonemicFeature:
                     vec[feature_index[row[col]]] = 1
             cls._articulatory_vectors[row["phoneme"]] = vec
 
-    def generate(
-        self,
-        input_dir: str | os.PathLike[str],
-        output_dir: str | os.PathLike[str],
-        *,
-        use_articulatory: bool = True,
-        bids_filters: list[str] | None = None,
-    ):
-        input_dir = Path(input_dir)
-        output_dir = Path(output_dir)
-        validate_dirs(input_dir, output_dir)
-
+    def generate(self, sub_id: str):
         feature_fn = (
             self._get_word_articulatory_vector
-            if use_articulatory
+            if self._use_articulatory
             else self._get_word_phoneme_vector
         )
 
         transcripts = find_files(
-            input_dir,
+            self._input_dir,
             ends_with=".csv",
-            bids_filters=bids_filters,
+            bids_filters=[f"sub-{sub_id}", *self._bids_filters],
         )
 
         for transcript in transcripts:
@@ -128,7 +144,7 @@ class PhonemicFeature:
             )
 
             bids_path = BIDSPath(transcript).with_entity("feature", "phonemic")
-            out_path = output_dir / (bids_path.path.stem + ".parquet")
+            out_path = self._output_dir / (bids_path.path.stem + ".parquet")
             save_feature(df, out_path)
 
     def _get_word_phoneme_vector(self, word: str) -> np.ndarray:

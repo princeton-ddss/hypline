@@ -22,13 +22,14 @@ def generate_phonemic_feature(
             show_default=False,
         ),
     ],
-    no_articulatory: Annotated[
-        bool,
+    sub_ids: Annotated[
+        list[str] | None,
         typer.Option(
-            "--no-articulatory",
-            help="Do not use articulatory features",
+            "--sub",
+            help="[Repeatable] Subject ID to process (e.g., 01); omit to process all",
+            show_default=False,
         ),
-    ] = False,
+    ] = None,
     bids_filters: Annotated[
         list[str] | None,
         typer.Option(
@@ -40,15 +41,32 @@ def generate_phonemic_feature(
             show_default=False,
         ),
     ] = None,
+    no_articulatory: Annotated[
+        bool,
+        typer.Option(
+            "--no-articulatory",
+            help="Do not use articulatory features",
+        ),
+    ] = False,
 ):
     """Generate phonemic feature from word-level transcripts."""
+    from hypline.bids import BIDSPath
     from hypline.features.phonemic import PhonemicFeature
 
-    feature = PhonemicFeature()
-
-    feature.generate(
+    feature = PhonemicFeature(
         input_dir,
         output_dir,
         use_articulatory=not no_articulatory,
         bids_filters=bids_filters,
     )
+
+    resolved_sub_ids = sub_ids or list(
+        {
+            BIDSPath(f).entities["sub"]
+            for f in input_dir.iterdir()
+            if f.is_file() and "sub" in BIDSPath(f).entities
+        }
+    )
+
+    for sub_id in resolved_sub_ids:
+        feature.generate(sub_id)
