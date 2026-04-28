@@ -1,0 +1,109 @@
+# Segment metadata
+
+Design record for the `events.json` `Segments` field — per-segment descriptive entities
+used for filtering and CV splits.
+
+## Purpose
+
+Feature filenames carry only structural identity: `ses`, `run`, and the segment entity value
+(e.g. `trial-1`). Descriptive attributes — condition, stimulus item, counterbalance group —
+live in `events.json` under the `Segments` key and are joined onto `CellKey` at enrichment
+time.
+
+## Wire format (events.json)
+
+```json
+{
+  "Segments": [
+    {"trial": "1", "cond": "R", "item": "101"},
+    {"trial": "2", "cond": "L", "item": "102"},
+    {"trial": "3", "cond": "R", "item": "103"}
+  ]
+}
+```
+
+- `Segments` is a list of records; each record is a flat dict of BIDS entity key-value pairs.
+- One key per record must match the run's segment entity (e.g. `"trial"`); its value is the
+  bare segment value (e.g. `"1"`, not `"trial-1"`).
+- Remaining keys are metadata entities — must match `^[a-z]+$` (valid BIDS entity names).
+- Values must match `^[a-zA-Z0-9]+$` (valid BIDS entity values).
+- `Segments` is optional. Absence = no metadata for that run; `CellKey` carries filename
+  entities only.
+
+## Validation (enforced in `_discover_bold`)
+
+Within a single events.json:
+- Every record has the segment-entity key.
+- Segment entity values match events.tsv key-value rows exactly (set equality).
+- All records have identical metadata key sets (schema invariance).
+- No metadata key collides with reserved entities (`sub`, `ses`, `run`, `task`, `space`,
+  `feature`).
+
+Cross-run (within a training call):
+- All non-empty runs share the same metadata key set. Runs with absent `events.json` have
+  empty metadata and pass through — the cross-run schema invariance is enforced later via
+  enriched-`CellKey`-schema invariance.
+
+## In-memory representation
+
+```python
+@dataclass(frozen=True)
+class Segment:
+    entity: str           # e.g. "trial"
+    value: str            # bare value, e.g. "1"
+    slice: slice          # TR-slice derived from events.tsv onset/duration
+    metadata: dict[str, str]  # e.g. {"cond": "R", "item": "101"}; empty if no Segments
+
+class BoldMeta(NamedTuple):
+    path: Path
+    repetition_time: float
+    segments: list[Segment]   # empty list if unsegmented run
+```
+
+Slices use bare values as keys (matching `Segment.value`) — the segment entity name is
+available on `Segment.entity` and is not redundantly embedded in the value.
+
+## CellKey enrichment (`_enrich_cells`)
+
+For each feature cell, `Segment.metadata` is merged into the cell's `CellKey`:
+
+```python
+enriched = CellKey(**{**dict(cell_key.items()), **segment.metadata})
+```
+
+Conflict rule: if a metadata key already exists on the filename-derived `CellKey` with the
+same value, the match is allowed (redundant but harmless). If the values differ, raise —
+the two sources of truth disagree.
+
+After enrichment, all `bids_filters` (including metadata-entity filters like `cond-R`) apply
+uniformly against the enriched `CellKey`. No separate metadata-aware filter path needed.
+
+## Example — full picture
+
+events.tsv:
+```
+onset   duration  trial_type
+0.0     10.0      rest
+10.0    20.0      trial-1
+30.0    10.0      rest
+40.0    20.0      trial-2
+60.0    10.0      rest
+70.0    20.0      trial-3
+90.0    10.0      rest
+```
+
+events.json Segments as above. BOLD TR=2.0s, 50 TRs total.
+
+Resulting BoldMeta.segments:
+```python
+[
+    Segment(entity="trial", value="1", slice=slice(5, 15),  metadata={"cond": "R", "item": "101"}),
+    Segment(entity="trial", value="2", slice=slice(20, 30), metadata={"cond": "L", "item": "102"}),
+    Segment(entity="trial", value="3", slice=slice(35, 45), metadata={"cond": "R", "item": "103"}),
+]
+```
+
+TRs 0–4, 15–19, 30–34, 45–49 are break TRs — not indexed by any segment, excluded from X/Y.
+
+See [semantic-entity.md](semantic-entity.md) for segment entity inference rules.
+See [feature-files.md](feature-files.md) for feature file naming conventions.

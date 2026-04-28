@@ -18,33 +18,37 @@ Feature I/O is implemented in `hypline/features/utils.py` (formerly `hypline/fea
 
 ## Naming
 
-Feature files inherit **stimulus-side identity entities** from the source
-BOLD (`sub`, `ses`, `task`, `run`), plus any semantic entities that define
-the time window (e.g. the partition entity inferred from events.tsv), plus
-hypline's own `feature` entity:
+Feature files carry **stimulus-side identity entities** from the source BOLD (`sub`, `ses`,
+`task`, `run`), the segment entity value (e.g. `trial-1`), and hypline's own `feature` entity:
 
 ```
-sub-01_ses-01_task-movie_run-1_block-1_feature-clip.parquet
+sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet
 ```
 
-Feature files must be provided at the partition entity granularity. Additional descriptive
-entities are allowed (e.g. `condition`, `trial`) — see [semantic-entity.md](semantic-entity.md).
+Feature files carry only structural identity — descriptive attributes (condition, stimulus
+item, etc.) live in `events.json` under `Segments` and are joined at enrichment time. Do not
+put descriptive entities on feature filenames; they belong in the sidecar.
 
-Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`,
-`dir`). Features are stimulus-derived — the same stimulus embedding applies
-regardless of scanner acquisition parameters. Encoding validation enforces
-this: if BOLD files carry acquisition variants, feature files are not
-required to mirror them.
+Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`). Features are
+stimulus-derived — the same stimulus embedding applies regardless of scanner acquisition
+parameters. Encoding validation enforces this: if BOLD files carry acquisition variants,
+feature files are not required to mirror them.
+
+## Conflict rule (filename entity vs. events.json metadata)
+
+If a metadata key from `events.json` `Segments` already appears on the feature filename with
+the same value, the match is allowed (redundant but harmless). If the values differ, the
+pipeline raises — two sources of truth disagree. This supports migration: existing feature
+files carrying descriptive entities do not need immediate renaming if the sidecar agrees.
 
 ## Mirroring requirement
 
-Feature filenames must carry the same stimulus-side identity entities as
-their source BOLD file. If BOLD has `ses-01_run-1`, the feature file must
-too.
+Feature filenames must carry the same stimulus-side identity entities as their source BOLD
+file. If BOLD has `ses-01_run-1`, the feature file must too.
 
-This is how pipelines match features to BOLD runs. Aggregating features
-across sessions or runs (e.g. a subject-level embedding) is out of scope
-for encoding models — such features don't map 1:1 to BOLD TRs.
+This is how pipelines match features to BOLD runs. Aggregating features across sessions or
+runs (e.g. a subject-level embedding) is out of scope for encoding models — such features
+don't map 1:1 to BOLD TRs.
 
 ## Temporal alignment
 
