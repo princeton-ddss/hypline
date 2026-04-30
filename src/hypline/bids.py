@@ -3,6 +3,8 @@ import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
+BIDS_ENTITY_KEY_RE = re.compile(r"^[a-z]+$")
+BIDS_ENTITY_VALUE_RE = re.compile(r"^[a-zA-Z0-9]+$")
 BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
 _BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
 

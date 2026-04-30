@@ -4,19 +4,17 @@ from pathlib import Path
 from typing import Iterator, NamedTuple
 
 import numpy as np
-import polars as pl
 from pydantic import BaseModel
 
 from hypline.bids import (
-    BIDS_ENTITY_RE,
     BIDSPath,
     validate_bids_entities,
     validate_entity_invariance,
 )
 from hypline.bold import (
     BOLD_EXTENSIONS,
-    get_repetition_time,
-    load_events,
+    BoldMeta,
+    load_bold_meta,
     parse_bold_space,
 )
 from hypline.enums import Device
@@ -90,17 +88,6 @@ class FeatureKey(NamedTuple):
     feature: str
 
 
-class Partitioning(NamedTuple):
-    entity: str
-    slices: dict[str, slice]  # entity value → TR-slice
-
-
-class BoldMeta(NamedTuple):
-    path: Path
-    repetition_time: float
-    partitioning: Partitioning | None
-
-
 class EncodingConfig(BaseModel):
     device: Device = Device.CPU
 
@@ -119,91 +106,6 @@ class TrainingData:
     Y: np.ndarray
     row_slices: dict[CellKey, slice]
     col_slices: dict[str, slice]
-
-
-def _tiles(slices: list[slice]) -> bool:
-    """Return True if slices start at 0, are non-overlapping, and are contiguous."""
-    ordered = sorted(slices, key=lambda s: s.start)
-    if ordered[0].start != 0:
-        return False
-    return all(a.stop == b.start for a, b in zip(ordered, ordered[1:]))
-
-
-def _mean_slice_duration(slices: dict[str, slice]) -> float:
-    return sum(s.stop - s.start for s in slices.values()) / len(slices)
-
-
-def _infer_partitioning(
-    events: pl.DataFrame | None,
-    repetition_time: float,
-) -> Partitioning | None:
-    """Identify the partition entity and its TR-slices from events.tsv.
-
-    Convention: BIDS key-value trial_type rows (e.g., `block-1`, `trial-A`)
-    declare partitions — non-overlapping time windows that tile the run.
-    Non-partition annotations must use flat (non-key-value) trial_type labels
-    (e.g., `rest`, `fixation`). Every BIDS key-value entity found in events must
-    tile the run; partial tiling is a design error and raises.
-
-    Tiling = values start at onset=0, are non-overlapping, contiguous, and cover the
-    full events span. The partition entity is the tiling entity with the smallest
-    average slice duration; ties raise.
-
-    Returns None when there are no BIDS key-value events (unpartitioned run).
-    """
-    if events is None:
-        return None
-
-    partition_rows = events.filter(
-        pl.col("trial_type").str.contains(BIDS_ENTITY_RE.pattern)
-        & (pl.col("duration") > 0.0)
-    )
-
-    if partition_rows.is_empty():
-        return None
-
-    slices_by_entity: dict[str, dict[str, slice]] = {}
-    for row in partition_rows.iter_rows(named=True):
-        entity_name, entity_value = row["trial_type"].split("-", 1)
-        onset_tr = round(row["onset"] / repetition_time)
-        n_trs = round(row["duration"] / repetition_time)
-        entity_slices = slices_by_entity.setdefault(entity_name, {})
-        entity_slices[entity_value] = slice(onset_tr, onset_tr + n_trs)
-
-    events_span_trs = round(
-        partition_rows.select((pl.col("onset") + pl.col("duration")).max()).item()
-        / repetition_time
-    )
-
-    tiling = {
-        entity_name: entity_slices
-        for entity_name, entity_slices in slices_by_entity.items()
-        if _tiles(list(entity_slices.values()))
-        and max(s.stop for s in entity_slices.values()) == events_span_trs
-    }
-
-    non_tiling = sorted(slices_by_entity.keys() - tiling.keys())
-    if non_tiling:
-        raise ValueError(
-            f"BIDS entities {non_tiling} in events.tsv do not partition the run "
-            f"cleanly. Values must be unique and slices must cover the run "
-            f"contiguously from onset 0. Check for duplicate values (e.g. trial IDs "
-            f"reset per block), gaps, overlaps, or partial run coverage. Use flat "
-            f"trial_type labels (e.g. 'rest') for non-partition annotations."
-        )
-
-    # Partition entity is the tiling entity with the finest granularity
-    avg_durations = {name: _mean_slice_duration(s) for name, s in tiling.items()}
-    min_avg = min(avg_durations.values())
-    tied = [name for name, avg in avg_durations.items() if avg == min_avg]
-    if len(tied) > 1:
-        raise ValueError(
-            f"entities {tied[0]!r} and {tied[1]!r} both tile the run at identical "
-            f"granularity — remove the redundant one"
-        )
-    partition_entity = tied[0]
-
-    return Partitioning(entity=partition_entity, slices=tiling[partition_entity])
 
 
 def _format_loc(**entities: str | None) -> str:
@@ -393,11 +295,10 @@ class Encoding:
         """Discover BOLD files and load their metadata for a subject.
 
         Scans the BOLD directory by filename without loading image arrays. TR is
-        read from the sidecar JSON, falling back to the image header. Partitioning
-        is inferred from the colocated events TSV when present — raises if events
-        contain BIDS entities that fail to tile the run. All runs are guaranteed to
-        share the same TR, BOLD-level entity invariants, and partition entity (or all
-        unpartitioned).
+        read from the sidecar JSON, falling back to the image header. Segmentation
+        is inferred from the colocated events TSV when present. All runs are guaranteed
+        to share the same TR, BOLD-level entity invariants, and segment entity (or all
+        unsegmented).
         """
 
         bold_ext = BOLD_EXTENSIONS[type(self.bold_space)]
@@ -435,18 +336,11 @@ class Encoding:
                     f"Duplicate BOLD file at {loc}:\n"
                     f"  {bold_metas[bold_key].path}\n  {bold_file}"
                 )
-            repetition_time = get_repetition_time(bold_file)
-            events = load_events(bold_file)
             try:
-                partitioning = _infer_partitioning(events, repetition_time)
+                bold_metas[bold_key] = load_bold_meta(bold_file)
             except ValueError as e:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(f"{e} for {loc}") from e
-            bold_metas[bold_key] = BoldMeta(
-                path=bold_file,
-                repetition_time=repetition_time,
-                partitioning=partitioning,
-            )
 
         # Validate: acquisition entities are invariant across all runs
         bold_bids = [BIDSPath(meta.path) for meta in bold_metas.values()]
@@ -463,20 +357,36 @@ class Encoding:
                 f"subject {sub_id}: {repetition_times}"
             )
 
-        # Validate: partition entity is invariant across all runs (or all unpartitioned)
-        partition_entities = {
-            meta.partitioning.entity if meta.partitioning is not None else None
+        # Validate: segment entity is invariant across all runs (or all unsegmented)
+        segment_entities = {
+            meta.segments[0].entity if meta.segments else None
             for meta in bold_metas.values()
         }
-        if len(partition_entities) > 1:
+        if len(segment_entities) > 1:
             run_labels = sorted(
                 f"{meta.path.name} ("
-                f"{meta.partitioning.entity if meta.partitioning else 'unpartitioned'})"
+                f"{meta.segments[0].entity if meta.segments else 'unsegmented'})"
                 for meta in bold_metas.values()
             )
             raise ValueError(
-                f"BOLD runs disagree on partition entity for subject {sub_id}:\n  "
+                f"BOLD runs disagree on segment entity for subject {sub_id}:\n  "
                 + "\n  ".join(run_labels)
+            )
+
+        # Validate: segment metadata schema is invariant across segmented runs
+        segmented_metas = [meta for meta in bold_metas.values() if meta.segments]
+        metadata_key_sets = {
+            frozenset(seg.metadata) for meta in segmented_metas for seg in meta.segments
+        }
+        if len(metadata_key_sets) > 1:
+            run_labels = sorted(
+                f"{meta.path.name} "
+                f"({sorted(meta.segments[0].metadata) or 'no metadata'})"
+                for meta in segmented_metas
+            )
+            raise ValueError(
+                f"BOLD runs disagree on segment metadata schema for subject "
+                f"{sub_id}:\n  " + "\n  ".join(run_labels)
             )
 
         return bold_metas
@@ -490,15 +400,15 @@ class Encoding:
 
         Checks sub/task invariance across all files, bidirectional ses/run coverage
         between features and BOLD, and that feature cells align with each run's
-        partitioning: for partitioned runs, every cell must carry the partition entity
-        with a value declared in events; for unpartitioned runs, exactly one cell per
+        segmentation: for segmented runs, every cell must carry the segment entity
+        with a value declared in events; for unsegmented runs, exactly one cell per
         run is allowed.
 
         Notes
         -----
-        When all BOLD runs are unpartitioned, extra entities on feature filenames
+        When all BOLD runs are unsegmented, extra entities on feature filenames
         beyond ses/run are accepted as descriptive tags. If those entities were intended
-        as partition keys but events.tsv is absent or contains no BIDS key-value rows,
+        as segment keys but events.tsv is absent or contains no BIDS key-value rows,
         the misalignment is not detectable here and will surface only as unexpected
         row counts in the assembled X/Y matrices.
         """
@@ -534,7 +444,7 @@ class Encoding:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-        # Validate feature cells against each run's partitioning
+        # Validate feature cells against each run's segmentation
         cells_by_bold_key: dict[BoldKey, list[CellKey]] = {}
         for cell_key in cell_keys:
             bold_key = BoldKey(cell_key.get("ses"), cell_key.get("run"))
@@ -544,27 +454,27 @@ class Encoding:
             run_cells = cells_by_bold_key[bold_key]
             loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
 
-            if bold_meta.partitioning is None:
+            if not bold_meta.segments:
                 if len(run_cells) > 1:
                     raise ValueError(
-                        f"Run is unpartitioned but has {len(run_cells)} feature cells "
-                        f"at {loc} — provide an events.tsv with tiling entities to "
-                        f"partition the run"
+                        f"Run is unsegmented but has {len(run_cells)} feature cells "
+                        f"at {loc} — provide an events.tsv with BIDS key-value "
+                        f"entities to segment the run"
                     )
             else:
-                entity = bold_meta.partitioning.entity
+                entity = bold_meta.segments[0].entity
+                segment_values = {seg.value for seg in bold_meta.segments}
                 for cell_key in run_cells:
                     value = cell_key.get(entity)
                     if value is None:
                         raise ValueError(
-                            f"Feature cell {cell_key!r} at {loc} is missing partition "
+                            f"Feature cell {cell_key!r} at {loc} is missing segment "
                             f"entity {entity!r} declared in events"
                         )
-                    if value not in bold_meta.partitioning.slices:
+                    if value not in segment_values:
                         raise ValueError(
-                            f"Partition value {entity}-{value} at {loc} not found in "
-                            f"events — valid values: "
-                            f"{sorted(bold_meta.partitioning.slices)}"
+                            f"Segment value {entity}-{value} at {loc} not found in "
+                            f"events — valid values: {sorted(segment_values)}"
                         )
 
     def _build_xy(
@@ -578,7 +488,7 @@ class Encoding:
         across runs. Column layout is derived from the first cell and assumed
         invariant — all cells must yield the same feature dimensionality.
 
-        Partition slice coverage is validated against actual BOLD array length before
+        Segment slice coverage is validated against actual BOLD array length before
         any data is assembled; a mismatch raises early rather than producing a
         silently truncated Y.
         """
@@ -587,17 +497,17 @@ class Encoding:
         }
 
         for bold_key, bold_meta in bold_metas.items():
-            if bold_meta.partitioning is None:
+            if not bold_meta.segments:
                 continue
-            expected = max(s.stop for s in bold_meta.partitioning.slices.values())
+            expected = max(seg.slice.stop for seg in bold_meta.segments)
             actual = bold_arrays[bold_key].shape[0]
-            if expected != actual:
+            if expected > actual:
                 first_bold = next(iter(bold_metas.values()))
                 sub_id = BIDSPath(first_bold.path).entities.get("sub")
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(
-                    f"Partition slices cover {expected} TRs "
-                    f"but BOLD has {actual} for {loc}"
+                    f"Segment slices extend to TR {expected} "
+                    f"but BOLD has only {actual} TRs for {loc}"
                 )
 
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
@@ -625,12 +535,13 @@ class Encoding:
             bold_data = bold_arrays[bold_key]
 
             # Construct Y for the given cell
-            if bold_meta.partitioning is None:
+            if not bold_meta.segments:
                 onset_tr, n_trs = 0, bold_data.shape[0]
             else:
-                partition_value = cell_key[bold_meta.partitioning.entity]
-                tr_slice = bold_meta.partitioning.slices[partition_value]
-                onset_tr, n_trs = tr_slice.start, tr_slice.stop - tr_slice.start
+                segment_entity = bold_meta.segments[0].entity
+                segment_value = cell_key[segment_entity]
+                seg = next(s for s in bold_meta.segments if s.value == segment_value)
+                onset_tr, n_trs = seg.slice.start, seg.slice.stop - seg.slice.start
             row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
             row_offset += n_trs
             Y_parts.append(bold_data[onset_tr : onset_tr + n_trs])

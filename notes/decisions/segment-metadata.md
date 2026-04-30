@@ -25,24 +25,28 @@ time.
 - `Segments` is a list of records; each record is a flat dict of BIDS entity key-value pairs.
 - One key per record must match the run's segment entity (e.g. `"trial"`); its value is the
   bare segment value (e.g. `"1"`, not `"trial-1"`).
-- Remaining keys are metadata entities — must match `^[a-z]+$` (valid BIDS entity names).
-- Values must match `^[a-zA-Z0-9]+$` (valid BIDS entity values).
+- Remaining keys are metadata entities — must match `BIDS_ENTITY_KEY_RE` (`^[a-z]+$`).
+- Values must be strings matching `BIDS_ENTITY_VALUE_RE` (`^[a-zA-Z0-9]+$`). Non-string JSON
+  types (numbers, bools) are rejected — BIDS values are strings on filenames, and metadata
+  values become filename-shaped tokens after enrichment.
 - `Segments` is optional. Absence = no metadata for that run; `CellKey` carries filename
   entities only.
 
-## Validation (enforced in `_discover_bold`)
+## Validation
 
-Within a single events.json:
+Within a single events.json (enforced in `bold.load_bold_meta`):
 - Every record has the segment-entity key.
 - Segment entity values match events.tsv key-value rows exactly (set equality).
 - All records have identical metadata key sets (schema invariance).
-- No metadata key collides with reserved entities (`sub`, `ses`, `run`, `task`, `space`,
-  `feature`).
+- No metadata key collides with BOLD identity entities (`sub`, `ses`, `task`, `acq`, `ce`,
+  `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feature`) are rejected
+  later by `CellKey.EXCLUDE` during `_enrich_cells` — keeping `bold.py` agnostic of
+  encoding-pipeline concerns.
 
-Cross-run (within a training call):
-- All non-empty runs share the same metadata key set. Runs with absent `events.json` have
-  empty metadata and pass through — the cross-run schema invariance is enforced later via
-  enriched-`CellKey`-schema invariance.
+Cross-run (enforced in `Encoding._discover_bold`):
+- All segmented runs share the same metadata key set. Strict — a segmented run with no
+  events.json (empty metadata) does not match a segmented run with populated metadata.
+  Mixing the two raises rather than silently routing partial metadata downstream.
 
 ## In-memory representation
 

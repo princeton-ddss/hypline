@@ -120,21 +120,33 @@ class BIDSTree:
         task: str | None = _DEFAULT_TASK,
         run: str | None = None,
         rows: list[dict[str, str | float]] | None = None,
+        events_json: dict | None = None,
     ) -> Path:
-        """Write an events.tsv file.
+        """Write an events.tsv file, optionally with a colocated events.json sidecar.
 
         rows is a list of dicts with trial_type, onset, duration, e.g.:
             [{"trial_type": "block-1", "onset": 0.0, "duration": 100.0}]
+
+        events_json, if provided, is written to the matching events.json sidecar
+        as raw JSON content (e.g., {"Segments": [{"block": "1", "cond": "R"}, ...]}).
         """
+        import json
+
         identity = self._identity_entities(sub, ses, task, run)
+        stem = self._stem(identity)
+
         tsv_rows = []
         if rows:
             for row in rows:
                 tsv_rows.append(
                     f"{row['trial_type']}\t{row['onset']}\t{row['duration']}"
                 )
-        events_path = self.bold_dir / f"{self._stem(identity)}_events.tsv"
+        events_path = self.bold_dir / f"{stem}_events.tsv"
         events_path.write_text("trial_type\tonset\tduration\n" + "\n".join(tsv_rows))
+
+        if events_json is not None:
+            (self.bold_dir / f"{stem}_events.json").write_text(json.dumps(events_json))
+
         return events_path
 
     def add_boldref(
@@ -453,12 +465,12 @@ class TestDiscoverBold:
         with pytest.raises(ValueError, match="acq"):
             enc._discover_bold(_DEFAULT_SUB)
 
-    def test_no_events_gives_no_partitioning(self, tree: BIDSTree):
+    def test_no_events_gives_no_segments(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
         enc = make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
         meta = bold_metas[BoldKey(ses=None, run="1")]
-        assert meta.partitioning is None
+        assert meta.segments == []
 
     def test_structural_entity_slices_parsed(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
@@ -472,41 +484,79 @@ class TestDiscoverBold:
         enc = make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
         meta = bold_metas[BoldKey(ses=None, run="1")]
-        assert meta.partitioning is not None
-        assert meta.partitioning.entity == "block"
-        assert meta.partitioning.slices["1"] == slice(0, 50)
-        assert meta.partitioning.slices["2"] == slice(50, 100)
+        assert len(meta.segments) == 2
+        assert meta.segments[0].entity == "block"
+        assert meta.segments[0].value == "1"
+        assert meta.segments[0].slice == slice(0, 50)
+        assert meta.segments[1].value == "2"
+        assert meta.segments[1].slice == slice(50, 100)
 
-    def test_leaf_entity_is_finest_granularity(self, tree: BIDSTree):
-        tree.add_bold(run="1", tr=2.0)
-        tree.add_events(
-            run="1",
-            rows=[
-                {"trial_type": "block-1", "onset": 0.0, "duration": 200.0},
-                {"trial_type": "trial-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "trial-2", "onset": 100.0, "duration": 100.0},
-            ],
-        )
-        enc = make_encoding(tree, ["mfcc"])
-        bold_metas = enc._discover_bold(_DEFAULT_SUB)
-        meta = bold_metas[BoldKey(ses=None, run="1")]
-        assert meta.partitioning is not None
-        assert meta.partitioning.entity == "trial"
-
-    def test_tied_granularity_raises(self, tree: BIDSTree):
+    def test_multiple_kv_entities_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
         tree.add_events(
             run="1",
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
-                {"trial_type": "segment-a", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "segment-b", "onset": 100.0, "duration": 100.0},
+                {"trial_type": "trial-1", "onset": 100.0, "duration": 100.0},
             ],
         )
         enc = make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="identical granularity"):
+        with pytest.raises(ValueError, match="multiple BIDS key-value entities"):
             enc._discover_bold(_DEFAULT_SUB)
+
+    def test_segment_entity_as_flat_label_raises(self, tree: BIDSTree):
+        tree.add_bold(run="1", tr=2.0)
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        enc = make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="also appears as a flat label"):
+            enc._discover_bold(_DEFAULT_SUB)
+
+    def test_duplicate_segment_values_raise(self, tree: BIDSTree):
+        tree.add_bold(run="1", tr=2.0)
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block-1", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        enc = make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="appears more than once"):
+            enc._discover_bold(_DEFAULT_SUB)
+
+    def test_overlapping_slices_raise(self, tree: BIDSTree):
+        tree.add_bold(run="1", tr=2.0)
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 120.0},
+                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        enc = make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="overlap"):
+            enc._discover_bold(_DEFAULT_SUB)
+
+    def test_leading_break_allowed(self, tree: BIDSTree):
+        tree.add_bold(run="1", tr=2.0)
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 10.0, "duration": 90.0},
+                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        enc = make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(_DEFAULT_SUB)
+        meta = bold_metas[BoldKey(ses=None, run="1")]
+        assert len(meta.segments) == 2
+        assert meta.segments[0].slice == slice(5, 50)
 
     def test_hyphen_free_trial_type_ignored(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
@@ -517,9 +567,9 @@ class TestDiscoverBold:
         enc = make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
         meta = bold_metas[BoldKey(ses=None, run="1")]
-        assert meta.partitioning is None
+        assert meta.segments == []
 
-    def test_non_tiling_kv_entity_raises(self, tree: BIDSTree):
+    def test_kv_entity_with_gap_passes(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
         tree.add_events(
             run="1",
@@ -529,34 +579,11 @@ class TestDiscoverBold:
             ],
         )
         enc = make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="do not partition the run"):
-            enc._discover_bold(_DEFAULT_SUB)
+        bold_metas = enc._discover_bold(_DEFAULT_SUB)
+        meta = bold_metas[BoldKey(ses=None, run="1")]
+        assert len(meta.segments) == 2
 
-    def test_kv_entity_not_starting_at_zero_raises(self, tree: BIDSTree):
-        tree.add_bold(run="1", tr=2.0)
-        tree.add_events(
-            run="1",
-            rows=[{"trial_type": "block-1", "onset": 10.0, "duration": 90.0}],
-        )
-        enc = make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="do not partition the run"):
-            enc._discover_bold(_DEFAULT_SUB)
-
-    def test_partial_tiling_raises(self, tree: BIDSTree):
-        tree.add_bold(run="1", tr=2.0)
-        tree.add_events(
-            run="1",
-            rows=[
-                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
-                {"trial_type": "trial-1", "onset": 0.0, "duration": 100.0},
-            ],
-        )
-        enc = make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="do not partition the run"):
-            enc._discover_bold(_DEFAULT_SUB)
-
-    def test_tiling_with_flat_labels_passes(self, tree: BIDSTree):
+    def test_flat_labels_alongside_segments_ignored(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
         tree.add_events(
             run="1",
@@ -569,8 +596,8 @@ class TestDiscoverBold:
         enc = make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
         meta = bold_metas[BoldKey(ses=None, run="1")]
-        assert meta.partitioning is not None
-        assert meta.partitioning.entity == "block"
+        assert len(meta.segments) == 2
+        assert meta.segments[0].entity == "block"
 
     def test_runs_disagree_on_partition_entity_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
@@ -590,12 +617,12 @@ class TestDiscoverBold:
             ],
         )
         enc = make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="disagree on partition entity"):
+        with pytest.raises(ValueError, match="disagree on segment entity"):
             enc._discover_bold(_DEFAULT_SUB)
 
     def test_mixed_partitioned_and_unpartitioned_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
-        tree.add_bold(run="2", tr=2.0)  # no events → unpartitioned
+        tree.add_bold(run="2", tr=2.0)  # no events → unsegmented
         tree.add_events(
             run="1",
             rows=[
@@ -604,7 +631,7 @@ class TestDiscoverBold:
             ],
         )
         enc = make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="disagree on partition entity"):
+        with pytest.raises(ValueError, match="disagree on segment entity"):
             enc._discover_bold(_DEFAULT_SUB)
 
     def test_all_unpartitioned_passes(self, tree: BIDSTree):
@@ -612,7 +639,7 @@ class TestDiscoverBold:
         tree.add_bold(run="2", tr=2.0)
         enc = make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
-        assert all(meta.partitioning is None for meta in bold_metas.values())
+        assert all(meta.segments == [] for meta in bold_metas.values())
 
 
 class TestValidateAlignment:
@@ -677,7 +704,7 @@ class TestValidateAlignment:
         with pytest.raises(FileNotFoundError, match="other coverage gaps"):
             enc._validate_alignment(feature_paths, bold_metas)
 
-    def test_partitioned_valid_cells_pass(self, tree: BIDSTree):
+    def test_segmented_valid_cells_pass(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
         tree.add_events(
             run="1",
@@ -693,7 +720,7 @@ class TestValidateAlignment:
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
         enc._validate_alignment(feature_paths, bold_metas)
 
-    def test_cell_missing_partition_entity_raises(self, tree: BIDSTree):
+    def test_cell_missing_segment_entity_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
         tree.add_events(
             run="1",
@@ -706,7 +733,7 @@ class TestValidateAlignment:
         enc = make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(_DEFAULT_SUB)
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
-        with pytest.raises(ValueError, match="missing partition entity"):
+        with pytest.raises(ValueError, match="missing segment entity"):
             enc._validate_alignment(feature_paths, bold_metas)
 
     def test_cell_value_not_in_events_raises(self, tree: BIDSTree):
@@ -725,14 +752,14 @@ class TestValidateAlignment:
         with pytest.raises(ValueError, match="not found in events"):
             enc._validate_alignment(feature_paths, bold_metas)
 
-    def test_unpartitioned_run_multiple_cells_raises(self, tree: BIDSTree):
-        tree.add_bold(run="1", tr=2.0)  # no events → unpartitioned
+    def test_unsegmented_run_multiple_cells_raises(self, tree: BIDSTree):
+        tree.add_bold(run="1", tr=2.0)  # no events → unsegmented
         tree.add_feature("mfcc", run="1", trial="1")
         tree.add_feature("mfcc", run="1", trial="2")
         enc = make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(_DEFAULT_SUB)
         bold_metas = enc._discover_bold(_DEFAULT_SUB)
-        with pytest.raises(ValueError, match="unpartitioned but has 2 feature cells"):
+        with pytest.raises(ValueError, match="unsegmented but has 2 feature cells"):
             enc._validate_alignment(feature_paths, bold_metas)
 
     def test_apparent_partition_entity_without_events_passes_silently(
