@@ -29,17 +29,20 @@ A single `train(sub_id)` call is scoped to:
 `train(sub_id)` executes these steps in order:
 
 1. **`_discover_features`** — scans feature filenames for `sub_id`; returns raw
-   `dict[FeatureKey, Path]` with filename-only `CellKey`s. No events I/O.
+   `dict[FeatureKey, Path]` with filename-only `CellKey`s. No events I/O. No user filters.
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
    (segment slices), and events.json `Segments` (metadata). Returns
-   `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants.
-3. **`_validate_coverage`** — checks `sub`/`task` invariance across all files and
-   bidirectional `ses`/`run` coverage between features and BOLD. Void-returning.
-4. **`_enrich_cells`** — joins each feature cell's `CellKey` with its run's
-   `Segment.metadata` from `BoldMeta`. Applies conflict rule (raise on value mismatch,
-   allow agreement). Returns enriched `dict[FeatureKey, Path]`.
-5. **`_apply_feature_filters`** — applies user `bids_filters` to enriched cells;
-   runs typo diagnostic against enriched-`CellKey` entity schema.
+   `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
+3. **`_resolve_cell_keys`** — validates filename entities against events.json and
+   merges `Segment.metadata` onto each feature cell's `CellKey`. Rejects illegal
+   filename entities. Raises on value mismatch between filename and sidecar. Returns
+   resolved `dict[FeatureKey, Path]`.
+4. **`_apply_filters`** — applies user `bids_filters` to both enriched feature cells
+   and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns
+   filtered `(dict[FeatureKey, Path], dict[BoldKey, BoldMeta])`.
+5. **`_validate_coverage`** — checks `sub`/`task` invariance across all files and
+   bidirectional `ses`/`run` coverage between filtered features and BOLD. Raises if
+   either side is empty. Void-returning.
 6. **`_build_xy`** — loads BOLD arrays; validates `max(slice.stop) ≤ BOLD TRs`;
    assembles X (features) and Y (BOLD) matrices.
 
@@ -75,25 +78,30 @@ intentional — fMRIPrep derivatives are often organized in per-subject subdirec
 
 ## `bids_filters` routing
 
-User-supplied `bids_filters` are applied in two places:
+All user-supplied `bids_filters` are applied post-resolution in `_apply_filters` against
+resolved `CellKey`s (features) and BOLD filename entities (BOLD). Neither `_discover_features`
+nor `_discover_bold` apply user filters — both use only hard-coded structural filters
+(`sub`, `feature`, `space`).
 
-- **BOLD discovery (`_discover_bold`)**: BOLD-exclusive entities (`desc`, `res`, `den`,
-  `echo`, `acq`, `ce`, `rec`, `dir`) and shared structural entities (`ses`, `task`, `run`)
-  filter at `find_files` time against BOLD filenames.
-- **Post-enrichment (`_apply_feature_filters`)**: all remaining user filters (including
-  metadata entities like `cond-R`) apply against enriched `CellKey`s after `_enrich_cells`.
-  This is necessary because metadata entities do not appear on feature filenames — they are
-  only available after events.json is loaded and joined.
-
-Feature-side `find_files` uses only hard-coded structural filters (`sub`, segment entity
-when known). User filters are not applied to feature filenames directly.
+Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
+to `find_files`. Applying all filters uniformly post-resolution ensures consistent behaviour
+whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
 
 - **Reserved entities** (`sub`, `space`, `feature`): rejected at construction — use the
   dedicated arguments instead.
 
-Filter entity validation is **fail-then-diagnose**: when post-enrichment filtering yields no
-cells but enriched cells exist, every filter entity is checked against the union of keys on
-enriched cells — any absent entity raises `ValueError` before `FileNotFoundError`.
+**Match semantics:** multiple filters sharing the same entity key OR-match within that group;
+different entity keys AND-match across groups (e.g. `["task-rest", "task-nback", "ses-1"]`
+selects runs where task is rest or nback, AND session is 1). This mirrors `find_files` behaviour.
+
+**Asymmetric schemas:** feature cells and BOLD files do not share the same entity key set
+(e.g. `task` is excluded from `CellKey` but present on BOLD filenames). A filter key absent
+from one side is silently skipped on that side — it applies only where the entity is meaningful.
+A filter key absent from *both* sides raises `ValueError` (typo diagnostic).
+
+Filter entity validation is **fail-then-diagnose**: every filter entity is checked against the
+union of resolved cell keys and BOLD filename keys — any absent entity raises `ValueError`
+before any empty-result `FileNotFoundError`.
 
 ## Assumptions that could break
 

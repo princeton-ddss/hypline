@@ -65,11 +65,12 @@ class BIDSTree:
         task: str | None,
         run: str | None,
         space: str,
+        desc: str,
     ) -> dict[str, str]:
         return {
             **self._identity_entities(sub, ses, task, run),
             "space": space,
-            "desc": "preproc",
+            "desc": desc,
         }
 
     def add_feature(
@@ -98,9 +99,10 @@ class BIDSTree:
         run: str | None = None,
         tr: float = 2.0,
         space: str = SPACE,
+        desc: str = "preproc",
         subdir: str | None = None,
     ) -> Path:
-        entities = self._bold_entities(sub, ses, task, run, space)
+        entities = self._bold_entities(sub, ses, task, run, space, desc)
         directory = self.bold_dir if subdir is None else self.bold_dir / subdir
         return self._write(
             directory,
@@ -158,7 +160,7 @@ class BIDSTree:
     ) -> Path:
         return self._write(
             self.bold_dir,
-            self._bold_entities(sub, ses, task, run, space),
+            self._bold_entities(sub, ses, task, run, space, "preproc"),
             suffix="boldref",
             ext=".nii.gz",
         )
@@ -172,7 +174,7 @@ class BIDSTree:
         run: str | None = None,
         space: str = SPACE,
     ) -> Path:
-        entities = {**self._bold_entities(sub, ses, task, run, space), "desc": "brain"}
+        entities = self._bold_entities(sub, ses, task, run, space, "brain")
         return self._write(
             self.bold_dir, entities, suffix="mask", ext=".nii.gz", sidecar_json="{}"
         )
@@ -185,9 +187,9 @@ class BIDSTree:
         task: str | None = TASK,
         run: str | None = None,
         space: str = SPACE,
-        label: str = "aparcaseg",
+        desc: str = "aparcaseg",
     ) -> Path:
-        entities = {**self._bold_entities(sub, ses, task, run, space), "desc": label}
+        entities = self._bold_entities(sub, ses, task, run, space, desc)
         return self._write(self.bold_dir, entities, suffix="dseg", ext=".nii.gz")
 
     def add_confounds(
@@ -232,9 +234,9 @@ class BIDSTree:
         self.add_boldref(sub=sub, ses=ses, task=task, run=run, space=space)
         self.add_brain_mask(sub=sub, ses=ses, task=task, run=run, space=space)
         self.add_dseg(
-            sub=sub, ses=ses, task=task, run=run, space=space, label="aparcaseg"
+            sub=sub, ses=ses, task=task, run=run, space=space, desc="aparcaseg"
         )
-        self.add_dseg(sub=sub, ses=ses, task=task, run=run, space=space, label="aseg")
+        self.add_dseg(sub=sub, ses=ses, task=task, run=run, space=space, desc="aseg")
         self.add_confounds(sub=sub, ses=ses, task=task, run=run)
         self.add_xfm(sub=sub, ses=ses, task=task, run=run)
 

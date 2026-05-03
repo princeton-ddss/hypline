@@ -53,9 +53,10 @@ segment slice and are excluded from X/Y.
 - Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
 - Metadata entities from `events.json` `Segments` (e.g. `cond=R`, `item=101`)
 
-Excluded from `CellKey`: `sub`, `task` (invariant within a training call), `feature` (column
-axis), `space` (BOLD-only). Entities are present or absent — no `None` sentinel. Equality and
-hashing are order-independent.
+Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
+(invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
+derivatives), `space`, `feature` (orthogonal axes). Entities are present or absent — no
+`None` sentinel. Equality and hashing are order-independent.
 
 CV splits are expressed by querying `CellKey` entities:
 ```python
@@ -71,9 +72,8 @@ train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
 - All BOLD runs in a training call must agree on the segment entity name, or all be
   unsegmented. Mixed levels are incoherent for a single encoding model.
 - Unsegmented runs are valid — no key-value events required.
-- When all BOLD runs are unsegmented, extra entities on feature filenames beyond `ses`/`run`
-  are accepted as descriptive tags. Misalignment with intended-but-missing segmentation is
-  not detectable and surfaces only as unexpected row counts in X/Y.
+- For unsegmented runs, only `ses` and `run` are valid on feature filenames — any other
+  entity raises. Descriptive attributes must live in `events.json`.
 
 ## Rationale
 

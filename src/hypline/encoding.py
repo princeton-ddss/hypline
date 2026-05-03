@@ -24,17 +24,6 @@ from hypline.utils import find_files, validate_dirs
 # Entities provided via dedicated arguments — not allowed in bids_filters
 _RESERVED_ENTITIES = frozenset(("sub", "space", "feature"))
 
-# Entities valid for filtering both feature and BOLD files
-_COMMON_FILTER_ENTITIES = frozenset(("ses", "task", "run"))
-
-# Entities valid for BOLD files only — stripped from feature-side filters
-_BOLD_EXCLUSIVE_ENTITIES = frozenset(
-    ("desc", "res", "den", "echo", "acq", "ce", "rec", "dir")
-)
-
-# Entities valid for BOLD file filtering — union of common and BOLD-exclusive
-_BOLD_FILTER_ENTITIES = _COMMON_FILTER_ENTITIES | _BOLD_EXCLUSIVE_ENTITIES
-
 
 class BoldKey(NamedTuple):
     ses: str | None
@@ -44,12 +33,30 @@ class BoldKey(NamedTuple):
 class CellKey:
     """Open-schema key identifying a single feature time window.
 
-    Entities in EXCLUDE are rejected — they are invariant within a training call
-    (sub, task), belong to a different axis (feature), or are BOLD-only (space).
+    EXCLUDE defines which entities must never appear on a cell key:
+    - sub, task, acq, ce, rec, dir: invariant across a training call
+    - desc, res, den, echo: image-variant entities (BOLD derivatives only)
+    - space, feature: orthogonal axes — handled by dedicated arguments
+
     Equality and hashing are order-independent.
     """
 
-    EXCLUDE: frozenset[str] = frozenset(("sub", "task", "space", "feature"))
+    EXCLUDE: frozenset[str] = frozenset(
+        (
+            "sub",
+            "task",
+            "acq",
+            "ce",
+            "rec",
+            "dir",
+            "desc",
+            "res",
+            "den",
+            "echo",
+            "space",
+            "feature",
+        )
+    )
     __slots__ = ("_entities",)
 
     def __init__(self, **entities: str) -> None:
@@ -175,7 +182,9 @@ class Encoding:
     def train(self, sub_id: str):
         feature_paths = self._discover_features(sub_id)
         bold_metas = self._discover_bold(sub_id)
-        self._validate_alignment(feature_paths, bold_metas)
+        feature_paths = self._resolve_cell_keys(feature_paths, bold_metas)
+        feature_paths, bold_metas = self._apply_filters(feature_paths, bold_metas)
+        self._validate_coverage(feature_paths, bold_metas)
         data = self._build_xy(feature_paths, bold_metas)
 
         # TODO: modeling (banded ridge regression) goes here
@@ -185,53 +194,24 @@ class Encoding:
         """Discover and validate feature file paths for a subject.
 
         Scans the features directory by BIDS filename alone — no feature data is read.
-        bids_filters are routed to find_files after stripping BOLD-exclusive entities.
-        Duplicate files for the same (cell, feature) pair raise immediately.
+        Only sub and feature are used to filter find_files; bids_filters are applied
+        post-enrichment in _apply_filters. Duplicate files for the same (cell, feature)
+        pair raise immediately.
 
         Returns a flat dict mapping each (cell, feature) pair to its path.
         Every cell is guaranteed to have all requested features — a missing feature
         at any cell raises rather than silently producing an incomplete matrix.
         All files are guaranteed to share the same cell schema (entity key set).
-        A filter entity absent from all discovered files raises ValueError before
-        FileNotFoundError — catches typos and mismatched filter entities early.
         """
-        feature_filters = [
-            entity
-            for entity in self.bids_filters
-            if entity.split("-", 1)[0] not in _BOLD_EXCLUSIVE_ENTITIES
-        ]
-
         feature_paths: dict[FeatureKey, Path] = {}
         for feature_name in self.features:
             feature_files = find_files(
                 self.features_dir,
                 ends_with=".parquet",
                 recursive=True,
-                bids_filters=[
-                    f"sub-{sub_id}",
-                    f"feature-{feature_name}",
-                    *feature_filters,
-                ],
+                bids_filters=[f"sub-{sub_id}", f"feature-{feature_name}"],
             )
             if not feature_files:
-                # Check whether a filter entity typo caused the empty result
-                unfiltered = find_files(
-                    self.features_dir,
-                    ends_with=".parquet",
-                    recursive=True,
-                    bids_filters=[f"sub-{sub_id}", f"feature-{feature_name}"],
-                )
-                if unfiltered:
-                    unfiltered_schema = frozenset(
-                        key for path in unfiltered for key in BIDSPath(path).entities
-                    )
-                    for entity in feature_filters:
-                        key = entity.split("-", 1)[0]
-                        if key not in unfiltered_schema:
-                            raise ValueError(
-                                f"bids_filters entity {key!r} not found on any "
-                                f"feature={feature_name} file for sub={sub_id}"
-                            )
                 raise FileNotFoundError(
                     f"No matching feature files found for sub={sub_id}, "
                     f"feature={feature_name} in {self.features_dir}"
@@ -300,22 +280,12 @@ class Encoding:
         to share the same TR, BOLD-level entity invariants, and segment entity (or all
         unsegmented).
         """
-
         bold_ext = BOLD_EXTENSIONS[type(self.bold_space)]
-        bold_filters = [
-            f"sub-{sub_id}",
-            f"space-{self.bold_space}",
-            *(
-                entity
-                for entity in self.bids_filters
-                if entity.split("-", 1)[0] in _BOLD_FILTER_ENTITIES
-            ),
-        ]
         bold_files = find_files(
             self.bold_dir,
             ends_with=f"_bold{bold_ext}",
             recursive=True,
-            bids_filters=bold_filters,
+            bids_filters=[f"sub-{sub_id}", f"space-{self.bold_space}"],
         )
         if not bold_files:
             raise FileNotFoundError(
@@ -334,7 +304,7 @@ class Encoding:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(
                     f"Duplicate BOLD file at {loc}:\n"
-                    f"  {bold_metas[bold_key].path}\n  {bold_file}"
+                    f"  {bold_metas[bold_key].bids.path}\n  {bold_file}"
                 )
             try:
                 bold_metas[bold_key] = load_bold_meta(bold_file)
@@ -343,7 +313,7 @@ class Encoding:
                 raise ValueError(f"{e} for {loc}") from e
 
         # Validate: acquisition entities are invariant across all runs
-        bold_bids = [BIDSPath(meta.path) for meta in bold_metas.values()]
+        bold_bids = [meta.bids for meta in bold_metas.values()]
         try:
             validate_entity_invariance(bold_bids, ("task", "acq", "ce", "rec", "dir"))
         except ValueError as e:
@@ -364,7 +334,7 @@ class Encoding:
         }
         if len(segment_entities) > 1:
             run_labels = sorted(
-                f"{meta.path.name} ("
+                f"{meta.bids.path.name} ("
                 f"{meta.segments[0].entity if meta.segments else 'unsegmented'})"
                 for meta in bold_metas.values()
             )
@@ -380,7 +350,7 @@ class Encoding:
         }
         if len(metadata_key_sets) > 1:
             run_labels = sorted(
-                f"{meta.path.name} "
+                f"{meta.bids.path.name} "
                 f"({sorted(meta.segments[0].metadata) or 'no metadata'})"
                 for meta in segmented_metas
             )
@@ -391,91 +361,234 @@ class Encoding:
 
         return bold_metas
 
-    def _validate_alignment(
+    def _resolve_cell_keys(
+        self,
+        feature_paths: dict[FeatureKey, Path],
+        bold_metas: dict[BoldKey, BoldMeta],
+    ) -> dict[FeatureKey, Path]:
+        """Validate and resolve feature CellKeys against BOLD segment metadata.
+
+        For each feature cell, locates the matching BOLD run and segment, then
+        merges segment.metadata into the CellKey. Filename entities beyond ses, run,
+        and the segment entity are rejected unless they echo a metadata key from
+        events.json — descriptive metadata must live in events.json, not filenames.
+
+        Invariant: _discover_bold guarantees all segments share the same metadata
+        schema across runs, so resolved cells always end up with a uniform key set.
+        """
+        cell_keys_by_bold_key: dict[BoldKey, set[CellKey]] = {}
+        for feature_key in feature_paths:
+            bold_key = BoldKey(feature_key.cell.get("ses"), feature_key.cell.get("run"))
+            cell_keys_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
+
+        orphan_bold_keys = cell_keys_by_bold_key.keys() - bold_metas.keys()
+        if orphan_bold_keys:
+            bold_key = next(iter(orphan_bold_keys))
+            loc = _format_loc(
+                ses=bold_key.ses, run=bold_key.run, space=str(self.bold_space)
+            )
+            msg = f"No BOLD file found for features at {loc}"
+            if len(orphan_bold_keys) > 1:
+                msg += f" ({len(orphan_bold_keys) - 1} other coverage gaps exist)"
+            raise FileNotFoundError(msg)
+
+        resolved_feature_paths: dict[FeatureKey, Path] = {}
+        for feature_key, path in feature_paths.items():
+            cell_key = feature_key.cell
+            bold_key = BoldKey(cell_key.get("ses"), cell_key.get("run"))
+            bold_meta = bold_metas[bold_key]
+
+            if not bold_meta.segments:
+                run_cell_keys = cell_keys_by_bold_key[bold_key]
+                if len(run_cell_keys) > 1:
+                    loc = _format_loc(ses=bold_key.ses, run=bold_key.run)
+                    raise ValueError(
+                        f"Run is unsegmented but has {len(run_cell_keys)} feature "
+                        f"cells at {loc} — provide an events.tsv with BIDS key-value "
+                        f"entities to segment the run"
+                    )
+                illegal_keys = cell_key.keys() - {"ses", "run"}
+                if illegal_keys:
+                    raise ValueError(
+                        f"Feature cell {cell_key!r} carries entities "
+                        f"{sorted(illegal_keys)} that do not identify the run. "
+                        f"For an unsegmented run, only ses and run are valid on "
+                        f"feature filenames — move descriptive metadata to events.json"
+                    )
+                resolved_feature_paths[feature_key] = path
+                continue
+
+            segment_entity = bold_meta.segments[0].entity
+            segment_values = {segment.value for segment in bold_meta.segments}
+
+            # Validate the cell carries a known segment value for this run
+            segment_value = cell_key.get(segment_entity)
+            if segment_value is None:
+                loc = _format_loc(ses=bold_key.ses, run=bold_key.run)
+                raise ValueError(
+                    f"Feature cell {cell_key!r} at {loc} is missing segment "
+                    f"entity {segment_entity!r} declared in events"
+                )
+            if segment_value not in segment_values:
+                loc = _format_loc(ses=bold_key.ses, run=bold_key.run)
+                raise ValueError(
+                    f"Segment value {segment_entity}-{segment_value} at {loc} not "
+                    f"found in events — valid values: {sorted(segment_values)}"
+                )
+
+            segment = next(
+                seg for seg in bold_meta.segments if seg.value == segment_value
+            )
+
+            # Reject filename entities that are not run-locating, segment, or metadata
+            legal_keys = {"ses", "run"} | {segment_entity} | segment.metadata.keys()
+            illegal_keys = cell_key.keys() - legal_keys
+            if illegal_keys:
+                raise ValueError(
+                    f"Feature cell {cell_key!r} carries entities "
+                    f"{sorted(illegal_keys)} that are absent from events.json "
+                    f"metadata. Descriptive attributes must live in events.json, "
+                    f"not feature filenames"
+                )
+
+            # Merge metadata: filename value takes precedence only if it agrees
+            extra_metadata: dict[str, str] = {}
+            for entity, value in segment.metadata.items():
+                if cell_key.get(entity) is not None and cell_key[entity] != value:
+                    raise ValueError(
+                        f"Feature filename and events.json disagree on {entity!r} "
+                        f"for {segment_entity}-{segment_value}: "
+                        f"filename has {cell_key[entity]!r}, sidecar has {value!r}"
+                    )
+                if cell_key.get(entity) is None:
+                    extra_metadata[entity] = value
+            if extra_metadata:
+                resolved_cell_key = CellKey(
+                    **{**dict(cell_key.items()), **extra_metadata}
+                )
+                resolved_feature_paths[
+                    FeatureKey(cell=resolved_cell_key, feature=feature_key.feature)
+                ] = path
+            else:
+                resolved_feature_paths[feature_key] = path
+
+        return resolved_feature_paths
+
+    def _apply_filters(
+        self,
+        feature_paths: dict[FeatureKey, Path],
+        bold_metas: dict[BoldKey, BoldMeta],
+    ) -> tuple[dict[FeatureKey, Path], dict[BoldKey, BoldMeta]]:
+        """Apply bids_filters to feature cells and BOLD runs.
+
+        Filters are applied against CellKey entities for features, and against
+        filename entities for BOLD. Same-entity filter values OR-match within a
+        group; different entities AND-match across groups. A filter key absent from
+        one side is skipped on that side rather than rejecting all rows. A filter
+        key absent from both sides raises ValueError (typo diagnostic) before any
+        empty-result condition surfaces as a coverage error.
+        """
+        if not self.bids_filters:
+            return feature_paths, bold_metas
+
+        # Group filter values by entity for matching later
+        allowed_values_by_entity: dict[str, list[str]] = {}
+        for bids_filter in self.bids_filters:
+            entity_key, entity_value = bids_filter.split("-", 1)
+            allowed_values_by_entity.setdefault(entity_key, []).append(entity_value)
+
+        # Collect entity key schema from both sides for typo detection
+        cell_entity_keys = frozenset(
+            entity_key
+            for feature_key in feature_paths
+            for entity_key in feature_key.cell.keys()
+        )
+        bold_entity_keys = frozenset(
+            entity_key
+            for meta in bold_metas.values()
+            for entity_key in meta.bids.entities
+        )
+        known_entity_keys = cell_entity_keys | bold_entity_keys
+
+        for entity_key in allowed_values_by_entity:
+            if entity_key not in known_entity_keys:
+                raise ValueError(
+                    f"bids_filters entity {entity_key!r} not found on any "
+                    f"feature cell or BOLD file for this subject — check for a typo"
+                )
+
+        def _cell_matches(cell: CellKey) -> bool:
+            return all(
+                cell.get(entity_key) in entity_values
+                for entity_key, entity_values in allowed_values_by_entity.items()
+                if entity_key in cell_entity_keys
+            )
+
+        def _bold_matches(bids: BIDSPath) -> bool:
+            return all(
+                bids.entities.get(entity_key) in entity_values
+                for entity_key, entity_values in allowed_values_by_entity.items()
+                if entity_key in bold_entity_keys
+            )
+
+        filtered_features = {
+            feature_key: path
+            for feature_key, path in feature_paths.items()
+            if _cell_matches(feature_key.cell)
+        }
+        filtered_bold = {
+            bold_key: meta
+            for bold_key, meta in bold_metas.items()
+            if _bold_matches(meta.bids)
+        }
+
+        return filtered_features, filtered_bold
+
+    def _validate_coverage(
         self,
         feature_paths: dict[FeatureKey, Path],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> None:
-        """Validate that feature and BOLD files are mutually consistent.
+        """Validate bidirectional ses/run coverage between filtered features and BOLD.
 
-        Checks sub/task invariance across all files, bidirectional ses/run coverage
-        between features and BOLD, and that feature cells align with each run's
-        segmentation: for segmented runs, every cell must carry the segment entity
-        with a value declared in events; for unsegmented runs, exactly one cell per
-        run is allowed.
-
-        Notes
-        -----
-        When all BOLD runs are unsegmented, extra entities on feature filenames
-        beyond ses/run are accepted as descriptive tags. If those entities were intended
-        as segment keys but events.tsv is absent or contains no BIDS key-value rows,
-        the misalignment is not detectable here and will surface only as unexpected
-        row counts in the assembled X/Y matrices.
+        Also checks sub/task invariance across all feature and BOLD files.
+        Raises if either side is empty — indicates filters selected nothing.
         """
+        if not feature_paths:
+            raise FileNotFoundError("No feature files match the given filters")
+        if not bold_metas:
+            raise FileNotFoundError("No BOLD files match the given filters")
+
         feature_bids = [BIDSPath(path) for path in feature_paths.values()]
-        bold_bids = [BIDSPath(meta.path) for meta in bold_metas.values()]
+        bold_bids = [meta.bids for meta in bold_metas.values()]
         sub_id = (feature_bids or bold_bids)[0].entities.get("sub")
         try:
             validate_entity_invariance(feature_bids + bold_bids, ("sub", "task"))
         except ValueError as e:
             raise ValueError(f"{e} (subject {sub_id})") from e
 
-        # Every BOLD file must have feature coverage
         cell_keys = {feature_key.cell for feature_key in feature_paths}
         covered_bold_keys = {
             BoldKey(key.get("ses"), key.get("run")) for key in cell_keys
         }
+
         bold_without_features = bold_metas.keys() - covered_bold_keys
         if bold_without_features:
             bold_key = next(iter(bold_without_features))
             loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
-            msg = f"No feature files found for BOLD at {loc or f'sub={sub_id}'}"
+            msg = f"No feature files found for BOLD at {loc}"
             if len(bold_without_features) > 1:
                 msg += f" ({len(bold_without_features) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-        # Every feature file must have a matching BOLD file
         features_without_bold = covered_bold_keys - bold_metas.keys()
         if features_without_bold:
             bold_key = next(iter(features_without_bold))
             loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
-            msg = f"No BOLD file found for features at {loc or f'sub={sub_id}'}"
+            msg = f"No BOLD file found for features at {loc}"
             if len(features_without_bold) > 1:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
-
-        # Validate feature cells against each run's segmentation
-        cells_by_bold_key: dict[BoldKey, list[CellKey]] = {}
-        for cell_key in cell_keys:
-            bold_key = BoldKey(cell_key.get("ses"), cell_key.get("run"))
-            cells_by_bold_key.setdefault(bold_key, []).append(cell_key)
-
-        for bold_key, bold_meta in bold_metas.items():
-            run_cells = cells_by_bold_key[bold_key]
-            loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
-
-            if not bold_meta.segments:
-                if len(run_cells) > 1:
-                    raise ValueError(
-                        f"Run is unsegmented but has {len(run_cells)} feature cells "
-                        f"at {loc} — provide an events.tsv with BIDS key-value "
-                        f"entities to segment the run"
-                    )
-            else:
-                entity = bold_meta.segments[0].entity
-                segment_values = {seg.value for seg in bold_meta.segments}
-                for cell_key in run_cells:
-                    value = cell_key.get(entity)
-                    if value is None:
-                        raise ValueError(
-                            f"Feature cell {cell_key!r} at {loc} is missing segment "
-                            f"entity {entity!r} declared in events"
-                        )
-                    if value not in segment_values:
-                        raise ValueError(
-                            f"Segment value {entity}-{value} at {loc} not found in "
-                            f"events — valid values: {sorted(segment_values)}"
-                        )
 
     def _build_xy(
         self,
@@ -493,7 +606,7 @@ class Encoding:
         silently truncated Y.
         """
         bold_arrays: dict[BoldKey, np.ndarray] = {
-            key: _load_bold_array(meta.path) for key, meta in bold_metas.items()
+            key: _load_bold_array(meta.bids.path) for key, meta in bold_metas.items()
         }
 
         for bold_key, bold_meta in bold_metas.items():
@@ -503,7 +616,7 @@ class Encoding:
             actual = bold_arrays[bold_key].shape[0]
             if expected > actual:
                 first_bold = next(iter(bold_metas.values()))
-                sub_id = BIDSPath(first_bold.path).entities.get("sub")
+                sub_id = first_bold.bids.entities.get("sub")
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(
                     f"Segment slices extend to TR {expected} "

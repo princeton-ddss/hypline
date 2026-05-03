@@ -34,12 +34,17 @@ stimulus-derived — the same stimulus embedding applies regardless of scanner a
 parameters. Encoding validation enforces this: if BOLD files carry acquisition variants,
 feature files are not required to mirror them.
 
-## Conflict rule (filename entity vs. events.json metadata)
+## Filename entity vs. events.json metadata
 
-If a metadata key from `events.json` `Segments` already appears on the feature filename with
-the same value, the match is allowed (redundant but harmless). If the values differ, the
-pipeline raises — two sources of truth disagree. This supports migration: existing feature
-files carrying descriptive entities do not need immediate renaming if the sidecar agrees.
+`events.json` is the authoritative source for descriptive metadata. Four cases:
+
+- Sidecar-only (key in `Segments`, absent from filename): merged onto the resolved `CellKey`.
+- Both, same value: allowed; redundant but harmless.
+- Both, different value: raise — the two sources of truth disagree.
+- Filename-only descriptive (key absent from `Segments`): raise, pointing user to events.json.
+
+For unsegmented runs (no events.tsv key-value rows), only `ses` and `run` are valid on
+feature filenames — any other entity raises.
 
 ## Mirroring requirement
 

@@ -40,7 +40,7 @@ Within a single events.json (enforced in `bold.load_bold_meta`):
 - All records have identical metadata key sets (schema invariance).
 - No metadata key collides with BOLD identity entities (`sub`, `ses`, `task`, `acq`, `ce`,
   `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feature`) are rejected
-  later by `CellKey.EXCLUDE` during `_enrich_cells` — keeping `bold.py` agnostic of
+  later by `CellKey.EXCLUDE` during `_resolve_cell_keys` — keeping `bold.py` agnostic of
   encoding-pipeline concerns.
 
 Cross-run (enforced in `Encoding._discover_bold`):
@@ -59,7 +59,7 @@ class Segment:
     metadata: dict[str, str]  # e.g. {"cond": "R", "item": "101"}; empty if no Segments
 
 class BoldMeta(NamedTuple):
-    path: Path
+    bids: BIDSPath
     repetition_time: float
     segments: list[Segment]   # empty list if unsegmented run
 ```
@@ -67,7 +67,7 @@ class BoldMeta(NamedTuple):
 Slices use bare values as keys (matching `Segment.value`) — the segment entity name is
 available on `Segment.entity` and is not redundantly embedded in the value.
 
-## CellKey enrichment (`_enrich_cells`)
+## CellKey enrichment (`_resolve_cell_keys`)
 
 For each feature cell, `Segment.metadata` is merged into the cell's `CellKey`:
 
@@ -75,9 +75,18 @@ For each feature cell, `Segment.metadata` is merged into the cell's `CellKey`:
 enriched = CellKey(**{**dict(cell_key.items()), **segment.metadata})
 ```
 
-Conflict rule: if a metadata key already exists on the filename-derived `CellKey` with the
-same value, the match is allowed (redundant but harmless). If the values differ, raise —
-the two sources of truth disagree.
+Source-of-truth rule: events.json is authoritative for descriptive segment metadata. The
+feature filename carries only `ses`, `run`, and the segment entity. All other entities
+either belong to `CellKey.EXCLUDE` (invariant-across-training or image-variant entities,
+rejected at `CellKey` construction) or must come from events.json. Any descriptive entity
+on a feature filename that is absent from `seg.metadata` is rejected.
+
+Four filename × sidecar cases:
+- Sidecar-only (key in `seg.metadata`, absent from filename): merged onto enriched `CellKey`.
+- Both, same value: allowed; redundant but harmless.
+- Both, different value: raise — the two sources of truth disagree.
+- Filename-only descriptive (non-identity, non-segment, non-reserved key on filename, absent
+  from `seg.metadata`): raise, pointing user to events.json.
 
 After enrichment, all `bids_filters` (including metadata-entity filters like `cond-R`) apply
 uniformly against the enriched `CellKey`. No separate metadata-aware filter path needed.

@@ -94,7 +94,7 @@ class Segment:
 
 
 class BoldMeta(NamedTuple):
-    path: Path
+    bids: BIDSPath
     repetition_time: float
     segments: list[Segment]
 
@@ -351,4 +351,8 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
             for seg in segments
         ]
 
-    return BoldMeta(path=bold_path, repetition_time=repetition_time, segments=segments)
+    return BoldMeta(
+        bids=BIDSPath(bold_path),
+        repetition_time=repetition_time,
+        segments=segments,
+    )
