@@ -423,7 +423,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(FileNotFoundError, match="No BOLD file found for features"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_multiple_features_without_bold_reports_count(self, tree: BIDSTree):
         for run in ("1", "2", "3"):
@@ -433,7 +433,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(FileNotFoundError, match="other coverage gaps"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     # Unsegmented run cases
 
@@ -443,7 +443,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         assert len(feature_paths) == 1
 
     def test_unsegmented_run_multiple_cells_raises(self, tree: BIDSTree):
@@ -453,8 +453,8 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="unsegmented but has 2 feature cells"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+        with pytest.raises(ValueError, match="unsegmented but has 2 feature files"):
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_unsegmented_run_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)  # no events → unsegmented
@@ -463,7 +463,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(ValueError, match="only ses and run are valid"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     # Segmented run cases
 
@@ -481,7 +481,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         assert len(feature_paths) == 2
 
     def test_cell_missing_segment_entity_raises(self, tree: BIDSTree):
@@ -498,7 +498,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(ValueError, match="missing segment entity"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_cell_value_not_in_events_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
@@ -514,7 +514,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(ValueError, match="not found in events"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_segmented_run_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", tr=2.0)
@@ -529,7 +529,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(ValueError, match="absent from events.json"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     # Metadata merge cases (filename × sidecar)
 
@@ -553,7 +553,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         cell_cond_values = {
             feature_key.cell.get("cond") for feature_key in feature_paths
         }
@@ -572,7 +572,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         assert next(iter(feature_paths)).cell.get("cond") == "R"
 
     def test_filename_value_disagrees_with_sidecar_raises(self, tree: BIDSTree):
@@ -589,7 +589,7 @@ class TestResolveCellKeys:
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(ValueError, match="disagree on"):
-            enc._resolve_cell_keys(feature_paths, bold_metas)
+            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
 
 class TestApplyFilters:
@@ -607,8 +607,10 @@ class TestApplyFilters:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        filtered_features, filtered_bold = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        filtered_features, filtered_bold = enc._apply_filters(
+            SUB, feature_paths, bold_metas
+        )
         assert filtered_features == feature_paths
         assert filtered_bold == bold_metas
 
@@ -629,8 +631,8 @@ class TestApplyFilters:
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         assert all(feature_key.cell.get("run") == "1" for feature_key in feature_paths)
         assert all(bold_key.run == "1" for bold_key in bold_metas)
 
@@ -652,8 +654,8 @@ class TestApplyFilters:
         )
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         assert BoldKey(ses="1", run="1") in bold_metas
         assert BoldKey(ses="1", run="2") in bold_metas
         assert BoldKey(ses="2", run="1") not in bold_metas
@@ -676,8 +678,8 @@ class TestApplyFilters:
         )
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         assert len(feature_paths) == 2
         assert len(bold_metas) == 1
 
@@ -705,8 +707,8 @@ class TestApplyFilters:
         )
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         assert len(feature_paths) == 1
         assert len(bold_metas) == 1
 
@@ -724,9 +726,9 @@ class TestApplyFilters:
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["typo-foo"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         with pytest.raises(ValueError, match="typo"):
-            enc._apply_filters(feature_paths, bold_metas)
+            enc._apply_filters(SUB, feature_paths, bold_metas)
 
     def test_valid_entity_wrong_value_passes_filter_raises_at_coverage(
         self, tree: BIDSTree
@@ -744,10 +746,10 @@ class TestApplyFilters:
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["block-99"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="No feature files match"):
-            enc._validate_coverage(feature_paths, bold_metas)
+            enc._validate_coverage(SUB, feature_paths, bold_metas)
 
 
 class TestValidateCoverage:
@@ -757,9 +759,9 @@ class TestValidateCoverage:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
-        enc._validate_coverage(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
+        enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_cross_file_task_invariance_raises(self, tree: BIDSTree):
         tree.add_bold(task="conv", run="1")
@@ -767,10 +769,10 @@ class TestValidateCoverage:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(ValueError, match="task"):
-            enc._validate_coverage(feature_paths, bold_metas)
+            enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_empty_features_after_filter_raises(self, tree: BIDSTree):
         tree.add_bold(run="1")
@@ -778,10 +780,10 @@ class TestValidateCoverage:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="No feature files match"):
-            enc._validate_coverage({}, bold_metas)
+            enc._validate_coverage(SUB, {}, bold_metas)
 
     def test_empty_bold_after_filter_raises(self, tree: BIDSTree):
         tree.add_bold(run="1")
@@ -789,10 +791,10 @@ class TestValidateCoverage:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="No BOLD files match"):
-            enc._validate_coverage(feature_paths, {})
+            enc._validate_coverage(SUB, feature_paths, {})
 
     def test_bold_without_features_raises(self, tree: BIDSTree):
         tree.add_bold(run="1")
@@ -801,10 +803,10 @@ class TestValidateCoverage:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="No feature files found for BOLD"):
-            enc._validate_coverage(feature_paths, bold_metas)
+            enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_features_without_bold_after_filter_raises(self, tree: BIDSTree):
         tree.add_bold(run="1", desc="preproc")
@@ -818,10 +820,10 @@ class TestValidateCoverage:
         )
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="No BOLD file found for features"):
-            enc._validate_coverage(feature_paths, bold_metas)
+            enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_multiple_bold_gaps_reports_count(self, tree: BIDSTree):
         for run in ("1", "2", "3"):
@@ -832,7 +834,7 @@ class TestValidateCoverage:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(feature_paths, bold_metas)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="other coverage gaps"):
-            enc._validate_coverage(feature_paths, bold_metas)
+            enc._validate_coverage(SUB, feature_paths, bold_metas)

@@ -182,10 +182,12 @@ class Encoding:
     def train(self, sub_id: str):
         feature_paths = self._discover_features(sub_id)
         bold_metas = self._discover_bold(sub_id)
-        feature_paths = self._resolve_cell_keys(feature_paths, bold_metas)
-        feature_paths, bold_metas = self._apply_filters(feature_paths, bold_metas)
-        self._validate_coverage(feature_paths, bold_metas)
-        data = self._build_xy(feature_paths, bold_metas)
+        feature_paths = self._resolve_cell_keys(sub_id, feature_paths, bold_metas)
+        feature_paths, bold_metas = self._apply_filters(
+            sub_id, feature_paths, bold_metas
+        )
+        self._validate_coverage(sub_id, feature_paths, bold_metas)
+        data = self._build_xy(sub_id, feature_paths, bold_metas)
 
         # TODO: modeling (banded ridge regression) goes here
         data
@@ -310,7 +312,7 @@ class Encoding:
                 bold_metas[bold_key] = load_bold_meta(bold_file)
             except ValueError as e:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
-                raise ValueError(f"{e} for {loc}") from e
+                raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e
 
         # Validate: acquisition entities are invariant across all runs
         bold_bids = [meta.bids for meta in bold_metas.values()]
@@ -363,6 +365,7 @@ class Encoding:
 
     def _resolve_cell_keys(
         self,
+        sub_id: str,
         feature_paths: dict[FeatureKey, Path],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> dict[FeatureKey, Path]:
@@ -385,7 +388,10 @@ class Encoding:
         if orphan_bold_keys:
             bold_key = next(iter(orphan_bold_keys))
             loc = _format_loc(
-                ses=bold_key.ses, run=bold_key.run, space=str(self.bold_space)
+                sub=sub_id,
+                ses=bold_key.ses,
+                run=bold_key.run,
+                space=self.bold_space,
             )
             msg = f"No BOLD file found for features at {loc}"
             if len(orphan_bold_keys) > 1:
@@ -401,20 +407,31 @@ class Encoding:
             if not bold_meta.segments:
                 run_cell_keys = cell_keys_by_bold_key[bold_key]
                 if len(run_cell_keys) > 1:
-                    loc = _format_loc(ses=bold_key.ses, run=bold_key.run)
+                    loc = _format_loc(
+                        sub=sub_id,
+                        ses=bold_key.ses,
+                        run=bold_key.run,
+                        space=self.bold_space,
+                    )
                     raise ValueError(
                         f"Run is unsegmented but has {len(run_cell_keys)} feature "
-                        f"cells at {loc} — provide an events.tsv with BIDS key-value "
+                        f"files at {loc} — provide an events.tsv with BIDS key-value "
                         f"entities to segment the run"
                     )
                 illegal_keys = cell_key.keys() - {"ses", "run"}
                 if illegal_keys:
+                    loc = _format_loc(
+                        sub=sub_id,
+                        ses=bold_key.ses,
+                        run=bold_key.run,
+                        space=self.bold_space,
+                    )
                     raise ValueError(
-                        f"Feature cell {cell_key!r} carries entities "
-                        f"{sorted(illegal_keys)} that do not identify the run. "
-                        f"For an unsegmented run, only ses and run are valid on "
-                        f"feature filenames. To attach metadata, declare a segment "
-                        f"row in events.tsv and add descriptive attributes to "
+                        f"Unsegmented run at {loc} has feature filename with "
+                        f"unexpected entities {sorted(illegal_keys)} — only ses "
+                        f"and run are valid on feature filenames for unsegmented "
+                        f"runs. To attach metadata, declare a segment row in "
+                        f"events.tsv and add descriptive attributes to "
                         f"events.json SegmentMetadata."
                     )
                 resolved_feature_paths[feature_key] = path
@@ -426,13 +443,23 @@ class Encoding:
             # Validate the cell carries a known segment value for this run
             segment_value = cell_key.get(segment_entity)
             if segment_value is None:
-                loc = _format_loc(ses=bold_key.ses, run=bold_key.run)
+                loc = _format_loc(
+                    sub=sub_id,
+                    ses=bold_key.ses,
+                    run=bold_key.run,
+                    space=self.bold_space,
+                )
                 raise ValueError(
-                    f"Feature cell {cell_key!r} at {loc} is missing segment "
-                    f"entity {segment_entity!r} declared in events"
+                    f"Feature filename at {loc} is missing segment entity "
+                    f"{segment_entity!r} declared in events"
                 )
             if segment_value not in segment_values:
-                loc = _format_loc(ses=bold_key.ses, run=bold_key.run)
+                loc = _format_loc(
+                    sub=sub_id,
+                    ses=bold_key.ses,
+                    run=bold_key.run,
+                    space=self.bold_space,
+                )
                 raise ValueError(
                     f"Segment value {segment_entity}-{segment_value} at {loc} not "
                     f"found in events — valid values: {sorted(segment_values)}"
@@ -446,20 +473,32 @@ class Encoding:
             legal_keys = {"ses", "run"} | {segment_entity} | segment.metadata.keys()
             illegal_keys = cell_key.keys() - legal_keys
             if illegal_keys:
+                loc = _format_loc(
+                    sub=sub_id,
+                    ses=bold_key.ses,
+                    run=bold_key.run,
+                    space=self.bold_space,
+                )
                 raise ValueError(
-                    f"Feature cell {cell_key!r} carries entities "
-                    f"{sorted(illegal_keys)} that are absent from events.json "
-                    f"metadata. Descriptive attributes must live in events.json, "
-                    f"not feature filenames"
+                    f"Feature filename at {loc} carries entities "
+                    f"{sorted(illegal_keys)} absent from events.json "
+                    f"metadata — descriptive attributes must live in "
+                    f"events.json, not feature filenames"
                 )
 
             # Merge metadata: filename value takes precedence only if it agrees
             extra_metadata: dict[str, str] = {}
             for entity, value in segment.metadata.items():
                 if cell_key.get(entity) is not None and cell_key[entity] != value:
+                    loc = _format_loc(
+                        sub=sub_id,
+                        ses=bold_key.ses,
+                        run=bold_key.run,
+                        space=self.bold_space,
+                    )
                     raise ValueError(
                         f"Feature filename and events.json disagree on {entity!r} "
-                        f"for {segment_entity}-{segment_value}: "
+                        f"at {loc} for {segment_entity}-{segment_value}: "
                         f"filename has {cell_key[entity]!r}, sidecar has {value!r}"
                     )
                 if cell_key.get(entity) is None:
@@ -478,6 +517,7 @@ class Encoding:
 
     def _apply_filters(
         self,
+        sub_id: str,
         feature_paths: dict[FeatureKey, Path],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> tuple[dict[FeatureKey, Path], dict[BoldKey, BoldMeta]]:
@@ -516,7 +556,7 @@ class Encoding:
             if entity_key not in known_entity_keys:
                 raise ValueError(
                     f"bids_filters entity {entity_key!r} not found on any "
-                    f"feature cell or BOLD file for this subject — check for a typo"
+                    f"feature cell or BOLD file for sub={sub_id} — check for a typo"
                 )
 
         def _cell_matches(cell: CellKey) -> bool:
@@ -548,6 +588,7 @@ class Encoding:
 
     def _validate_coverage(
         self,
+        sub_id: str,
         feature_paths: dict[FeatureKey, Path],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> None:
@@ -563,7 +604,6 @@ class Encoding:
 
         feature_bids = [BIDSPath(path) for path in feature_paths.values()]
         bold_bids = [meta.bids for meta in bold_metas.values()]
-        sub_id = (feature_bids or bold_bids)[0].entities.get("sub")
         try:
             validate_entity_invariance(feature_bids + bold_bids, ("sub", "task"))
         except ValueError as e:
@@ -577,7 +617,12 @@ class Encoding:
         bold_without_features = bold_metas.keys() - covered_bold_keys
         if bold_without_features:
             bold_key = next(iter(bold_without_features))
-            loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
+            loc = _format_loc(
+                sub=sub_id,
+                ses=bold_key.ses,
+                run=bold_key.run,
+                space=self.bold_space,
+            )
             msg = f"No feature files found for BOLD at {loc}"
             if len(bold_without_features) > 1:
                 msg += f" ({len(bold_without_features) - 1} other coverage gaps exist)"
@@ -586,7 +631,12 @@ class Encoding:
         features_without_bold = covered_bold_keys - bold_metas.keys()
         if features_without_bold:
             bold_key = next(iter(features_without_bold))
-            loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
+            loc = _format_loc(
+                sub=sub_id,
+                ses=bold_key.ses,
+                run=bold_key.run,
+                space=self.bold_space,
+            )
             msg = f"No BOLD file found for features at {loc}"
             if len(features_without_bold) > 1:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
@@ -594,6 +644,7 @@ class Encoding:
 
     def _build_xy(
         self,
+        sub_id: str,
         feature_paths: dict[FeatureKey, Path],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> TrainingData:
@@ -617,12 +668,15 @@ class Encoding:
             expected = max(seg.slice.stop for seg in bold_meta.segments)
             actual = bold_arrays[bold_key].shape[0]
             if expected > actual:
-                first_bold = next(iter(bold_metas.values()))
-                sub_id = first_bold.bids.entities.get("sub")
-                loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
+                loc = _format_loc(
+                    sub=sub_id,
+                    ses=bold_key.ses,
+                    run=bold_key.run,
+                    space=self.bold_space,
+                )
                 raise ValueError(
-                    f"Segment slices extend to TR {expected} "
-                    f"but BOLD has only {actual} TRs for {loc}"
+                    f"events.tsv declares segments extending to TR {expected} "
+                    f"but BOLD at {loc} has only {actual} TRs"
                 )
 
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
