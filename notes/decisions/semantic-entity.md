@@ -51,7 +51,7 @@ segment slice and are excluded from X/Y.
 
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
 - Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
-- Metadata entities from `events.json` `Segments` (e.g. `cond=R`, `item=101`)
+- Metadata entities from `events.json` `SegmentMetadata` (e.g. `cond=R`, `item=101`)
 
 Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
 (invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
@@ -93,5 +93,5 @@ be finer than the intended segment entity. Single-entity-only makes the intent u
 without requiring tiling-strictness.
 
 See [feature-files.md](feature-files.md) for feature file naming conventions.
-See [segment-metadata.md](segment-metadata.md) for the events.json `Segments` format.
+See [segment-metadata.md](segment-metadata.md) for the events.json `SegmentMetadata` format.
 See [../external/bids.md](../external/bids.md) for the BIDS entity reserved name list.

@@ -128,7 +128,7 @@ class BIDSTree:
             [{"trial_type": "block-1", "onset": 0.0, "duration": 100.0}]
 
         events_json, if provided, is written to the matching events.json sidecar
-        as raw JSON content (e.g., {"Segments": [{"block": "1", "cond": "R"}, ...]}).
+        as raw JSON (e.g., {"SegmentMetadata": [{"block": "1", "cond": "R"}, ...]}).
         """
         import json
 

@@ -26,7 +26,7 @@ sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet
 ```
 
 Feature files carry only structural identity — descriptive attributes (condition, stimulus
-item, etc.) live in `events.json` under `Segments` and are joined at enrichment time. Do not
+item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not
 put descriptive entities on feature filenames; they belong in the sidecar.
 
 Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`). Features are
@@ -38,10 +38,10 @@ feature files are not required to mirror them.
 
 `events.json` is the authoritative source for descriptive metadata. Four cases:
 
-- Sidecar-only (key in `Segments`, absent from filename): merged onto the resolved `CellKey`.
+- Sidecar-only (key in `SegmentMetadata`, absent from filename): merged onto the resolved `CellKey`.
 - Both, same value: allowed; redundant but harmless.
 - Both, different value: raise — the two sources of truth disagree.
-- Filename-only descriptive (key absent from `Segments`): raise, pointing user to events.json.
+- Filename-only descriptive (key absent from `SegmentMetadata`): raise, pointing user to events.json.
 
 For unsegmented runs (no events.tsv key-value rows), only `ses` and `run` are valid on
 feature filenames — any other entity raises.

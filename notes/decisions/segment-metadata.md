@@ -1,20 +1,20 @@
 # Segment metadata
 
-Design record for the `events.json` `Segments` field — per-segment descriptive entities
+Design record for the `events.json` `SegmentMetadata` field — per-segment descriptive entities
 used for filtering and CV splits.
 
 ## Purpose
 
 Feature filenames carry only structural identity: `ses`, `run`, and the segment entity value
 (e.g. `trial-1`). Descriptive attributes — condition, stimulus item, counterbalance group —
-live in `events.json` under the `Segments` key and are joined onto `CellKey` at enrichment
+live in `events.json` under the `SegmentMetadata` key and are joined onto `CellKey` at enrichment
 time.
 
 ## Wire format (events.json)
 
 ```json
 {
-  "Segments": [
+  "SegmentMetadata": [
     {"trial": "1", "cond": "R", "item": "101"},
     {"trial": "2", "cond": "L", "item": "102"},
     {"trial": "3", "cond": "R", "item": "103"}
@@ -22,14 +22,14 @@ time.
 }
 ```
 
-- `Segments` is a list of records; each record is a flat dict of BIDS entity key-value pairs.
+- `SegmentMetadata` is a list of records; each record is a flat dict of BIDS entity key-value pairs.
 - One key per record must match the run's segment entity (e.g. `"trial"`); its value is the
   bare segment value (e.g. `"1"`, not `"trial-1"`).
 - Remaining keys are metadata entities — must match `BIDS_ENTITY_KEY_RE` (`^[a-z]+$`).
 - Values must be strings matching `BIDS_ENTITY_VALUE_RE` (`^[a-zA-Z0-9]+$`). Non-string JSON
   types (numbers, bools) are rejected — BIDS values are strings on filenames, and metadata
   values become filename-shaped tokens after enrichment.
-- `Segments` is optional. Absence = no metadata for that run; `CellKey` carries filename
+- `SegmentMetadata` is optional. Absence = no metadata for that run; `CellKey` carries filename
   entities only.
 
 ## Validation
@@ -42,6 +42,19 @@ Within a single events.json (enforced in `bold.load_bold_meta`):
   `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feature`) are rejected
   later by `CellKey.EXCLUDE` during `_resolve_cell_keys` — keeping `bold.py` agnostic of
   encoding-pipeline concerns.
+
+## Single-segment runs
+
+A run with one segment row in events.tsv is **segmented** (segment count = 1), not unsegmented.
+Feature filenames must carry the segment entity (e.g. `block-1`), same as multi-segment runs.
+
+- **Unsegmented** = no events.tsv rows = use the entire BOLD run. Feature filenames carry `ses`/`run` only.
+- **Single-segment** = one events.tsv row = slice the run by that segment. Feature filenames must identify the segment.
+
+The distinction is whether a slice contract exists, not how many segments there are. Pre/post
+run padding (instructions, fixation, scanner ramp-up) is near-universal in practice, so the
+"whole-run-as-one-segment" case (onset=0, duration=full_run) is rare but permitted — declare
+one explicit row in events.tsv covering the full duration.
 
 Cross-run (enforced in `Encoding._discover_bold`):
 - All segmented runs share the same metadata key set. Strict — a segmented run with no
@@ -56,7 +69,7 @@ class Segment:
     entity: str           # e.g. "trial"
     value: str            # bare value, e.g. "1"
     slice: slice          # TR-slice derived from events.tsv onset/duration
-    metadata: dict[str, str]  # e.g. {"cond": "R", "item": "101"}; empty if no Segments
+    metadata: dict[str, str]  # e.g. {"cond": "R", "item": "101"}; empty if no SegmentMetadata
 
 class BoldMeta(NamedTuple):
     bids: BIDSPath
@@ -105,7 +118,7 @@ onset   duration  trial_type
 90.0    10.0      rest
 ```
 
-events.json Segments as above. BOLD TR=2.0s, 50 TRs total.
+events.json SegmentMetadata as above. BOLD TR=2.0s, 50 TRs total.
 
 Resulting BoldMeta.segments:
 ```python

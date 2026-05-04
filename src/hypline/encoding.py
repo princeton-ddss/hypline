@@ -413,7 +413,9 @@ class Encoding:
                         f"Feature cell {cell_key!r} carries entities "
                         f"{sorted(illegal_keys)} that do not identify the run. "
                         f"For an unsegmented run, only ses and run are valid on "
-                        f"feature filenames — move descriptive metadata to events.json"
+                        f"feature filenames. To attach metadata, declare a segment "
+                        f"row in events.tsv and add descriptive attributes to "
+                        f"events.json SegmentMetadata."
                     )
                 resolved_feature_paths[feature_key] = path
                 continue

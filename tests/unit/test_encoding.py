@@ -376,7 +376,7 @@ class TestDiscoverBold:
             run="1",
             rows=rows,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "R"},
                     {"block": "2", "cond": "L"},
                 ]
@@ -386,7 +386,7 @@ class TestDiscoverBold:
             run="2",
             rows=rows,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "item": "A"},
                     {"block": "2", "item": "B"},
                 ]
@@ -542,7 +542,7 @@ class TestResolveCellKeys:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "R"},
                     {"block": "2", "cond": "L"},
                 ]
@@ -566,7 +566,7 @@ class TestResolveCellKeys:
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             ],
-            events_json={"Segments": [{"block": "1", "cond": "R"}]},
+            events_json={"SegmentMetadata": [{"block": "1", "cond": "R"}]},
         )
         tree.add_feature("mfcc", run="1", block="1", cond="R")
         enc = _make_encoding(tree, ["mfcc"])
@@ -582,7 +582,7 @@ class TestResolveCellKeys:
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             ],
-            events_json={"Segments": [{"block": "1", "cond": "R"}]},
+            events_json={"SegmentMetadata": [{"block": "1", "cond": "R"}]},
         )
         tree.add_feature("mfcc", run="1", block="1", cond="L")
         enc = _make_encoding(tree, ["mfcc"])
@@ -690,7 +690,7 @@ class TestApplyFilters:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "R"},
                     {"block": "2", "cond": "L"},
                 ]

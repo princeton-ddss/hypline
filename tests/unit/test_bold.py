@@ -112,7 +112,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "R"},
                     {"block": "2", "cond": "L"},
                 ]
@@ -130,7 +130,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "2", "cond": "L"},
                     {"block": "1", "cond": "R"},
                 ]
@@ -146,7 +146,7 @@ class TestLoadBoldMeta:
         tree.add_events(
             run="1",
             rows=_SEGMENT_ROWS,
-            events_json={"Segments": [{"block": "1"}, {"block": "2"}]},
+            events_json={"SegmentMetadata": [{"block": "1"}, {"block": "2"}]},
         )
         meta = load_bold_meta(bold_path)
         assert all(seg.metadata == {} for seg in meta.segments)
@@ -156,7 +156,9 @@ class TestLoadBoldMeta:
         tree.add_events(
             run="1",
             rows=_SEGMENT_ROWS,
-            events_json={"Segments": [{"cond": "R"}, {"block": "2", "cond": "L"}]},
+            events_json={
+                "SegmentMetadata": [{"cond": "R"}, {"block": "2", "cond": "L"}]
+            },
         )
         with pytest.raises(ValueError, match="missing segment entity key"):
             load_bold_meta(bold_path)
@@ -167,7 +169,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "R"},
                     {"block": "99", "cond": "L"},  # "99" not in tsv
                 ]
@@ -182,7 +184,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "R"},
                     {"block": "2"},  # missing "cond"
                 ]
@@ -197,7 +199,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "bad-key": "R"},
                     {"block": "2", "bad-key": "L"},
                 ]
@@ -212,7 +214,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "ses": "01"},
                     {"block": "2", "ses": "01"},
                 ]
@@ -227,7 +229,7 @@ class TestLoadBoldMeta:
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "Segments": [
+                "SegmentMetadata": [
                     {"block": "1", "cond": "has space"},
                     {"block": "2", "cond": "L"},
                 ]
@@ -249,7 +251,7 @@ class TestLoadBoldMeta:
         tree.add_events(
             run="1",
             rows=[{"trial_type": "rest", "onset": 0.0, "duration": 200.0}],
-            events_json={"Segments": [{"block": "1", "cond": "R"}]},
+            events_json={"SegmentMetadata": [{"block": "1", "cond": "R"}]},
         )
         with pytest.raises(ValueError, match="no BIDS key-value rows"):
             load_bold_meta(bold_path)

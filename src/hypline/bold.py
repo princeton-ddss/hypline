@@ -251,7 +251,7 @@ def _validate_segment_records(
     segment_records: list[dict],
     segments: list[Segment],
 ) -> None:
-    """Validate events.json `Segments` records against events.tsv-parsed segments.
+    """Validate `SegmentMetadata` records in events.json against segments in events.tsv.
 
     Each record describes one segment and carries the segment-entity key plus
     arbitrary metadata keys. Raises ValueError on missing segment-entity key,
@@ -264,7 +264,7 @@ def _validate_segment_records(
     for record in segment_records:
         if segment_entity not in record:
             raise ValueError(
-                f"events.json Segments record is missing segment entity key "
+                f"events.json SegmentMetadata record is missing segment entity key "
                 f"{segment_entity!r}: {record}"
             )
 
@@ -273,7 +273,7 @@ def _validate_segment_records(
         missing = sorted(expected_values - record_values)
         extra = sorted(record_values - expected_values)
         raise ValueError(
-            f"events.json Segments values do not match events.tsv. "
+            f"events.json SegmentMetadata values do not match events.tsv. "
             f"Missing: {missing}, extra: {extra}"
         )
 
@@ -283,7 +283,7 @@ def _validate_segment_records(
     ]
     if len(set(metadata_keys_per_record)) > 1:
         raise ValueError(
-            "events.json Segments records have inconsistent metadata keys — "
+            "events.json SegmentMetadata records have inconsistent metadata keys — "
             "all records must carry the same set of metadata keys"
         )
     metadata_keys = metadata_keys_per_record[0]
@@ -317,7 +317,7 @@ def _validate_segment_records(
 def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
     """Load all metadata for a BOLD run: TR, segments, and segment metadata.
 
-    Segment metadata is sourced from the colocated events.json `Segments` field
+    Segment metadata is sourced from the colocated events.json `SegmentMetadata` field
     and merged into each `Segment.metadata`. If no events.json is present,
     segments have empty metadata dicts.
 
@@ -330,13 +330,15 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
     events_json = load_events_json(bold_path)
 
     segments = _parse_segments(events, repetition_time)
-    segment_records: list[dict] = events_json.get("Segments", []) if events_json else []
+    segment_records: list[dict] = (
+        events_json.get("SegmentMetadata", []) if events_json else []
+    )
     if segment_records:
         if not segments:
             raise ValueError(
-                "events.json has a Segments field but events.tsv has no BIDS "
-                "key-value rows — add segment rows to events.tsv or remove Segments "
-                "from events.json"
+                "events.json has a SegmentMetadata field but events.tsv "
+                "has no BIDS key-value rows — add segment rows to events.tsv "
+                "or remove SegmentMetadata from events.json"
             )
         _validate_segment_records(segment_records, segments)
         segment_entity = segments[0].entity
