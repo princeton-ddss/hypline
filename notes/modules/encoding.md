@@ -33,16 +33,17 @@ A single `train(sub_id)` call is scoped to:
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
    (segment slices), and events.json `SegmentMetadata` (metadata). Returns
    `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
-3. **`_resolve_cell_keys`** — validates filename entities against events.json and
-   merges `Segment.metadata` onto each feature cell's `CellKey`. Rejects illegal
-   filename entities. Raises on value mismatch between filename and sidecar. Returns
-   resolved `dict[FeatureKey, Path]`.
+3. **`_resolve_cell_keys`** — precondition: every feature's `(ses, run)` must map to a
+   `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
+   enrichment). Then merges `Segment.metadata` onto each feature cell's `CellKey`.
+   Rejects illegal filename entities. Raises on value mismatch between filename and
+   sidecar. Returns resolved `dict[FeatureKey, Path]`.
 4. **`_apply_filters`** — applies user `bids_filters` to both enriched feature cells
    and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns
    filtered `(dict[FeatureKey, Path], dict[BoldKey, BoldMeta])`.
-5. **`_validate_coverage`** — checks `sub`/`task` invariance across all files and
-   bidirectional `ses`/`run` coverage between filtered features and BOLD. Raises if
-   either side is empty. Void-returning.
+5. **`_validate_coverage`** — checks `sub`/`task` invariance across all files.
+   Bidirectional `ses`/`run` coverage: every filtered BOLD run must have feature
+   coverage and vice versa. Raises if either filtered set is empty. Void-returning.
 6. **`_build_xy`** — loads BOLD arrays; validates `max(slice.stop) ≤ BOLD TRs`;
    assembles X (features) and Y (BOLD) matrices.
 

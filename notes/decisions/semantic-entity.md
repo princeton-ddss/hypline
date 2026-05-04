@@ -47,22 +47,6 @@ Every segment (BIDS key-value row in events.tsv) must satisfy:
 Full BOLD coverage is not required. Breaks consume TRs that are simply not indexed by any
 segment slice and are excluded from X/Y.
 
-## CellKey
-
-`CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
-- Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
-- Metadata entities from `events.json` `SegmentMetadata` (e.g. `cond=R`, `item=101`)
-
-Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
-(invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
-derivatives), `space`, `feature` (orthogonal axes). Entities are present or absent — no
-`None` sentinel. Equality and hashing are order-independent.
-
-CV splits are expressed by querying `CellKey` entities:
-```python
-train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
-```
-
 ## Key invariants
 
 - Feature files carry the segment entity — coarser or finer granularity is not supported.
@@ -92,6 +76,6 @@ non-overlap-only rule would silently pick the wrong level if a descriptive entit
 be finer than the intended segment entity. Single-entity-only makes the intent unambiguous
 without requiring tiling-strictness.
 
-See [feature-files.md](feature-files.md) for feature file naming conventions.
+See [feature-files.md](feature-files.md) for feature file naming conventions and `CellKey` rules.
 See [segment-metadata.md](segment-metadata.md) for the events.json `SegmentMetadata` format.
 See [../external/bids.md](../external/bids.md) for the BIDS entity reserved name list.

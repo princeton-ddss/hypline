@@ -34,6 +34,22 @@ stimulus-derived — the same stimulus embedding applies regardless of scanner a
 parameters. Encoding validation enforces this: if BOLD files carry acquisition variants,
 feature files are not required to mirror them.
 
+## CellKey
+
+`CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
+- Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
+- Metadata entities from `events.json` `SegmentMetadata` (e.g. `cond=R`, `item=101`)
+
+Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
+(invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
+derivatives), `space`, `feature` (orthogonal axes). Entities are present or absent — no
+`None` sentinel. Equality and hashing are order-independent.
+
+CV splits are expressed by querying `CellKey` entities:
+```python
+train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
+```
+
 ## Filename entity vs. events.json metadata
 
 `events.json` is the authoritative source for descriptive metadata. Four cases:
