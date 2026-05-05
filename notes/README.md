@@ -45,4 +45,5 @@ AI agents alike. Agent-agnostic by design.
 | Changing the feature file schema       | `decisions/feature-files.md`, `modules/encoding.md` |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
-| Introducing a new partition entity     | `decisions/semantic-entity.md`, `external/bids.md`  |
+| Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`  |
+| Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/encoding.md` |

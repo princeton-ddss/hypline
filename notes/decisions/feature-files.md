@@ -18,33 +18,58 @@ Feature I/O is implemented in `hypline/features/utils.py` (formerly `hypline/fea
 
 ## Naming
 
-Feature files inherit **stimulus-side identity entities** from the source
-BOLD (`sub`, `ses`, `task`, `run`), plus any semantic entities that define
-the time window (e.g. the partition entity inferred from events.tsv), plus
-hypline's own `feature` entity:
+Feature files carry **stimulus-side identity entities** from the source BOLD (`sub`, `ses`,
+`task`, `run`), the segment entity value (e.g. `trial-1`), and hypline's own `feature` entity:
 
 ```
-sub-01_ses-01_task-movie_run-1_block-1_feature-clip.parquet
+sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet
 ```
 
-Feature files must be provided at the partition entity granularity. Additional descriptive
-entities are allowed (e.g. `condition`, `trial`) — see [semantic-entity.md](semantic-entity.md).
+Feature files carry only structural identity — descriptive attributes (condition, stimulus
+item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not
+put descriptive entities on feature filenames; they belong in the sidecar.
 
-Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`,
-`dir`). Features are stimulus-derived — the same stimulus embedding applies
-regardless of scanner acquisition parameters. Encoding validation enforces
-this: if BOLD files carry acquisition variants, feature files are not
-required to mirror them.
+Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`). Features are
+stimulus-derived — the same stimulus embedding applies regardless of scanner acquisition
+parameters. Encoding validation enforces this: if BOLD files carry acquisition variants,
+feature files are not required to mirror them.
+
+## CellKey
+
+`CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
+- Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
+- Metadata entities from `events.json` `SegmentMetadata` (e.g. `cond=R`, `item=101`)
+
+Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
+(invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
+derivatives), `space`, `feature` (orthogonal axes). Entities are present or absent — no
+`None` sentinel. Equality and hashing are order-independent.
+
+CV splits are expressed by querying `CellKey` entities:
+```python
+train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
+```
+
+## Filename entity vs. events.json metadata
+
+`events.json` is the authoritative source for descriptive metadata. Four cases:
+
+- Sidecar-only (key in `SegmentMetadata`, absent from filename): merged onto the resolved `CellKey`.
+- Both, same value: allowed; redundant but harmless.
+- Both, different value: raise — the two sources of truth disagree.
+- Filename-only descriptive (key absent from `SegmentMetadata`): raise, pointing user to events.json.
+
+For unsegmented runs (no events.tsv key-value rows), only `ses` and `run` are valid on
+feature filenames — any other entity raises.
 
 ## Mirroring requirement
 
-Feature filenames must carry the same stimulus-side identity entities as
-their source BOLD file. If BOLD has `ses-01_run-1`, the feature file must
-too.
+Feature filenames must carry the same stimulus-side identity entities as their source BOLD
+file. If BOLD has `ses-01_run-1`, the feature file must too.
 
-This is how pipelines match features to BOLD runs. Aggregating features
-across sessions or runs (e.g. a subject-level embedding) is out of scope
-for encoding models — such features don't map 1:1 to BOLD TRs.
+This is how pipelines match features to BOLD runs. Aggregating features across sessions or
+runs (e.g. a subject-level embedding) is out of scope for encoding models — such features
+don't map 1:1 to BOLD TRs.
 
 ## Temporal alignment
 

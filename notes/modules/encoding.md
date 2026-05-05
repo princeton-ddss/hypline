@@ -18,10 +18,34 @@ A single `train(sub_id)` call is scoped to:
   BOLD or feature files, the pipeline raises.
 - **Multiple sessions and runs: allowed and expected.** Same task, more
   data — concatenated into a single X/Y.
-- **Multiple cells per run: allowed.** The partition entity is inferred from
-  events.tsv at discovery time. Each partition value is a separate row block,
-  identified by a `CellKey` carrying all non-excluded filename entities.
+- **Multiple cells per run: allowed.** The segment entity is inferred from
+  events.tsv at discovery time. Each segment value is a separate row block,
+  identified by a `CellKey` carrying all non-excluded entities (filename +
+  enriched metadata).
   See [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
+
+## Pipeline
+
+`train(sub_id)` executes these steps in order:
+
+1. **`_discover_features`** — scans feature filenames for `sub_id`; returns raw
+   `dict[FeatureKey, Path]` with filename-only `CellKey`s. No events I/O. No user filters.
+2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
+   (segment slices), and events.json `SegmentMetadata` (metadata). Returns
+   `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
+3. **`_resolve_cell_keys`** — precondition: every feature's `(ses, run)` must map to a
+   `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
+   enrichment). Then merges `Segment.metadata` onto each feature cell's `CellKey`.
+   Rejects illegal filename entities. Raises on value mismatch between filename and
+   sidecar. Returns resolved `dict[FeatureKey, Path]`.
+4. **`_apply_filters`** — applies user `bids_filters` to both enriched feature cells
+   and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns
+   filtered `(dict[FeatureKey, Path], dict[BoldKey, BoldMeta])`.
+5. **`_validate_coverage`** — checks `sub`/`task` invariance across all files.
+   Bidirectional `ses`/`run` coverage: every filtered BOLD run must have feature
+   coverage and vice versa. Raises if either filtered set is empty. Void-returning.
+6. **`_build_xy`** — loads BOLD arrays; validates `max(slice.stop) ≤ BOLD TRs`;
+   assembles X (features) and Y (BOLD) matrices.
 
 ## Alignment contract
 
@@ -41,8 +65,7 @@ Coverage failures are reported fail-fast: the first missing (cell, feature)
 pair raises, without aggregating the full list. Mismatches are typically
 systematic (e.g. an entire feature missing across all cells from a failed
 extraction run), so the first gap is enough signal for the user to fix the
-root cause and rerun. Aggregating would flood the message without changing
-what the user does next.
+root cause and rerun.
 
 ## Module layout
 
@@ -56,24 +79,30 @@ intentional — fMRIPrep derivatives are often organized in per-subject subdirec
 
 ## `bids_filters` routing
 
-User-supplied `bids_filters` are routed automatically — no need to specify separate feature
-vs. BOLD filters:
+All user-supplied `bids_filters` are applied post-resolution in `_apply_filters` against
+resolved `CellKey`s (features) and BOLD filename entities (BOLD). Neither `_discover_features`
+nor `_discover_bold` apply user filters — both use only hard-coded structural filters
+(`sub`, `feature`, `space`).
 
-- **Shared entities** (`ses`, `task`, `run`): forwarded to both feature and BOLD discovery.
-- **BOLD-exclusive entities** (`desc`, `res`, `den`, `echo`, `acq`, `ce`, `rec`, `dir`):
-  forwarded to BOLD discovery only; stripped from feature-side filters since feature files
-  never carry them.
-- **Feature entities** (any other entity, e.g. `block-1`): forwarded to feature discovery
-  only.
+Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
+to `find_files`. Applying all filters uniformly post-resolution ensures consistent behaviour
+whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
+
 - **Reserved entities** (`sub`, `space`, `feature`): rejected at construction — use the
   dedicated arguments instead.
 
-Filter entity validation is **fail-then-diagnose**: when filtered discovery yields no files
-but an unfiltered scan finds some, every filter entity is checked against the union of keys
-on those files — any absent entity raises `ValueError` before `FileNotFoundError`. This
-applies uniformly to all entity types including `ses`, `task`, `run` — no exemptions.
-Rationale: a session-less dataset has no `ses` on filenames; filtering on `ses-99` against
-such a dataset is a misuse worth flagging, not silently absorbing.
+**Match semantics:** multiple filters sharing the same entity key OR-match within that group;
+different entity keys AND-match across groups (e.g. `["task-rest", "task-nback", "ses-1"]`
+selects runs where task is rest or nback, AND session is 1). This mirrors `find_files` behaviour.
+
+**Asymmetric schemas:** feature cells and BOLD files do not share the same entity key set
+(e.g. `task` is excluded from `CellKey` but present on BOLD filenames). A filter key absent
+from one side is silently skipped on that side — it applies only where the entity is meaningful.
+A filter key absent from *both* sides raises `ValueError` (typo diagnostic).
+
+Filter entity validation is **fail-then-diagnose**: every filter entity is checked against the
+union of resolved cell keys and BOLD filename keys — any absent entity raises `ValueError`
+before any empty-result `FileNotFoundError`.
 
 ## Assumptions that could break
 
@@ -81,7 +110,9 @@ such a dataset is a misuse worth flagging, not silently absorbing.
   need per-run TR handling.
 - **Feature files mirror BOLD identity entities.** See
   [../decisions/feature-files.md](../decisions/feature-files.md).
-- **Partition contract** (inference, tiling, cross-run agreement, cell schema invariance):
-  see [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
+- **Segment contract** (single entity, non-overlap, cross-run agreement, cell schema
+  invariance): see [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
+- **Segment metadata contract** (events.json `SegmentMetadata` format, enrichment, filtering):
+  see [../decisions/segment-metadata.md](../decisions/segment-metadata.md).
 - **One feature file per (CellKey, feature) pair.** Multiple files for the same pair is
   ambiguous provenance, not something to merge.
