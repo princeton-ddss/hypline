@@ -45,6 +45,17 @@ events.tsv (e.g. `block`, `trial`) are inferred as the segment entity at discove
 exactly one entity name is allowed per run. See
 [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 
+## `trial_type.Levels` for segment metadata
+
+BIDS allows `trial_type.Levels` in `events.json` as a dict mapping trial type labels to
+descriptive annotations. Hypline reuses this field for per-segment metadata: entries whose
+keys match the `entity-value` pattern (e.g. `"block-1"`) are interpreted as segment metadata
+carriers; all other entries (e.g. `"rest"`, `"n/a"`) are ignored. This allows a single
+`events.json` to satisfy both standard BIDS validators and hypline's metadata contract without
+a custom field.
+
+See [../decisions/segment-metadata.md](../decisions/segment-metadata.md) for the full wire format.
+
 ## Sidecar naming — two categories
 
 BIDS sidecars fall into two naming categories that hypline handles via separate code paths:

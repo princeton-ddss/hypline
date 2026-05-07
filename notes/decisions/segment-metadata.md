@@ -1,43 +1,43 @@
 # Segment metadata
 
-Design record for the `events.json` `SegmentMetadata` field — per-segment descriptive entities
-used for filtering and CV splits.
+Design record for per-segment descriptive entities in `events.json` — used for filtering and CV splits.
 
 ## Purpose
 
 Feature filenames carry only structural identity: `ses`, `run`, and the segment entity value
 (e.g. `trial-1`). Descriptive attributes — condition, stimulus item, counterbalance group —
-live in `events.json` under the `SegmentMetadata` key and are joined onto `CellKey` at enrichment
+live in `events.json` under `trial_type.Levels` and are joined onto `CellKey` at enrichment
 time.
 
 ## Wire format (events.json)
 
 ```json
 {
-  "SegmentMetadata": [
-    {"trial": "1", "cond": "R", "item": "101"},
-    {"trial": "2", "cond": "L", "item": "102"},
-    {"trial": "3", "cond": "R", "item": "103"}
-  ]
+  "trial_type": {
+    "Levels": {
+      "trial-1": {"metadata": {"cond": "R", "item": "101"}},
+      "trial-2": {"metadata": {"cond": "L", "item": "102"}},
+      "trial-3": {"metadata": {"cond": "R", "item": "103"}}
+    }
+  }
 }
 ```
 
-- `SegmentMetadata` is a list of records; each record is a flat dict of BIDS entity key-value pairs.
-- One key per record must match the run's segment entity (e.g. `"trial"`); its value is the
-  bare segment value (e.g. `"1"`, not `"trial-1"`).
-- Remaining keys are metadata entities — must match `BIDS_ENTITY_KEY_RE` (`^[a-z]+$`).
-- Values must be strings matching `BIDS_ENTITY_VALUE_RE` (`^[a-zA-Z0-9]+$`). Non-string JSON
-  types (numbers, bools) are rejected — BIDS values are strings on filenames, and metadata
-  values become filename-shaped tokens after enrichment.
-- `SegmentMetadata` is optional. Absence = no metadata for that run; `CellKey` carries filename
-  entities only.
+- Segment metadata lives in `trial_type.Levels` — a BIDS-standard field repurposed for this use.
+- Keys are `entity-value` strings (e.g. `"trial-1"`); only keys matching the BIDS entity-value
+  pattern (`BIDS_ENTITY_RE`) are treated as segment entries — all others are silently ignored,
+  allowing coexistence with standard BIDS Levels annotations (e.g. `"rest"`, `"n/a"`).
+- Each entry must have a `"metadata"` sub-dict. Entries lacking `"metadata"` raise `ValueError`.
+- Metadata keys must match `BIDS_ENTITY_KEY_RE` (`^[a-z]+$`); values must be strings matching
+  `BIDS_ENTITY_VALUE_RE` (`^[a-zA-Z0-9]+$`) — values become filename-shaped tokens after enrichment.
+- `trial_type.Levels` is optional. Absence (or no entity-keyed entries) = no metadata for that run;
+  `CellKey` carries filename entities only.
 
 ## Validation
 
 Within a single events.json (enforced in `bold.load_bold_meta`):
-- Every record has the segment-entity key.
-- Segment entity values match events.tsv key-value rows exactly (set equality).
-- All records have identical metadata key sets (schema invariance).
+- Entity-keyed Levels entries match events.tsv segment `entity-value` keys exactly (set equality).
+- All entries share identical metadata key sets (schema invariance).
 - No metadata key collides with BOLD identity entities (`sub`, `ses`, `task`, `acq`, `ce`,
   `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feature`) are rejected
   by `CellKey.EXCLUDE` at `CellKey.__init__` during `_discover_features` — keeping

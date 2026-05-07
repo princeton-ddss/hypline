@@ -432,7 +432,7 @@ class Encoding:
                         f"and run are valid on feature filenames for unsegmented "
                         f"runs. To attach metadata, declare a segment row in "
                         f"events.tsv and add descriptive attributes to "
-                        f"events.json SegmentMetadata."
+                        f"events.json Levels."
                     )
                 resolved_feature_paths[feature_key] = path
                 continue
@@ -482,8 +482,8 @@ class Encoding:
                 raise ValueError(
                     f"Feature filename at {loc} carries entities "
                     f"{sorted(illegal_keys)} absent from events.json "
-                    f"metadata — descriptive attributes must live in "
-                    f"events.json, not feature filenames"
+                    f"events.json Levels metadata — descriptive attributes "
+                    f"must live in events.json, not feature filenames"
                 )
 
             # Merge metadata: filename value takes precedence only if it agrees

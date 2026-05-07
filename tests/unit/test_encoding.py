@@ -376,20 +376,24 @@ class TestDiscoverBold:
             run="1",
             rows=rows,
             events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "R"},
-                    {"block": "2", "cond": "L"},
-                ]
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                    }
+                }
             },
         )
         tree.add_events(
             run="2",
             rows=rows,
             events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "item": "A"},
-                    {"block": "2", "item": "B"},
-                ]
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"item": "A"}},
+                        "block-2": {"metadata": {"item": "B"}},
+                    }
+                }
             },
         )
 
@@ -542,10 +546,12 @@ class TestResolveCellKeys:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
             events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "R"},
-                    {"block": "2", "cond": "L"},
-                ]
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                    }
+                }
             },
         )
         tree.add_feature("mfcc", run="1", block="1")
@@ -566,7 +572,13 @@ class TestResolveCellKeys:
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             ],
-            events_json={"SegmentMetadata": [{"block": "1", "cond": "R"}]},
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                    }
+                }
+            },
         )
         tree.add_feature("mfcc", run="1", block="1", cond="R")
         enc = _make_encoding(tree, ["mfcc"])
@@ -582,7 +594,13 @@ class TestResolveCellKeys:
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             ],
-            events_json={"SegmentMetadata": [{"block": "1", "cond": "R"}]},
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                    }
+                }
+            },
         )
         tree.add_feature("mfcc", run="1", block="1", cond="L")
         enc = _make_encoding(tree, ["mfcc"])
@@ -692,10 +710,12 @@ class TestApplyFilters:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
             events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "R"},
-                    {"block": "2", "cond": "L"},
-                ]
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                    }
+                }
             },
         )
         tree.add_feature("mfcc", run="1", block="1")

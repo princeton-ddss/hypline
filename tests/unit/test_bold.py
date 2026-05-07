@@ -98,7 +98,7 @@ class TestLoadBoldMeta:
         meta = load_bold_meta(bold_path)
         assert all(seg.metadata == {} for seg in meta.segments)
 
-    def test_events_json_without_segments_field_passes(self, tree: BIDSTree):
+    def test_events_json_without_trial_type_field_passes(self, tree: BIDSTree):
         bold_path = tree.add_bold(run="1")
         tree.add_events(
             run="1", rows=_SEGMENT_ROWS, events_json={"SomeOtherField": "value"}
@@ -106,16 +106,76 @@ class TestLoadBoldMeta:
         meta = load_bold_meta(bold_path)
         assert all(seg.metadata == {} for seg in meta.segments)
 
+    def test_trial_type_field_without_levels_passes(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={"trial_type": {"LongName": "Type of trial"}},
+        )
+        meta = load_bold_meta(bold_path)
+        assert all(seg.metadata == {} for seg in meta.segments)
+
+    def test_multiple_segment_entities_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "run-1", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        with pytest.raises(ValueError, match="multiple BIDS key-value entities"):
+            load_bold_meta(bold_path)
+
+    def test_segment_entity_collides_with_flat_label_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        with pytest.raises(ValueError, match="also appears as a flat label"):
+            load_bold_meta(bold_path)
+
+    def test_duplicate_segment_value_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block-1", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        with pytest.raises(ValueError, match="appears more than once"):
+            load_bold_meta(bold_path)
+
+    def test_overlapping_segment_slices_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block-2", "onset": 50.0, "duration": 100.0},
+            ],
+        )
+        with pytest.raises(ValueError, match="overlap"):
+            load_bold_meta(bold_path)
+
     def test_metadata_merged_into_segments(self, tree: BIDSTree):
         bold_path = tree.add_bold(run="1")
         tree.add_events(
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "R"},
-                    {"block": "2", "cond": "L"},
-                ]
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                    }
+                }
             },
         )
         meta = load_bold_meta(bold_path)
@@ -124,119 +184,43 @@ class TestLoadBoldMeta:
         assert by_value["1"].metadata == {"cond": "R"}
         assert by_value["2"].metadata == {"cond": "L"}
 
-    def test_reversed_record_order_merges_by_value(self, tree: BIDSTree):
+    def test_non_entity_value_levels_entries_ignored(self, tree: BIDSTree):
         bold_path = tree.add_bold(run="1")
         tree.add_events(
             run="1",
             rows=_SEGMENT_ROWS,
             events_json={
-                "SegmentMetadata": [
-                    {"block": "2", "cond": "L"},
-                    {"block": "1", "cond": "R"},
-                ]
+                "trial_type": {
+                    "Levels": {
+                        "n/a": {"LongName": "Not applicable"},
+                        "rest": {"LongName": "Resting state"},
+                    }
+                }
+            },
+        )
+        meta = load_bold_meta(bold_path)
+        assert all(seg.metadata == {} for seg in meta.segments)
+
+    def test_mixed_entity_and_non_entity_levels_entries(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                        "rest": {"LongName": "Resting state"},
+                        "n/a": {"LongName": "Not applicable"},
+                    }
+                }
             },
         )
         meta = load_bold_meta(bold_path)
         by_value = {seg.value: seg for seg in meta.segments}
         assert by_value["1"].metadata == {"cond": "R"}
         assert by_value["2"].metadata == {"cond": "L"}
-
-    def test_records_with_only_segment_entity_key(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={"SegmentMetadata": [{"block": "1"}, {"block": "2"}]},
-        )
-        meta = load_bold_meta(bold_path)
-        assert all(seg.metadata == {} for seg in meta.segments)
-
-    def test_events_json_record_missing_segment_entity_key_raises(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={
-                "SegmentMetadata": [{"cond": "R"}, {"block": "2", "cond": "L"}]
-            },
-        )
-        with pytest.raises(ValueError, match="missing segment entity key"):
-            load_bold_meta(bold_path)
-
-    def test_events_json_segment_value_mismatch_raises(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "R"},
-                    {"block": "99", "cond": "L"},  # "99" not in tsv
-                ]
-            },
-        )
-        with pytest.raises(ValueError, match="do not match events.tsv"):
-            load_bold_meta(bold_path)
-
-    def test_events_json_schema_mismatch_across_records_raises(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "R"},
-                    {"block": "2"},  # missing "cond"
-                ]
-            },
-        )
-        with pytest.raises(ValueError, match="inconsistent metadata keys"):
-            load_bold_meta(bold_path)
-
-    def test_events_json_extra_key_raises(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "bad-key": "R"},
-                    {"block": "2", "bad-key": "L"},
-                ]
-            },
-        )
-        with pytest.raises(ValueError, match="invalid"):
-            load_bold_meta(bold_path)
-
-    def test_events_json_reserved_key_raises(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "ses": "01"},
-                    {"block": "2", "ses": "01"},
-                ]
-            },
-        )
-        with pytest.raises(ValueError, match="collides with BOLD identity entity"):
-            load_bold_meta(bold_path)
-
-    def test_events_json_invalid_value_raises(self, tree: BIDSTree):
-        bold_path = tree.add_bold(run="1")
-        tree.add_events(
-            run="1",
-            rows=_SEGMENT_ROWS,
-            events_json={
-                "SegmentMetadata": [
-                    {"block": "1", "cond": "has space"},
-                    {"block": "2", "cond": "L"},
-                ]
-            },
-        )
-        with pytest.raises(ValueError, match="invalid"):
-            load_bold_meta(bold_path)
 
     def test_events_json_misnamed_sibling_raises(self, tree: BIDSTree):
         bold_path = tree.add_bold(run="1")
@@ -251,7 +235,115 @@ class TestLoadBoldMeta:
         tree.add_events(
             run="1",
             rows=[{"trial_type": "rest", "onset": 0.0, "duration": 200.0}],
-            events_json={"SegmentMetadata": [{"block": "1", "cond": "R"}]},
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                    }
+                }
+            },
         )
-        with pytest.raises(ValueError, match="no BIDS key-value rows"):
+        with pytest.raises(ValueError, match="no segment rows"):
+            load_bold_meta(bold_path)
+
+    def test_levels_entry_missing_metadata_field_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"LongName": "no metadata key"},
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="no 'metadata' field"):
+            load_bold_meta(bold_path)
+
+    def test_events_json_segment_value_mismatch_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-99": {"metadata": {"cond": "L"}},  # "99" not in tsv
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="Levels keys do not match events.tsv"):
+            load_bold_meta(bold_path)
+
+    def test_events_json_schema_mismatch_across_records_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {}},  # missing "cond"
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="schemas differ across Levels"):
+            load_bold_meta(bold_path)
+
+    def test_events_json_extra_key_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"bad-key": "R"}},
+                        "block-2": {"metadata": {"bad-key": "L"}},
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="must match"):
+            load_bold_meta(bold_path)
+
+    def test_events_json_reserved_key_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"ses": "01"}},
+                        "block-2": {"metadata": {"ses": "01"}},
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="collides with BOLD identity entity"):
+            load_bold_meta(bold_path)
+
+    def test_events_json_invalid_value_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=_SEGMENT_ROWS,
+            events_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "has space"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="must be a string matching"):
             load_bold_meta(bold_path)

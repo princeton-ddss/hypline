@@ -31,7 +31,7 @@ A single `train(sub_id)` call is scoped to:
 1. **`_discover_features`** — scans feature filenames for `sub_id`; returns raw
    `dict[FeatureKey, Path]` with filename-only `CellKey`s. No events I/O. No user filters.
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
-   (segment slices), and events.json `SegmentMetadata` (metadata). Returns
+   (segment slices), and events.json `trial_type.Levels` (metadata). Returns
    `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
 3. **`_resolve_cell_keys`** — precondition: every feature's `(ses, run)` must map to a
    `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
@@ -112,7 +112,7 @@ before any empty-result `FileNotFoundError`.
   [../decisions/feature-files.md](../decisions/feature-files.md).
 - **Segment contract** (single entity, non-overlap, cross-run agreement, cell schema
   invariance): see [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
-- **Segment metadata contract** (events.json `SegmentMetadata` format, enrichment, filtering):
+- **Segment metadata contract** (events.json `trial_type.Levels` format, enrichment, filtering):
   see [../decisions/segment-metadata.md](../decisions/segment-metadata.md).
 - **One feature file per (CellKey, feature) pair.** Multiple files for the same pair is
   ambiguous provenance, not something to merge.

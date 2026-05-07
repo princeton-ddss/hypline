@@ -127,8 +127,8 @@ class BIDSTree:
         rows is a list of dicts with trial_type, onset, duration, e.g.:
             [{"trial_type": "block-1", "onset": 0.0, "duration": 100.0}]
 
-        events_json, if provided, is written to the matching events.json sidecar
-        as raw JSON (e.g., {"SegmentMetadata": [{"block": "1", "cond": "R"}, ...]}).
+        events_json, if provided, is written to matching events.json sidecar as raw JSON
+        (e.g., {"trial_type": {"Levels": {"block-1": {"metadata": {"cond": "R"}}}}}).
         """
         import json
 

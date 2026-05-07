@@ -248,81 +248,70 @@ def _parse_segments(
 
 
 def _validate_segment_records(
-    segment_records: list[dict],
+    segment_records: dict[str, dict],
     segments: list[Segment],
 ) -> None:
-    """Validate `SegmentMetadata` records in events.json against segments in events.tsv.
+    """Validate events.json segment records against events.tsv segments.
 
-    Each record describes one segment and carries the segment-entity key plus
-    arbitrary metadata keys. Raises ValueError on missing segment-entity key,
-    value-set mismatch with events.tsv, inconsistent metadata schemas across
-    records, malformed metadata keys, or collisions with BOLD identity entities.
+    segment_records maps `entity-value` keys to Levels entries, each requiring
+    a `metadata` dict. All records must share one entity, one metadata schema,
+    and BIDS-valid keys/values that don't collide with BOLD identity entities.
     """
-    segment_entity = segments[0].entity
-    expected_values = {seg.value for seg in segments}
-
-    for record in segment_records:
-        if segment_entity not in record:
-            raise ValueError(
-                f"events.json SegmentMetadata record is missing segment entity key "
-                f"{segment_entity!r}: {record}"
-            )
-
-    record_values = {record[segment_entity] for record in segment_records}
-    if record_values != expected_values:
-        missing = sorted(expected_values - record_values)
-        extra = sorted(record_values - expected_values)
+    expected_keys = {f"{seg.entity}-{seg.value}" for seg in segments}
+    if set(segment_records) != expected_keys:
+        missing = sorted(expected_keys - set(segment_records))
+        extra = sorted(set(segment_records) - expected_keys)
         raise ValueError(
-            f"events.json SegmentMetadata values do not match events.tsv. "
-            f"Missing: {missing}, extra: {extra}"
+            f"events.json Levels keys do not match events.tsv segments "
+            f"(missing: {missing}, extra: {extra})"
         )
 
-    metadata_keys_per_record = [
-        frozenset(k for k in record if k != segment_entity)
-        for record in segment_records
-    ]
-    if len(set(metadata_keys_per_record)) > 1:
+    for key, record in segment_records.items():
+        if "metadata" not in record:
+            raise ValueError(
+                f"events.json Levels entry {key!r} has no 'metadata' field"
+            )
+
+    schemas = [frozenset(record["metadata"]) for record in segment_records.values()]
+    if len(set(schemas)) > 1:
         raise ValueError(
-            "events.json SegmentMetadata records have inconsistent metadata keys — "
-            "all records must carry the same set of metadata keys"
+            "events.json segment metadata schemas differ across Levels — "
+            "all entries must share the same keys"
         )
-    metadata_keys = metadata_keys_per_record[0]
+    schema = schemas[0]
 
-    for metadata_key in metadata_keys:
-        if not BIDS_ENTITY_KEY_RE.match(metadata_key):
+    for field in schema:
+        if not BIDS_ENTITY_KEY_RE.match(field):
             raise ValueError(
-                f"events.json metadata key {metadata_key!r} is invalid — "
-                f"keys must match {BIDS_ENTITY_KEY_RE.pattern}"
+                f"events.json metadata key {field!r} must match "
+                f"{BIDS_ENTITY_KEY_RE.pattern}"
             )
-        if metadata_key in _BOLD_IDENTITY_ENTITIES:
+        if field in _BOLD_IDENTITY_ENTITIES:
             raise ValueError(
-                f"events.json metadata key {metadata_key!r} collides with BOLD "
-                f"identity entity — reserved keys: "
-                f"{sorted(_BOLD_IDENTITY_ENTITIES)}"
+                f"events.json metadata key {field!r} collides with BOLD "
+                f"identity entity {sorted(_BOLD_IDENTITY_ENTITIES)}"
             )
 
-    for record in segment_records:
-        for metadata_key in metadata_keys:
-            metadata_value = record[metadata_key]
-            if not isinstance(metadata_value, str) or not BIDS_ENTITY_VALUE_RE.match(
-                metadata_value
-            ):
+    for key, record in segment_records.items():
+        for field in schema:
+            value = record["metadata"][field]
+            if not isinstance(value, str) or not BIDS_ENTITY_VALUE_RE.match(value):
                 raise ValueError(
-                    f"events.json metadata value {metadata_value!r} for key "
-                    f"{metadata_key!r} is invalid — values must be strings "
-                    f"matching {BIDS_ENTITY_VALUE_RE.pattern}"
+                    f"events.json metadata {key}.{field} = {value!r} "
+                    f"must be a string matching {BIDS_ENTITY_VALUE_RE.pattern}"
                 )
 
 
 def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
-    """Load all metadata for a BOLD run: TR, segments, and segment metadata.
+    """Load TR, segments, and segment metadata for a BOLD run.
 
-    Segment metadata is sourced from the colocated events.json `SegmentMetadata` field
-    and merged into each `Segment.metadata`. If no events.json is present,
-    segments have empty metadata dicts.
+    Segment metadata comes from events.json `trial_type.Levels`: entries whose
+    keys match the BIDS entity-value pattern are merged into `Segment.metadata`;
+    other entries are ignored. Segments have empty metadata if events.json is
+    absent.
 
-    Raises ValueError if events.tsv or events.json contents are invalid, or if
-    an events.json is present but no segments were parsed from events.tsv.
+    Raises ValueError if events.tsv or events.json is invalid, or if events.json
+    declares segment entries that events.tsv does not.
     """
     bold_path = Path(bold_path)
     repetition_time = get_repetition_time(bold_path)
@@ -330,26 +319,27 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
     events_json = load_events_json(bold_path)
 
     segments = _parse_segments(events, repetition_time)
-    segment_records: list[dict] = (
-        events_json.get("SegmentMetadata", []) if events_json else []
+
+    levels: dict[str, dict] = (
+        events_json.get("trial_type", {}).get("Levels", {}) if events_json else {}
     )
+    segment_records: dict[str, dict] = {
+        key: record for key, record in levels.items() if BIDS_ENTITY_RE.match(key)
+    }
+
     if segment_records:
         if not segments:
             raise ValueError(
-                "events.json has a SegmentMetadata field but events.tsv "
-                "has no BIDS key-value rows — add segment rows to events.tsv "
-                "or remove SegmentMetadata from events.json"
+                "events.json declares segment entries in Levels but events.tsv "
+                "has no segment rows — add rows to events.tsv or remove the "
+                "entries from Levels"
             )
         _validate_segment_records(segment_records, segments)
-        segment_entity = segments[0].entity
-        metadata_by_segment_value = {
-            record[segment_entity]: {
-                k: v for k, v in record.items() if k != segment_entity
-            }
-            for record in segment_records
-        }
         segments = [
-            replace(seg, metadata=metadata_by_segment_value[seg.value])
+            replace(
+                seg,
+                metadata=segment_records[f"{seg.entity}-{seg.value}"]["metadata"],
+            )
             for seg in segments
         ]
 
