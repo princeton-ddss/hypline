@@ -128,6 +128,47 @@ class TestLoadBoldMeta:
         with pytest.raises(ValueError, match="multiple BIDS key-value entities"):
             load_bold_meta(bold_path)
 
+    def test_identity_entity_as_segment_entity_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[{"trial_type": "run-2", "onset": 0.0, "duration": 200.0}],
+        )
+        with pytest.raises(ValueError, match="not allowed"):
+            load_bold_meta(bold_path)
+
+    def test_task_segment_entity_multiple_rows_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[
+                {"trial_type": f"task-{TASK}", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "task-other", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        with pytest.raises(ValueError, match="at most one segment"):
+            load_bold_meta(bold_path)
+
+    def test_task_segment_value_matches_filename_passes(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[{"trial_type": f"task-{TASK}", "onset": 10.0, "duration": 180.0}],
+        )
+        meta = load_bold_meta(bold_path)
+        assert len(meta.segments) == 1
+        assert meta.segments[0].entity == "task"
+        assert meta.segments[0].value == TASK
+
+    def test_task_segment_value_mismatches_filename_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(run="1")
+        tree.add_events(
+            run="1",
+            rows=[{"trial_type": "task-other", "onset": 0.0, "duration": 200.0}],
+        )
+        with pytest.raises(ValueError, match="does not match"):
+            load_bold_meta(bold_path)
+
     def test_segment_entity_collides_with_flat_label_raises(self, tree: BIDSTree):
         bold_path = tree.add_bold(run="1")
         tree.add_events(

@@ -174,8 +174,14 @@ def _parse_segments(
     Rows matching `entity-value` with duration > 0 become segments. Flat
     labels (e.g. `rest`) are silently ignored. Returns [] for unsegmented runs.
 
+    `task` is the only identity entity allowed as a segment entity, and only
+    with a single segment row. Matching the segment value against the
+    filename's task is the caller's responsibility.
+
     Raises ValueError if:
     - More than one distinct entity name is found across matching rows.
+    - The segment entity is an identity entity other than `task`, or is
+      `task` with more than one segment row.
     - The segment entity name also appears as a flat label in the same file.
     - Any segment value appears more than once.
     - Any two segment slices overlap.
@@ -212,6 +218,18 @@ def _parse_segments(
             f"{sorted(entity_names)} — only one segment entity allowed per run"
         )
     segment_entity = next(iter(entity_names))
+
+    if segment_entity in _BOLD_IDENTITY_ENTITIES:
+        if segment_entity != "task":
+            raise ValueError(
+                f"segment entity {segment_entity!r} is not allowed; "
+                f"only 'task' is permitted among BOLD identity entities"
+            )
+        if len(segments) > 1:
+            raise ValueError(
+                f"segment entity 'task' allows at most one segment per run "
+                f"(found {len(segments)})"
+            )
 
     flat_labels = set(
         events.filter(~pl.col("trial_type").str.contains(BIDS_ENTITY_RE.pattern))[
@@ -310,15 +328,24 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
     other entries are ignored. Segments have empty metadata if events.json is
     absent.
 
-    Raises ValueError if events.tsv or events.json is invalid, or if events.json
-    declares segment entries that events.tsv does not.
+    Raises ValueError if events.tsv or events.json is invalid, if events.json
+    declares segment entries that events.tsv does not, or if a `task` segment
+    value disagrees with the filename's task entity.
     """
-    bold_path = Path(bold_path)
-    repetition_time = get_repetition_time(bold_path)
-    events = load_events_tsv(bold_path)
-    events_json = load_events_json(bold_path)
+    bids = BIDSPath(bold_path)
+    repetition_time = get_repetition_time(bids.path)
+    events = load_events_tsv(bids.path)
+    events_json = load_events_json(bids.path)
 
     segments = _parse_segments(events, repetition_time)
+
+    if segments and segments[0].entity == "task":
+        task_value = bids.entities.get("task")
+        if segments[0].value != task_value:
+            raise ValueError(
+                f"events.tsv 'task-{segments[0].value}' does not match "
+                f"filename 'task-{task_value}'"
+            )
 
     levels: dict[str, dict] = (
         events_json.get("trial_type", {}).get("Levels", {}) if events_json else {}
@@ -343,8 +370,4 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
             for seg in segments
         ]
 
-    return BoldMeta(
-        bids=BIDSPath(bold_path),
-        repetition_time=repetition_time,
-        segments=segments,
-    )
+    return BoldMeta(bids=bids, repetition_time=repetition_time, segments=segments)

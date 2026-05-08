@@ -33,6 +33,9 @@ unambiguous.
   `1`, `2`) identifies one time window. Feature files must carry this entity.
 - **Unsegmented run**: a run with no events file or an events file with no BIDS key-value
   rows. The time window is the full run.
+- **Task-segmented run**: a run with exactly one `task-<value>` row in events.tsv whose value
+  matches the BOLD filename's `task`. Used to trim leading/trailing padding (instructions,
+  scanner ramp-up) and to attach run-level metadata without inventing a segment entity.
 
 ## Segment invariants
 
@@ -58,6 +61,9 @@ segment slice and are excluded from X/Y.
 - Unsegmented runs are valid — no key-value events required.
 - For unsegmented runs, only `ses` and `run` are valid on feature filenames — any other
   entity raises. Descriptive attributes must live in `events.json`.
+- `task` is the only BOLD identity entity permitted as a segment entity, and only as a
+  single row whose value matches the filename's `task`. All other identity entities (`sub`,
+  `ses`, `acq`, `ce`, `rec`, `dir`, `run`) are rejected.
 
 ## Rationale
 
@@ -70,6 +76,12 @@ author-controlled and reviewable.
 
 **Why globally unique values.** Per-block-resetting trial IDs (`trial-1..trial-N` per block)
 are permitted by BIDS and common in raw logs, but must be rewritten upstream before ingestion.
+
+**Why `task` is the only permitted identity entity.** Identity entities are fixed for the
+whole run by the BOLD filename, so they cannot partition it. `task` is admitted only in the
+degenerate single-row form — re-asserting the run's task to declare a sub-window (padding
+trim) and anchor run-level metadata in events.json. Other identity entities have no analogous
+use and are rejected outright.
 
 **Why single entity, not finest-granularity tiebreaker.** Multi-entity events.tsv under a
 non-overlap-only rule would silently pick the wrong level if a descriptive entity happened to
