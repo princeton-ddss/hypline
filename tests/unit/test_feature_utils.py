@@ -102,11 +102,21 @@ class TestSaveFeature:
         with pytest.raises(ValueError, match="must contain a 'feature' entity"):
             save_feature(sample_df, path)
 
+    def test_non_parquet_extension(self, tmp_path: Path, sample_df: pl.DataFrame):
+        path = tmp_path / "sub-01_feature-mfcc_bold.tsv"
+        with pytest.raises(ValueError, match=".parquet extension"):
+            save_feature(sample_df, path)
+
 
 class TestReadFeature:
     def test_missing_feature_entity(self, tmp_path: Path):
         path = tmp_path / "sub-01_bold.parquet"
         with pytest.raises(ValueError, match="must contain a 'feature' entity"):
+            read_feature(path)
+
+    def test_non_parquet_extension(self, tmp_path: Path):
+        path = tmp_path / "sub-01_feature-mfcc_bold.tsv"
+        with pytest.raises(ValueError, match=".parquet extension"):
             read_feature(path)
 
     def test_missing_required_columns(self, tmp_path: Path):

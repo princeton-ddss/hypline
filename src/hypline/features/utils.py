@@ -94,6 +94,10 @@ def _validate_bids_feature_path(path: Path) -> BIDSPath:
     bids_path = BIDSPath(path)
     if "feature" not in bids_path.entities:
         raise ValueError("BIDS path must contain a 'feature' entity")
+    if bids_path.extension != ".parquet":
+        raise ValueError(
+            f"Feature path must have .parquet extension, got {bids_path.extension!r}"
+        )
     return bids_path
 
 
