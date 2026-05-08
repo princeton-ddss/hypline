@@ -98,7 +98,7 @@ selects runs where task is rest or nback, AND session is 1). This mirrors `find_
 **Asymmetric schemas:** feature cells and BOLD files do not share the same entity key set
 (e.g. `task` is excluded from `CellKey` but present on BOLD filenames). A filter key absent
 from one side is silently skipped on that side — it applies only where the entity is meaningful.
-A filter key absent from *both* sides raises `ValueError` (typo diagnostic).
+A filter key absent from _both_ sides raises `ValueError` (typo diagnostic).
 
 Filter entity validation is **fail-then-diagnose**: every filter entity is checked against the
 union of resolved cell keys and BOLD filename keys — any absent entity raises `ValueError`
@@ -114,5 +114,8 @@ before any empty-result `FileNotFoundError`.
   invariance): see [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 - **Segment metadata contract** (events.json `trial_type.Levels` format, enrichment, filtering):
   see [../decisions/segment-metadata.md](../decisions/segment-metadata.md).
+- **One feature file per segment** — feature files must be split at segment boundaries
+  upstream; encoding never bins across them. See
+  [../decisions/feature-files.md](../decisions/feature-files.md#one-file-per-segment).
 - **One feature file per (CellKey, feature) pair.** Multiple files for the same pair is
   ambiguous provenance, not something to merge.

@@ -67,6 +67,6 @@ Cross-run (enforced in `Encoding._discover_bold`):
 enrichment, all `bids_filters` (including metadata-entity filters like `cond-R`) apply
 uniformly against the enriched `CellKey`. No separate metadata-aware filter path needed.
 
-See [feature-files.md](feature-files.md) for the four filename × sidecar merge cases and
-`CellKey` exclusion rules.
+See [feature-files.md](feature-files.md) for the four filename × sidecar merge cases,
+`CellKey` exclusion rules, and the one-file-per-segment requirement.
 See [semantic-entity.md](semantic-entity.md) for segment entity inference rules.

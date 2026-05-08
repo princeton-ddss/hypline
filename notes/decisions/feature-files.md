@@ -62,6 +62,13 @@ train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
 For unsegmented runs (no events.tsv key-value rows), only `ses` and `run` are valid on
 feature filenames — any other entity raises.
 
+## One file per segment
+
+When a run is segmented, features must be split at segment boundaries upstream — one file
+per `(run, segment)` pair, carrying the segment entity in its filename. Encoding downsamples
+each file independently and never bins across segments. Run-level feature files spanning
+multiple segments would silently merge timepoints across segment boundaries during TR binning.
+
 ## Mirroring requirement
 
 Feature filenames must carry the same stimulus-side identity entities as their source BOLD
