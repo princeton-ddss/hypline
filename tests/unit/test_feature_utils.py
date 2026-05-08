@@ -1,3 +1,5 @@
+import json
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -5,6 +7,7 @@ import polars as pl
 import pyarrow.parquet as pq
 import pytest
 
+from hypline import __version__
 from hypline.features.utils import (
     Downsample,
     read_feature,
@@ -64,10 +67,30 @@ class TestSaveFeature:
         assert meta["key"] == "value"
         assert meta["foo"] == "bar"
 
-    def test_no_metadata(self, bids_path: Path, sample_df: pl.DataFrame):
+    def test_list_valued_metadata_roundtrip(self, bids_path, sample_df):
+        save_feature(sample_df, bids_path, metadata={"dim_labels": ["a", "b", "c"]})
+        _, meta = read_feature(bids_path)
+        assert meta["dim_labels"] == ["a", "b", "c"]
+
+    def test_caller_metadata_absent(self, bids_path: Path, sample_df: pl.DataFrame):
         save_feature(sample_df, bids_path)
         _, meta = read_feature(bids_path)
-        assert meta == {}
+        assert meta == {
+            "feature_name": "mfcc",
+            "hypline_version": __version__,
+        }
+
+    def test_reserved_key_feature_name_raises(
+        self, bids_path: Path, sample_df: pl.DataFrame
+    ):
+        with pytest.raises(ValueError, match="reserved keys"):
+            save_feature(sample_df, bids_path, metadata={"feature_name": "mfcc"})
+
+    def test_reserved_key_hypline_version_raises(
+        self, bids_path: Path, sample_df: pl.DataFrame
+    ):
+        with pytest.raises(ValueError, match="reserved keys"):
+            save_feature(sample_df, bids_path, metadata={"hypline_version": "0.0.0"})
 
     def test_missing_required_columns(self, bids_path: Path):
         df = pl.DataFrame({"onset": [0.0, 1.0]})
@@ -152,7 +175,11 @@ class TestReadFeature:
             {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
             schema={"start_time": pl.Float64, "feature": pl.List(pl.Int64)},
         )
-        pq.write_table(df.to_arrow(), path)
+        table = df.to_arrow()
+        table = table.replace_schema_metadata(
+            {b"hypline": json.dumps({"feature_name": "mfcc"}).encode()}
+        )  # satisfy read_feature's metadata check without going through save_feature
+        pq.write_table(table, path)
         loaded, _ = read_feature(path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
@@ -160,6 +187,26 @@ class TestReadFeature:
         save_feature(sample_df, bids_path, metadata={"sr": "16000"})
         _, meta = read_feature(bids_path)
         assert meta["sr"] == "16000"
+        assert "feature_name" in meta
+        assert "hypline_version" in meta
+
+    def test_raw_parquet_without_hypline_metadata_raises(
+        self, tmp_path: Path, sample_df: pl.DataFrame
+    ):
+        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        pq.write_table(sample_df.to_arrow(), path)
+        with pytest.raises(ValueError, match="no hypline metadata"):
+            read_feature(path)
+
+    def test_feature_name_mismatch_raises(
+        self, tmp_path: Path, sample_df: pl.DataFrame
+    ):
+        src = tmp_path / "sub-01_feature-phonemic_bold.parquet"
+        dst = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        save_feature(sample_df, src)
+        shutil.copy(src, dst)
+        with pytest.raises(ValueError, match="does not match path entity"):
+            read_feature(dst)
 
 
 def _make_df(start_times: list[float], features: list[list[float]]) -> pl.DataFrame:

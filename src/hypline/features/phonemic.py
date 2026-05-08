@@ -61,7 +61,7 @@ class PhonemicFeature:
     _pronunciations: dict
     _phoneme_index: dict[str, int]
     _articulatory_vectors: dict[str, np.ndarray]
-    _n_articulatory_features: int
+    _articulatory_feature_names: list[str]
 
     def __init__(
         self,
@@ -109,10 +109,10 @@ class PhonemicFeature:
         feature_values = articulatory_df[:, 2:].to_numpy().flatten()
         unique_features = np.unique(feature_values[feature_values != None])  # noqa: E711
         feature_index = {f: i for i, f in enumerate(unique_features)}
-        cls._n_articulatory_features = len(feature_index)
+        cls._articulatory_feature_names = unique_features.tolist()
         cls._articulatory_vectors = {}
         for row in articulatory_df.iter_rows(named=True):
-            vec = np.zeros(cls._n_articulatory_features)
+            vec = np.zeros(len(cls._articulatory_feature_names))
             for col in articulatory_df.columns[2:]:
                 if row[col] is not None:
                     vec[feature_index[row[col]]] = 1
@@ -145,7 +145,15 @@ class PhonemicFeature:
 
             bids_path = BIDSPath(transcript).with_entity("feature", "phonemic")
             out_path = self._output_dir / (bids_path.path.stem + ".parquet")
-            save_feature(df, out_path)
+            metadata = {
+                "use_articulatory": self._use_articulatory,
+                "dim_labels": (
+                    self._articulatory_feature_names
+                    if self._use_articulatory
+                    else ARPABET_PHONEMES
+                ),
+            }
+            save_feature(df, out_path, metadata=metadata)
 
     def _get_word_phoneme_vector(self, word: str) -> np.ndarray:
         vec = np.zeros(len(ARPABET_PHONEMES))
@@ -155,7 +163,7 @@ class PhonemicFeature:
         return vec
 
     def _get_word_articulatory_vector(self, word: str) -> np.ndarray:
-        vec = np.zeros(self._n_articulatory_features)
+        vec = np.zeros(len(self._articulatory_feature_names))
         if pronunciations := self._pronunciations.get(word.lower()):
             for phoneme in pronunciations[0]:
                 vec += self._articulatory_vectors[phoneme.strip("012")]

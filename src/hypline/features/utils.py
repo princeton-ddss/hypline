@@ -1,12 +1,13 @@
 import json
 import os
 from enum import StrEnum
-from pathlib import Path
+from typing import Any
 
 import numpy as np
 import polars as pl
 import pyarrow.parquet as pq
 
+from hypline import __version__
 from hypline.bids import BIDSPath
 
 
@@ -90,15 +91,15 @@ def resample_feature(
     return result
 
 
-def _validate_bids_feature_path(path: Path) -> BIDSPath:
-    bids_path = BIDSPath(path)
-    if "feature" not in bids_path.entities:
+def _validate_feature_path(path: str | os.PathLike[str]) -> BIDSPath:
+    bids = BIDSPath(path)
+    if "feature" not in bids.entities:
         raise ValueError("BIDS path must contain a 'feature' entity")
-    if bids_path.extension != ".parquet":
+    if bids.extension != ".parquet":
         raise ValueError(
-            f"Feature path must have .parquet extension, got {bids_path.extension!r}"
+            f"Feature path must have .parquet extension, got {bids.extension!r}"
         )
-    return bids_path
+    return bids
 
 
 def _normalize_feature_df(df: pl.DataFrame) -> pl.DataFrame:
@@ -126,48 +127,57 @@ def save_feature(
     df: pl.DataFrame,
     path: str | os.PathLike[str],
     *,
-    metadata: dict[str, str] | None = None,
+    metadata: dict[str, Any] | None = None,
 ):
     """Save a feature DataFrame to a BIDS-compliant Parquet file.
 
-    The DataFrame must contain `start_time` and `feature` columns. The
-    `feature` column must be of Array or List type.
-    The column is normalized to `Array(Float64)` before writing. Parent
-    directories are created automatically if they do not exist.
+    `feature` is normalized to `Array(Float64)` before writing. Parent
+    directories are created automatically.
+
+    `feature_name` and `hypline_version` are injected into the Parquet
+    footer automatically; raise if caller supplies either key.
 
     Parameters
     ----------
     df : pl.DataFrame
-        DataFrame with a `feature` column (Array or List of numerics)
-        and any additional metadata columns.
+        DataFrame with `start_time` and `feature` columns.
+        `feature` must be Array or List of numerics.
     path : str or os.PathLike
-        Output file path. Must be a valid BIDS path containing a
-        `feature` entity (e.g., `feature-mfcc`).
-    metadata : dict[str, str] | None
-        Optional key-value metadata to store in the Parquet file footer.
+        Must be a valid BIDS path with a `feature` entity (e.g., `feature-mfcc`).
+    metadata : dict[str, Any] | None
+        Optional metadata merged into the Parquet footer.
 
     Raises
     ------
     ValueError
-        If the DataFrame is missing a `start_time` or `feature` column,
-        the `feature` column has an unsupported dtype, or the path lacks
-        a `feature` entity.
+        If required columns are missing, `feature` dtype is unsupported,
+        the path lacks a `feature` entity, or `metadata` contains a
+        reserved key (`feature_name`, `hypline_version`).
     """
-    path = Path(path)
-    _validate_bids_feature_path(path)
+    bids = _validate_feature_path(path)
+
+    reserved = {"feature_name", "hypline_version"}
+    if metadata and reserved & metadata.keys():
+        raise ValueError(
+            f"metadata must not contain reserved keys: {reserved & metadata.keys()}"
+        )
+    auto_metadata = {
+        "feature_name": bids.entities["feature"],
+        "hypline_version": __version__,
+    }
+    metadata = {**(metadata or {}), **auto_metadata}
 
     df = _normalize_feature_df(df)
     table = df.to_arrow()
-    if metadata:
-        existing = table.schema.metadata or {}
-        merged = {**existing, b"hypline": json.dumps(metadata).encode()}
-        table = table.replace_schema_metadata(merged)
+    existing = table.schema.metadata or {}
+    merged = {**existing, b"hypline": json.dumps(metadata).encode()}
+    table = table.replace_schema_metadata(merged)
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    pq.write_table(table, path)
+    bids.path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(table, bids.path)
 
 
-def read_feature(path: str | os.PathLike[str]) -> tuple[pl.DataFrame, dict[str, str]]:
+def read_feature(path: str | os.PathLike[str]) -> tuple[pl.DataFrame, dict[str, Any]]:
     """Read a feature DataFrame from a BIDS-compliant Parquet file.
 
     Validates that the file contains a `feature` column stored as
@@ -181,7 +191,7 @@ def read_feature(path: str | os.PathLike[str]) -> tuple[pl.DataFrame, dict[str, 
 
     Returns
     -------
-    tuple[pl.DataFrame, dict[str, str]]
+    tuple[pl.DataFrame, dict[str, Any]]
         The loaded DataFrame and a dict of metadata from the Parquet
         file footer.
 
@@ -189,18 +199,29 @@ def read_feature(path: str | os.PathLike[str]) -> tuple[pl.DataFrame, dict[str, 
     ------
     ValueError
         If the path lacks a `feature` entity, the file is missing a
-        `start_time` or `feature` column, or the `feature` column is
-        not `Array(Float64)`.
+        `start_time` or `feature` column, the `feature` column is not
+        `Array(Float64)`, or `feature_name` metadata does not match the
+        path entity (indicates file was not written via `save_feature`).
     """
-    path = Path(path)
-    _validate_bids_feature_path(path)
+    bids = _validate_feature_path(path)
 
-    table = pq.read_table(path)
+    table = pq.read_table(bids.path)
     df = pl.DataFrame(pl.from_arrow(table))
     df = _normalize_feature_df(df)
 
     raw_meta = table.schema.metadata or {}
     hypline_blob = raw_meta.get(b"hypline")
-    metadata = json.loads(hypline_blob) if hypline_blob else {}
+    if not hypline_blob:
+        raise ValueError(
+            "file has no hypline metadata; feature files "
+            "must be written via save_feature"
+        )
+
+    metadata = json.loads(hypline_blob)
+    if metadata.get("feature_name") != bids.entities["feature"]:
+        raise ValueError(
+            f"feature_name metadata {metadata.get('feature_name')!r} "
+            f"does not match path entity {bids.entities['feature']!r}"
+        )
 
     return df, metadata

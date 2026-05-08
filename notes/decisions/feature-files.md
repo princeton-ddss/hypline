@@ -37,6 +37,7 @@ feature files are not required to mirror them.
 ## CellKey
 
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
+
 - Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
 - Metadata entities from `events.json` `SegmentMetadata` (e.g. `cond=R`, `item=101`)
 
@@ -46,6 +47,7 @@ derivatives), `space`, `feature` (orthogonal axes). Entities are present or abse
 `None` sentinel. Equality and hashing are order-independent.
 
 CV splits are expressed by querying `CellKey` entities:
+
 ```python
 train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
 ```
@@ -77,6 +79,17 @@ file. If BOLD has `ses-01_run-1`, the feature file must too.
 This is how pipelines match features to BOLD runs. Aggregating features across sessions or
 runs (e.g. a subject-level embedding) is out of scope for encoding models — such features
 don't map 1:1 to BOLD TRs.
+
+## Parquet metadata
+
+Feature files carry a `hypline` JSON blob in the Parquet footer. Hypline reserves
+keys for feature-type identity (validated against the `feature` filename entity on
+read) and package-version provenance; callers must not supply them.
+
+Caller-supplied keys must let a consumer (a) interpret the array (`dim_labels`
+at minimum — ordered list of labels for each array position) and (b) reproduce
+it — any generator parameter that changed what was written (e.g. `use_articulatory`)
+belongs in metadata. `hypline_version` pins code, not configuration.
 
 ## Temporal alignment
 
