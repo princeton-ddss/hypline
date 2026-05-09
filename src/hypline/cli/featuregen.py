@@ -24,6 +24,13 @@ def generate_phonemic_feature(
             show_default=False,
         ),
     ],
+    no_articulatory: Annotated[
+        bool,
+        typer.Option(
+            "--no-articulatory",
+            help="Do not use articulatory features",
+        ),
+    ] = False,
     sub_ids: Annotated[
         str | None,
         typer.Option(
@@ -40,13 +47,6 @@ def generate_phonemic_feature(
             show_default=False,
         ),
     ] = None,
-    no_articulatory: Annotated[
-        bool,
-        typer.Option(
-            "--no-articulatory",
-            help="Do not use articulatory features",
-        ),
-    ] = False,
 ):
     """Generate phonemic feature from word-level transcripts."""
     from hypline.bids import BIDSPath
