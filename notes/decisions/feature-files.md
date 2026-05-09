@@ -6,8 +6,8 @@ alignment contract with BOLD data.
 Hypline's own derivative type — stimulus-derived features paired to BOLD
 runs for encoding models.
 
-Feature I/O is implemented in `hypline/features/utils.py` (formerly `hypline/featuregen/utils.py`).
-`save_feature` writes, `read_feature` reads, `resample_feature` handles TR alignment.
+Feature I/O lives in `hypline.features`: `save_feature` writes, `read_feature`
+reads, `resample_feature` handles TR alignment.
 
 ## Format
 

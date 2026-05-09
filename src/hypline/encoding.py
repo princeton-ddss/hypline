@@ -7,6 +7,7 @@ from typing import Iterator, NamedTuple
 import numpy as np
 from pydantic import BaseModel
 
+from hypline._utils import find_files, validate_dirs
 from hypline.bids import (
     BIDSPath,
     normalize_bids_filters,
@@ -19,13 +20,12 @@ from hypline.bold import (
     parse_bold_space,
 )
 from hypline.enums import Device
-from hypline.features.utils import (
+from hypline.features._utils import (
     Downsample,
     read_feature,
     read_feature_metadata,
     resample_feature,
 )
-from hypline.utils import find_files, validate_dirs
 
 
 class BoldKey(NamedTuple):

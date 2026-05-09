@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
+from hypline._utils import find_files, validate_dirs
 from hypline.bids import BIDSPath, normalize_bids_filters
-from hypline.features.utils import save_feature
-from hypline.utils import find_files, validate_dirs
+from hypline.features._utils import save_feature
 
 ARPABET_PHONEMES = [
     "B",

@@ -69,9 +69,8 @@ root cause and rerun.
 
 ## Module layout
 
-Feature I/O utilities (`read_feature`, `resample_feature`, `save_feature`) live in
-`hypline/features/`. The `Encoding` class imports from `features.utils` directly;
-external callers should too.
+Feature I/O utilities (`read_feature`, `resample_feature`, `save_feature`) are
+exposed from `hypline.features`. Import from the package root, not submodules.
 
 `find_files` is called with `recursive=True` throughout encoding discovery. This is
 intentional — fMRIPrep derivatives are often organized in per-subject subdirectories

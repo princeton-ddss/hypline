@@ -6,9 +6,9 @@ from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
+from hypline._utils import find_files, validate_dirs
 from hypline.bids import normalize_bids_filters
 from hypline.enums import Device
-from hypline.utils import find_files, validate_dirs
 
 
 class WhisperModel(StrEnum):

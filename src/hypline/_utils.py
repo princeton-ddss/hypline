@@ -1,5 +1,4 @@
 import os
-from multiprocessing import Process
 from pathlib import Path
 
 from hypline.bids import validate_bids_entities
@@ -65,28 +64,3 @@ def find_files(
             any(entity in file.name for entity in group) for group in groups.values()
         )
     )
-
-
-class DillProcess(Process):
-    """
-    Extend the `Process` class to support serialization
-    of closures and local functions.
-
-    Notes
-    -----
-    Adapted from https://stackoverflow.com/a/72776044.
-    """
-
-    def __init__(self, *args, **kwargs):
-        import dill
-
-        super().__init__(*args, **kwargs)
-        self._target = dill.dumps(self._target)
-        self._args, self._kwargs = self._args, self._kwargs  # For type checker
-
-    def run(self):
-        import dill
-
-        if self._target:
-            self._target = dill.loads(self._target)
-            self._target(*self._args, **self._kwargs)

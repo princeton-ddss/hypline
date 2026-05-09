@@ -6,7 +6,8 @@ import typer
 from rich import print
 
 from hypline.regression import ConfoundRegression
-from hypline.utils import DillProcess
+
+from ._utils import DillProcess
 
 
 def clean(
