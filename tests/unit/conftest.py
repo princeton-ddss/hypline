@@ -1,5 +1,7 @@
 from pathlib import Path
+from typing import Any
 
+import polars as pl
 import pytest
 
 SUB = "001"
@@ -10,8 +12,9 @@ SPACE = "MNI152NLin6Asym"
 class BIDSTree:
     """Minimal on-disk fixture for BIDS-derivatives tests.
 
-    Files are empty (touch-only); naming follows fMRIPrep BIDS-derivatives
-    convention. All three dirs are pre-created under a single tmp_path root.
+    Naming follows fMRIPrep BIDS-derivatives convention. Most files are
+    empty placeholders; feature files contain real parquet data. All three
+    dirs are pre-created under a single tmp_path root.
     """
 
     def __init__(self, root: Path):
@@ -82,13 +85,23 @@ class BIDSTree:
         task: str | None = TASK,
         run: str | None = None,
         subdir: str | None = None,
+        metadata: dict[str, Any] | None = None,
         **extra_entities: str,
     ) -> Path:
+        from hypline.features.utils import save_feature
+
         entities = self._identity_entities(sub, ses, task, run)
         entities.update(extra_entities)
         entities["feature"] = feature
         directory = self.features_dir if subdir is None else self.features_dir / subdir
-        return self._write(directory, entities, ext=".parquet")
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"{self._stem(entities)}.parquet"
+        df = pl.DataFrame(
+            {"start_time": [0.0], "feature": [[0.0]]},
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+        )
+        save_feature(df, path, metadata=metadata)
+        return path
 
     def add_bold(
         self,

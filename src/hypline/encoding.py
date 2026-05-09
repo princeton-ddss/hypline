@@ -1,4 +1,5 @@
 import os
+import reprlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator, NamedTuple
@@ -18,7 +19,12 @@ from hypline.bold import (
     parse_bold_space,
 )
 from hypline.enums import Device
-from hypline.features.utils import Downsample, read_feature, resample_feature
+from hypline.features.utils import (
+    Downsample,
+    read_feature,
+    read_feature_metadata,
+    resample_feature,
+)
 from hypline.utils import find_files, validate_dirs
 
 # Entities provided via dedicated arguments — not allowed in bids_filters
@@ -118,6 +124,22 @@ class TrainingData:
 def _format_loc(**entities: str | None) -> str:
     """Format BIDS entities as 'k1=v1, k2=v2', skipping None values."""
     return ", ".join(f"{k}={v}" for k, v in entities.items() if v is not None)
+
+
+def _diff_meta(reference: dict, compare: dict) -> list[str]:
+    """Return `key: ref_val != cmp_val` lines for differing keys.
+
+    Values are truncated via `reprlib`; missing keys render as `<missing>`.
+    """
+    missing = object()
+    lines = []
+    for key in sorted(reference.keys() | compare.keys()):
+        rv, cv = reference.get(key, missing), compare.get(key, missing)
+        if rv != cv:
+            rs = "<missing>" if rv is missing else reprlib.repr(rv)
+            cs = "<missing>" if cv is missing else reprlib.repr(cv)
+            lines.append(f"{key}: {rs} != {cs}")
+    return lines
 
 
 def _load_bold_array(path: Path) -> np.ndarray:
@@ -247,6 +269,26 @@ class Encoding:
             elif file_schema != schema:
                 raise ValueError(
                     f"Inconsistent feature file schemas:\n  {schema_path}\n  {path}"
+                )
+
+        # Validate: metadata is identical across files for each feature
+        # (keys prefixed with '_' are exempt — reserved for per-file metadata)
+        per_feature_meta: dict[str, tuple[dict, Path]] = {}
+        for feature_key, path in feature_paths.items():
+            meta = {
+                key: val
+                for key, val in read_feature_metadata(path).items()
+                if not key.startswith("_")
+            }
+            feature_name = feature_key.feature
+            if feature_name not in per_feature_meta:
+                per_feature_meta[feature_name] = (meta, path)
+            elif per_feature_meta[feature_name][0] != meta:
+                ref_meta, ref_path = per_feature_meta[feature_name]
+                diff = "\n".join(f"    {line}" for line in _diff_meta(ref_meta, meta))
+                raise ValueError(
+                    f"Inconsistent metadata for feature={feature_name}:\n"
+                    f"  {ref_path}\n  {path}\n  differing keys:\n{diff}"
                 )
 
         # Validate: task entity is invariant across all files
@@ -718,7 +760,7 @@ class Encoding:
             # Construct X for the given cell
             feature_arrays: list[np.ndarray] = []
             for feature_name in self.features:
-                df, _ = read_feature(feature_paths[FeatureKey(cell_key, feature_name)])
+                df = read_feature(feature_paths[FeatureKey(cell_key, feature_name)])
                 arr = resample_feature(
                     df,
                     n_trs=n_trs,

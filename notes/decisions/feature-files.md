@@ -86,10 +86,16 @@ Feature files carry a `hypline` JSON blob in the Parquet footer. Hypline reserve
 keys for feature-type identity (validated against the `feature` filename entity on
 read) and package-version provenance; callers must not supply them.
 
-Caller-supplied keys must let a consumer (a) interpret the array (`dim_labels`
-at minimum — ordered list of labels for each array position) and (b) reproduce
-it — any generator parameter that changed what was written (e.g. `use_articulatory`)
-belongs in metadata. `hypline_version` pins code, not configuration.
+Caller-supplied keys should let a consumer reproduce the array — any generator
+parameter that changes what was written (e.g. model name/version) belongs in
+metadata. `dim_labels` (ordered per-dimension labels) is optional; include when
+dimensions are nameable.
+
+Keys prefixed with `_` are exempt from cross-file equality checks, reserved
+for genuinely per-file metadata.
+
+At encoding time, all feature files for the same (subject, feature) must have
+identical `hypline` metadata; mismatches are rejected.
 
 ## Temporal alignment
 

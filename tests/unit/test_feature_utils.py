@@ -11,6 +11,7 @@ from hypline import __version__
 from hypline.features.utils import (
     Downsample,
     read_feature,
+    read_feature_metadata,
     resample_feature,
     save_feature,
 )
@@ -35,7 +36,7 @@ def sample_df() -> pl.DataFrame:
 class TestSaveFeature:
     def test_roundtrip(self, bids_path: Path, sample_df: pl.DataFrame):
         save_feature(sample_df, bids_path)
-        df, meta = read_feature(bids_path)
+        df = read_feature(bids_path)
         assert df.equals(sample_df)
 
     def test_creates_parent_dirs(self, tmp_path: Path, sample_df: pl.DataFrame):
@@ -49,7 +50,7 @@ class TestSaveFeature:
             schema={"start_time": pl.Float64, "feature": pl.List(pl.Float64)},
         )
         save_feature(df, bids_path)
-        loaded, _ = read_feature(bids_path)
+        loaded = read_feature(bids_path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
     def test_int_list_cast_to_float64(self, bids_path: Path):
@@ -58,23 +59,23 @@ class TestSaveFeature:
             schema={"start_time": pl.Float64, "feature": pl.Array(pl.Int64, 2)},
         )
         save_feature(df, bids_path)
-        loaded, _ = read_feature(bids_path)
+        loaded = read_feature(bids_path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
     def test_metadata_stored_in_footer(self, bids_path: Path, sample_df: pl.DataFrame):
         save_feature(sample_df, bids_path, metadata={"key": "value", "foo": "bar"})
-        _, meta = read_feature(bids_path)
+        meta = read_feature_metadata(bids_path)
         assert meta["key"] == "value"
         assert meta["foo"] == "bar"
 
     def test_list_valued_metadata_roundtrip(self, bids_path, sample_df):
         save_feature(sample_df, bids_path, metadata={"dim_labels": ["a", "b", "c"]})
-        _, meta = read_feature(bids_path)
+        meta = read_feature_metadata(bids_path)
         assert meta["dim_labels"] == ["a", "b", "c"]
 
     def test_caller_metadata_absent(self, bids_path: Path, sample_df: pl.DataFrame):
         save_feature(sample_df, bids_path)
-        _, meta = read_feature(bids_path)
+        meta = read_feature_metadata(bids_path)
         assert meta == {
             "feature_name": "mfcc",
             "hypline_version": __version__,
@@ -131,6 +132,51 @@ class TestSaveFeature:
             save_feature(sample_df, path)
 
 
+class TestReadFeatureMetadata:
+    def test_missing_feature_entity(self, tmp_path: Path):
+        path = tmp_path / "sub-01.parquet"
+        with pytest.raises(ValueError, match="must contain a 'feature' entity"):
+            read_feature_metadata(path)
+
+    def test_no_hypline_metadata_raises(self, tmp_path: Path, sample_df: pl.DataFrame):
+        path = tmp_path / "sub-01_feature-mfcc.parquet"
+        pq.write_table(sample_df.to_arrow(), path)
+        with pytest.raises(ValueError, match="no hypline metadata"):
+            read_feature_metadata(path)
+
+    def test_feature_name_mismatch_raises(
+        self, tmp_path: Path, sample_df: pl.DataFrame
+    ):
+        src = tmp_path / "sub-01_feature-phonemic.parquet"
+        dst = tmp_path / "sub-01_feature-mfcc.parquet"
+        save_feature(sample_df, src)
+        shutil.copy(src, dst)
+        with pytest.raises(ValueError, match="does not match path entity"):
+            read_feature_metadata(dst)
+
+    def test_returns_metadata_without_loading_data(
+        self, bids_path: Path, sample_df: pl.DataFrame
+    ):
+        save_feature(sample_df, bids_path, metadata={"sr": "16000"})
+        meta = read_feature_metadata(bids_path)
+        assert meta["sr"] == "16000"
+        assert meta["feature_name"] == "mfcc"
+        assert "hypline_version" in meta
+
+
+def _write_raw_feature(
+    df: pl.DataFrame,
+    path: Path,
+    *,
+    feature_name: str,
+) -> None:
+    """Write a parquet with hypline metadata, bypassing save_feature validation."""
+    table = df.to_arrow().replace_schema_metadata(
+        {b"hypline": json.dumps({"feature_name": feature_name}).encode()}
+    )
+    pq.write_table(table, path)
+
+
 class TestReadFeature:
     def test_missing_feature_entity(self, tmp_path: Path):
         path = tmp_path / "sub-01_bold.parquet"
@@ -144,8 +190,8 @@ class TestReadFeature:
 
     def test_missing_required_columns(self, tmp_path: Path):
         path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
-        table = pl.DataFrame({"onset": [0.0]}).to_arrow()
-        pq.write_table(table, path)
+        df = pl.DataFrame({"onset": [0.0]})
+        _write_raw_feature(df, path, feature_name="mfcc")
         with pytest.raises(ValueError, match="missing required columns"):
             read_feature(path)
 
@@ -155,7 +201,7 @@ class TestReadFeature:
             {"feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"feature": pl.Array(pl.Float64, 2)},
         )
-        pq.write_table(df.to_arrow(), path)
+        _write_raw_feature(df, path, feature_name="mfcc")
         with pytest.raises(ValueError, match="missing required columns"):
             read_feature(path)
 
@@ -165,7 +211,7 @@ class TestReadFeature:
             {"start_time": ["1.2", "3.5"], "feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"start_time": pl.String, "feature": pl.Array(pl.Float64, 2)},
         )
-        pq.write_table(df.to_arrow(), path)
+        _write_raw_feature(df, path, feature_name="mfcc")
         with pytest.raises(ValueError, match="must be a numeric type"):
             read_feature(path)
 
@@ -175,17 +221,13 @@ class TestReadFeature:
             {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
             schema={"start_time": pl.Float64, "feature": pl.List(pl.Int64)},
         )
-        table = df.to_arrow()
-        table = table.replace_schema_metadata(
-            {b"hypline": json.dumps({"feature_name": "mfcc"}).encode()}
-        )  # satisfy read_feature's metadata check without going through save_feature
-        pq.write_table(table, path)
-        loaded, _ = read_feature(path)
+        _write_raw_feature(df, path, feature_name="mfcc")
+        loaded = read_feature(path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
     def test_metadata_roundtrip(self, bids_path: Path, sample_df: pl.DataFrame):
         save_feature(sample_df, bids_path, metadata={"sr": "16000"})
-        _, meta = read_feature(bids_path)
+        meta = read_feature_metadata(bids_path)
         assert meta["sr"] == "16000"
         assert "feature_name" in meta
         assert "hypline_version" in meta

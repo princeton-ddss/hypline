@@ -132,20 +132,20 @@ def save_feature(
     """Save a feature DataFrame to a BIDS-compliant Parquet file.
 
     `feature` is normalized to `Array(Float64)` before writing. Parent
-    directories are created automatically.
-
-    `feature_name` and `hypline_version` are injected into the Parquet
-    footer automatically; raise if caller supplies either key.
+    directories are created automatically. `feature_name` and
+    `hypline_version` are injected into the Parquet footer automatically.
 
     Parameters
     ----------
-    df : pl.DataFrame
+    df
         DataFrame with `start_time` and `feature` columns.
-        `feature` must be Array or List of numerics.
-    path : str or os.PathLike
-        Must be a valid BIDS path with a `feature` entity (e.g., `feature-mfcc`).
-    metadata : dict[str, Any] | None
-        Optional metadata merged into the Parquet footer.
+        `feature` must be an Array or List type.
+    path
+        BIDS-compliant path to a `.parquet` feature file. Must contain
+        a `feature` entity (e.g., `feature-mfcc`).
+    metadata
+        Optional metadata merged into the Parquet footer. Must not
+        contain `feature_name` or `hypline_version`.
 
     Raises
     ------
@@ -177,51 +177,70 @@ def save_feature(
     pq.write_table(table, bids.path)
 
 
-def read_feature(path: str | os.PathLike[str]) -> tuple[pl.DataFrame, dict[str, Any]]:
-    """Read a feature DataFrame from a BIDS-compliant Parquet file.
-
-    Validates that the file contains a `feature` column stored as
-    `Array(Float64)`, the canonical format produced by `save_feature`.
-
-    Parameters
-    ----------
-    path : str or os.PathLike
-        Path to the Parquet file. Must be a valid BIDS path containing
-        a `feature` entity (e.g., `feature-mfcc`).
-
-    Returns
-    -------
-    tuple[pl.DataFrame, dict[str, Any]]
-        The loaded DataFrame and a dict of metadata from the Parquet
-        file footer.
-
-    Raises
-    ------
-    ValueError
-        If the path lacks a `feature` entity, the file is missing a
-        `start_time` or `feature` column, the `feature` column is not
-        `Array(Float64)`, or `feature_name` metadata does not match the
-        path entity (indicates file was not written via `save_feature`).
-    """
-    bids = _validate_feature_path(path)
-
-    table = pq.read_table(bids.path)
-    df = pl.DataFrame(pl.from_arrow(table))
-    df = _normalize_feature_df(df)
-
-    raw_meta = table.schema.metadata or {}
-    hypline_blob = raw_meta.get(b"hypline")
-    if not hypline_blob:
+def _parse_feature_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, Any]:
+    blob = raw_metadata.get(b"hypline")
+    if not blob:
         raise ValueError(
             "file has no hypline metadata; feature files "
             "must be written via save_feature"
         )
 
-    metadata = json.loads(hypline_blob)
+    metadata = json.loads(blob)
     if metadata.get("feature_name") != bids.entities["feature"]:
         raise ValueError(
             f"feature_name metadata {metadata.get('feature_name')!r} "
             f"does not match path entity {bids.entities['feature']!r}"
         )
 
-    return df, metadata
+    return metadata
+
+
+def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
+    """Read a feature DataFrame written by `save_feature`.
+
+    Parameters
+    ----------
+    path
+        BIDS-compliant path to a `.parquet` feature file. Must contain
+        a `feature` entity (e.g., `feature-mfcc`).
+
+    Returns
+    -------
+    pl.DataFrame
+        DataFrame with `start_time` and `feature` (`Array(Float64)`) columns.
+
+    Raises
+    ------
+    ValueError
+        If the path lacks a `feature` entity, a `start_time` or `feature`
+        column is missing, the `feature` column is not `Array(Float64)`, or
+        `feature_name` metadata does not match the path entity.
+    """
+    bids = _validate_feature_path(path)
+    table = pq.read_table(bids.path)
+    _parse_feature_metadata(table.schema.metadata or {}, bids)  # for validation
+    return _normalize_feature_df(pl.DataFrame(pl.from_arrow(table)))
+
+
+def read_feature_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
+    """Read metadata from a feature file without loading the data.
+
+    Parameters
+    ----------
+    path
+        BIDS-compliant path to a `.parquet` feature file.
+
+    Returns
+    -------
+    dict[str, Any]
+        User metadata plus auto-injected `feature_name` and `hypline_version`.
+
+    Raises
+    ------
+    ValueError
+        If the path lacks a `feature` entity, the file has no hypline
+        metadata, or `feature_name` does not match the path entity.
+    """
+    bids = _validate_feature_path(path)
+    raw_metadata = pq.read_metadata(bids.path).metadata
+    return _parse_feature_metadata(raw_metadata or {}, bids)

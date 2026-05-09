@@ -1,3 +1,5 @@
+import polars as pl
+import pyarrow.parquet as pq
 import pytest
 
 from hypline.encoding import BoldKey, CellKey, Encoding, EncodingConfig, FeatureKey
@@ -121,12 +123,63 @@ class TestDiscoverFeatures:
         with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
             enc._discover_features(SUB)
 
+    def test_file_without_hypline_metadata_raises(self, tree: BIDSTree, tmp_path):
+        path = tree.features_dir / f"sub-{SUB}_task-{TASK}_run-1_feature-mfcc.parquet"
+        df = pl.DataFrame({"start_time": [0.0], "feature": [[0.0]]})
+        pq.write_table(df.to_arrow(), path)
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="no hypline metadata"):
+            enc._discover_features(SUB)
+
     def test_bids_filters_not_applied_at_discovery(self, tree: BIDSTree):
         tree.add_feature("mfcc", run="1")
         tree.add_feature("mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         feature_paths = enc._discover_features(SUB)
         assert len(feature_paths) == 2
+
+    def test_inconsistent_metadata_across_files_raises(self, tree: BIDSTree):
+        tree.add_feature("mfcc", run="1", metadata={"model": "v1"})
+        tree.add_feature("mfcc", run="2", metadata={"model": "v2"})
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="Inconsistent metadata for feature=mfcc"):
+            enc._discover_features(SUB)
+
+    def test_inconsistent_metadata_diff_in_error_message(self, tree: BIDSTree):
+        tree.add_feature("mfcc", run="1", metadata={"model": "v1"})
+        tree.add_feature("mfcc", run="2", metadata={"model": "v2"})
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="model:"):
+            enc._discover_features(SUB)
+
+    def test_missing_key_shows_as_missing_in_diff(self, tree: BIDSTree):
+        tree.add_feature("mfcc", run="1", metadata={"model": "v1"})
+        tree.add_feature("mfcc", run="2", metadata={"model": "v1", "extra": "x"})
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="<missing>"):
+            enc._discover_features(SUB)
+
+    def test_third_file_diverges_from_first(self, tree: BIDSTree):
+        tree.add_feature("mfcc", run="1", metadata={"model": "v1"})
+        tree.add_feature("mfcc", run="2", metadata={"model": "v1"})
+        tree.add_feature("mfcc", run="3", metadata={"model": "v2"})
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="Inconsistent metadata for feature=mfcc"):
+            enc._discover_features(SUB)
+
+    def test_underscore_prefixed_keys_exempt_from_metadata_check(self, tree: BIDSTree):
+        tree.add_feature("mfcc", run="1", metadata={"model": "v1", "_run_id": "abc"})
+        tree.add_feature("mfcc", run="2", metadata={"model": "v1", "_run_id": "xyz"})
+        enc = _make_encoding(tree, ["mfcc"])
+        enc._discover_features(SUB)
+
+    def test_metadata_check_independent_across_features(self, tree: BIDSTree):
+        tree.add_feature("mfcc", run="1", metadata={"model": "v1"})
+        tree.add_feature("mfcc", run="2", metadata={"model": "v1"})
+        tree.add_feature("clip", run="1", metadata={"model": "v2"})
+        tree.add_feature("clip", run="2", metadata={"model": "v2"})
+        enc = _make_encoding(tree, ["mfcc", "clip"])
+        enc._discover_features(SUB)
 
 
 class TestDiscoverBold:
