@@ -29,6 +29,10 @@ Feature files carry only structural identity — descriptive attributes (conditi
 item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not
 put descriptive entities on feature filenames; they belong in the sidecar.
 
+Feature files do **not** carry a BIDS suffix (e.g., `_bold`). The `feature-<label>` entity
+already identifies the data type; a suffix would be redundant, and no standard BIDS suffix
+exists for derived feature files. Feature path validation rejects any path with a suffix.
+
 Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`). Features are
 stimulus-derived — the same stimulus embedding applies regardless of scanner acquisition
 parameters. Encoding validation enforces this: if BOLD files carry acquisition variants,

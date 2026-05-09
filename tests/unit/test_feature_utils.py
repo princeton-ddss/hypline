@@ -19,7 +19,7 @@ from hypline.features.utils import (
 
 @pytest.fixture()
 def bids_path(tmp_path: Path) -> Path:
-    return tmp_path / "sub-01_ses-1_feature-mfcc_bold.parquet"
+    return tmp_path / "sub-01_ses-1_feature-mfcc.parquet"
 
 
 @pytest.fixture()
@@ -40,7 +40,7 @@ class TestSaveFeature:
         assert df.equals(sample_df)
 
     def test_creates_parent_dirs(self, tmp_path: Path, sample_df: pl.DataFrame):
-        path = tmp_path / "a" / "b" / "sub-01_feature-mfcc_bold.parquet"
+        path = tmp_path / "a" / "b" / "sub-01_feature-mfcc.parquet"
         save_feature(sample_df, path)
         assert path.exists()
 
@@ -131,11 +131,21 @@ class TestSaveFeature:
         with pytest.raises(ValueError, match=".parquet extension"):
             save_feature(sample_df, path)
 
+    def test_rejects_bids_suffix(self, tmp_path: Path, sample_df: pl.DataFrame):
+        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        with pytest.raises(ValueError, match="must not have a BIDS suffix"):
+            save_feature(sample_df, path)
+
 
 class TestReadFeatureMetadata:
     def test_missing_feature_entity(self, tmp_path: Path):
         path = tmp_path / "sub-01.parquet"
         with pytest.raises(ValueError, match="must contain a 'feature' entity"):
+            read_feature_metadata(path)
+
+    def test_rejects_bids_suffix(self, tmp_path: Path):
+        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        with pytest.raises(ValueError, match="must not have a BIDS suffix"):
             read_feature_metadata(path)
 
     def test_no_hypline_metadata_raises(self, tmp_path: Path, sample_df: pl.DataFrame):
@@ -188,15 +198,20 @@ class TestReadFeature:
         with pytest.raises(ValueError, match=".parquet extension"):
             read_feature(path)
 
-    def test_missing_required_columns(self, tmp_path: Path):
+    def test_rejects_bids_suffix(self, tmp_path: Path):
         path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        with pytest.raises(ValueError, match="must not have a BIDS suffix"):
+            read_feature(path)
+
+    def test_missing_required_columns(self, tmp_path: Path):
+        path = tmp_path / "sub-01_feature-mfcc.parquet"
         df = pl.DataFrame({"onset": [0.0]})
         _write_raw_feature(df, path, feature_name="mfcc")
         with pytest.raises(ValueError, match="missing required columns"):
             read_feature(path)
 
     def test_missing_start_time_column(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        path = tmp_path / "sub-01_feature-mfcc.parquet"
         df = pl.DataFrame(
             {"feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"feature": pl.Array(pl.Float64, 2)},
@@ -206,7 +221,7 @@ class TestReadFeature:
             read_feature(path)
 
     def test_non_numeric_start_time(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        path = tmp_path / "sub-01_feature-mfcc.parquet"
         df = pl.DataFrame(
             {"start_time": ["1.2", "3.5"], "feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"start_time": pl.String, "feature": pl.Array(pl.Float64, 2)},
@@ -216,7 +231,7 @@ class TestReadFeature:
             read_feature(path)
 
     def test_int_list_cast_to_float64_array(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        path = tmp_path / "sub-01_feature-mfcc.parquet"
         df = pl.DataFrame(
             {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
             schema={"start_time": pl.Float64, "feature": pl.List(pl.Int64)},
@@ -235,7 +250,7 @@ class TestReadFeature:
     def test_raw_parquet_without_hypline_metadata_raises(
         self, tmp_path: Path, sample_df: pl.DataFrame
     ):
-        path = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        path = tmp_path / "sub-01_feature-mfcc.parquet"
         pq.write_table(sample_df.to_arrow(), path)
         with pytest.raises(ValueError, match="no hypline metadata"):
             read_feature(path)
@@ -243,8 +258,8 @@ class TestReadFeature:
     def test_feature_name_mismatch_raises(
         self, tmp_path: Path, sample_df: pl.DataFrame
     ):
-        src = tmp_path / "sub-01_feature-phonemic_bold.parquet"
-        dst = tmp_path / "sub-01_feature-mfcc_bold.parquet"
+        src = tmp_path / "sub-01_feature-phonemic.parquet"
+        dst = tmp_path / "sub-01_feature-mfcc.parquet"
         save_feature(sample_df, src)
         shutil.copy(src, dst)
         with pytest.raises(ValueError, match="does not match path entity"):

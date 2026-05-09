@@ -99,6 +99,10 @@ def _validate_feature_path(path: str | os.PathLike[str]) -> BIDSPath:
         raise ValueError(
             f"Feature path must have .parquet extension, got {bids.extension!r}"
         )
+    if bids.suffix:
+        raise ValueError(
+            f"Feature path must not have a BIDS suffix, got {bids.suffix!r}"
+        )
     return bids
 
 
