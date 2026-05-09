@@ -110,3 +110,21 @@ def validate_entity_invariance(
         if len(values) > 1:
             display = sorted(v if v is not None else "(none)" for v in values)
             raise ValueError(f"Inconsistent {entity!r} across files: found {display}.")
+
+
+def normalize_bids_filters(
+    filters: list[str] | None,
+    *,
+    reserved: Iterable[str] = (),
+) -> list[str]:
+    filters = list(filters or [])
+    validate_bids_entities(*filters)
+    reserved_set = frozenset(reserved)
+    for entity in filters:
+        key = entity.split("-", 1)[0]
+        if key in reserved_set:
+            raise ValueError(
+                f"bids_filters cannot contain {key!r} "
+                "— use the dedicated argument instead"
+            )
+    return filters

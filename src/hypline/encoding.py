@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from hypline.bids import (
     BIDSPath,
-    validate_bids_entities,
+    normalize_bids_filters,
     validate_entity_invariance,
 )
 from hypline.bold import (
@@ -26,9 +26,6 @@ from hypline.features.utils import (
     resample_feature,
 )
 from hypline.utils import find_files, validate_dirs
-
-# Entities provided via dedicated arguments — not allowed in bids_filters
-_RESERVED_ENTITIES = frozenset(("sub", "space", "feature"))
 
 
 class BoldKey(NamedTuple):
@@ -190,16 +187,9 @@ class Encoding:
         self.bold_space = parse_bold_space(bold_space)
         self.downsample = Downsample(downsample)
 
-        bids_filters = list(bids_filters or [])
-        validate_bids_entities(*bids_filters)
-        for entity in bids_filters:
-            key = entity.split("-", 1)[0]
-            if key in _RESERVED_ENTITIES:
-                raise ValueError(
-                    f"bids_filters cannot contain {key!r} "
-                    "— use the dedicated argument instead"
-                )
-        self.bids_filters = bids_filters
+        self.bids_filters = normalize_bids_filters(
+            bids_filters, reserved={"sub", "space", "feature"}
+        )
 
     def train(self, sub_id: str):
         feature_paths = self._discover_features(sub_id)

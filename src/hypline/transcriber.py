@@ -6,12 +6,9 @@ from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
-from hypline.bids import validate_bids_entities
+from hypline.bids import normalize_bids_filters
 from hypline.enums import Device
 from hypline.utils import find_files, validate_dirs
-
-# Entities provided via dedicated arguments — not allowed in bids_filters
-_RESERVED_ENTITIES = frozenset({"sub"})
 
 
 class WhisperModel(StrEnum):
@@ -74,16 +71,7 @@ class Transcriber:
 
         self._audio_ext = audio_ext
 
-        bids_filters = list(bids_filters or [])
-        validate_bids_entities(*bids_filters)
-        for entity in bids_filters:
-            key = entity.split("-", 1)[0]
-            if key in _RESERVED_ENTITIES:
-                raise ValueError(
-                    f"bids_filters cannot contain {key!r} "
-                    "— use the dedicated argument instead"
-                )
-        self._bids_filters = bids_filters
+        self._bids_filters = normalize_bids_filters(bids_filters, reserved={"sub"})
 
         self._model = whisperx.load_model(
             whisper_arch=config.model,

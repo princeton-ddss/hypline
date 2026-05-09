@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
-from hypline.bids import BIDSPath, validate_bids_entities
+from hypline.bids import BIDSPath, normalize_bids_filters
 from hypline.features.utils import save_feature
 from hypline.utils import find_files, validate_dirs
 
@@ -53,9 +53,6 @@ ARPABET_PHONEMES = [
 
 PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
-# Entities provided via dedicated arguments — not allowed in bids_filters
-_RESERVED_ENTITIES = frozenset({"sub"})
-
 
 class PhonemicFeature:
     _pronunciations: dict
@@ -79,16 +76,7 @@ class PhonemicFeature:
 
         self._use_articulatory = use_articulatory
 
-        bids_filters = list(bids_filters or [])
-        validate_bids_entities(*bids_filters)
-        for entity in bids_filters:
-            key = entity.split("-", 1)[0]
-            if key in _RESERVED_ENTITIES:
-                raise ValueError(
-                    f"bids_filters cannot contain {key!r} "
-                    "— use the dedicated argument instead"
-                )
-        self._bids_filters = bids_filters
+        self._bids_filters = normalize_bids_filters(bids_filters, reserved={"sub"})
 
     @classmethod
     def _load(cls):
