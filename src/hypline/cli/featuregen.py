@@ -3,6 +3,8 @@ from typing import Annotated
 
 import typer
 
+from ._utils import split_csv
+
 app = typer.Typer()
 
 
@@ -23,21 +25,18 @@ def generate_phonemic_feature(
         ),
     ],
     sub_ids: Annotated[
-        list[str] | None,
+        str | None,
         typer.Option(
-            "--sub",
-            help="[Repeatable] Subject ID to process (e.g., 01); omit to process all",
+            help="""
+            Comma-separated subject IDs to process (e.g., 01,02); omit to process all
+            """,
             show_default=False,
         ),
     ] = None,
     bids_filters: Annotated[
-        list[str] | None,
+        str | None,
         typer.Option(
-            "--bids-filter",
-            help="""
-            [Repeatable] Filter input files by BIDS entity
-            (e.g., run-5) present in the filenames
-            """,
+            help="Comma-separated BIDS entity filters (e.g., run-2,run-4,cond-G)",
             show_default=False,
         ),
     ] = None,
@@ -53,14 +52,17 @@ def generate_phonemic_feature(
     from hypline.bids import BIDSPath
     from hypline.features.phonemic import PhonemicFeature
 
+    resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
+
     feature = PhonemicFeature(
         input_dir,
         output_dir,
         use_articulatory=not no_articulatory,
-        bids_filters=bids_filters,
+        bids_filters=resolved_bids_filters,
     )
 
-    resolved_sub_ids = sub_ids or list(
+    resolved_sub_ids = resolved_sub_ids or list(
         {
             BIDSPath(f).entities["sub"]
             for f in input_dir.iterdir()
