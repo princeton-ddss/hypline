@@ -56,8 +56,8 @@ def generate_phonemic_feature(
     resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
 
     feature = PhonemicFeature(
-        input_dir,
-        output_dir,
+        input_dir=input_dir,
+        output_dir=output_dir,
         use_articulatory=not no_articulatory,
         bids_filters=resolved_bids_filters,
     )

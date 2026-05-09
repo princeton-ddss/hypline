@@ -65,9 +65,9 @@ class PhonemicFeature:
 
     def __init__(
         self,
+        *,
         input_dir: str | os.PathLike[str],
         output_dir: str | os.PathLike[str],
-        *,
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
     ):

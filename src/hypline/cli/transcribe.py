@@ -4,7 +4,9 @@ from typing import Annotated
 import typer
 
 from hypline.enums import Device
-from hypline.transcriber import Transcriber, TranscriberConfig, WhisperModel
+from hypline.transcriber import Transcriber, WhisperConfig, WhisperModel
+
+from ._utils import split_csv
 
 
 def transcribe(
@@ -51,14 +53,19 @@ def transcribe(
             help="Hardware target for running the model",
         ),
     ] = Device.CPU,
-    bids_filters: Annotated[
-        list[str] | None,
+    sub_ids: Annotated[
+        str | None,
         typer.Option(
-            "--bids-filter",
             help="""
-            [Repeatable] Filter input files by BIDS entity
-            (e.g., run-5) present in the filenames
+            Comma-separated subject IDs to process (e.g., 01,02); omit to process all
             """,
+            show_default=False,
+        ),
+    ] = None,
+    bids_filters: Annotated[
+        str | None,
+        typer.Option(
+            help="Comma-separated BIDS entity filters (e.g., run-2,run-4,cond-G)",
             show_default=False,
         ),
     ] = None,
@@ -66,17 +73,32 @@ def transcribe(
     """
     Transcribe audio files using a Whisper ASR model.
     """
-    config = TranscriberConfig(
+    from hypline.bids import BIDSPath
+
+    resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
+
+    config = WhisperConfig(
         model=model,
         model_dir=model_dir,
         device=device,
     )
 
-    transcriber = Transcriber(config)
-
-    transcriber.transcribe(
+    transcriber = Transcriber(
+        config,
         input_dir=input_dir,
         output_dir=output_dir,
         audio_ext=file_ext,
-        bids_filters=bids_filters,
+        bids_filters=resolved_bids_filters,
     )
+
+    resolved_sub_ids = resolved_sub_ids or list(
+        {
+            BIDSPath(f).entities["sub"]
+            for f in input_dir.iterdir()
+            if f.is_file() and "sub" in BIDSPath(f).entities
+        }
+    )
+
+    for sub_id in resolved_sub_ids:
+        transcriber.transcribe(sub_id)

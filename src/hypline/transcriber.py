@@ -6,8 +6,12 @@ from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
+from hypline.bids import validate_bids_entities
 from hypline.enums import Device
 from hypline.utils import find_files, validate_dirs
+
+# Entities provided via dedicated arguments — not allowed in bids_filters
+_RESERVED_ENTITIES = frozenset({"sub"})
 
 
 class WhisperModel(StrEnum):
@@ -19,7 +23,7 @@ class WhisperModel(StrEnum):
     LARGE_V3 = "large-v3"
 
 
-class TranscriberConfig(BaseModel):
+class WhisperConfig(BaseModel):
     model: WhisperModel = WhisperModel.LARGE_V2
     model_dir: Path | None = None
     device: Device = Device.CPU
@@ -38,7 +42,15 @@ class TranscriberConfig(BaseModel):
 
 
 class Transcriber:
-    def __init__(self, config: TranscriberConfig):
+    def __init__(
+        self,
+        config: WhisperConfig,
+        *,
+        input_dir: str | os.PathLike[str],
+        output_dir: str | os.PathLike[str],
+        audio_ext: str,
+        bids_filters: list[str] | None = None,
+    ):
         import torch
         import whisperx
 
@@ -56,7 +68,24 @@ class Transcriber:
 
         self.config = config
 
-        self.model = whisperx.load_model(
+        validate_dirs(input_dir, output_dir)
+        self._input_dir = Path(input_dir)
+        self._output_dir = Path(output_dir)
+
+        self._audio_ext = audio_ext
+
+        bids_filters = list(bids_filters or [])
+        validate_bids_entities(*bids_filters)
+        for entity in bids_filters:
+            key = entity.split("-", 1)[0]
+            if key in _RESERVED_ENTITIES:
+                raise ValueError(
+                    f"bids_filters cannot contain {key!r} "
+                    "— use the dedicated argument instead"
+                )
+        self._bids_filters = bids_filters
+
+        self._model = whisperx.load_model(
             whisper_arch=config.model,
             device=config.device,
             compute_type="float16" if config.device is Device.CUDA else "int8",
@@ -65,31 +94,20 @@ class Transcriber:
             language="en",
         )
 
-        self.align_model, self.align_metadata = whisperx.load_align_model(
+        self._align_model, self._align_metadata = whisperx.load_align_model(
             language_code="en",
             device=config.device,
             model_dir=str(config.model_dir),
         )
 
-    def transcribe(
-        self,
-        input_dir: str | os.PathLike[str],
-        output_dir: str | os.PathLike[str],
-        audio_ext: str,
-        *,
-        bids_filters: list[str] | None = None,
-    ):
+    def transcribe(self, sub_id: str):
         import polars as pl
         import whisperx
 
-        input_dir = Path(input_dir)
-        output_dir = Path(output_dir)
-        validate_dirs(input_dir, output_dir)
-
         audio_files = find_files(
-            input_dir,
-            ends_with=audio_ext,
-            bids_filters=bids_filters,
+            self._input_dir,
+            ends_with=self._audio_ext,
+            bids_filters=[f"sub-{sub_id}", *self._bids_filters],
         )
 
         batch_size = self.config.batch_size
@@ -99,11 +117,11 @@ class Transcriber:
         for audio_file in audio_files:
             audio = whisperx.load_audio(str(audio_file))
 
-            result = self.model.transcribe(audio, batch_size=batch_size)
+            result = self._model.transcribe(audio, batch_size=batch_size)
             result = whisperx.align(
                 transcript=result["segments"],
-                model=self.align_model,
-                align_model_metadata=self.align_metadata,
+                model=self._align_model,
+                align_model_metadata=self._align_metadata,
                 audio=audio,
                 device=self.config.device,
                 return_char_alignments=False,
@@ -116,5 +134,5 @@ class Transcriber:
                     "score": "confidence_score",
                 }
             )
-            output_file = output_dir / f"{audio_file.stem}.csv"
+            output_file = self._output_dir / f"{audio_file.stem}.csv"
             df.write_csv(output_file)
