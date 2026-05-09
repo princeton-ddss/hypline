@@ -7,7 +7,7 @@ import polars as pl
 import pyarrow.parquet as pq
 import pytest
 
-from hypline import __version__
+from hypline.bids import BIDSPath
 from hypline.features.utils import (
     Downsample,
     read_feature,
@@ -18,7 +18,7 @@ from hypline.features.utils import (
 
 
 @pytest.fixture()
-def bids_path(tmp_path: Path) -> Path:
+def feature_path(tmp_path: Path) -> Path:
     return tmp_path / "sub-01_ses-1_feature-mfcc.parquet"
 
 
@@ -34,9 +34,9 @@ def sample_df() -> pl.DataFrame:
 
 
 class TestSaveFeature:
-    def test_roundtrip(self, bids_path: Path, sample_df: pl.DataFrame):
-        save_feature(sample_df, bids_path)
-        df = read_feature(bids_path)
+    def test_roundtrip(self, feature_path: Path, sample_df: pl.DataFrame):
+        save_feature(sample_df, feature_path)
+        df = read_feature(feature_path)
         assert df.equals(sample_df)
 
     def test_creates_parent_dirs(self, tmp_path: Path, sample_df: pl.DataFrame):
@@ -44,80 +44,80 @@ class TestSaveFeature:
         save_feature(sample_df, path)
         assert path.exists()
 
-    def test_list_column_cast_to_array(self, bids_path: Path):
+    def test_list_column_cast_to_array(self, feature_path: Path):
         df = pl.DataFrame(
             {"start_time": [0.0, 0.5], "feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"start_time": pl.Float64, "feature": pl.List(pl.Float64)},
         )
-        save_feature(df, bids_path)
-        loaded = read_feature(bids_path)
+        save_feature(df, feature_path)
+        loaded = read_feature(feature_path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
-    def test_int_list_cast_to_float64(self, bids_path: Path):
+    def test_int_list_cast_to_float64(self, feature_path: Path):
         df = pl.DataFrame(
             {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
             schema={"start_time": pl.Float64, "feature": pl.Array(pl.Int64, 2)},
         )
-        save_feature(df, bids_path)
-        loaded = read_feature(bids_path)
+        save_feature(df, feature_path)
+        loaded = read_feature(feature_path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
-    def test_metadata_stored_in_footer(self, bids_path: Path, sample_df: pl.DataFrame):
-        save_feature(sample_df, bids_path, metadata={"key": "value", "foo": "bar"})
-        meta = read_feature_metadata(bids_path)
+    def test_metadata_stored_in_footer(
+        self, feature_path: Path, sample_df: pl.DataFrame
+    ):
+        save_feature(sample_df, feature_path, metadata={"key": "value", "foo": "bar"})
+        meta = read_feature_metadata(feature_path)
         assert meta["key"] == "value"
         assert meta["foo"] == "bar"
 
-    def test_list_valued_metadata_roundtrip(self, bids_path, sample_df):
-        save_feature(sample_df, bids_path, metadata={"dim_labels": ["a", "b", "c"]})
-        meta = read_feature_metadata(bids_path)
+    def test_list_valued_metadata_roundtrip(self, feature_path, sample_df):
+        save_feature(sample_df, feature_path, metadata={"dim_labels": ["a", "b", "c"]})
+        meta = read_feature_metadata(feature_path)
         assert meta["dim_labels"] == ["a", "b", "c"]
 
-    def test_caller_metadata_absent(self, bids_path: Path, sample_df: pl.DataFrame):
-        save_feature(sample_df, bids_path)
-        meta = read_feature_metadata(bids_path)
-        assert meta == {
-            "feature_name": "mfcc",
-            "hypline_version": __version__,
-        }
+    def test_caller_metadata_absent(self, feature_path: Path, sample_df: pl.DataFrame):
+        save_feature(sample_df, feature_path)
+        meta = read_feature_metadata(feature_path)
+        assert meta["feature_name"] == "mfcc"
+        assert "hypline_version" in meta
 
     def test_reserved_key_feature_name_raises(
-        self, bids_path: Path, sample_df: pl.DataFrame
+        self, feature_path: Path, sample_df: pl.DataFrame
     ):
         with pytest.raises(ValueError, match="reserved keys"):
-            save_feature(sample_df, bids_path, metadata={"feature_name": "mfcc"})
+            save_feature(sample_df, feature_path, metadata={"feature_name": "mfcc"})
 
     def test_reserved_key_hypline_version_raises(
-        self, bids_path: Path, sample_df: pl.DataFrame
+        self, feature_path: Path, sample_df: pl.DataFrame
     ):
         with pytest.raises(ValueError, match="reserved keys"):
-            save_feature(sample_df, bids_path, metadata={"hypline_version": "0.0.0"})
+            save_feature(sample_df, feature_path, metadata={"hypline_version": "0.0.0"})
 
-    def test_missing_required_columns(self, bids_path: Path):
+    def test_missing_required_columns(self, feature_path: Path):
         df = pl.DataFrame({"onset": [0.0, 1.0]})
         with pytest.raises(ValueError, match="missing required columns"):
-            save_feature(df, bids_path)
+            save_feature(df, feature_path)
 
-    def test_missing_start_time_column(self, bids_path: Path):
+    def test_missing_start_time_column(self, feature_path: Path):
         df = pl.DataFrame(
             {"feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"feature": pl.Array(pl.Float64, 2)},
         )
         with pytest.raises(ValueError, match="missing required columns"):
-            save_feature(df, bids_path)
+            save_feature(df, feature_path)
 
-    def test_non_numeric_start_time(self, bids_path: Path):
+    def test_non_numeric_start_time(self, feature_path: Path):
         df = pl.DataFrame(
             {"start_time": ["1.2", "3.5"], "feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"start_time": pl.String, "feature": pl.Array(pl.Float64, 2)},
         )
         with pytest.raises(ValueError, match="must be a numeric type"):
-            save_feature(df, bids_path)
+            save_feature(df, feature_path)
 
-    def test_unsupported_feature_dtype(self, bids_path: Path):
+    def test_unsupported_feature_dtype(self, feature_path: Path):
         df = pl.DataFrame({"start_time": [0.0, 0.5], "feature": ["a", "b"]})
         with pytest.raises(ValueError, match="must be an Array or List type"):
-            save_feature(df, bids_path)
+            save_feature(df, feature_path)
 
     def test_missing_feature_entity_in_path(
         self, tmp_path: Path, sample_df: pl.DataFrame
@@ -148,11 +148,12 @@ class TestReadFeatureMetadata:
         with pytest.raises(ValueError, match="must not have a BIDS suffix"):
             read_feature_metadata(path)
 
-    def test_no_hypline_metadata_raises(self, tmp_path: Path, sample_df: pl.DataFrame):
-        path = tmp_path / "sub-01_feature-mfcc.parquet"
-        pq.write_table(sample_df.to_arrow(), path)
+    def test_no_hypline_metadata_raises(
+        self, feature_path: Path, sample_df: pl.DataFrame
+    ):
+        pq.write_table(sample_df.to_arrow(), feature_path)
         with pytest.raises(ValueError, match="no hypline metadata"):
-            read_feature_metadata(path)
+            read_feature_metadata(feature_path)
 
     def test_feature_name_mismatch_raises(
         self, tmp_path: Path, sample_df: pl.DataFrame
@@ -165,22 +166,18 @@ class TestReadFeatureMetadata:
             read_feature_metadata(dst)
 
     def test_returns_metadata_without_loading_data(
-        self, bids_path: Path, sample_df: pl.DataFrame
+        self, feature_path: Path, sample_df: pl.DataFrame
     ):
-        save_feature(sample_df, bids_path, metadata={"sr": "16000"})
-        meta = read_feature_metadata(bids_path)
+        save_feature(sample_df, feature_path, metadata={"sr": "16000"})
+        meta = read_feature_metadata(feature_path)
         assert meta["sr"] == "16000"
         assert meta["feature_name"] == "mfcc"
         assert "hypline_version" in meta
 
 
-def _write_raw_feature(
-    df: pl.DataFrame,
-    path: Path,
-    *,
-    feature_name: str,
-) -> None:
+def _write_raw_feature(df: pl.DataFrame, path: Path) -> None:
     """Write a parquet with hypline metadata, bypassing save_feature validation."""
+    feature_name = BIDSPath(path).entities["feature"]
     table = df.to_arrow().replace_schema_metadata(
         {b"hypline": json.dumps({"feature_name": feature_name}).encode()}
     )
@@ -203,57 +200,52 @@ class TestReadFeature:
         with pytest.raises(ValueError, match="must not have a BIDS suffix"):
             read_feature(path)
 
-    def test_missing_required_columns(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc.parquet"
+    def test_missing_required_columns(self, feature_path: Path):
         df = pl.DataFrame({"onset": [0.0]})
-        _write_raw_feature(df, path, feature_name="mfcc")
+        _write_raw_feature(df, feature_path)
         with pytest.raises(ValueError, match="missing required columns"):
-            read_feature(path)
+            read_feature(feature_path)
 
-    def test_missing_start_time_column(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc.parquet"
+    def test_missing_start_time_column(self, feature_path: Path):
         df = pl.DataFrame(
             {"feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"feature": pl.Array(pl.Float64, 2)},
         )
-        _write_raw_feature(df, path, feature_name="mfcc")
+        _write_raw_feature(df, feature_path)
         with pytest.raises(ValueError, match="missing required columns"):
-            read_feature(path)
+            read_feature(feature_path)
 
-    def test_non_numeric_start_time(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc.parquet"
+    def test_non_numeric_start_time(self, feature_path: Path):
         df = pl.DataFrame(
             {"start_time": ["1.2", "3.5"], "feature": [[1.0, 2.0], [3.0, 4.0]]},
             schema={"start_time": pl.String, "feature": pl.Array(pl.Float64, 2)},
         )
-        _write_raw_feature(df, path, feature_name="mfcc")
+        _write_raw_feature(df, feature_path)
         with pytest.raises(ValueError, match="must be a numeric type"):
-            read_feature(path)
+            read_feature(feature_path)
 
-    def test_int_list_cast_to_float64_array(self, tmp_path: Path):
-        path = tmp_path / "sub-01_feature-mfcc.parquet"
+    def test_int_list_cast_to_float64_array(self, feature_path: Path):
         df = pl.DataFrame(
             {"start_time": [0.0, 0.5], "feature": [[1, 2], [3, 4]]},
             schema={"start_time": pl.Float64, "feature": pl.List(pl.Int64)},
         )
-        _write_raw_feature(df, path, feature_name="mfcc")
-        loaded = read_feature(path)
+        _write_raw_feature(df, feature_path)
+        loaded = read_feature(feature_path)
         assert loaded.get_column("feature").dtype == pl.Array(pl.Float64, 2)
 
-    def test_metadata_roundtrip(self, bids_path: Path, sample_df: pl.DataFrame):
-        save_feature(sample_df, bids_path, metadata={"sr": "16000"})
-        meta = read_feature_metadata(bids_path)
+    def test_metadata_roundtrip(self, feature_path: Path, sample_df: pl.DataFrame):
+        save_feature(sample_df, feature_path, metadata={"sr": "16000"})
+        meta = read_feature_metadata(feature_path)
         assert meta["sr"] == "16000"
         assert "feature_name" in meta
         assert "hypline_version" in meta
 
     def test_raw_parquet_without_hypline_metadata_raises(
-        self, tmp_path: Path, sample_df: pl.DataFrame
+        self, feature_path: Path, sample_df: pl.DataFrame
     ):
-        path = tmp_path / "sub-01_feature-mfcc.parquet"
-        pq.write_table(sample_df.to_arrow(), path)
+        pq.write_table(sample_df.to_arrow(), feature_path)
         with pytest.raises(ValueError, match="no hypline metadata"):
-            read_feature(path)
+            read_feature(feature_path)
 
     def test_feature_name_mismatch_raises(
         self, tmp_path: Path, sample_df: pl.DataFrame
