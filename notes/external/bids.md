@@ -45,6 +45,10 @@ events.tsv (e.g. `block`, `trial`) are inferred as the segment entity at discove
 exactly one entity name is allowed per run. See
 [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 
+Hypline extends the BIDS root with two non-standard areas (`stimuli/`, `features/`) that
+follow the same `sub-XX/ses-YY/<kind>/` nesting. See
+[../decisions/layout.md](../decisions/layout.md).
+
 ## `trial_type.Levels` for segment metadata
 
 BIDS allows `trial_type.Levels` in `events.json` as a dict mapping trial type labels to

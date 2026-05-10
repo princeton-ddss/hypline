@@ -25,6 +25,10 @@ Feature files carry **stimulus-side identity entities** from the source BOLD (`s
 sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet
 ```
 
+Feature files live under `features/sub-XX/ses-YY/<kind>/` where `<kind>` matches the
+`feature-<kind>` entity on the filename (e.g. `features/sub-01/ses-01/phonemic/`). See
+[layout.md](layout.md) for the full root tree.
+
 Feature files carry only structural identity — descriptive attributes (condition, stimulus
 item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not
 put descriptive entities on feature filenames; they belong in the sidecar.
