@@ -10,17 +10,10 @@ app = typer.Typer()
 
 @app.command(name="phonemic")
 def generate_phonemic_feature(
-    input_dir: Annotated[
+    bids_root: Annotated[
         Path,
         typer.Argument(
-            help="Directory containing word-level transcripts (CSV files)",
-            show_default=False,
-        ),
-    ],
-    output_dir: Annotated[
-        Path,
-        typer.Argument(
-            help="Directory to store phonemic feature data (Parquet files)",
+            help="BIDS dataset root (contains stimuli/, features/, derivatives/)",
             show_default=False,
         ),
     ],
@@ -34,9 +27,7 @@ def generate_phonemic_feature(
     sub_ids: Annotated[
         str | None,
         typer.Option(
-            help="""
-            Comma-separated subject IDs to process (e.g., 01,02); omit to process all
-            """,
+            help="Comma-separated subject IDs to process (e.g., 01,02); omit for all",
             show_default=False,
         ),
     ] = None,
@@ -49,26 +40,22 @@ def generate_phonemic_feature(
     ] = None,
 ):
     """Generate phonemic feature from word-level transcripts."""
-    from hypline.bids import BIDSPath
     from hypline.features.phonemic import PhonemicFeature
+    from hypline.layout import BIDSLayout
 
     resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
     resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
 
+    layout = BIDSLayout(bids_root)
+
     feature = PhonemicFeature(
-        input_dir=input_dir,
-        output_dir=output_dir,
+        layout=layout,
         use_articulatory=not no_articulatory,
         bids_filters=resolved_bids_filters,
     )
 
-    resolved_sub_ids = resolved_sub_ids or list(
-        {
-            BIDSPath(f).entities["sub"]
-            for f in input_dir.iterdir()
-            if f.is_file() and "sub" in BIDSPath(f).entities
-        }
-    )
+    # TODO: warn when no subjects found (pending logging setup)
+    resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")
 
     for sub_id in resolved_sub_ids:
         feature.generate(sub_id)
