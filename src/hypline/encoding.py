@@ -57,7 +57,7 @@ class CellKey:
             "den",
             "echo",
             "space",
-            "feature",
+            "feat",
         )
     )
     __slots__ = ("_entities",)
@@ -188,7 +188,7 @@ class Encoding:
         self.downsample = Downsample(downsample)
 
         self.bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "space", "feature"}
+            bids_filters, reserved={"sub", "space", "feat"}
         )
 
     def train(self, sub_id: str):
@@ -223,7 +223,7 @@ class Encoding:
                 self.features_dir,
                 ends_with=".parquet",
                 recursive=True,
-                bids_filters=[f"sub-{sub_id}", f"feature-{feature_name}"],
+                bids_filters=[f"sub-{sub_id}", f"feat-{feature_name}"],
             )
             if not feature_files:
                 raise FileNotFoundError(

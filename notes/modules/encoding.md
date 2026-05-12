@@ -81,13 +81,13 @@ intentional — fMRIPrep derivatives are often organized in per-subject subdirec
 All user-supplied `bids_filters` are applied post-resolution in `_apply_filters` against
 resolved `CellKey`s (features) and BOLD filename entities (BOLD). Neither `_discover_features`
 nor `_discover_bold` apply user filters — both use only hard-coded structural filters
-(`sub`, `feature`, `space`).
+(`sub`, `feat`, `space`).
 
 Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
 to `find_files`. Applying all filters uniformly post-resolution ensures consistent behaviour
 whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
 
-- **Reserved entities** (`sub`, `space`, `feature`): rejected at construction — use the
+- **Reserved entities** (`sub`, `space`, `feat`): rejected at construction — use the
   dedicated arguments instead.
 
 **Match semantics:** multiple filters sharing the same entity key OR-match within that group;

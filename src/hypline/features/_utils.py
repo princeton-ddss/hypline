@@ -93,8 +93,8 @@ def resample_feature(
 
 def _validate_feature_path(path: str | os.PathLike[str]) -> BIDSPath:
     bids = BIDSPath(path)
-    if "feature" not in bids.entities:
-        raise ValueError("BIDS path must contain a 'feature' entity")
+    if "feat" not in bids.entities:
+        raise ValueError("BIDS path must contain a 'feat' entity")
     if bids.extension != ".parquet":
         raise ValueError(
             f"Feature path must have .parquet extension, got {bids.extension!r}"
@@ -146,7 +146,7 @@ def save_feature(
         `feature` must be an Array or List type.
     path
         BIDS-compliant path to a `.parquet` feature file. Must contain
-        a `feature` entity (e.g., `feature-mfcc`).
+        a `feat` entity (e.g., `feat-mfcc`).
     metadata
         Optional metadata merged into the Parquet footer. Must not
         contain `feature_name` or `hypline_version`.
@@ -155,7 +155,7 @@ def save_feature(
     ------
     ValueError
         If required columns are missing, `feature` dtype is unsupported,
-        the path lacks a `feature` entity, or `metadata` contains a
+        the path lacks a `feat` entity, or `metadata` contains a
         reserved key (`feature_name`, `hypline_version`).
     """
     bids = _validate_feature_path(path)
@@ -166,7 +166,7 @@ def save_feature(
             f"metadata must not contain reserved keys: {reserved & metadata.keys()}"
         )
     auto_metadata = {
-        "feature_name": bids.entities["feature"],
+        "feature_name": bids.entities["feat"],
         "hypline_version": __version__,
     }
     metadata = {**(metadata or {}), **auto_metadata}
@@ -190,10 +190,10 @@ def _parse_feature_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, Any
         )
 
     metadata = json.loads(blob)
-    if metadata.get("feature_name") != bids.entities["feature"]:
+    if metadata.get("feature_name") != bids.entities["feat"]:
         raise ValueError(
             f"feature_name metadata {metadata.get('feature_name')!r} "
-            f"does not match path entity {bids.entities['feature']!r}"
+            f"does not match path entity {bids.entities['feat']!r}"
         )
 
     return metadata
@@ -206,7 +206,7 @@ def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
     ----------
     path
         BIDS-compliant path to a `.parquet` feature file. Must contain
-        a `feature` entity (e.g., `feature-mfcc`).
+        a `feat` entity (e.g., `feat-mfcc`).
 
     Returns
     -------
@@ -216,7 +216,7 @@ def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
     Raises
     ------
     ValueError
-        If the path lacks a `feature` entity, a `start_time` or `feature`
+        If the path lacks a `feat` entity, a `start_time` or `feature`
         column is missing, the `feature` column is not `Array(Float64)`, or
         `feature_name` metadata does not match the path entity.
     """
@@ -242,7 +242,7 @@ def read_feature_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
     Raises
     ------
     ValueError
-        If the path lacks a `feature` entity, the file has no hypline
+        If the path lacks a `feat` entity, the file has no hypline
         metadata, or `feature_name` does not match the path entity.
     """
     bids = _validate_feature_path(path)

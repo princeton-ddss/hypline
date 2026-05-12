@@ -124,7 +124,7 @@ class TestDiscoverFeatures:
             enc._discover_features(SUB)
 
     def test_file_without_hypline_metadata_raises(self, tree: BIDSTree, tmp_path):
-        path = tree.features_dir / f"sub-{SUB}_task-{TASK}_run-1_feature-mfcc.parquet"
+        path = tree.features_dir / f"sub-{SUB}_task-{TASK}_run-1_feat-mfcc.parquet"
         df = pl.DataFrame({"start_time": [0.0], "feature": [[0.0]]})
         pq.write_table(df.to_arrow(), path)
         enc = _make_encoding(tree, ["mfcc"])

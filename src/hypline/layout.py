@@ -71,13 +71,13 @@ class _Find:
     ) -> list["BIDSPath"]:
         """Find feature files.
 
-        `kind` maps to the feature-<kind> entity and the per-session subdirectory
+        `kind` maps to the feat-<kind> entity and the per-session subdirectory
         name. Extension is `.parquet`.
         """
-        filters = normalize_bids_filters(bids_filters, reserved={"sub", "feature"})
+        filters = normalize_bids_filters(bids_filters, reserved={"sub", "feat"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         filters = [f for f in filters if not f.startswith("ses-")]
-        filters.extend([f"sub-{sub}", f"feature-{kind}"])
+        filters.extend([f"sub-{sub}", f"feat-{kind}"])
 
         sub_dir = _area_root(self._root, "features") / f"sub-{sub}"
         if not sub_dir.exists():
@@ -158,10 +158,10 @@ class _Build:
     ) -> BIDSPath:
         """Derive a feature output path from `source`.
 
-        Sets feature-<kind>, applies `entity_overrides`, and places the result
+        Sets feat-<kind>, applies `entity_overrides`, and places the result
         under features/sub-XX/[ses-YY/]<kind>/ with `.parquet` extension.
         """
-        bp = source.with_entity("feature", kind)
+        bp = source.with_entity("feat", kind)
         for key, value in entity_overrides.items():
             bp = bp.with_entity(key, value)
 

@@ -131,7 +131,7 @@ class PhonemicFeature:
                 )
             )
 
-            bids_path = BIDSPath(transcript).with_entity("feature", "phonemic")
+            bids_path = BIDSPath(transcript).with_entity("feat", "phonemic")
             out_path = self._output_dir / (bids_path.path.stem + ".parquet")
             metadata = {
                 "use_articulatory": self._use_articulatory,

@@ -39,7 +39,7 @@ Within a single events.json (enforced in `bold.load_bold_meta`):
 - Entity-keyed Levels entries match events.tsv segment `entity-value` keys exactly (set equality).
 - All entries share identical metadata key sets (schema invariance).
 - No metadata key collides with BOLD identity entities (`sub`, `ses`, `task`, `acq`, `ce`,
-  `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feature`) are rejected
+  `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feat`) are rejected
   by `CellKey.EXCLUDE` at `CellKey.__init__` during `_discover_features` — keeping
   `bold.py` agnostic of encoding-pipeline concerns.
 

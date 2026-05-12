@@ -23,7 +23,7 @@ CLI commands take a single `<root_dir>`; path resolution is centralized.
 Two terms name directory levels below `sub-XX/ses-YY/` and must not be conflated:
 
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
-- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript`. For `features/`: `phonemic`, `semantic`. Matches the `feature-<kind>` entity on feature filenames.
+- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript`. For `features/`: `phonemic`, `semantic`. Matches the `feat-<kind>` entity on feature filenames.
 
 ## Cleaned BOLD contract
 

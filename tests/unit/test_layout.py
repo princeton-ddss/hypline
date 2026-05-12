@@ -109,7 +109,7 @@ class TestFindFeatures:
         layout = BIDSLayout(layout_tree.root)
         results = layout.find.features(sub=SUB, kind="phonemic")
         assert len(results) == 1
-        assert results[0].entities.get("feature") == "phonemic"
+        assert results[0].entities.get("feat") == "phonemic"
 
     def test_ses_filter_via_bids_filters(self, layout_tree: HyplineBIDSTree):
         layout_tree.add_feature(kind="phonemic", sub=SUB, ses="1", task=TASK)
@@ -136,9 +136,9 @@ class TestFindFeatures:
 
     def test_rejects_reserved_feature_filter(self, layout_tree: HyplineBIDSTree):
         layout = BIDSLayout(layout_tree.root)
-        with pytest.raises(ValueError, match="feature"):
+        with pytest.raises(ValueError, match="feat"):
             layout.find.features(
-                sub=SUB, kind="phonemic", bids_filters=["feature-phonemic"]
+                sub=SUB, kind="phonemic", bids_filters=["feat-phonemic"]
             )
 
     def test_returns_empty_when_sub_absent(self, layout_tree: HyplineBIDSTree):
@@ -323,7 +323,7 @@ class TestBuildFeature:
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
         out = layout.build.feature(source=source, kind="phonemic")
-        assert out.entities.get("feature") == "phonemic"
+        assert out.entities.get("feat") == "phonemic"
         assert out.path.suffix == ".parquet"
         assert "features" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts

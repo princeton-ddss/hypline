@@ -92,7 +92,7 @@ class BIDSTree:
 
         entities = self._identity_entities(sub, ses, task, run)
         entities.update(extra_entities)
-        entities["feature"] = feature
+        entities["feat"] = feature
         directory = self.features_dir if subdir is None else self.features_dir / subdir
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{self._stem(entities)}.parquet"
@@ -327,7 +327,7 @@ class HyplineBIDSTree:
         **extra_entities: str,
     ) -> Path:
         entities = self._entities(sub, ses, task, run, **extra_entities)
-        entities["feature"] = kind
+        entities["feat"] = kind
         stem = self._stem(entities)
         sub_dir = self.root / "features" / f"sub-{sub}"
         ses_dir = sub_dir / f"ses-{ses}" if ses is not None else sub_dir
