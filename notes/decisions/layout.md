@@ -16,7 +16,7 @@ Directory contract for the hypline-flavored BIDS root tree.
 `<datatype>` / `<kind>` directly under `sub-XX/`. Path resolution handles both.
 
 `stimuli/` and `features/` are hypline extensions — not in the BIDS spec.
-CLI commands take a single `<root_dir>`; path resolution is centralized.
+CLI commands take a single `<bids_root>`; path resolution is centralized.
 
 ## Vocabulary
 

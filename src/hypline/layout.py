@@ -223,14 +223,14 @@ class _List:
 class BIDSLayout:
     """Single authority on path discovery and derivation for a hypline BIDS tree.
 
-    Validates root_dir exists on construction; does not validate per-area subdirs
+    Validates bids_root exists on construction; does not validate per-area subdirs
     (features/ may be absent before featuregen runs).
     """
 
-    def __init__(self, root_dir: str | os.PathLike[str]):
-        self._root = Path(root_dir)
+    def __init__(self, bids_root: str | os.PathLike[str]):
+        self._root = Path(bids_root)
         if not self._root.exists():
-            raise FileNotFoundError(f"root_dir does not exist: {self._root}")
+            raise FileNotFoundError(f"bids_root does not exist: {self._root}")
         self.find = _Find(self._root)
         self.build = _Build(self._root)
         self.list = _List(self._root)
