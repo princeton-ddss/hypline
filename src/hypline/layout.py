@@ -183,7 +183,7 @@ class _List:
     def __init__(self, root: Path):
         self._root = root
 
-    def subjects(self, area: _Area) -> list[str]:
+    def subjects(self, *, area: _Area) -> list[str]:
         """Return sorted unique subject IDs present in the given area."""
         area_dir = _area_root(self._root, area)
         if not area_dir.exists():

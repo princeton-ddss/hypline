@@ -371,28 +371,28 @@ class TestListSubjects:
         layout_tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
         layout_tree.add_stimulus(kind="audio", ext=".wav", sub="002", task=TASK)
         layout = BIDSLayout(layout_tree.root)
-        assert layout.list.subjects("stimuli") == [SUB, "002"]
+        assert layout.list.subjects(area="stimuli") == [SUB, "002"]
 
     def test_subjects_features(self, layout_tree: HyplineBIDSTree):
         layout_tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
         layout = BIDSLayout(layout_tree.root)
-        assert layout.list.subjects("features") == [SUB]
+        assert layout.list.subjects(area="features") == [SUB]
 
     def test_subjects_fmriprep(self, layout_tree: HyplineBIDSTree):
         layout_tree.add_fmriprep_bold(space=SPACE, sub=SUB, task=TASK)
         layout = BIDSLayout(layout_tree.root)
-        assert layout.list.subjects("fmriprep") == [SUB]
+        assert layout.list.subjects(area="fmriprep") == [SUB]
 
     def test_subjects_skips_non_sub_dirs(self, layout_tree: HyplineBIDSTree):
         layout_tree.add_fmriprep_bold(space=SPACE, sub=SUB, task=TASK)
         non_sub_dir = layout_tree.root / "derivatives" / "fmriprep" / "logs"
         non_sub_dir.mkdir(parents=True, exist_ok=True)
         layout = BIDSLayout(layout_tree.root)
-        assert layout.list.subjects("fmriprep") == [SUB]
+        assert layout.list.subjects(area="fmriprep") == [SUB]
 
     def test_subjects_empty_if_area_absent(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        assert layout.list.subjects("stimuli") == []
+        assert layout.list.subjects(area="stimuli") == []
 
 
 class TestListSessions:
