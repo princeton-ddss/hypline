@@ -257,3 +257,123 @@ class BIDSTree:
 @pytest.fixture()
 def tree(tmp_path: Path) -> BIDSTree:
     return BIDSTree(tmp_path)
+
+
+# TODO: consolidate HyplineBIDSTree with BIDSTree
+class HyplineBIDSTree:
+    """Minimal on-disk fixture for BIDSLayout tests.
+
+    Matches the hypline BIDS tree layout; `ses` is optional in all helpers:
+        stimuli/sub-XX/[ses-YY/]<kind>/
+        features/sub-XX/[ses-YY/]<kind>/
+        derivatives/fmriprep/sub-XX/[ses-YY/]func/
+    """
+
+    def __init__(self, root: Path):
+        self.root = root
+
+    def _stem(self, entities: dict[str, str]) -> str:
+        return "_".join(f"{k}-{v}" for k, v in entities.items())
+
+    def _write(self, path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+        return path
+
+    def _entities(
+        self,
+        sub: str,
+        ses: str | None,
+        task: str | None,
+        run: str | None,
+        **extra: str,
+    ) -> dict[str, str]:
+        entities: dict[str, str] = {"sub": sub}
+        if ses is not None:
+            entities["ses"] = ses
+        if task is not None:
+            entities["task"] = task
+        if run is not None:
+            entities["run"] = run
+        entities.update(extra)
+        return entities
+
+    def add_stimulus(
+        self,
+        *,
+        kind: str,
+        ext: str,
+        sub: str,
+        ses: str | None = None,
+        task: str | None = None,
+        run: str | None = None,
+        **extra_entities: str,
+    ) -> Path:
+        entities = self._entities(sub, ses, task, run, **extra_entities)
+        entities["stim"] = kind
+        stem = self._stem(entities)
+        sub_dir = self.root / "stimuli" / f"sub-{sub}"
+        ses_dir = sub_dir / f"ses-{ses}" if ses is not None else sub_dir
+        return self._write(ses_dir / kind / f"{stem}{ext}")
+
+    def add_feature(
+        self,
+        *,
+        kind: str,
+        sub: str,
+        ses: str | None = None,
+        task: str | None = None,
+        run: str | None = None,
+        **extra_entities: str,
+    ) -> Path:
+        entities = self._entities(sub, ses, task, run, **extra_entities)
+        entities["feature"] = kind
+        stem = self._stem(entities)
+        sub_dir = self.root / "features" / f"sub-{sub}"
+        ses_dir = sub_dir / f"ses-{ses}" if ses is not None else sub_dir
+        return self._write(ses_dir / kind / f"{stem}.parquet")
+
+    def add_fmriprep(
+        self,
+        *,
+        suffix: str,
+        ext: str,
+        sub: str,
+        ses: str | None = None,
+        task: str | None = None,
+        run: str | None = None,
+        **extra_entities: str,
+    ) -> Path:
+        entities = self._entities(sub, ses, task, run, **extra_entities)
+        stem = self._stem(entities)
+        sub_dir = self.root / "derivatives" / "fmriprep" / f"sub-{sub}"
+        ses_dir = sub_dir / f"ses-{ses}" if ses is not None else sub_dir
+        return self._write(ses_dir / "func" / f"{stem}_{suffix}{ext}")
+
+    def add_fmriprep_bold(
+        self,
+        *,
+        space: str,
+        desc: str = "preproc",
+        sub: str,
+        ses: str | None = None,
+        task: str | None = None,
+        run: str | None = None,
+        **extra_entities: str,
+    ) -> Path:
+        return self.add_fmriprep(
+            suffix="bold",
+            ext=".nii.gz",
+            sub=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            space=space,
+            desc=desc,
+            **extra_entities,
+        )
+
+
+@pytest.fixture()
+def layout_tree(tmp_path: Path) -> HyplineBIDSTree:
+    return HyplineBIDSTree(tmp_path)

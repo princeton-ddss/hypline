@@ -22,10 +22,11 @@ Feature files carry **stimulus-side identity entities** from the source BOLD (`s
 `task`, `run`), the segment entity value (e.g. `trial-1`), and hypline's own `feature` entity:
 
 ```
-sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet
+sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet   # with sessions
+sub-01_task-movie_run-1_trial-1_feature-clip.parquet           # sessionless
 ```
 
-Feature files live under `features/sub-XX/ses-YY/<kind>/` where `<kind>` matches the
+Feature files live under `features/sub-XX/[ses-YY/]<kind>/` where `<kind>` matches the
 `feature-<kind>` entity on the filename (e.g. `features/sub-01/ses-01/phonemic/`). See
 [layout.md](layout.md) for the full root tree.
 

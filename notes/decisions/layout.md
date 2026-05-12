@@ -6,11 +6,14 @@ Directory contract for the hypline-flavored BIDS root tree.
 
 ```
 <root>/
-├── sub-XX/ses-YY/<datatype>/                        # raw BIDS
-├── derivatives/fmriprep/sub-XX/ses-YY/<datatype>/   # fmriprep outputs
-├── stimuli/sub-XX/ses-YY/<kind>/                    # audio, transcript, ...
-└── features/sub-XX/ses-YY/<kind>/                   # phonemic, semantic, ...
+├── sub-XX/[ses-YY/]<datatype>/                        # raw BIDS
+├── derivatives/fmriprep/sub-XX/[ses-YY/]<datatype>/   # fmriprep outputs
+├── stimuli/sub-XX/[ses-YY/]<kind>/                    # audio, transcript, ...
+└── features/sub-XX/[ses-YY/]<kind>/                   # phonemic, semantic, ...
 ```
+
+`ses-YY/` is present only for datasets with sessions; sessionless datasets nest
+`<datatype>` / `<kind>` directly under `sub-XX/`. Path resolution handles both.
 
 `stimuli/` and `features/` are hypline extensions — not in the BIDS spec.
 CLI commands take a single `<root_dir>`; path resolution is centralized.
