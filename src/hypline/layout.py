@@ -117,6 +117,34 @@ class _Build:
     def __init__(self, root: Path):
         self._root = root
 
+    def _derive_path(
+        self,
+        *,
+        area: _Area,
+        entity_key: str,
+        source: BIDSPath,
+        kind: str,
+        ext: str,
+        entity_overrides: dict[str, str],
+    ) -> BIDSPath:
+        validate_extension(ext)
+        bp = source.with_entity(entity_key, kind)
+        for key, value in entity_overrides.items():
+            bp = bp.with_entity(key, value)
+
+        entities = bp.entities
+        sub = entities.get("sub")
+        ses = entities.get("ses")
+        if sub is None:
+            raise ValueError(f"source has no 'sub' entity: {source!r}")
+
+        sub_dir = _area_root(self._root, area) / f"sub-{sub}"
+        out_dir = sub_dir / f"ses-{ses}" / kind if ses is not None else sub_dir / kind
+
+        stem = "_".join(f"{k}-{v}" for k, v in entities.items())
+
+        return BIDSPath(out_dir / f"{stem}{ext}")
+
     def stimulus(
         self,
         *,
@@ -130,24 +158,14 @@ class _Build:
         Sets stim-<kind>, applies `entity_overrides`, and places the result
         under stimuli/sub-XX/[ses-YY/]<kind>/.
         """
-        validate_extension(ext)
-        bp = source.with_entity("stim", kind)
-        for key, value in entity_overrides.items():
-            bp = bp.with_entity(key, value)
-
-        entities = bp.entities
-        sub = entities.get("sub")
-        ses = entities.get("ses")
-        if sub is None:
-            raise ValueError(f"source has no 'sub' entity: {source!r}")
-
-        sub_dir = _area_root(self._root, "stimuli") / f"sub-{sub}"
-        out_dir = sub_dir / f"ses-{ses}" / kind if ses is not None else sub_dir / kind
-
-        stem = "_".join(f"{k}-{v}" for k, v in entities.items())
-        name = f"{stem}{ext}"
-
-        return BIDSPath(out_dir / name)
+        return self._derive_path(
+            area="stimuli",
+            entity_key="stim",
+            source=source,
+            kind=kind,
+            ext=ext,
+            entity_overrides=entity_overrides,
+        )
 
     def feature(
         self,
@@ -161,22 +179,14 @@ class _Build:
         Sets feat-<kind>, applies `entity_overrides`, and places the result
         under features/sub-XX/[ses-YY/]<kind>/ with `.parquet` extension.
         """
-        bp = source.with_entity("feat", kind)
-        for key, value in entity_overrides.items():
-            bp = bp.with_entity(key, value)
-
-        entities = bp.entities
-        sub = entities.get("sub")
-        ses = entities.get("ses")
-        if sub is None:
-            raise ValueError(f"source has no 'sub' entity: {source!r}")
-
-        sub_dir = _area_root(self._root, "features") / f"sub-{sub}"
-        out_dir = sub_dir / f"ses-{ses}" / kind if ses is not None else sub_dir / kind
-
-        stem = "_".join(f"{k}-{v}" for k, v in entities.items())
-        name = f"{stem}.parquet"
-        return BIDSPath(out_dir / name)
+        return self._derive_path(
+            area="features",
+            entity_key="feat",
+            source=source,
+            kind=kind,
+            ext=".parquet",
+            entity_overrides=entity_overrides,
+        )
 
 
 class _List:
