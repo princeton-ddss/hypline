@@ -1,21 +1,11 @@
 import shutil
 import tempfile
-from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
-from hypline.enums import Device
+from hypline.enums import Device, WhisperModel
 from hypline.layout import BIDSLayout
-
-
-class WhisperModel(StrEnum):
-    TINY = "tiny"
-    BASE = "base"
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE_V2 = "large-v2"
-    LARGE_V3 = "large-v3"
 
 
 class WhisperConfig(BaseModel):

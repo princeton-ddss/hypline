@@ -3,9 +3,7 @@ from typing import Annotated
 
 import typer
 
-from hypline.enums import Device
-from hypline.layout import BIDSLayout
-from hypline.transcriber import Transcriber, WhisperConfig, WhisperModel
+from hypline.enums import Device, WhisperModel
 
 from ._utils import split_csv
 
@@ -64,6 +62,9 @@ def transcribe(
     """
     Transcribe audio files using a Whisper ASR model.
     """
+    from hypline.layout import BIDSLayout
+    from hypline.transcriber import Transcriber, WhisperConfig
+
     resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
     resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
 
