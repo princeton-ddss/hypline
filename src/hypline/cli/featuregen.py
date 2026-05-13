@@ -34,6 +34,7 @@ def generate_phonemic_feature(
     bids_filters: Annotated[
         str | None,
         typer.Option(
+            "--data-filters",
             help="Comma-separated BIDS entity filters (e.g., run-2,run-4,cond-G)",
             show_default=False,
         ),
@@ -44,7 +45,7 @@ def generate_phonemic_feature(
     from hypline.layout import BIDSLayout
 
     resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
-    resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
+    resolved_bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     layout = BIDSLayout(bids_root)
 

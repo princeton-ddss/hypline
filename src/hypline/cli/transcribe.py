@@ -54,6 +54,7 @@ def transcribe(
     bids_filters: Annotated[
         str | None,
         typer.Option(
+            "--data-filters",
             help="Comma-separated BIDS entity filters (e.g., run-2,run-4,cond-G)",
             show_default=False,
         ),
@@ -66,7 +67,7 @@ def transcribe(
     from hypline.transcriber import Transcriber, WhisperConfig
 
     resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
-    resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
+    resolved_bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     layout = BIDSLayout(bids_root)
 
