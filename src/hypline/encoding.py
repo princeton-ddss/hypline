@@ -185,19 +185,17 @@ class Encoding:
         )
 
     def train(self, sub_id: str):
-        feature_paths = self._discover_features(sub_id)
+        feature_bids = self._discover_features(sub_id)
         bold_metas = self._discover_bold(sub_id)
-        feature_paths = self._resolve_cell_keys(sub_id, feature_paths, bold_metas)
-        feature_paths, bold_metas = self._apply_filters(
-            sub_id, feature_paths, bold_metas
-        )
-        self._validate_coverage(sub_id, feature_paths, bold_metas)
-        data = self._build_xy(sub_id, feature_paths, bold_metas)
+        feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
+        feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
+        self._validate_coverage(sub_id, feature_bids, bold_metas)
+        data = self._build_xy(sub_id, feature_bids, bold_metas)
 
         # TODO: modeling (banded ridge regression) goes here
         data
 
-    def _discover_features(self, sub_id: str) -> dict[FeatureKey, Path]:
+    def _discover_features(self, sub_id: str) -> dict[FeatureKey, BIDSPath]:
         """Discover and validate feature file paths for a subject.
 
         Scans the features directory by BIDS filename alone — no feature data is read.
@@ -205,12 +203,12 @@ class Encoding:
         post-enrichment in _apply_filters. Duplicate files for the same (cell, feature)
         pair raise immediately.
 
-        Returns a flat dict mapping each (cell, feature) pair to its path.
+        Returns a flat dict mapping each (cell, feature) pair to its BIDSPath.
         Every cell is guaranteed to have all requested features — a missing feature
         at any cell raises rather than silently producing an incomplete matrix.
         All files are guaranteed to share the same cell schema (entity key set).
         """
-        feature_paths: dict[FeatureKey, Path] = {}
+        feature_bids: dict[FeatureKey, BIDSPath] = {}
         for feature_name in self.features:
             feature_files = self._layout.find.features(sub=sub_id, kind=feature_name)
             if not feature_files:
@@ -228,60 +226,60 @@ class Encoding:
                     }
                 )
                 feature_key = FeatureKey(cell=cell_key, feature=feature_name)
-                if feature_key in feature_paths:
+                if feature_key in feature_bids:
                     loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
                     raise ValueError(
                         f"Multiple feature files for feature={feature_name}, {loc}:\n"
-                        f"  {feature_paths[feature_key]}\n  {bids.path}"
+                        f"  {feature_bids[feature_key].path}\n  {bids.path}"
                     )
-                feature_paths[feature_key] = bids.path
+                feature_bids[feature_key] = bids
 
         # Validate: all files share the same entity key set
         schema: frozenset[str] | None = None
         schema_path: Path | None = None
-        for feature_key, path in feature_paths.items():
+        for feature_key, bids in feature_bids.items():
             file_schema = feature_key.cell.keys()
             if schema is None:
-                schema, schema_path = file_schema, path
+                schema, schema_path = file_schema, bids.path
             elif file_schema != schema:
                 raise ValueError(
-                    f"Inconsistent feature file schemas:\n  {schema_path}\n  {path}"
+                    f"Inconsistent feature file schemas:\n"
+                    f"  {schema_path}\n  {bids.path}"
                 )
 
         # Validate: metadata is identical across files for each feature
         # (keys prefixed with '_' are exempt — reserved for per-file metadata)
         per_feature_meta: dict[str, tuple[dict, Path]] = {}
-        for feature_key, path in feature_paths.items():
+        for feature_key, bids in feature_bids.items():
             meta = {
                 key: val
-                for key, val in read_feature_metadata(path).items()
+                for key, val in read_feature_metadata(bids.path).items()
                 if not key.startswith("_")
             }
             feature_name = feature_key.feature
             if feature_name not in per_feature_meta:
-                per_feature_meta[feature_name] = (meta, path)
+                per_feature_meta[feature_name] = (meta, bids.path)
             elif per_feature_meta[feature_name][0] != meta:
                 ref_meta, ref_path = per_feature_meta[feature_name]
                 diff = "\n".join(f"    {line}" for line in _diff_meta(ref_meta, meta))
                 raise ValueError(
                     f"Inconsistent metadata for feature={feature_name}:\n"
-                    f"  {ref_path}\n  {path}\n  differing keys:\n{diff}"
+                    f"  {ref_path}\n  {bids.path}\n  differing keys:\n{diff}"
                 )
 
         # Validate: task entity is invariant across all files
-        feature_bids = [BIDSPath(path) for path in feature_paths.values()]
         try:
-            validate_entity_invariance(feature_bids, ("task",))
+            validate_entity_invariance(list(feature_bids.values()), ("task",))
         except ValueError as e:
             raise ValueError(f"{e} (subject {sub_id})") from e
 
         # Validate: all features present at every cell
         expected = {
             FeatureKey(cell_key, feature_name)
-            for cell_key in {feature_key.cell for feature_key in feature_paths}
+            for cell_key in {feature_key.cell for feature_key in feature_bids}
             for feature_name in self.features
         }
-        missing = expected - feature_paths.keys()
+        missing = expected - feature_bids.keys()
         if missing:
             feature_key = next(iter(missing))
             loc = _format_loc(sub=sub_id, **dict(feature_key.cell.items()))
@@ -290,7 +288,7 @@ class Encoding:
                 msg += f" ({len(missing) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-        return feature_paths
+        return feature_bids
 
     def _discover_bold(self, sub_id: str) -> dict[BoldKey, BoldMeta]:
         """Discover BOLD files and load their metadata for a subject.
@@ -387,9 +385,9 @@ class Encoding:
     def _resolve_cell_keys(
         self,
         sub_id: str,
-        feature_paths: dict[FeatureKey, Path],
+        feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
-    ) -> dict[FeatureKey, Path]:
+    ) -> dict[FeatureKey, BIDSPath]:
         """Validate and resolve feature CellKeys against BOLD segment metadata.
 
         For each feature cell, locates the matching BOLD run and segment, then
@@ -401,7 +399,7 @@ class Encoding:
         schema across runs, so resolved cells always end up with a uniform key set.
         """
         cell_keys_by_bold_key: dict[BoldKey, set[CellKey]] = {}
-        for feature_key in feature_paths:
+        for feature_key in feature_bids:
             bold_key = BoldKey(feature_key.cell.get("ses"), feature_key.cell.get("run"))
             cell_keys_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
 
@@ -419,8 +417,8 @@ class Encoding:
                 msg += f" ({len(orphan_bold_keys) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-        resolved_feature_paths: dict[FeatureKey, Path] = {}
-        for feature_key, path in feature_paths.items():
+        resolved_feature_bids: dict[FeatureKey, BIDSPath] = {}
+        for feature_key, bids in feature_bids.items():
             cell_key = feature_key.cell
             bold_key = BoldKey(cell_key.get("ses"), cell_key.get("run"))
             bold_meta = bold_metas[bold_key]
@@ -455,7 +453,7 @@ class Encoding:
                         f"events.tsv and add descriptive attributes to "
                         f"events.json Levels."
                     )
-                resolved_feature_paths[feature_key] = path
+                resolved_feature_bids[feature_key] = bids
                 continue
 
             segment_entity = bold_meta.segments[0].entity
@@ -528,20 +526,20 @@ class Encoding:
                 resolved_cell_key = CellKey(
                     **{**dict(cell_key.items()), **extra_metadata}
                 )
-                resolved_feature_paths[
+                resolved_feature_bids[
                     FeatureKey(cell=resolved_cell_key, feature=feature_key.feature)
-                ] = path
+                ] = bids
             else:
-                resolved_feature_paths[feature_key] = path
+                resolved_feature_bids[feature_key] = bids
 
-        return resolved_feature_paths
+        return resolved_feature_bids
 
     def _apply_filters(
         self,
         sub_id: str,
-        feature_paths: dict[FeatureKey, Path],
+        feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
-    ) -> tuple[dict[FeatureKey, Path], dict[BoldKey, BoldMeta]]:
+    ) -> tuple[dict[FeatureKey, BIDSPath], dict[BoldKey, BoldMeta]]:
         """Apply bids_filters to feature cells and BOLD runs.
 
         Filters are applied against CellKey entities for features, and against
@@ -552,7 +550,7 @@ class Encoding:
         empty-result condition surfaces as a coverage error.
         """
         if not self.bids_filters:
-            return feature_paths, bold_metas
+            return feature_bids, bold_metas
 
         # Group filter values by entity for matching later
         allowed_values_by_entity: dict[str, list[str]] = {}
@@ -563,7 +561,7 @@ class Encoding:
         # Collect entity key schema from both sides for typo detection
         cell_entity_keys = frozenset(
             entity_key
-            for feature_key in feature_paths
+            for feature_key in feature_bids
             for entity_key in feature_key.cell.keys()
         )
         bold_entity_keys = frozenset(
@@ -595,8 +593,8 @@ class Encoding:
             )
 
         filtered_features = {
-            feature_key: path
-            for feature_key, path in feature_paths.items()
+            feature_key: bids
+            for feature_key, bids in feature_bids.items()
             if _cell_matches(feature_key.cell)
         }
         filtered_bold = {
@@ -610,7 +608,7 @@ class Encoding:
     def _validate_coverage(
         self,
         sub_id: str,
-        feature_paths: dict[FeatureKey, Path],
+        feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> None:
         """Validate bidirectional ses/run coverage between filtered features and BOLD.
@@ -618,19 +616,20 @@ class Encoding:
         Also checks sub/task invariance across all feature and BOLD files.
         Raises if either side is empty — indicates filters selected nothing.
         """
-        if not feature_paths:
+        if not feature_bids:
             raise FileNotFoundError("No feature files match the given filters")
         if not bold_metas:
             raise FileNotFoundError("No BOLD files match the given filters")
 
-        feature_bids = [BIDSPath(path) for path in feature_paths.values()]
         bold_bids = [meta.bids for meta in bold_metas.values()]
         try:
-            validate_entity_invariance(feature_bids + bold_bids, ("sub", "task"))
+            validate_entity_invariance(
+                list(feature_bids.values()) + bold_bids, ("sub", "task")
+            )
         except ValueError as e:
             raise ValueError(f"{e} (subject {sub_id})") from e
 
-        cell_keys = {feature_key.cell for feature_key in feature_paths}
+        cell_keys = {feature_key.cell for feature_key in feature_bids}
         covered_bold_keys = {
             BoldKey(key.get("ses"), key.get("run")) for key in cell_keys
         }
@@ -666,7 +665,7 @@ class Encoding:
     def _build_xy(
         self,
         sub_id: str,
-        feature_paths: dict[FeatureKey, Path],
+        feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> TrainingData:
         """Assemble X and Y matrices for regression from feature files and BOLD arrays.
@@ -708,7 +707,7 @@ class Encoding:
             return (ses is not None, ses or "", run is not None, run or "", *rest)
 
         cell_keys = sorted(
-            {feature_key.cell for feature_key in feature_paths}, key=_sort_key
+            {feature_key.cell for feature_key in feature_bids}, key=_sort_key
         )
 
         X_parts: list[np.ndarray] = []
@@ -739,7 +738,7 @@ class Encoding:
             # Construct X for the given cell
             feature_arrays: list[np.ndarray] = []
             for feature_name in self.features:
-                df = read_feature(feature_paths[FeatureKey(cell_key, feature_name)])
+                df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
                 arr = resample_feature(
                     df,
                     n_trs=n_trs,
