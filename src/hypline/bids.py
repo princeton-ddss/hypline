@@ -13,7 +13,7 @@ _EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
 class BIDSPath:
     _entities: dict[str, str]
     _suffix: str | None
-    _extension: str
+    _ext: str
     _path: Path
 
     def __init__(self, path: str | os.PathLike[str]):
@@ -25,10 +25,10 @@ class BIDSPath:
         dot_idx = name.find(".")
         if dot_idx == -1:
             stem = name
-            self._extension = ""
+            self._ext = ""
         else:
             stem = name[:dot_idx]
-            self._extension = name[dot_idx:]
+            self._ext = name[dot_idx:]
 
         segments = stem.split("_")
         for i, segment in enumerate(segments):
@@ -60,8 +60,8 @@ class BIDSPath:
         return self._suffix
 
     @property
-    def extension(self) -> str:
-        return self._extension
+    def ext(self) -> str:
+        return self._ext
 
     @property
     def path(self) -> Path:
@@ -93,7 +93,7 @@ class BIDSPath:
         parts = [f"{k}-{v}" for k, v in entities.items()]
         if self._suffix:
             parts.append(self._suffix)
-        name = "_".join(parts) + self._extension
+        name = "_".join(parts) + self._ext
 
         return BIDSPath(self._path.with_name(name))
 

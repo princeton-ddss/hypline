@@ -102,7 +102,7 @@ class BoldMeta(NamedTuple):
 def _resolve_run_sidecar(
     bold_path: str | os.PathLike[str],
     suffix: str,
-    extension: str,
+    ext: str,
 ) -> Path:
     """Return the canonical run-level sidecar path for a BOLD file.
 
@@ -119,17 +119,17 @@ def _resolve_run_sidecar(
     bids = BIDSPath(bold_path)
     shared = {k: v for k, v in bids.entities.items() if k in _BOLD_IDENTITY_ENTITIES}
     stem = "_".join(f"{k}-{v}" for k, v in shared.items())
-    canonical = bids.path.parent / f"{stem}_{suffix}{extension}"
+    canonical = bids.path.parent / f"{stem}_{suffix}{ext}"
 
     misnamed = [
         p
-        for p in bids.path.parent.glob(f"*_{suffix}{extension}")
+        for p in bids.path.parent.glob(f"*_{suffix}{ext}")
         if p != canonical
         and all(BIDSPath(p).entities.get(k) == v for k, v in shared.items())
     ]
     if misnamed:
         raise ValueError(
-            f"Expected {canonical.name!r} but found unexpected {suffix}{extension} "
+            f"Expected {canonical.name!r} but found unexpected {suffix}{ext} "
             f"file(s) colocated with this BOLD run: "
             f"{[p.name for p in sorted(misnamed)]}. "
             "Rename to use identity entities only in canonical BIDS order."

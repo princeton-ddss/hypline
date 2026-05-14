@@ -17,18 +17,18 @@ class TestBIDSPathParsing:
         bp = BIDSPath("sub-01_ses-1_task-rest_bold.nii.gz")
         assert bp.entities == {"sub": "01", "ses": "1", "task": "rest"}
         assert bp.suffix == "bold"
-        assert bp.extension == ".nii.gz"
+        assert bp.ext == ".nii.gz"
 
     def test_entities_without_suffix(self):
         bp = BIDSPath("sub-01_ses-1.json")
         assert bp.entities == {"sub": "01", "ses": "1"}
         assert bp.suffix is None
-        assert bp.extension == ".json"
+        assert bp.ext == ".json"
 
     def test_no_extension(self):
         bp = BIDSPath("sub-01_ses-1_bold")
         assert bp.suffix == "bold"
-        assert bp.extension == ""
+        assert bp.ext == ""
 
     def test_single_entity_with_suffix(self):
         bp = BIDSPath("sub-01_bold.nii.gz")
@@ -53,7 +53,7 @@ class TestBIDSPathParsing:
             "desc": "clean",
         }
         assert bp.suffix == "bold"
-        assert bp.extension == ".func.gii"
+        assert bp.ext == ".func.gii"
 
     def test_path_preserved(self):
         bp = BIDSPath("/data/raw/sub-01/ses-1/sub-01_ses-1_bold.nii.gz")
@@ -88,7 +88,7 @@ class TestBIDSPathWithEntity:
         bp2 = bp.with_entity("desc", "clean")
         assert bp2.entities == {"sub": "01", "desc": "clean"}
         assert bp2.suffix == "bold"
-        assert bp2.extension == ".nii.gz"
+        assert bp2.ext == ".nii.gz"
 
     def test_replace_existing_entity(self):
         bp = BIDSPath("sub-01_ses-1_bold.nii")
