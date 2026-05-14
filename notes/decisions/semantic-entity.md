@@ -89,5 +89,5 @@ be finer than the intended segment entity. Single-entity-only makes the intent u
 without requiring tiling-strictness.
 
 See [feature-files.md](feature-files.md) for feature file naming conventions and `CellKey` rules.
-See [segment-metadata.md](segment-metadata.md) for the events.json `SegmentMetadata` format.
+See [segment-metadata.md](segment-metadata.md) for the events.json `trial_type.Levels` metadata format.
 See [../external/bids.md](../external/bids.md) for the BIDS entity reserved name list.

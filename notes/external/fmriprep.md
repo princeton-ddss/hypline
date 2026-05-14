@@ -25,10 +25,10 @@ sub-01_ses-01_task-movie_run-1_events.tsv
 `space`, `desc`, and other derivative-specific entities are **not** part of
 the events filename — events describe the stimulus, not the derivative.
 If events carry non-standard derivative entities (e.g. `..._space-X_desc-preproc_events.tsv`),
-`load_events` raises rather than silently ignoring them — it scans siblings in the same
-directory and raises if any share the run's identity entities but are not the canonical name.
-Files for a different run or subject are ignored. Only the canonical file is read; the raise
-is specifically for ambiguous same-run variants.
+hypline raises rather than silently ignoring them — siblings sharing the run's identity
+entities but not matching the canonical identity-only name are rejected. Files for a different
+run or subject are ignored. Only the canonical file is read; the raise is specifically for
+ambiguous same-run variants.
 
 ## Derivative variants
 

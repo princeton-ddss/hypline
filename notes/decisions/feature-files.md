@@ -29,8 +29,9 @@ sub-01_task-movie_run-1_trial-1_feat-clip.parquet           # sessionless
 Feature files live under `features/` — see [layout.md](layout.md) for the root tree.
 
 Feature files carry only structural identity — descriptive attributes (condition, stimulus
-item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not
-put descriptive entities on feature filenames; they belong in the sidecar.
+item, etc.) live in `events.json` under `trial_type.Levels` (per-segment `metadata`) and are
+joined at enrichment time. Do not put descriptive entities on feature filenames; they belong
+in the sidecar.
 
 Feature files do **not** carry a BIDS suffix (e.g., `_bold`). The `feat-<label>` entity
 already identifies the data type; a suffix would be redundant, and no standard BIDS suffix
@@ -46,7 +47,7 @@ feature files are not required to mirror them.
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
 
 - Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
-- Metadata entities from `events.json` `SegmentMetadata` (e.g. `cond=R`, `item=101`)
+- Metadata entities from `events.json` `trial_type.Levels` (e.g. `cond=R`, `item=101`)
 
 Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
 (invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
@@ -63,10 +64,10 @@ train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
 
 `events.json` is the authoritative source for descriptive metadata. Four cases:
 
-- Sidecar-only (key in `SegmentMetadata`, absent from filename): merged onto the resolved `CellKey`.
+- Sidecar-only (key in `trial_type.Levels` metadata, absent from filename): merged onto the resolved `CellKey`.
 - Both, same value: allowed; redundant but harmless.
 - Both, different value: raise — the two sources of truth disagree.
-- Filename-only descriptive (key absent from `SegmentMetadata`): raise, pointing user to events.json.
+- Filename-only descriptive (key absent from `trial_type.Levels` metadata): raise, pointing user to events.json.
 
 For unsegmented runs (no events.tsv key-value rows), only `ses` and `run` are valid on
 feature filenames — any other entity raises.
