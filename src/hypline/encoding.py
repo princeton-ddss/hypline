@@ -38,7 +38,7 @@ class CellKey:
     EXCLUDE defines which entities must never appear on a cell key:
     - sub, task, acq, ce, rec, dir: invariant across a training call
     - desc, res, den, echo: image-variant entities (BOLD derivatives only)
-    - space, feature: orthogonal axes — handled by dedicated arguments
+    - space, feat: orthogonal axes — handled by dedicated arguments
 
     Equality and hashing are order-independent.
     """
@@ -214,7 +214,7 @@ class Encoding:
             if not feature_files:
                 raise FileNotFoundError(
                     f"No matching feature files found for sub={sub_id}, "
-                    f"feature={feature_name}"
+                    f"feat={feature_name}"
                 )
 
             for bids in feature_files:
@@ -229,7 +229,7 @@ class Encoding:
                 if feature_key in feature_bids:
                     loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
                     raise ValueError(
-                        f"Multiple feature files for feature={feature_name}, {loc}:\n"
+                        f"Multiple feature files for feat={feature_name}, {loc}:\n"
                         f"  {feature_bids[feature_key].path}\n  {bids.path}"
                     )
                 feature_bids[feature_key] = bids
@@ -263,7 +263,7 @@ class Encoding:
                 ref_meta, ref_path = per_feature_meta[feature_name]
                 diff = "\n".join(f"    {line}" for line in _diff_meta(ref_meta, meta))
                 raise ValueError(
-                    f"Inconsistent metadata for feature={feature_name}:\n"
+                    f"Inconsistent metadata for feat={feature_name}:\n"
                     f"  {ref_path}\n  {bids.path}\n  differing keys:\n{diff}"
                 )
 
@@ -283,7 +283,7 @@ class Encoding:
         if missing:
             feature_key = next(iter(missing))
             loc = _format_loc(sub=sub_id, **dict(feature_key.cell.items()))
-            msg = f"Missing feature={feature_key.feature} at {loc}"
+            msg = f"Missing feat={feature_key.feature} at {loc}"
             if len(missing) > 1:
                 msg += f" ({len(missing) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)

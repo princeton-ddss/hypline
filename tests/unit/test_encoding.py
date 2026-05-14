@@ -102,7 +102,7 @@ class TestDiscoverFeatures:
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
         tree.add_feature(sub=SUB, task=TASK, kind="clip", run="1")
         enc = _make_encoding(tree, ["mfcc", "clip"])
-        with pytest.raises(FileNotFoundError, match="Missing feature=clip"):
+        with pytest.raises(FileNotFoundError, match="Missing feat=clip"):
             enc._discover_features(SUB)
 
     def test_task_invariance_violation_raises(self, tree: BIDSTree):
@@ -153,7 +153,7 @@ class TestDiscoverFeatures:
             sub=SUB, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Inconsistent metadata for feature=mfcc"):
+        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
             enc._discover_features(SUB)
 
     def test_inconsistent_metadata_diff_in_error_message(self, tree: BIDSTree):
@@ -193,7 +193,7 @@ class TestDiscoverFeatures:
             sub=SUB, task=TASK, kind="mfcc", run="3", metadata={"model": "v2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Inconsistent metadata for feature=mfcc"):
+        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
             enc._discover_features(SUB)
 
     def test_underscore_prefixed_keys_exempt_from_metadata_check(self, tree: BIDSTree):
