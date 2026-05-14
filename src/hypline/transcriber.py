@@ -1,23 +1,11 @@
-import os
 import shutil
 import tempfile
-from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, field_validator
 
-from hypline._utils import find_files, validate_dirs
-from hypline.bids import normalize_bids_filters
-from hypline.enums import Device
-
-
-class WhisperModel(StrEnum):
-    TINY = "tiny"
-    BASE = "base"
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE_V2 = "large-v2"
-    LARGE_V3 = "large-v3"
+from hypline.enums import Device, WhisperModel
+from hypline.layout import BIDSLayout
 
 
 class WhisperConfig(BaseModel):
@@ -43,8 +31,7 @@ class Transcriber:
         self,
         config: WhisperConfig,
         *,
-        input_dir: str | os.PathLike[str],
-        output_dir: str | os.PathLike[str],
+        layout: BIDSLayout,
         audio_ext: str,
         bids_filters: list[str] | None = None,
     ):
@@ -64,14 +51,9 @@ class Transcriber:
         assert config.model_dir is not None  # For type inference
 
         self.config = config
-
-        validate_dirs(input_dir, output_dir)
-        self._input_dir = Path(input_dir)
-        self._output_dir = Path(output_dir)
-
+        self._layout = layout
         self._audio_ext = audio_ext
-
-        self._bids_filters = normalize_bids_filters(bids_filters, reserved={"sub"})
+        self._bids_filters = bids_filters
 
         self._model = whisperx.load_model(
             whisper_arch=config.model,
@@ -92,10 +74,11 @@ class Transcriber:
         import polars as pl
         import whisperx
 
-        audio_files = find_files(
-            self._input_dir,
-            ends_with=self._audio_ext,
-            bids_filters=[f"sub-{sub_id}", *self._bids_filters],
+        audio_files = self._layout.find.stimuli(
+            sub=sub_id,
+            kind="audio",
+            ext=self._audio_ext,
+            bids_filters=self._bids_filters,
         )
 
         batch_size = self.config.batch_size
@@ -103,7 +86,7 @@ class Transcriber:
             batch_size = 16 if self.config.device is Device.CUDA else 1
 
         for audio_file in audio_files:
-            audio = whisperx.load_audio(str(audio_file))
+            audio = whisperx.load_audio(str(audio_file.path))
 
             result = self._model.transcribe(audio, batch_size=batch_size)
             result = whisperx.align(
@@ -122,5 +105,10 @@ class Transcriber:
                     "score": "confidence_score",
                 }
             )
-            output_file = self._output_dir / f"{audio_file.stem}.csv"
-            df.write_csv(output_file)
+            out = self._layout.build.stimulus(
+                source=audio_file,
+                kind="transcript",
+                ext=".csv",
+            )
+            out.path.parent.mkdir(parents=True, exist_ok=True)
+            df.write_csv(out.path)

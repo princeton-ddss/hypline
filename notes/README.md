@@ -47,3 +47,4 @@ AI agents alike. Agent-agnostic by design.
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`  |
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/encoding.md` |
+| Locating files in the BIDS tree        | `decisions/layout.md`, `external/bids.md`           |

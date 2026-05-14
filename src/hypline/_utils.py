@@ -11,6 +11,7 @@ def validate_dirs(*paths: str | os.PathLike[str]) -> None:
             raise FileNotFoundError(f"Directory does not exist: {path}")
 
 
+# TODO: drop after replacing all callsites with BIDSLayout
 def find_files(
     directory: str | os.PathLike[str],
     *,

@@ -3,34 +3,25 @@ from typing import Annotated
 
 import typer
 
-from hypline.enums import Device
-from hypline.transcriber import Transcriber, WhisperConfig, WhisperModel
+from hypline.enums import Device, WhisperModel
 
 from ._utils import split_csv
 
 
 def transcribe(
-    input_dir: Annotated[
+    bids_root: Annotated[
         Path,
         typer.Argument(
-            help="Directory containing audio files",
+            help="BIDS dataset root (contains stimuli/, features/, derivatives/)",
             show_default=False,
         ),
     ],
-    output_dir: Annotated[
-        Path,
-        typer.Argument(
-            help="Directory to store word-level transcripts (CSV files)",
-            show_default=False,
-        ),
-    ],
-    file_ext: Annotated[
+    audio_ext: Annotated[
         str,
-        typer.Argument(
-            help="Extension of the audio files (e.g., .wav)",
-            show_default=False,
+        typer.Option(
+            help="Extension of the audio files",
         ),
-    ],
+    ] = ".wav",
     model: Annotated[
         WhisperModel,
         typer.Option(
@@ -56,15 +47,14 @@ def transcribe(
     sub_ids: Annotated[
         str | None,
         typer.Option(
-            help="""
-            Comma-separated subject IDs to process (e.g., 01,02); omit to process all
-            """,
+            help="Comma-separated subject IDs to process (e.g., 01,02); omit for all",
             show_default=False,
         ),
     ] = None,
     bids_filters: Annotated[
         str | None,
         typer.Option(
+            "--data-filters",
             help="Comma-separated BIDS entity filters (e.g., run-2,run-4,cond-G)",
             show_default=False,
         ),
@@ -73,10 +63,13 @@ def transcribe(
     """
     Transcribe audio files using a Whisper ASR model.
     """
-    from hypline.bids import BIDSPath
+    from hypline.layout import BIDSLayout
+    from hypline.transcriber import Transcriber, WhisperConfig
 
     resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
-    resolved_bids_filters = split_csv(bids_filters, param_hint="--bids-filters")
+    resolved_bids_filters = split_csv(bids_filters, param_hint="--data-filters")
+
+    layout = BIDSLayout(bids_root)
 
     config = WhisperConfig(
         model=model,
@@ -86,19 +79,13 @@ def transcribe(
 
     transcriber = Transcriber(
         config,
-        input_dir=input_dir,
-        output_dir=output_dir,
-        audio_ext=file_ext,
+        layout=layout,
+        audio_ext=audio_ext,
         bids_filters=resolved_bids_filters,
     )
 
-    resolved_sub_ids = resolved_sub_ids or list(
-        {
-            BIDSPath(f).entities["sub"]
-            for f in input_dir.iterdir()
-            if f.is_file() and "sub" in BIDSPath(f).entities
-        }
-    )
+    # TODO: warn when no subjects found (pending logging setup)
+    resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")
 
     for sub_id in resolved_sub_ids:
         transcriber.transcribe(sub_id)

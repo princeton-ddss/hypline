@@ -1,13 +1,10 @@
-import os
 from importlib.resources import files
-from pathlib import Path
 
 import numpy as np
 import polars as pl
 
-from hypline._utils import find_files, validate_dirs
-from hypline.bids import BIDSPath, normalize_bids_filters
 from hypline.features._utils import save_feature
+from hypline.layout import BIDSLayout
 
 ARPABET_PHONEMES = [
     "B",
@@ -63,20 +60,15 @@ class PhonemicFeature:
     def __init__(
         self,
         *,
-        input_dir: str | os.PathLike[str],
-        output_dir: str | os.PathLike[str],
+        layout: BIDSLayout,
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
     ):
         self._load()
 
-        validate_dirs(input_dir, output_dir)
-        self._input_dir = Path(input_dir)
-        self._output_dir = Path(output_dir)
-
+        self._layout = layout
         self._use_articulatory = use_articulatory
-
-        self._bids_filters = normalize_bids_filters(bids_filters, reserved={"sub"})
+        self._bids_filters = bids_filters
 
     @classmethod
     def _load(cls):
@@ -113,14 +105,15 @@ class PhonemicFeature:
             else self._get_word_phoneme_vector
         )
 
-        transcripts = find_files(
-            self._input_dir,
-            ends_with=".csv",
-            bids_filters=[f"sub-{sub_id}", *self._bids_filters],
+        transcripts = self._layout.find.stimuli(
+            sub=sub_id,
+            kind="transcript",
+            ext=".csv",
+            bids_filters=self._bids_filters,
         )
 
         for transcript in transcripts:
-            df = pl.read_csv(transcript)
+            df = pl.read_csv(transcript.path)
             words = df.get_column("word").cast(pl.Utf8).str.strip_chars(PUNCTUATION)
             features = np.vstack([feature_fn(w) for w in words.to_list()])
             df = df.with_columns(
@@ -131,8 +124,9 @@ class PhonemicFeature:
                 )
             )
 
-            bids_path = BIDSPath(transcript).with_entity("feature", "phonemic")
-            out_path = self._output_dir / (bids_path.path.stem + ".parquet")
+            out = self._layout.build.feature(source=transcript, kind="phonemic")
+            out.path.parent.mkdir(parents=True, exist_ok=True)
+
             metadata = {
                 "use_articulatory": self._use_articulatory,
                 "dim_labels": (
@@ -141,7 +135,8 @@ class PhonemicFeature:
                     else ARPABET_PHONEMES
                 ),
             }
-            save_feature(df, out_path, metadata=metadata)
+
+            save_feature(df, out.path, metadata=metadata)
 
     def _get_word_phoneme_vector(self, word: str) -> np.ndarray:
         vec = np.zeros(len(ARPABET_PHONEMES))

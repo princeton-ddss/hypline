@@ -19,17 +19,20 @@ reads, `resample_feature` handles TR alignment.
 ## Naming
 
 Feature files carry **stimulus-side identity entities** from the source BOLD (`sub`, `ses`,
-`task`, `run`), the segment entity value (e.g. `trial-1`), and hypline's own `feature` entity:
+`task`, `run`), the segment entity value (e.g. `trial-1`), and hypline's own `feat` entity:
 
 ```
-sub-01_ses-01_task-movie_run-1_trial-1_feature-clip.parquet
+sub-01_ses-01_task-movie_run-1_trial-1_feat-clip.parquet   # with sessions
+sub-01_task-movie_run-1_trial-1_feat-clip.parquet           # sessionless
 ```
+
+Feature files live under `features/` — see [layout.md](layout.md) for the root tree.
 
 Feature files carry only structural identity — descriptive attributes (condition, stimulus
 item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not
 put descriptive entities on feature filenames; they belong in the sidecar.
 
-Feature files do **not** carry a BIDS suffix (e.g., `_bold`). The `feature-<label>` entity
+Feature files do **not** carry a BIDS suffix (e.g., `_bold`). The `feat-<label>` entity
 already identifies the data type; a suffix would be redundant, and no standard BIDS suffix
 exists for derived feature files. Feature path validation rejects any path with a suffix.
 
@@ -47,7 +50,7 @@ feature files are not required to mirror them.
 
 Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
 (invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
-derivatives), `space`, `feature` (orthogonal axes). Entities are present or absent — no
+derivatives), `space`, `feat` (orthogonal axes). Entities are present or absent — no
 `None` sentinel. Equality and hashing are order-independent.
 
 CV splits are expressed by querying `CellKey` entities:
@@ -87,7 +90,7 @@ don't map 1:1 to BOLD TRs.
 ## Parquet metadata
 
 Feature files carry a `hypline` JSON blob in the Parquet footer. Hypline reserves
-keys for feature-type identity (validated against the `feature` filename entity on
+keys for feature-type identity (validated against the `feat` filename entity on
 read) and package-version provenance; callers must not supply them.
 
 Caller-supplied keys should let a consumer reproduce the array — any generator

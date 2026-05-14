@@ -7,6 +7,7 @@ BIDS_ENTITY_KEY_RE = re.compile(r"^[a-z]+$")
 BIDS_ENTITY_VALUE_RE = re.compile(r"^[a-zA-Z0-9]+$")
 BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
 _BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
+_EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
 
 
 class BIDSPath:
@@ -77,6 +78,11 @@ class BIDSPath:
             ) from None
 
     def with_entity(self, key: str, value: str) -> "BIDSPath":
+        """Return a new BIDSPath with `key` set to `value`.
+
+        Existing keys keep their position; new keys are appended. Order is
+        preserved in the filename stem of derived paths.
+        """
         entity = f"{key}-{value}"
         if not BIDS_ENTITY_RE.match(entity):
             raise ValueError(f"Invalid BIDS entity: {entity!r}")
@@ -91,6 +97,19 @@ class BIDSPath:
 
         return BIDSPath(self._path.with_name(name))
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BIDSPath):
+            return NotImplemented
+        return self._path == other._path
+
+    def __hash__(self) -> int:
+        return hash(self._path)
+
+    def __lt__(self, other: "BIDSPath") -> bool:
+        if not isinstance(other, BIDSPath):
+            return NotImplemented
+        return self._path < other._path
+
     def __repr__(self) -> str:
         return f"BIDSPath({str(self._path)!r})"
 
@@ -99,6 +118,11 @@ def validate_bids_entities(*entities: str) -> None:
     for entity in entities:
         if not BIDS_ENTITY_RE.match(entity):
             raise ValueError(f"Invalid BIDS entity: {entity!r}")
+
+
+def validate_extension(ext: str) -> None:
+    if not _EXTENSION_RE.match(ext):
+        raise ValueError(f"Invalid extension: {ext!r}")
 
 
 def validate_entity_invariance(
@@ -128,3 +152,43 @@ def normalize_bids_filters(
                 "— use the dedicated argument instead"
             )
     return filters
+
+
+def find_bids_files(
+    directory: str | os.PathLike[str],
+    ext: str,
+    *,
+    suffix: str | None = None,
+    bids_filters: list[str] | None = None,
+    recursive: bool = False,
+) -> list[BIDSPath]:
+    """Find BIDS files under `directory` matching `suffix` and `ext`.
+
+    Non-parseable filenames are silently skipped. Filters sharing a key
+    are OR'd; filters with different keys are AND'd. `recursive=True`
+    descends into subdirectories. Results are sorted by path.
+    """
+    validate_extension(ext)
+    if bids_filters:
+        validate_bids_entities(*bids_filters)
+    directory = Path(directory)
+    ends_with = f"_{suffix}{ext}" if suffix is not None else ext
+
+    groups: dict[str, list[str]] = {}
+    for entity in bids_filters or ():
+        key, _, value = entity.partition("-")
+        groups.setdefault(key, []).append(value)
+
+    files = directory.rglob("*") if recursive else directory.iterdir()
+    results: list[BIDSPath] = []
+    for f in files:
+        if not (f.is_file() and f.name.endswith(ends_with)):
+            continue
+        try:
+            bp = BIDSPath(f)
+        except ValueError:
+            continue
+        if all(bp._entities.get(k) in vals for k, vals in groups.items()):
+            results.append(bp)
+
+    return sorted(results)

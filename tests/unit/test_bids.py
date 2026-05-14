@@ -2,7 +2,14 @@ from pathlib import Path
 
 import pytest
 
-from hypline.bids import BIDSPath, validate_bids_entities
+from hypline.bids import (
+    BIDSPath,
+    find_bids_files,
+    normalize_bids_filters,
+    validate_bids_entities,
+    validate_entity_invariance,
+    validate_extension,
+)
 
 
 class TestBIDSPathParsing:
@@ -104,6 +111,18 @@ class TestBIDSPathWithEntity:
         _ = bp.with_entity("ses", "2")
         assert bp.ses == "1"
 
+    def test_new_entity_appended_at_end(self):
+        bp = BIDSPath("sub-01_ses-1_bold.nii")
+        bp2 = bp.with_entity("desc", "clean")
+        assert list(bp2.entities) == ["sub", "ses", "desc"]
+        assert bp2.path.name == "sub-01_ses-1_desc-clean_bold.nii"
+
+    def test_replaced_entity_keeps_position(self):
+        bp = BIDSPath("sub-01_ses-1_run-1_bold.nii")
+        bp2 = bp.with_entity("ses", "2")
+        assert list(bp2.entities) == ["sub", "ses", "run"]
+        assert bp2.path.name == "sub-01_ses-2_run-1_bold.nii"
+
     def test_with_entity_invalid_value(self):
         bp = BIDSPath("sub-01_bold.nii")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
@@ -140,6 +159,168 @@ class TestBIDSPathRepr:
     def test_repr(self):
         bp = BIDSPath("sub-01_bold.nii")
         assert repr(bp) == "BIDSPath('sub-01_bold.nii')"
+
+
+class TestBIDSPathComparison:
+    def test_equal_same_path(self):
+        assert BIDSPath("sub-01_bold.nii") == BIDSPath("sub-01_bold.nii")
+
+    def test_not_equal_different_path(self):
+        assert BIDSPath("sub-01_bold.nii") != BIDSPath("sub-02_bold.nii")
+
+    def test_hashable_in_set(self):
+        bp1 = BIDSPath("sub-01_bold.nii")
+        bp2 = BIDSPath("sub-01_bold.nii")
+        assert len({bp1, bp2}) == 1
+
+    def test_sortable(self):
+        bp1 = BIDSPath("sub-01_bold.nii")
+        bp2 = BIDSPath("sub-02_bold.nii")
+        assert bp1 < bp2
+        assert sorted([bp2, bp1]) == [bp1, bp2]
+
+    def test_lt_raises_for_non_bidspath(self):
+        bp = BIDSPath("sub-01_bold.nii")
+        with pytest.raises(TypeError):
+            _ = bp < "not-a-bidspath"  # type: ignore[arg-type]
+
+    def test_eq_returns_not_implemented_for_non_bidspath(self):
+        bp = BIDSPath("sub-01_bold.nii")
+        assert bp.__eq__("not-a-bidspath") is NotImplemented
+
+    def test_hash_consistent_with_eq(self):
+        bp1 = BIDSPath("sub-01_bold.nii")
+        bp2 = BIDSPath("sub-01_bold.nii")
+        assert bp1 == bp2
+        assert hash(bp1) == hash(bp2)
+
+
+class TestValidateExtension:
+    def test_valid_single(self):
+        validate_extension(".nii")
+
+    def test_valid_compound(self):
+        validate_extension(".nii.gz")
+        validate_extension(".func.gii")
+
+    def test_invalid_no_dot(self):
+        with pytest.raises(ValueError, match="Invalid extension"):
+            validate_extension("nii")
+
+    def test_invalid_dot_only(self):
+        with pytest.raises(ValueError, match="Invalid extension"):
+            validate_extension(".")
+
+    def test_invalid_special_chars(self):
+        with pytest.raises(ValueError, match="Invalid extension"):
+            validate_extension(".nii!")
+
+
+class TestNormalizeBidsFilters:
+    def test_returns_list_copy(self):
+        orig = ["sub-01"]
+        result = normalize_bids_filters(orig)
+        assert result == orig
+        assert result is not orig
+
+    def test_none_returns_empty_list(self):
+        assert normalize_bids_filters(None) == []
+
+    def test_rejects_invalid_entity(self):
+        with pytest.raises(ValueError, match="Invalid BIDS entity"):
+            normalize_bids_filters(["BAD"])
+
+    def test_rejects_reserved_key(self):
+        with pytest.raises(ValueError, match="sub"):
+            normalize_bids_filters(["sub-01"], reserved=["sub"])
+
+    def test_allows_non_reserved(self):
+        result = normalize_bids_filters(["task-rest", "ses-1"], reserved=["sub"])
+        assert result == ["task-rest", "ses-1"]
+
+
+class TestValidateEntityInvariance:
+    def test_passes_when_consistent(self):
+        paths = [BIDSPath("sub-01_ses-1_bold.nii"), BIDSPath("sub-01_ses-1_bold.nii")]
+        validate_entity_invariance(paths, ["sub", "ses"])
+
+    def test_raises_on_mismatch(self):
+        paths = [BIDSPath("sub-01_bold.nii"), BIDSPath("sub-02_bold.nii")]
+        with pytest.raises(ValueError, match="sub"):
+            validate_entity_invariance(paths, ["sub"])
+
+    def test_includes_none_in_display(self):
+        paths = [BIDSPath("sub-01_ses-1_bold.nii"), BIDSPath("sub-01_bold.nii")]
+        with pytest.raises(ValueError, match="ses"):
+            validate_entity_invariance(paths, ["ses"])
+
+
+class TestFindBidsFiles:
+    def test_finds_matching_files(self, tmp_path: Path):
+        (tmp_path / "sub-01_task-rest_bold.nii.gz").touch()
+        results = find_bids_files(tmp_path, ".nii.gz")
+        assert len(results) == 1
+        assert results[0].sub == "01"
+
+    def test_suffix_filter(self, tmp_path: Path):
+        (tmp_path / "sub-01_bold.nii.gz").touch()
+        (tmp_path / "sub-01_mask.nii.gz").touch()
+        results = find_bids_files(tmp_path, ".nii.gz", suffix="bold")
+        assert len(results) == 1
+        assert results[0].suffix == "bold"
+
+    def test_bids_filter_and(self, tmp_path: Path):
+        (tmp_path / "sub-01_task-rest_bold.nii.gz").touch()
+        (tmp_path / "sub-02_task-conv_bold.nii.gz").touch()
+        results = find_bids_files(
+            tmp_path, ".nii.gz", bids_filters=["sub-01", "task-rest"]
+        )
+        assert len(results) == 1
+        assert results[0].sub == "01"
+
+    def test_bids_filter_or_within_key(self, tmp_path: Path):
+        (tmp_path / "sub-01_bold.nii.gz").touch()
+        (tmp_path / "sub-02_bold.nii.gz").touch()
+        (tmp_path / "sub-03_bold.nii.gz").touch()
+        results = find_bids_files(
+            tmp_path, ".nii.gz", bids_filters=["sub-01", "sub-02"]
+        )
+        assert len(results) == 2
+
+    def test_bids_filter_and_with_or(self, tmp_path: Path):
+        (tmp_path / "sub-01_task-rest_bold.nii.gz").touch()
+        (tmp_path / "sub-02_task-rest_bold.nii.gz").touch()
+        (tmp_path / "sub-01_task-conv_bold.nii.gz").touch()
+        results = find_bids_files(
+            tmp_path, ".nii.gz", bids_filters=["sub-01", "sub-02", "task-rest"]
+        )
+        assert len(results) == 2
+        assert all(f.task == "rest" for f in results)
+
+    def test_skips_non_parseable(self, tmp_path: Path):
+        (tmp_path / "README.txt").touch()
+        (tmp_path / "sub-01_bold.nii.gz").touch()
+        results = find_bids_files(tmp_path, ".nii.gz")
+        assert len(results) == 1
+
+    def test_recursive(self, tmp_path: Path):
+        dir = tmp_path / "sub-01" / "func"
+        dir.mkdir(parents=True)
+        (dir / "sub-01_bold.nii.gz").touch()
+        assert find_bids_files(tmp_path, ".nii.gz") == []
+        results = find_bids_files(tmp_path, ".nii.gz", recursive=True)
+        assert len(results) == 1
+
+    def test_invalid_extension_raises(self, tmp_path: Path):
+        with pytest.raises(ValueError, match="Invalid extension"):
+            find_bids_files(tmp_path, "nii.gz")
+
+    def test_returns_sorted(self, tmp_path: Path):
+        (tmp_path / "sub-02_bold.nii.gz").touch()
+        (tmp_path / "sub-01_bold.nii.gz").touch()
+        results = find_bids_files(tmp_path, ".nii.gz")
+        assert len(results) == 2
+        assert results == sorted(results)
 
 
 class TestValidateBidsEntities:

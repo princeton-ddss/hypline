@@ -1,4 +1,3 @@
-import os
 import reprlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,7 +6,6 @@ from typing import Iterator, NamedTuple
 import numpy as np
 from pydantic import BaseModel
 
-from hypline._utils import find_files, validate_dirs
 from hypline.bids import (
     BIDSPath,
     normalize_bids_filters,
@@ -26,6 +24,7 @@ from hypline.features._utils import (
     read_feature_metadata,
     resample_feature,
 )
+from hypline.layout import BIDSLayout
 
 
 class BoldKey(NamedTuple):
@@ -57,7 +56,7 @@ class CellKey:
             "den",
             "echo",
             "space",
-            "feature",
+            "feat",
         )
     )
     __slots__ = ("_entities",)
@@ -158,9 +157,7 @@ class Encoding:
         self,
         config: EncodingConfig,
         *,
-        features_dir: str | os.PathLike[str],
-        bold_dir: str | os.PathLike[str],
-        output_dir: str | os.PathLike[str],
+        layout: BIDSLayout,
         features: list[str],
         bold_space: str,
         downsample: str | Downsample = "mean",
@@ -171,11 +168,7 @@ class Encoding:
         if config.device is Device.CUDA and not torch.cuda.is_available():
             raise RuntimeError("CUDA is requested but not available")
         self.config = config
-
-        validate_dirs(features_dir, bold_dir, output_dir)
-        self.features_dir = Path(features_dir)
-        self.bold_dir = Path(bold_dir)
-        self.output_dir = Path(output_dir)
+        self._layout = layout
 
         if not features:
             raise ValueError("features must be a non-empty list")
@@ -188,7 +181,7 @@ class Encoding:
         self.downsample = Downsample(downsample)
 
         self.bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "space", "feature"}
+            bids_filters, reserved={"sub", "space", "feat"}
         )
 
     def train(self, sub_id: str):
@@ -219,20 +212,14 @@ class Encoding:
         """
         feature_paths: dict[FeatureKey, Path] = {}
         for feature_name in self.features:
-            feature_files = find_files(
-                self.features_dir,
-                ends_with=".parquet",
-                recursive=True,
-                bids_filters=[f"sub-{sub_id}", f"feature-{feature_name}"],
-            )
+            feature_files = self._layout.find.features(sub=sub_id, kind=feature_name)
             if not feature_files:
                 raise FileNotFoundError(
                     f"No matching feature files found for sub={sub_id}, "
-                    f"feature={feature_name} in {self.features_dir}"
+                    f"feature={feature_name}"
                 )
 
-            for feature_file in feature_files:
-                bids = BIDSPath(feature_file)
+            for bids in feature_files:
                 cell_key = CellKey(
                     **{
                         key: val
@@ -245,9 +232,9 @@ class Encoding:
                     loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
                     raise ValueError(
                         f"Multiple feature files for feature={feature_name}, {loc}:\n"
-                        f"  {feature_paths[feature_key]}\n  {feature_file}"
+                        f"  {feature_paths[feature_key]}\n  {bids.path}"
                     )
-                feature_paths[feature_key] = feature_file
+                feature_paths[feature_key] = bids.path
 
         # Validate: all files share the same entity key set
         schema: frozenset[str] | None = None
@@ -315,21 +302,23 @@ class Encoding:
         unsegmented).
         """
         bold_ext = BOLD_EXTENSIONS[type(self.bold_space)]
-        bold_files = find_files(
-            self.bold_dir,
-            ends_with=f"_bold{bold_ext}",
-            recursive=True,
-            bids_filters=[f"sub-{sub_id}", f"space-{self.bold_space}"],
+        bold_files = self._layout.find.fmriprep(
+            sub=sub_id,
+            suffix="bold",
+            ext=bold_ext,
+            bids_filters=[
+                f"space-{self.bold_space}",
+                "desc-clean",  # hardcoded until parameterization is needed
+            ],
         )
         if not bold_files:
             raise FileNotFoundError(
-                f"No BOLD files found for sub={sub_id}, space={self.bold_space} "
-                f"in {self.bold_dir}"
+                f"No BOLD files found for sub={sub_id}, space={self.bold_space}, "
+                f"desc=clean"
             )
 
         bold_metas: dict[BoldKey, BoldMeta] = {}
-        for bold_file in bold_files:
-            bids = BIDSPath(bold_file)
+        for bids in bold_files:
             bold_key = BoldKey(
                 ses=bids.entities.get("ses"),
                 run=bids.entities.get("run"),
@@ -338,10 +327,10 @@ class Encoding:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(
                     f"Duplicate BOLD file at {loc}:\n"
-                    f"  {bold_metas[bold_key].bids.path}\n  {bold_file}"
+                    f"  {bold_metas[bold_key].bids.path}\n  {bids.path}"
                 )
             try:
-                bold_metas[bold_key] = load_bold_meta(bold_file)
+                bold_metas[bold_key] = load_bold_meta(bids.path)
             except ValueError as e:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e

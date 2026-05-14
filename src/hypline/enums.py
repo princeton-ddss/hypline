@@ -6,6 +6,15 @@ class Device(StrEnum):
     CUDA = "cuda"
 
 
+class WhisperModel(StrEnum):
+    TINY = "tiny"
+    BASE = "base"
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE_V2 = "large-v2"
+    LARGE_V3 = "large-v3"
+
+
 class SurfaceSpace(StrEnum):
     FS_AVERAGE_5 = "fsaverage5"
     FS_AVERAGE_6 = "fsaverage6"
