@@ -26,9 +26,7 @@ sub-01_ses-01_task-movie_run-1_trial-1_feat-clip.parquet   # with sessions
 sub-01_task-movie_run-1_trial-1_feat-clip.parquet           # sessionless
 ```
 
-Feature files live under `features/sub-XX/[ses-YY/]<kind>/` where `<kind>` matches the
-`feat-<kind>` entity on the filename (e.g. `features/sub-01/ses-01/phonemic/`). See
-[layout.md](layout.md) for the full root tree.
+Feature files live under `features/` — see [layout.md](layout.md) for the root tree.
 
 Feature files carry only structural identity — descriptive attributes (condition, stimulus
 item, etc.) live in `events.json` under `SegmentMetadata` and are joined at enrichment time. Do not

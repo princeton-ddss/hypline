@@ -23,28 +23,20 @@ CLI commands take a single `<bids_root>`; path resolution is centralized.
 Two terms name directory levels below `sub-XX/ses-YY/` and must not be conflated:
 
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
-- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript`. For `features/`: `phonemic`, `semantic`. Matches the `feat-<kind>` entity on feature filenames.
+- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames).
 
-## Cleaned BOLD contract
+## Post-processed BOLD placement
 
-Cleaned BOLD lives **in-tree** under the fmriprep derivatives:
+Post-processed BOLD (e.g. cleaned) lives in-tree alongside fmriprep outputs:
 
 ```
 <root>/derivatives/fmriprep/sub-XX/ses-YY/func/
-    sub-XX_ses-YY_..._desc-clean_bold.nii.gz
+    sub-XX_ses-YY_..._desc-<label>_bold.nii.gz
 ```
 
-Any tool that writes cleaned BOLD must write to this location. The historical
-convention (sibling tree `<fmriprep_dir>_cleaned/`) is deprecated and must not
-be used for new writes.
-
-## Area presence guarantees
-
-- `sub-XX/`, `derivatives/fmriprep/` — assumed present; commands that require
-  them raise if absent.
-- `stimuli/`, `features/` — may be absent on first run; the command that
-  creates outputs (`featuregen`, `transcribe`) materializes the directory before
-  writing.
+Post-processing is a continuation of the fmriprep pipeline and shares its
+identity entities, so outputs belong in the same derivatives tree rather than
+a parallel one.
 
 See [../external/bids.md](../external/bids.md) for BIDS entity conventions.
 See [feature-files.md](feature-files.md) for feature file naming and path conventions.

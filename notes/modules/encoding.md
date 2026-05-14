@@ -105,9 +105,6 @@ before any empty-result `FileNotFoundError`.
 
 ## Assumptions that could break
 
-- **Cleaned BOLD lives in-tree** under `derivatives/fmriprep/.../desc-clean_bold.nii.gz`.
-  The historical sibling-tree convention is deprecated. See
-  [../decisions/layout.md](../decisions/layout.md).
 - **Consistent TR across all runs** for a subject. Mixed-TR datasets would
   need per-run TR handling.
 - **Feature files mirror BOLD identity entities.** See
