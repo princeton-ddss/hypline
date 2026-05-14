@@ -68,12 +68,13 @@ BIDS sidecars fall into two naming categories that hypline handles via separate 
   data file they describe — including non-identity entities like `space`, `desc`. Resolved
   by stripping the imaging extension and swapping in `.json`. A run with multiple BOLD
   variants (different `space`, `desc`) has multiple `*_bold.json` files, one per variant.
-  Implemented in `bold.get_repetition_time`.
+  TR is read per-BOLD rather than once per dataset — BIDS permits it to vary across
+  runs/variants, and hypline does not assume a study-wide value.
 
 - **Run-level sidecars** (e.g. `*_events.tsv`, `*_events.json`, `*_physio.tsv.gz`). Named
   using identity entities only (`sub`, `ses`, `task`, `acq`, `ce`, `rec`, `dir`, `run`) —
   describe the source data, invariant across `space`/`desc`/etc. One sidecar per run,
-  shared by all derived variants. Implemented in `bold._resolve_run_sidecar`.
+  shared by all derived variants.
 
 The discrepancy is mandated by BIDS (events.tsv may not carry `space`, `desc`, etc.; per-file
 sidecars must mirror their target file). Conflating the two would either over-restrict
