@@ -199,7 +199,7 @@ class Encoding:
         """Discover and validate feature file paths for a subject.
 
         Scans the features directory by BIDS filename alone — no feature data is read.
-        Only sub and feature are used to filter find_files; bids_filters are applied
+        Only sub and feature are used as structural filters; bids_filters are applied
         post-enrichment in _apply_filters. Duplicate files for the same (cell, feature)
         pair raise immediately.
 

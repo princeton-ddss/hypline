@@ -72,9 +72,9 @@ root cause and rerun.
 Feature I/O utilities (`read_feature`, `resample_feature`, `save_feature`) are
 exposed from `hypline.features`. Import from the package root, not submodules.
 
-`find_files` is called with `recursive=True` throughout encoding discovery. This is
-intentional — fMRIPrep derivatives are often organized in per-subject subdirectories
-(`sub-01/func/`), so flat-directory search would miss them.
+Feature and BOLD discovery uses `BIDSLayout` (see `hypline.layout`), which walks the
+derivatives tree recursively. This handles fMRIPrep's per-subject subdirectories
+(`sub-01/func/`) without flat-directory blind spots.
 
 ## `bids_filters` routing
 
@@ -84,15 +84,15 @@ nor `_discover_bold` apply user filters — both use only hard-coded structural 
 (`sub`, `feat`, `space`).
 
 Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
-to `find_files`. Applying all filters uniformly post-resolution ensures consistent behaviour
-whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
+to `BIDSLayout` queries. Applying all filters uniformly post-resolution ensures consistent
+behaviour whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
 
 - **Reserved entities** (`sub`, `space`, `feat`): rejected at construction — use the
   dedicated arguments instead.
 
 **Match semantics:** multiple filters sharing the same entity key OR-match within that group;
 different entity keys AND-match across groups (e.g. `["task-rest", "task-nback", "ses-1"]`
-selects runs where task is rest or nback, AND session is 1). This mirrors `find_files` behaviour.
+selects runs where task is rest or nback, AND session is 1).
 
 **Asymmetric schemas:** feature cells and BOLD files do not share the same entity key set
 (e.g. `task` is excluded from `CellKey` but present on BOLD filenames). A filter key absent
