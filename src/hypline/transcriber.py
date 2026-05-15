@@ -105,7 +105,7 @@ class Transcriber:
                     "score": "confidence_score",
                 }
             )
-            out = self._layout.build.stimulus(
+            out = self._layout.path.stimulus(
                 source=audio_file,
                 kind="transcript",
                 ext=".csv",

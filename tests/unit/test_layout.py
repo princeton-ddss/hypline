@@ -258,11 +258,11 @@ class TestFindFmriprep:
         assert results == sorted(results)
 
 
-class TestBuildStimulus:
+class TestPathStimulus:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
-        out = layout.build.stimulus(kind="transcript", source=source, ext=".csv")
+        out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert out.entities.get("stim") == "transcript"
         assert out.path.name.endswith(".csv")
         assert "stimuli" in out.path.parts
@@ -272,7 +272,7 @@ class TestBuildStimulus:
     def test_applies_entity_override(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
-        out = layout.build.stimulus(
+        out = layout.path.stimulus(
             kind="transcript", source=source, ext=".csv", run="02"
         )
         assert out.entities.get("run") == "02"
@@ -281,12 +281,12 @@ class TestBuildStimulus:
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"ses-{SES}_task-{TASK}_stim-audio.wav")
         with pytest.raises(ValueError, match="sub"):
-            layout.build.stimulus(kind="transcript", source=source, ext=".csv")
+            layout.path.stimulus(kind="transcript", source=source, ext=".csv")
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
-        out = layout.build.stimulus(kind="transcript", source=source, ext=".csv")
+        out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert "stimuli" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
         assert not any(p.startswith("ses-") for p in out.path.parts)
@@ -295,7 +295,7 @@ class TestBuildStimulus:
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_ses-{SES}_task-{TASK}_stim-audio.wav")
-        out = layout.build.stimulus(kind="transcript", source=source, ext=".csv")
+        out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert "stimuli" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
         assert f"ses-{SES}" in out.path.parts
@@ -305,22 +305,22 @@ class TestBuildStimulus:
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
         with pytest.raises(ValueError, match="extension"):
-            layout.build.stimulus(kind="transcript", source=source, ext="csv")
+            layout.path.stimulus(kind="transcript", source=source, ext="csv")
 
     def test_invalid_override_value_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
-            layout.build.stimulus(
+            layout.path.stimulus(
                 kind="transcript", source=source, ext=".csv", run="BAD!"
             )
 
 
-class TestBuildFeature:
+class TestPathFeature:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
-        out = layout.build.feature(source=source, kind="phonemic")
+        out = layout.path.feature(source=source, kind="phonemic")
         assert out.entities.get("feat") == "phonemic"
         assert out.path.suffix == ".parquet"
         assert "features" in out.path.parts
@@ -330,19 +330,19 @@ class TestBuildFeature:
     def test_applies_entity_override(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
-        out = layout.build.feature(source=source, kind="phonemic", desc="gpt3")
+        out = layout.path.feature(source=source, kind="phonemic", desc="gpt3")
         assert out.entities.get("desc") == "gpt3"
 
     def test_raises_if_source_missing_sub(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"ses-{SES}_task-{TASK}_stim-transcript.csv")
         with pytest.raises(ValueError, match="sub"):
-            layout.build.feature(source=source, kind="phonemic")
+            layout.path.feature(source=source, kind="phonemic")
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
-        out = layout.build.feature(source=source, kind="phonemic")
+        out = layout.path.feature(source=source, kind="phonemic")
         assert "features" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
         assert not any(p.startswith("ses-") for p in out.path.parts)
@@ -351,7 +351,7 @@ class TestBuildFeature:
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_ses-{SES}_task-{TASK}_stim-transcript.csv")
-        out = layout.build.feature(source=source, kind="phonemic")
+        out = layout.path.feature(source=source, kind="phonemic")
         assert "features" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
         assert f"ses-{SES}" in out.path.parts
@@ -361,7 +361,7 @@ class TestBuildFeature:
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
-            layout.build.feature(source=source, kind="phonemic", desc="BAD!")
+            layout.path.feature(source=source, kind="phonemic", desc="BAD!")
 
 
 class TestListSubjects:

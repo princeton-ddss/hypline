@@ -124,7 +124,7 @@ class PhonemicFeature:
                 )
             )
 
-            out = self._layout.build.feature(source=transcript, kind="phonemic")
+            out = self._layout.path.feature(source=transcript, kind="phonemic")
             out.path.parent.mkdir(parents=True, exist_ok=True)
 
             metadata = {

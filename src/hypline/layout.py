@@ -113,7 +113,7 @@ class _Find:
         return sorted(results)
 
 
-class _Build:
+class _Path:
     def __init__(self, root: Path):
         self._root = root
 
@@ -232,5 +232,5 @@ class BIDSLayout:
         if not self._root.exists():
             raise FileNotFoundError(f"bids_root does not exist: {self._root}")
         self.find = _Find(self._root)
-        self.build = _Build(self._root)
+        self.path = _Path(self._root)
         self.list = _List(self._root)
