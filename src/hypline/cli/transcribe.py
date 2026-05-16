@@ -19,9 +19,10 @@ def transcribe(
     audio_ext: Annotated[
         str,
         typer.Option(
-            help="Extension of the audio files",
+            help="Extension of the audio files (e.g., .wav)",
+            show_default=False,
         ),
-    ] = ".wav",
+    ],
     model: Annotated[
         WhisperModel,
         typer.Option(
