@@ -55,7 +55,10 @@ def transcribe(
         str | None,
         typer.Option(
             "--data-filters",
-            help="Comma-separated BIDS entity filters (e.g., run-2,run-4,cond-G)",
+            help="""
+            Comma-separated BIDS entity filters; same-entity values OR'd, different
+            entities AND'd (e.g., run-2,run-4,cond-G → (run=2 OR run=4) AND cond=G)
+            """,
             show_default=False,
         ),
     ] = None,
