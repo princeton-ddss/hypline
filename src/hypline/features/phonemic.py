@@ -2,6 +2,7 @@ from importlib.resources import files
 
 import numpy as np
 import polars as pl
+from loguru import logger
 
 from hypline.features._utils import save_feature
 from hypline.layout import BIDSLayout
@@ -113,6 +114,7 @@ class PhonemicFeature:
         )
 
         for transcript in transcripts:
+            logger.info("Generating phonemic features for {}", transcript.path.name)
             df = pl.read_csv(transcript.path)
             words = df.get_column("word").cast(pl.Utf8).str.strip_chars(PUNCTUATION)
             features = np.vstack([feature_fn(w) for w in words.to_list()])
@@ -137,6 +139,7 @@ class PhonemicFeature:
             }
 
             save_feature(df, out.path, metadata=metadata)
+            logger.debug("Wrote phonemic feature to {}", out.path)
 
     def _get_word_phoneme_vector(self, word: str) -> np.ndarray:
         vec = np.zeros(len(ARPABET_PHONEMES))

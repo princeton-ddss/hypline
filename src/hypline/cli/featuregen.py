@@ -2,8 +2,9 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from loguru import logger
 
-from ._utils import split_csv
+from ._utils import split_csv, subject_log
 
 app = typer.Typer()
 
@@ -58,8 +59,12 @@ def generate_phonemic_feature(
         bids_filters=resolved_bids_filters,
     )
 
-    # TODO: warn when no subjects found (pending logging setup)
     resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")
 
+    if not resolved_sub_ids:
+        logger.warning("No subjects found — nothing to generate")
+        return
+
     for sub_id in resolved_sub_ids:
-        feature.generate(sub_id)
+        with subject_log(bids_root, "featuregen", "phonemic", sub_id=sub_id):
+            feature.generate(sub_id)

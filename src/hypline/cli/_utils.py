@@ -1,6 +1,9 @@
+from contextlib import contextmanager
 from multiprocessing import Process
+from pathlib import Path
 
 import typer
+from loguru import logger
 
 
 def split_csv(value: str | None, param_hint: str | None = None) -> list[str] | None:
@@ -16,6 +19,17 @@ def split_csv(value: str | None, param_hint: str | None = None) -> list[str] | N
     if len(items) != len(set(items)):
         raise typer.BadParameter("duplicate values not allowed", param_hint=param_hint)
     return items
+
+
+@contextmanager
+def subject_log(bids_root: Path, *command_parts: str, sub_id: str):
+    log_path = bids_root / "logs" / Path(*command_parts) / f"sub-{sub_id}.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    sink_id = logger.add(log_path, level="DEBUG", rotation="5 MB", retention=1)
+    try:
+        yield
+    finally:
+        logger.remove(sink_id)
 
 
 class DillProcess(Process):

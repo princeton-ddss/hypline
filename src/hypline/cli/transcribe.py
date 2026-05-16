@@ -2,10 +2,11 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from loguru import logger
 
 from hypline.enums import Device, WhisperModel
 
-from ._utils import split_csv
+from ._utils import split_csv, subject_log
 
 
 def transcribe(
@@ -88,8 +89,12 @@ def transcribe(
         bids_filters=resolved_bids_filters,
     )
 
-    # TODO: warn when no subjects found (pending logging setup)
     resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")
 
+    if not resolved_sub_ids:
+        logger.warning("No subjects found — nothing to transcribe")
+        return
+
     for sub_id in resolved_sub_ids:
-        transcriber.transcribe(sub_id)
+        with subject_log(bids_root, "transcribe", sub_id=sub_id):
+            transcriber.transcribe(sub_id)

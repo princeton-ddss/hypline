@@ -2,6 +2,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from loguru import logger
 from pydantic import BaseModel, field_validator
 
 from hypline.enums import Device, WhisperModel
@@ -86,6 +87,7 @@ class Transcriber:
             batch_size = 16 if self.config.device is Device.CUDA else 1
 
         for audio_file in audio_files:
+            logger.info("Transcribing {}", audio_file.path.name)
             audio = whisperx.load_audio(str(audio_file.path))
 
             result = self._model.transcribe(audio, batch_size=batch_size)
@@ -112,3 +114,4 @@ class Transcriber:
             )
             out.path.parent.mkdir(parents=True, exist_ok=True)
             df.write_csv(out.path)
+            logger.debug("Wrote transcript to {}", out.path)
