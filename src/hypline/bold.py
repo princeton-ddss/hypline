@@ -254,10 +254,17 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
     Sidecars (events.tsv, events.json) are resolved canonically from the raw
     BIDS tree via `layout.path.raw`; misnamed siblings are not inspected.
 
-    Raises ValueError if events.tsv or events.json is invalid, if events.json
+    Raises ValueError if `bids` lacks a `task` entity (events sidecars are
+    resolved by task), if events.tsv or events.json is invalid, if events.json
     declares segment entries that events.tsv does not, or if a `task` segment
     value disagrees with the filename's task entity.
     """
+    if "task" not in bids.entities:
+        raise ValueError(
+            f"load_bold_meta requires a 'task' entity on {bids.path.name!r}; "
+            f"events sidecars are resolved by task"
+        )
+
     repetition_time = get_repetition_time(layout, bids)
 
     events_bids = layout.path.raw(source=bids, suffix="events", ext=".tsv")

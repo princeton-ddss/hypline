@@ -28,3 +28,9 @@ What `BIDSPath` enforces vs. what it leaves to callers.
 Pushing `task`-required into BIDSPath would block legitimate anatomical or
 derivative paths. The type stays honest about what it can represent; consumers
 that depend on `task` raise where the dependency actually exists.
+
+Concrete sites:
+- BOLD/events loading in `bold` — events sidecars are resolved by task, so
+  loaders raise when `task` is absent.
+- Encoding invariance checks in `encoding` — feature and BOLD files must agree
+  on `task` (see [../modules/encoding.md](../modules/encoding.md)).
