@@ -14,11 +14,28 @@ app.command(name="transcribe")(transcribe_func)
 app.add_typer(featuregen_app, name="featuregen")
 
 
+def _version_callback(value: bool):
+    if value:
+        from hypline import __version__
+
+        typer.echo(__version__)
+        raise typer.Exit()
+
+
 @app.callback()
 def callback(
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=_version_callback,
+            is_eager=True,
+            help="Show version and exit",
+        ),
+    ] = False,
     verbose: Annotated[
         bool,
-        typer.Option("--verbose", "-v", help="Show debug-level output"),
+        typer.Option("--verbose", help="Show debug-level output"),
     ] = False,
 ):
     """
