@@ -31,11 +31,6 @@ class TestFindStimuli:
         assert len(results) == 1
         assert results[0].sub == SUB
 
-    def test_returns_empty_when_sub_absent(self, tree: BIDSTree):
-        layout = BIDSLayout(tree.root)
-        results = layout.find.stimuli(sub="999", kind="audio", ext=".wav")
-        assert results == []
-
     def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
         tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
         tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="2", task=TASK)
@@ -69,10 +64,6 @@ class TestFindStimuli:
                 sub=SUB, kind="audio", ext=".wav", bids_filters=["stim-audio"]
             )
 
-    def test_empty_if_area_absent(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        assert layout.find.stimuli(sub=SUB, kind="audio", ext=".wav") == []
-
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
         tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK, run="1")
         tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK, run="2")
@@ -101,6 +92,45 @@ class TestFindStimuli:
         )
         assert len(results) == 2
         assert {r.ses for r in results} == {"1", "2"}
+
+    def test_raises_if_area_absent(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        with pytest.raises(FileNotFoundError, match="stimuli"):
+            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+
+    def test_raises_when_sub_absent(self, tree: BIDSTree):
+        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="sub-999"):
+            layout.find.stimuli(sub="999", kind="audio", ext=".wav")
+
+    def test_kind_dir_absent_lists_siblings(self, tree: BIDSTree):
+        tree.add_stimulus(kind="transcript", ext=".csv", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="transcript"):
+            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+
+    def test_extension_mismatch_message(self, tree: BIDSTree):
+        tree.add_stimulus(kind="audio", ext=".mp3", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match=r"\.mp3"):
+            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+
+    def test_filter_mismatch_message(self, tree: BIDSTree):
+        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task="rest")
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="task-conv"):
+            layout.find.stimuli(
+                sub=SUB, kind="audio", ext=".wav", bids_filters=["task-conv"]
+            )
+
+    def test_session_missing_lists_available(self, tree: BIDSTree):
+        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="ses-1|available"):
+            layout.find.stimuli(
+                sub=SUB, kind="audio", ext=".wav", bids_filters=["ses-2"]
+            )
 
 
 class TestFindFeatures:
@@ -143,14 +173,6 @@ class TestFindFeatures:
                 sub=SUB, kind="phonemic", bids_filters=["feat-phonemic"]
             )
 
-    def test_returns_empty_when_sub_absent(self, tree: BIDSTree):
-        layout = BIDSLayout(tree.root)
-        assert layout.find.features(sub="999", kind="phonemic") == []
-
-    def test_empty_if_area_absent(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        assert layout.find.features(sub=SUB, kind="phonemic") == []
-
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
         tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="1")
         tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="2")
@@ -177,6 +199,17 @@ class TestFindFeatures:
         )
         assert len(results) == 2
         assert {r.ses for r in results} == {"1", "2"}
+
+    def test_raises_if_area_absent(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        with pytest.raises(FileNotFoundError, match="features"):
+            layout.find.features(sub=SUB, kind="phonemic")
+
+    def test_raises_when_sub_absent(self, tree: BIDSTree):
+        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="sub-999"):
+            layout.find.features(sub="999", kind="phonemic")
 
 
 class TestFindFmriprep:
@@ -243,14 +276,6 @@ class TestFindFmriprep:
                 sub=SUB, suffix="bold", ext=".nii.gz", bids_filters=["sub-001"]
             )
 
-    def test_returns_empty_when_sub_absent(self, tree: BIDSTree):
-        layout = BIDSLayout(tree.root)
-        assert layout.find.fmriprep(sub="999", suffix="bold", ext=".nii.gz") == []
-
-    def test_empty_if_fmriprep_absent(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        assert layout.find.fmriprep(sub=SUB, suffix="bold", ext=".nii.gz") == []
-
     def test_cross_session_aggregation_sorted(self, tree: BIDSTree):
         tree.add_bold(space=SPACE, sub=SUB, ses="2", task=TASK)
         tree.add_bold(space=SPACE, sub=SUB, ses="1", task=TASK)
@@ -258,6 +283,23 @@ class TestFindFmriprep:
         results = layout.find.fmriprep(sub=SUB, suffix="bold", ext=".nii.gz")
         assert len(results) == 2
         assert results == sorted(results)
+
+    def test_raises_if_area_absent(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        with pytest.raises(FileNotFoundError, match="fmriprep"):
+            layout.find.fmriprep(sub=SUB, suffix="bold", ext=".nii.gz")
+
+    def test_raises_when_sub_absent(self, tree: BIDSTree):
+        tree.add_bold(space=SPACE, sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="sub-999"):
+            layout.find.fmriprep(sub="999", suffix="bold", ext=".nii.gz")
+
+    def test_suffix_mismatch_message(self, tree: BIDSTree):
+        tree.add_bold(space=SPACE, sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="boldref"):
+            layout.find.fmriprep(sub=SUB, suffix="boldref", ext=".nii.gz")
 
 
 class TestPathStimulus:

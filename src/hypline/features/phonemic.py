@@ -111,11 +111,6 @@ class PhonemicFeature:
             ext=".csv",
             bids_filters=self._bids_filters,
         )
-        if not transcripts:
-            raise FileNotFoundError(
-                f"No transcript files found for sub-{sub_id} under stimuli/ "
-                f"(check that transcript/ exists and filters match)"
-            )
 
         for transcript in transcripts:
             df = pl.read_csv(transcript.path)

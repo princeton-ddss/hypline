@@ -85,7 +85,7 @@ class TestDiscoverFeatures:
 
     def test_no_files_raises(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(FileNotFoundError, match="No matching feature files"):
+        with pytest.raises(FileNotFoundError, match="features"):
             enc._discover_features(SUB)
 
     def test_duplicate_feature_file_raises(self, tree: BIDSTree):
@@ -246,7 +246,7 @@ class TestDiscoverBold:
 
     def test_no_files_raises(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(FileNotFoundError, match="No BOLD files"):
+        with pytest.raises(FileNotFoundError, match="fmriprep"):
             enc._discover_bold(SUB)
 
     def test_duplicate_bold_raises(self, tree: BIDSTree):

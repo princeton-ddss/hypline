@@ -80,11 +80,6 @@ class Transcriber:
             ext=self._audio_ext,
             bids_filters=self._bids_filters,
         )
-        if not audio_files:
-            raise FileNotFoundError(
-                f"No audio files found for sub-{sub_id} under stimuli/ "
-                f"(check that audio/ exists and filters match)"
-            )
 
         batch_size = self.config.batch_size
         if batch_size is None:

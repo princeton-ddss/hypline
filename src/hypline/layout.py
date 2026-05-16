@@ -34,9 +34,158 @@ def _kind_dirs(sub_dir: Path, kind: str, ses_values: list[str] | None) -> list[P
     return [d for d in candidates if d.is_dir()]
 
 
+def _diagnose_lookup(
+    *,
+    area_root: Path,
+    area: _Area,
+    sub: str,
+    kind_dir_name: str,
+    ses_values: list[str] | None,
+    ext: str,
+    required_entity: tuple[str, str] | None,
+    suffix: str | None,
+    user_filters: list[str],
+) -> str:
+    """Return a tier-specific message explaining why a lookup returned no files.
+
+    Called only after a `_Find` query yielded zero results; walks the directory
+    hierarchy top-down (area → subject → session → kind subdir → files →
+    extension → required entity → user filters) and stops at the first failing
+    tier. The user-filter tier is a fallback: it reports that filters were
+    present without pinpointing which one failed.
+    """
+    if not area_root.exists():
+        return f"BIDS area {area!r} not found at {area_root}"
+
+    sub_dir = area_root / f"sub-{sub}"
+    if not sub_dir.exists():
+        present = sorted(
+            p.name[4:]
+            for p in area_root.iterdir()
+            if p.is_dir() and p.name.startswith("sub-")
+        )
+        hint = f" (available: {present})" if present else ""
+        return f"Subject 'sub-{sub}' not found under {area}/{hint}"
+
+    if ses_values is not None:
+        existing_ses = sorted(
+            p.name[4:]
+            for p in sub_dir.iterdir()
+            if p.is_dir() and p.name.startswith("ses-")
+        )
+        missing = [s for s in ses_values if s not in existing_ses]
+        if missing and existing_ses:
+            return (
+                f"Sessions {missing} not found for sub-{sub} under {area}/ "
+                f"(available: {existing_ses})"
+            )
+
+    kind_dirs = _kind_dirs(sub_dir, kind_dir_name, ses_values)
+    if not kind_dirs:
+        ses_dirs = [sub_dir, *(p for p in sub_dir.glob("ses-*") if p.is_dir())]
+        siblings = {c.name for d in ses_dirs for c in d.iterdir() if c.is_dir()}
+        siblings.discard(kind_dir_name)
+        hint = f" (found instead: {sorted(siblings)})" if siblings else ""
+        return (
+            f"No {kind_dir_name!r} subdirectory found under "
+            f"{area}/sub-{sub}/[ses-*/]{hint}"
+        )
+
+    all_files = [f for d in kind_dirs for f in d.iterdir() if f.is_file()]
+    if not all_files:
+        return f"Directory {kind_dir_name!r} is empty for sub-{sub} under {area}/"
+
+    ends_with = f"_{suffix}{ext}" if suffix is not None else ext
+    ext_matches = [f for f in all_files if f.name.endswith(ends_with)]
+    if not ext_matches:
+        present_exts = sorted({"".join(f.suffixes) for f in all_files if f.suffixes})
+        return (
+            f"No files matching suffix={suffix!r}, ext={ext!r} found under "
+            f"{area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+            f"(present extensions: {present_exts})"
+        )
+
+    parsed: list[BIDSPath] = []
+    for f in ext_matches:
+        try:
+            parsed.append(BIDSPath(f))
+        except ValueError:
+            continue
+    if not parsed:
+        return (
+            f"Files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+            f"but none parsed as valid BIDS (example: {ext_matches[0].name!r})"
+        )
+
+    if required_entity is not None:
+        key, expected = required_entity
+        if not any(bp.entities.get(key) == expected for bp in parsed):
+            return (
+                f"Files found but none carry the required entity "
+                f"{key}-{expected!r} (example: {parsed[0].path.name!r})"
+            )
+
+    if user_filters:
+        return (
+            f"Files found but none matched user filters {user_filters} "
+            f"under {area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+            f"(check for typos in filter keys/values)"
+        )
+
+    return (
+        f"No files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+        f"(unknown cause)"
+    )
+
+
 class _Find:
     def __init__(self, root: Path):
         self._root = root
+
+    def _find(
+        self,
+        *,
+        area: _Area,
+        sub: str,
+        kind_dir_name: str,
+        required_entity: tuple[str, str] | None,
+        ext: str,
+        suffix: str | None,
+        ses_values: list[str] | None,
+        match_filters: list[str],
+        user_filters: list[str],
+    ) -> list[BIDSPath]:
+        """Core file lookup with tiered diagnostics on empty results.
+
+        `match_filters` is the full set passed to `find_bids_files`, including
+        structural entities (`sub-*`, `stim-*`, etc.) appended by the caller.
+        `user_filters` is the caller-supplied subset, used only for error attribution.
+        """
+        area_root = _area_root(self._root, area)
+        sub_dir = area_root / f"sub-{sub}"
+
+        results: list[BIDSPath] = []
+        for d in _kind_dirs(sub_dir, kind_dir_name, ses_values):
+            results.extend(
+                find_bids_files(d, ext, suffix=suffix, bids_filters=match_filters)
+            )
+
+        if not results:
+            raise FileNotFoundError(
+                _diagnose_lookup(
+                    area_root=area_root,
+                    area=area,
+                    sub=sub,
+                    kind_dir_name=kind_dir_name,
+                    ses_values=ses_values,
+                    ext=ext,
+                    required_entity=required_entity,
+                    suffix=suffix,
+                    user_filters=user_filters,
+                )
+            )
+
+        return sorted(results)
 
     def stimuli(
         self,
@@ -52,17 +201,19 @@ class _Find:
         """
         filters = normalize_bids_filters(bids_filters, reserved={"sub", "stim"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
-        filters = [f for f in filters if not f.startswith("ses-")]
-        filters.extend([f"sub-{sub}", f"stim-{kind}"])
-
-        sub_dir = _area_root(self._root, "stimuli") / f"sub-{sub}"
-        if not sub_dir.exists():
-            return []
-
-        results: list[BIDSPath] = []
-        for dir in _kind_dirs(sub_dir, kind, ses_values):
-            results.extend(find_bids_files(dir, ext, bids_filters=filters))
-        return sorted(results)
+        user_filters = [f for f in filters if not f.startswith("ses-")]
+        match_filters = user_filters + [f"sub-{sub}", f"stim-{kind}"]
+        return self._find(
+            area="stimuli",
+            sub=sub,
+            kind_dir_name=kind,
+            required_entity=("stim", kind),
+            ext=ext,
+            suffix=None,
+            ses_values=ses_values,
+            match_filters=match_filters,
+            user_filters=user_filters,
+        )
 
     def features(
         self,
@@ -78,17 +229,19 @@ class _Find:
         """
         filters = normalize_bids_filters(bids_filters, reserved={"sub", "feat"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
-        filters = [f for f in filters if not f.startswith("ses-")]
-        filters.extend([f"sub-{sub}", f"feat-{kind}"])
-
-        sub_dir = _area_root(self._root, "features") / f"sub-{sub}"
-        if not sub_dir.exists():
-            return []
-
-        results: list[BIDSPath] = []
-        for dir in _kind_dirs(sub_dir, kind, ses_values):
-            results.extend(find_bids_files(dir, ".parquet", bids_filters=filters))
-        return sorted(results)
+        user_filters = [f for f in filters if not f.startswith("ses-")]
+        match_filters = user_filters + [f"sub-{sub}", f"feat-{kind}"]
+        return self._find(
+            area="features",
+            sub=sub,
+            kind_dir_name=kind,
+            required_entity=("feat", kind),
+            ext=".parquet",
+            suffix=None,
+            ses_values=ses_values,
+            match_filters=match_filters,
+            user_filters=user_filters,
+        )
 
     def fmriprep(
         self,
@@ -100,19 +253,19 @@ class _Find:
     ) -> list["BIDSPath"]:
         filters = normalize_bids_filters(bids_filters, reserved={"sub"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
-        filters = [f for f in filters if not f.startswith("ses-")]
-        filters.extend([f"sub-{sub}"])
-
-        sub_dir = _area_root(self._root, "fmriprep") / f"sub-{sub}"
-        if not sub_dir.exists():
-            return []
-
-        results: list[BIDSPath] = []
-        for dir in _kind_dirs(sub_dir, "func", ses_values):
-            results.extend(
-                find_bids_files(dir, ext, suffix=suffix, bids_filters=filters)
-            )
-        return sorted(results)
+        user_filters = [f for f in filters if not f.startswith("ses-")]
+        match_filters = user_filters + [f"sub-{sub}"]
+        return self._find(
+            area="fmriprep",
+            sub=sub,
+            kind_dir_name="func",
+            required_entity=None,
+            ext=ext,
+            suffix=suffix,
+            ses_values=ses_values,
+            match_filters=match_filters,
+            user_filters=user_filters,
+        )
 
 
 class _Path:

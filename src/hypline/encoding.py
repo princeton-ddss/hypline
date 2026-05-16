@@ -211,11 +211,6 @@ class Encoding:
         feature_bids: dict[FeatureKey, BIDSPath] = {}
         for feature_name in self.features:
             feature_files = self._layout.find.features(sub=sub_id, kind=feature_name)
-            if not feature_files:
-                raise FileNotFoundError(
-                    f"No matching feature files found for sub={sub_id}, "
-                    f"feat={feature_name}"
-                )
 
             for bids in feature_files:
                 cell_key = CellKey(
@@ -309,11 +304,6 @@ class Encoding:
                 "desc-clean",  # hardcoded until parameterization is needed
             ],
         )
-        if not bold_files:
-            raise FileNotFoundError(
-                f"No BOLD files found for sub={sub_id}, space={self.bold_space}, "
-                f"desc=clean"
-            )
 
         bold_metas: dict[BoldKey, BoldMeta] = {}
         for bids in bold_files:

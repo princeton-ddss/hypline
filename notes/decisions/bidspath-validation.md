@@ -13,6 +13,17 @@ What `BIDSPath` enforces vs. what it leaves to callers.
   directories as `Path`, not `BIDSPath`.
 - Non-entity segments are only allowed as the trailing suffix.
 
+## Entity value grammar is strict
+
+Entity values must match `[a-zA-Z0-9]+` (per BIDS spec). Construction raises
+`ValueError` for any violation — notably dots inside values (e.g. `item-1.0`).
+Use `item-1` or `item-1p0` if a decimal-looking label is needed.
+
+Why strict: a dot inside an entity value used to be swallowed by extension
+splitting, causing `find_bids_files` to silently exclude the file and surface
+a misleading "no files found" downstream. Loud rejection at construction
+prevents that class of bug.
+
 ## Deliberate relaxations from the BIDS spec
 
 - **Suffix is optional.** Some hypline-internal paths (e.g., feature files

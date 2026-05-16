@@ -40,3 +40,13 @@ a parallel one.
 
 See [../external/bids.md](../external/bids.md) for BIDS entity conventions.
 See [feature-files.md](feature-files.md) for feature file naming and path conventions.
+
+## Discovery contract — `_Find.*` raises on empty
+
+`BIDSLayout.find.{stimuli,features,fmriprep}` never return `[]`. When nothing
+matches, they raise `FileNotFoundError` with a tier-specific diagnostic
+pinpointing where the tree walk stopped.
+
+Callers rely on this contract and do not perform their own emptiness checks.
+Tools that need a soft "no data yet" path must catch `FileNotFoundError`
+explicitly rather than expect an empty list.
