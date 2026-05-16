@@ -1,7 +1,5 @@
 import json
-import os
 from dataclasses import dataclass, replace
-from pathlib import Path
 from typing import NamedTuple
 
 import polars as pl
@@ -10,13 +8,11 @@ from hypline.bids import (
     BIDS_ENTITY_KEY_RE,
     BIDS_ENTITY_RE,
     BIDS_ENTITY_VALUE_RE,
+    RAW_BOLD_ENTITIES,
     BIDSPath,
 )
 from hypline.enums import SurfaceSpace, VolumeSpace
-
-_BOLD_IDENTITY_ENTITIES = frozenset(
-    ("sub", "ses", "task", "acq", "ce", "rec", "dir", "run")
-)
+from hypline.layout import BIDSLayout
 
 _BOLD_SPACES = {
     space.value: space
@@ -40,48 +36,41 @@ def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
     return bold_space
 
 
-def _strip_bold_extension(bold_path: Path) -> str:
-    """Return the filename stem with the imaging extension removed."""
-    name = bold_path.name
-    for ext in BOLD_EXTENSIONS.values():
-        if name.endswith(ext):
-            return name[: -len(ext)]
-    raise ValueError(f"Unrecognized BOLD file extension: {name}")
+def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
+    """Extract the repetition time (TR) in seconds for a BOLD run.
 
-
-def get_repetition_time(bold_path: str | os.PathLike[str]) -> float:
-    """Extract the repetition time (TR) in seconds from a BOLD file.
-
-    Reads TR from the BIDS JSON sidecar if available, otherwise falls back to
-    the NIfTI header for volume data or GIfTI darray metadata for surface data.
-    Raises ValueError if TR is zero/unset in the NIfTI header, missing from
-    GIfTI metadata, or the image format is unsupported.
+    Reads TR from the raw `*_bold.json` sidecar (resolved under raw BIDS via
+    `layout.path.raw`, regardless of whether `bids` itself points into raw or
+    fmriprep). Falls back to the NIfTI/GIfTI header when the sidecar is
+    absent, but only if `bids` is the BOLD image itself. Raises ValueError if
+    no source yields a usable TR or the image format is unsupported.
     """
-    import nibabel as nib
-
-    bold_path = Path(bold_path)
-
-    # Primary: BIDS JSON sidecar
-    stem = _strip_bold_extension(bold_path)
-    sidecar = bold_path.with_name(stem + ".json")
-    if sidecar.exists():
-        with open(sidecar) as f:
+    sidecar = layout.path.raw(source=bids, suffix="bold", ext=".json")
+    if sidecar.path.exists():
+        with open(sidecar.path) as f:
             TR = json.load(f).get("RepetitionTime")
         if TR is not None:
             return float(TR)
 
-    # Fallback: format-specific header/metadata
-    img = nib.load(bold_path)
+    if bids.suffix != "bold":
+        raise ValueError(
+            f"No RepetitionTime in raw sidecar for {bids.path.name}, and "
+            f"header fallback requires a BOLD image (got suffix {bids.suffix!r})"
+        )
+
+    import nibabel as nib
+
+    img = nib.load(bids.path)
     if isinstance(img, nib.Nifti1Image):
         TR = img.header.get_zooms()[3]
         if TR > 0:
             return float(TR)
-        raise ValueError(f"TR is zero or unset in NIfTI header: {bold_path.name}")
+        raise ValueError(f"TR is zero or unset in NIfTI header: {bids.path.name}")
     if isinstance(img, nib.GiftiImage):
         time_step = img.darrays[0].meta.get("TimeStep")
         if time_step is not None:
             return float(time_step) / 1000  # milliseconds to seconds
-        raise ValueError(f"TimeStep missing from GIfTI metadata: {bold_path.name}")
+        raise ValueError(f"TimeStep missing from GIfTI metadata: {bids.path.name}")
     raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
 
@@ -97,72 +86,6 @@ class BoldMeta(NamedTuple):
     bids: BIDSPath
     repetition_time: float
     segments: list[Segment]
-
-
-def _resolve_run_sidecar(
-    bold_path: str | os.PathLike[str],
-    suffix: str,
-    ext: str,
-) -> Path:
-    """Return the canonical run-level sidecar path for a BOLD file.
-
-    Run-level sidecars (events.tsv, events.json, physio.tsv.gz, etc.) are named
-    using the run's identity entities only — they describe the source data, not
-    a specific image variant, and are invariant across `space`, `desc`, etc.
-    Distinct from file-level sidecars like `*_bold.json` (which mirror the full
-    image stem and are resolved separately by suffix swap).
-
-    Returns the canonical path; may not exist (callers check). Raises if a file
-    in the same directory matches identity entities and the same suffix/extension
-    but is not the canonical name.
-    """
-    bids = BIDSPath(bold_path)
-    shared = {k: v for k, v in bids.entities.items() if k in _BOLD_IDENTITY_ENTITIES}
-    stem = "_".join(f"{k}-{v}" for k, v in shared.items())
-    canonical = bids.path.parent / f"{stem}_{suffix}{ext}"
-
-    misnamed = [
-        p
-        for p in bids.path.parent.glob(f"*_{suffix}{ext}")
-        if p != canonical
-        and all(BIDSPath(p).entities.get(k) == v for k, v in shared.items())
-    ]
-    if misnamed:
-        raise ValueError(
-            f"Expected {canonical.name!r} but found unexpected {suffix}{ext} "
-            f"file(s) colocated with this BOLD run: "
-            f"{[p.name for p in sorted(misnamed)]}. "
-            "Rename to use identity entities only in canonical BIDS order."
-        )
-
-    return canonical
-
-
-def load_events_tsv(bold_path: str | os.PathLike[str]) -> pl.DataFrame | None:
-    """Load events TSV colocated with a BOLD file, or return None if absent.
-
-    Raises ValueError if a misnamed sibling sharing this run's identity entities
-    is found — same run implies same stimulus timeline, so variants are either
-    redundant or divergent and both cases warrant surfacing.
-    """
-    events_tsv_file = _resolve_run_sidecar(bold_path, "events", ".tsv")
-    if events_tsv_file.exists():
-        return pl.read_csv(events_tsv_file, separator="\t")
-    return None
-
-
-def load_events_json(bold_path: str | os.PathLike[str]) -> dict | None:
-    """Load events JSON sidecar colocated with a BOLD file, or return None if absent.
-
-    Raises ValueError if a misnamed sibling sharing this run's identity entities
-    is found — same run implies same stimulus timeline, so variants are either
-    redundant or divergent and both cases warrant surfacing.
-    """
-    events_json_file = _resolve_run_sidecar(bold_path, "events", ".json")
-    if events_json_file.exists():
-        with open(events_json_file) as f:
-            return json.load(f)
-    return None
 
 
 def _parse_segments(
@@ -219,11 +142,11 @@ def _parse_segments(
         )
     segment_entity = next(iter(entity_names))
 
-    if segment_entity in _BOLD_IDENTITY_ENTITIES:
+    if segment_entity in RAW_BOLD_ENTITIES:
         if segment_entity != "task":
             raise ValueError(
                 f"segment entity {segment_entity!r} is not allowed; "
-                f"only 'task' is permitted among BOLD identity entities"
+                f"only 'task' is permitted among raw BOLD entities"
             )
         if len(segments) > 1:
             raise ValueError(
@@ -304,10 +227,10 @@ def _validate_segment_records(
                 f"events.json metadata key {field!r} must match "
                 f"{BIDS_ENTITY_KEY_RE.pattern}"
             )
-        if field in _BOLD_IDENTITY_ENTITIES:
+        if field in RAW_BOLD_ENTITIES:
             raise ValueError(
-                f"events.json metadata key {field!r} collides with BOLD "
-                f"identity entity {sorted(_BOLD_IDENTITY_ENTITIES)}"
+                f"events.json metadata key {field!r} collides with a raw "
+                f"BOLD entity {sorted(RAW_BOLD_ENTITIES)}"
             )
 
     for key, record in segment_records.items():
@@ -320,7 +243,7 @@ def _validate_segment_records(
                 )
 
 
-def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
+def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
     """Load TR, segments, and segment metadata for a BOLD run.
 
     Segment metadata comes from events.json `trial_type.Levels`: entries whose
@@ -328,14 +251,28 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
     other entries are ignored. Segments have empty metadata if events.json is
     absent.
 
+    Sidecars (events.tsv, events.json) are resolved canonically from the raw
+    BIDS tree via `layout.path.raw`; misnamed siblings are not inspected.
+
     Raises ValueError if events.tsv or events.json is invalid, if events.json
     declares segment entries that events.tsv does not, or if a `task` segment
     value disagrees with the filename's task entity.
     """
-    bids = BIDSPath(bold_path)
-    repetition_time = get_repetition_time(bids.path)
-    events = load_events_tsv(bids.path)
-    events_json = load_events_json(bids.path)
+    repetition_time = get_repetition_time(layout, bids)
+
+    events_bids = layout.path.raw(source=bids, suffix="events", ext=".tsv")
+    events = (
+        pl.read_csv(events_bids.path, separator="\t")
+        if events_bids.path.exists()
+        else None
+    )
+
+    events_meta_bids = layout.path.raw(source=bids, suffix="events", ext=".json")
+    if events_meta_bids.path.exists():
+        with open(events_meta_bids.path) as f:
+            events_meta = json.load(f)
+    else:
+        events_meta = None
 
     segments = _parse_segments(events, repetition_time)
 
@@ -348,7 +285,7 @@ def load_bold_meta(bold_path: str | os.PathLike[str]) -> BoldMeta:
             )
 
     levels: dict[str, dict] = (
-        events_json.get("trial_type", {}).get("Levels", {}) if events_json else {}
+        events_meta.get("trial_type", {}).get("Levels", {}) if events_meta else {}
     )
     segment_records: dict[str, dict] = {
         key: record for key, record in levels.items() if BIDS_ENTITY_RE.match(key)

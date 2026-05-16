@@ -31,7 +31,8 @@ A single `train(sub_id)` call is scoped to:
 1. **`_discover_features`** — scans feature filenames for `sub_id`; returns raw
    `dict[FeatureKey, Path]` with filename-only `CellKey`s. No events I/O. No user filters.
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
-   (segment slices), and events.json `trial_type.Levels` (metadata). Returns
+   (segment slices), and events.json `trial_type.Levels` (metadata) from the **raw** BIDS
+   tree via `BIDSLayout.path.raw` (sidecars are identity-keyed, not per-variant). Returns
    `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
 3. **`_resolve_cell_keys`** — precondition: every feature's `(ses, run)` must map to a
    `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for

@@ -62,21 +62,22 @@ See [../decisions/segment-metadata.md](../decisions/segment-metadata.md) for the
 
 ## Sidecar naming — two categories
 
-BIDS sidecars fall into two naming categories that hypline handles via separate code paths:
+BIDS sidecars fall into two naming categories:
 
-- **Per-file sidecars** (e.g. `*_bold.json`, `*_T1w.json`). Mirror the full stem of the
-  data file they describe — including non-identity entities like `space`, `desc`. Resolved
-  by stripping the imaging extension and swapping in `.json`. A run with multiple BOLD
-  variants (different `space`, `desc`) has multiple `*_bold.json` files, one per variant.
-  TR is read per-BOLD rather than once per dataset — BIDS permits it to vary across
-  runs/variants, and hypline does not assume a study-wide value.
+- **Per-file sidecars** (e.g. `*_T1w.json`). Mirror the full stem of the data file they
+  describe — including non-identity entities. Resolved by stripping the imaging extension
+  and swapping in `.json`.
 
 - **Run-level sidecars** (e.g. `*_events.tsv`, `*_events.json`, `*_physio.tsv.gz`). Named
-  using identity entities only (`sub`, `ses`, `task`, `acq`, `ce`, `rec`, `dir`, `run`) —
-  describe the source data, invariant across `space`/`desc`/etc. One sidecar per run,
-  shared by all derived variants.
+  using identity entities only (`sub`, `ses`, `task`, `acq`, `ce`, `rec`, `dir`, `run`,
+  `echo`, `part`, `chunk`) — describe the source data, invariant across `space`/`desc`/etc.
+  One sidecar per run, shared by all derived variants.
 
 The discrepancy is mandated by BIDS (events.tsv may not carry `space`, `desc`, etc.; per-file
-sidecars must mirror their target file). Conflating the two would either over-restrict
-per-file sidecars (rejecting valid `space-T1w_bold.json`) or under-restrict run-level
-sidecars (allowing divergent `space-T1w_events.tsv` and `space-MNI_events.tsv`).
+sidecars must mirror their target file).
+
+**Hypline convention for `*_bold.json`.** Although BIDS allows per-variant `*_bold.json` in
+derivatives, hypline reads TR from the **raw** `*_bold.json` (identity entities only, under
+`<root>/sub-XX/[ses-YY/]func/`). Raw `*_bold.json` is the source of truth; fmriprep
+variants do not change TR. Resolution is centralized in `BIDSLayout.path.raw`, which also
+handles `events.tsv` / `events.json` lookup from a derivatives BOLD path.

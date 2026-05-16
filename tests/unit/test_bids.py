@@ -64,6 +64,11 @@ class TestBIDSPathParsing:
         bp = BIDSPath(p)
         assert bp.path == p
 
+    def test_entity_order_does_not_affect_parsed_entities(self):
+        a = BIDSPath("sub-01_task-rest_run-1_bold.nii.gz")
+        b = BIDSPath("sub-01_run-1_task-rest_bold.nii.gz")
+        assert a.entities == b.entities
+
 
 class TestBIDSPathEntityAccess:
     def test_getattr(self):

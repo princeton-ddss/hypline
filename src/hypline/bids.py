@@ -6,8 +6,39 @@ from pathlib import Path
 BIDS_ENTITY_KEY_RE = re.compile(r"^[a-z]+$")
 BIDS_ENTITY_VALUE_RE = re.compile(r"^[a-zA-Z0-9]+$")
 BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
-_BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
-_EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
+BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
+EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
+
+# Entities that may appear in raw BOLD run filenames
+RAW_BOLD_ENTITIES = (
+    "sub",
+    "ses",
+    "task",
+    "acq",
+    "ce",
+    "rec",
+    "dir",
+    "run",
+    "echo",
+    "part",
+    "chunk",
+)
+
+
+def validate_bids_entities(*entities: str) -> None:
+    for entity in entities:
+        if not BIDS_ENTITY_RE.match(entity):
+            raise ValueError(f"Invalid BIDS entity: {entity!r}")
+
+
+def validate_suffix(suffix: str) -> None:
+    if not BIDS_SUFFIX_RE.match(suffix):
+        raise ValueError(f"Invalid BIDS suffix: {suffix!r}")
+
+
+def validate_extension(ext: str) -> None:
+    if not EXTENSION_RE.match(ext):
+        raise ValueError(f"Invalid extension: {ext!r}")
 
 
 class BIDSPath:
@@ -34,14 +65,12 @@ class BIDSPath:
         for i, segment in enumerate(segments):
             if "-" in segment:
                 key, _, value = segment.partition("-")
-                if not BIDS_ENTITY_RE.match(segment):
-                    raise ValueError(f"Invalid BIDS entity: {segment!r}")
+                validate_bids_entities(segment)
                 if key in self._entities:
                     raise ValueError(f"Duplicate BIDS entity key: {key!r}")
                 self._entities[key] = value
             elif i == len(segments) - 1:
-                if not _BIDS_SUFFIX_RE.match(segment):
-                    raise ValueError(f"Invalid BIDS suffix: {segment!r}")
+                validate_suffix(segment)
                 self._suffix = segment
             else:
                 raise ValueError(
@@ -83,9 +112,7 @@ class BIDSPath:
         Existing keys keep their position; new keys are appended. Order is
         preserved in the filename stem of derived paths.
         """
-        entity = f"{key}-{value}"
-        if not BIDS_ENTITY_RE.match(entity):
-            raise ValueError(f"Invalid BIDS entity: {entity!r}")
+        validate_bids_entities(f"{key}-{value}")
 
         entities = dict(self._entities)
         entities[key] = value
@@ -112,17 +139,6 @@ class BIDSPath:
 
     def __repr__(self) -> str:
         return f"BIDSPath({str(self._path)!r})"
-
-
-def validate_bids_entities(*entities: str) -> None:
-    for entity in entities:
-        if not BIDS_ENTITY_RE.match(entity):
-            raise ValueError(f"Invalid BIDS entity: {entity!r}")
-
-
-def validate_extension(ext: str) -> None:
-    if not _EXTENSION_RE.match(ext):
-        raise ValueError(f"Invalid extension: {ext!r}")
 
 
 def validate_entity_invariance(

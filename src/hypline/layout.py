@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Literal
 
 from hypline.bids import (
+    RAW_BOLD_ENTITIES,
     BIDSPath,
     find_bids_files,
     normalize_bids_filters,
     validate_extension,
+    validate_suffix,
 )
 
 _Area = Literal["stimuli", "features", "fmriprep"]
@@ -116,6 +118,43 @@ class _Find:
 class _Path:
     def __init__(self, root: Path):
         self._root = root
+
+    def raw(
+        self,
+        *,
+        source: BIDSPath,
+        suffix: str,
+        ext: str,
+    ) -> BIDSPath:
+        """Derive a raw-BIDS run path from `source`.
+
+        Filters `source` to run identity entities only, then places the result
+        under `bids_root/sub-XX/[ses-YY/]func/` with the given suffix and ext.
+        Use for raw func-datatype run artifacts (events.tsv, events.json,
+        `*_bold.json`, physio.tsv.gz, etc.) whose canonical names carry
+        identity entities only. `source` may be a fmriprep-derivatives path
+        or any path carrying the run's identity entities — resolution is
+        independent of where it lives. Output entities preserve `source`'s
+        order, filtered to identity entities only. May not exist on disk;
+        callers check.
+        """
+        validate_suffix(suffix)
+        validate_extension(ext)
+        entities = {k: v for k, v in source.entities.items() if k in RAW_BOLD_ENTITIES}
+
+        sub = entities.get("sub")
+        ses = entities.get("ses")
+        if sub is None:
+            raise ValueError(f"source has no 'sub' entity: {source!r}")
+
+        sub_dir = self._root / f"sub-{sub}"
+        run_dir = (
+            sub_dir / f"ses-{ses}" / "func" if ses is not None else sub_dir / "func"
+        )
+
+        stem = "_".join(f"{k}-{v}" for k, v in entities.items())
+
+        return BIDSPath(run_dir / f"{stem}_{suffix}{ext}")
 
     def _derive_path(
         self,

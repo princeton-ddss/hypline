@@ -328,7 +328,7 @@ class Encoding:
                     f"  {bold_metas[bold_key].bids.path}\n  {bids.path}"
                 )
             try:
-                bold_metas[bold_key] = load_bold_meta(bids.path)
+                bold_metas[bold_key] = load_bold_meta(self._layout, bids)
             except ValueError as e:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e

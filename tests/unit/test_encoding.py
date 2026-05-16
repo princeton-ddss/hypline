@@ -113,7 +113,9 @@ class TestDiscoverFeatures:
             enc._discover_features(SUB)
 
     def test_mixed_segmented_unsegmented_runs_raises(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
@@ -121,9 +123,13 @@ class TestDiscoverFeatures:
 
     def test_schema_error_fires_before_coverage_error(self, tree: BIDSTree):
         # clip missing at run-2, but schema mismatch should raise first
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
-        tree.add_feature(sub=SUB, task=TASK, kind="clip", run="1", block="1")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="clip", run="1", extra_entities={"block": "1"}
+        )
         enc = _make_encoding(tree, ["mfcc", "clip"])
         with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
             enc._discover_features(SUB)
@@ -244,11 +250,17 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_duplicate_bold_raises(self, tree: BIDSTree):
-        # Two filenames with identical BIDS entities (reordered) collide on BoldKey
-        original = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
-        dup_stem = f"sub-{SUB}_run-1_task-{TASK}_space-{SPACE}_desc-clean_bold"
-        (original.parent / f"{dup_stem}.nii.gz").touch()
-        (original.parent / f"{dup_stem}.json").write_text('{"RepetitionTime": 2.0}')
+        # Two BOLDs sharing identity entities but distinguished by a variant
+        # entity (`res`) collide on BoldKey.
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(
+            sub=SUB,
+            task=TASK,
+            space=SPACE,
+            run="1",
+            desc="clean",
+            extra_entities={"res": "2"},
+        )
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Duplicate BOLD"):
             enc._discover_bold(SUB)
@@ -292,8 +304,22 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_acq_invariance_violation_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean", acq="hi")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", desc="clean", acq="lo")
+        tree.add_bold(
+            sub=SUB,
+            task=TASK,
+            space=SPACE,
+            run="1",
+            desc="clean",
+            extra_entities={"acq": "hi"},
+        )
+        tree.add_bold(
+            sub=SUB,
+            task=TASK,
+            space=SPACE,
+            run="2",
+            desc="clean",
+            extra_entities={"acq": "lo"},
+        )
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="acq"):
             enc._discover_bold(SUB)
@@ -507,7 +533,7 @@ class TestDiscoverBold:
             task=TASK,
             run="1",
             rows=rows,
-            events_json={
+            sidecar_json={
                 "trial_type": {
                     "Levels": {
                         "block-1": {"metadata": {"cond": "R"}},
@@ -521,7 +547,7 @@ class TestDiscoverBold:
             task=TASK,
             run="2",
             rows=rows,
-            events_json={
+            sidecar_json={
                 "trial_type": {
                     "Levels": {
                         "block-1": {"metadata": {"item": "A"}},
@@ -588,8 +614,12 @@ class TestResolveCellKeys:
         tree.add_bold(
             sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean"
         )  # no events → unsegmented
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", trial="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", trial="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -600,7 +630,9 @@ class TestResolveCellKeys:
         tree.add_bold(
             sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean"
         )  # no events → unsegmented
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", trial="1")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -620,8 +652,12 @@ class TestResolveCellKeys:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -660,7 +696,7 @@ class TestResolveCellKeys:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", block="3"
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "3"}
         )  # block-3 not in events
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -679,7 +715,11 @@ class TestResolveCellKeys:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", block="1", extra="foo"
+            sub=SUB,
+            task=TASK,
+            kind="mfcc",
+            run="1",
+            extra_entities={"block": "1", "extra": "foo"},
         )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -699,7 +739,7 @@ class TestResolveCellKeys:
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
-            events_json={
+            sidecar_json={
                 "trial_type": {
                     "Levels": {
                         "block-1": {"metadata": {"cond": "R"}},
@@ -708,8 +748,12 @@ class TestResolveCellKeys:
                 }
             },
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -728,7 +772,7 @@ class TestResolveCellKeys:
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             ],
-            events_json={
+            sidecar_json={
                 "trial_type": {
                     "Levels": {
                         "block-1": {"metadata": {"cond": "R"}},
@@ -736,7 +780,13 @@ class TestResolveCellKeys:
                 }
             },
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1", cond="R")
+        tree.add_feature(
+            sub=SUB,
+            task=TASK,
+            kind="mfcc",
+            run="1",
+            extra_entities={"block": "1", "cond": "R"},
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -752,7 +802,7 @@ class TestResolveCellKeys:
             rows=[
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             ],
-            events_json={
+            sidecar_json={
                 "trial_type": {
                     "Levels": {
                         "block-1": {"metadata": {"cond": "R"}},
@@ -760,7 +810,13 @@ class TestResolveCellKeys:
                 }
             },
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1", cond="L")
+        tree.add_feature(
+            sub=SUB,
+            task=TASK,
+            kind="mfcc",
+            run="1",
+            extra_entities={"block": "1", "cond": "L"},
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -780,8 +836,12 @@ class TestApplyFilters:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -806,10 +866,18 @@ class TestApplyFilters:
                     {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
                 ],
             )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="2", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="2", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -833,7 +901,12 @@ class TestApplyFilters:
                 ],
             )
             tree.add_feature(
-                sub=SUB, task=TASK, kind="mfcc", ses=ses, run=run, block="1"
+                sub=SUB,
+                task=TASK,
+                kind="mfcc",
+                ses=ses,
+                run=run,
+                extra_entities={"block": "1"},
             )
         enc = _make_encoding(
             tree,
@@ -859,8 +932,12 @@ class TestApplyFilters:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(
             tree,
             ["mfcc"],
@@ -883,7 +960,7 @@ class TestApplyFilters:
                 {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
-            events_json={
+            sidecar_json={
                 "trial_type": {
                     "Levels": {
                         "block-1": {"metadata": {"cond": "R"}},
@@ -892,8 +969,12 @@ class TestApplyFilters:
                 }
             },
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(
             tree,
             ["mfcc"],
@@ -917,8 +998,12 @@ class TestApplyFilters:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["typo-foo"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -939,8 +1024,12 @@ class TestApplyFilters:
                 {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
             ],
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1", block="2")
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(
+            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+        )
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["block-99"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -1009,8 +1098,22 @@ class TestValidateCoverage:
     def test_features_without_bold_after_filter_raises(self, tree: BIDSTree):
         # `res` is a BOLD-only entity (features carry no res), so filtering on it
         # narrows BOLDs but not features, leaving run-2 features without a match
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean", res="2")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", desc="clean", res="3")
+        tree.add_bold(
+            sub=SUB,
+            task=TASK,
+            space=SPACE,
+            run="1",
+            desc="clean",
+            extra_entities={"res": "2"},
+        )
+        tree.add_bold(
+            sub=SUB,
+            task=TASK,
+            space=SPACE,
+            run="2",
+            desc="clean",
+            extra_entities={"res": "3"},
+        )
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["res-2"])

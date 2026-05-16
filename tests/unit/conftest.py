@@ -5,6 +5,8 @@ from typing import Any
 import polars as pl
 import pytest
 
+from hypline.bids import RAW_BOLD_ENTITIES
+
 
 class BIDSTree:
     """Minimal on-disk fixture mirroring the hypline BIDS tree.
@@ -40,10 +42,10 @@ class BIDSTree:
     def func_dir(self, *, sub: str, ses: str | None = None) -> Path:
         return self._sub_ses_dir(self.fmriprep_dir, sub, ses) / "func"
 
-    def _stem(self, entities: dict[str, str]) -> str:
-        return "_".join(f"{k}-{v}" for k, v in entities.items())
+    def raw_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
+        return self._sub_ses_dir(self.root, sub, ses) / "func"
 
-    def _identity(
+    def _entities(
         self,
         sub: str,
         ses: str | None,
@@ -61,17 +63,99 @@ class BIDSTree:
         entities.update(extra_entities)
         return entities
 
+    def _stem(self, entities: dict[str, str]) -> str:
+        return "_".join(f"{k}-{v}" for k, v in entities.items())
+
     def _sub_ses_dir(self, area_root: Path, sub: str, ses: str | None) -> Path:
         sub_dir = area_root / f"sub-{sub}"
         return sub_dir / f"ses-{ses}" if ses is not None else sub_dir
 
-    def _touch(self, path: Path, *, sidecar_json: dict | None = None) -> Path:
+    def _write(self, path: Path, *, content: str | None = None) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.touch()
+        if content is None:
+            path.touch()
+        else:
+            path.write_text(content)
+
+    def _add(
+        self,
+        *,
+        dir: Path,
+        sub: str,
+        ses: str | None,
+        task: str | None,
+        run: str | None,
+        suffix: str,
+        ext: str,
+        content: str | None = None,
+        sidecar_json: dict | None = None,
+        extra_entities: dict[str, str] | None = None,
+    ) -> Path:
+        entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
+        path = dir / f"{self._stem(entities)}_{suffix}{ext}"
+        self._write(path, content=content)
         if sidecar_json is not None:
             stem = path.name.partition(".")[0]  # handle compound exts like `.nii.gz`
-            (path.parent / f"{stem}.json").write_text(json.dumps(sidecar_json))
+            self._write(path.parent / f"{stem}.json", content=json.dumps(sidecar_json))
         return path
+
+    def _add_raw(
+        self,
+        *,
+        sub: str,
+        ses: str | None,
+        task: str | None,
+        run: str | None,
+        suffix: str,
+        ext: str,
+        content: str | None = None,
+        sidecar_json: dict | None = None,
+        extra_entities: dict[str, str] | None = None,
+    ) -> Path:
+        extras = extra_entities or {}
+        invalid = set(extras) - set(RAW_BOLD_ENTITIES)
+        if invalid:
+            raise ValueError(
+                f"Raw BIDS func/ disallows non-identity entities: {sorted(invalid)}"
+            )
+        return self._add(
+            dir=self.raw_func_dir(sub=sub, ses=ses),
+            sub=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            suffix=suffix,
+            ext=ext,
+            content=content,
+            sidecar_json=sidecar_json,
+            extra_entities=extras,
+        )
+
+    def _add_fmriprep(
+        self,
+        *,
+        sub: str,
+        ses: str | None,
+        task: str | None,
+        run: str | None,
+        suffix: str,
+        ext: str,
+        content: str | None = None,
+        sidecar_json: dict | None = None,
+        extra_entities: dict[str, str] | None = None,
+    ) -> Path:
+        return self._add(
+            dir=self.func_dir(sub=sub, ses=ses),
+            sub=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            suffix=suffix,
+            ext=ext,
+            content=content,
+            sidecar_json=sidecar_json,
+            extra_entities=extra_entities,
+        )
 
     def add_stimulus(
         self,
@@ -82,12 +166,14 @@ class BIDSTree:
         run: str | None = None,
         kind: str,
         ext: str,
-        **extra_entities: str,
+        extra_entities: dict[str, str] | None = None,
     ) -> Path:
-        entities = self._identity(sub, ses, task, run, **extra_entities)
+        entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
         entities["stim"] = kind
         kind_dir = self._sub_ses_dir(self.stimuli_dir, sub, ses) / kind
-        return self._touch(kind_dir / f"{self._stem(entities)}{ext}")
+        path = kind_dir / f"{self._stem(entities)}{ext}"
+        self._write(path)
+        return path
 
     def add_feature(
         self,
@@ -98,11 +184,11 @@ class BIDSTree:
         run: str | None = None,
         kind: str,
         metadata: dict[str, Any] | None = None,
-        **extra_entities: str,
+        extra_entities: dict[str, str] | None = None,
     ) -> Path:
         from hypline.features import save_feature
 
-        entities = self._identity(sub, ses, task, run, **extra_entities)
+        entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
         entities["feat"] = kind
         kind_dir = self._sub_ses_dir(self.features_dir, sub, ses) / kind
         kind_dir.mkdir(parents=True, exist_ok=True)
@@ -114,22 +200,6 @@ class BIDSTree:
         save_feature(df, path, metadata=metadata)
         return path
 
-    def _add_fmriprep(
-        self,
-        *,
-        sub: str,
-        ses: str | None,
-        task: str | None,
-        run: str | None,
-        suffix: str,
-        ext: str,
-        sidecar_json: dict | None = None,
-        **extra_entities: str,
-    ) -> Path:
-        entities = self._identity(sub, ses, task, run, **extra_entities)
-        path = self.func_dir(sub=sub, ses=ses) / f"{self._stem(entities)}_{suffix}{ext}"
-        return self._touch(path, sidecar_json=sidecar_json)
-
     def add_bold(
         self,
         *,
@@ -140,8 +210,24 @@ class BIDSTree:
         space: str,
         desc: str = "preproc",
         tr: float = 2.0,
-        **extra_entities: str,
+        extra_entities: dict[str, str] | None = None,
     ) -> Path:
+        extras = extra_entities or {}
+        reserved = {"space", "desc"} & set(extras)
+        if reserved:
+            raise ValueError(
+                f"add_bold disallows overriding reserved entities: {sorted(reserved)}"
+            )
+        self._add_raw(
+            sub=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            suffix="bold",
+            ext=".nii.gz",
+            sidecar_json={"RepetitionTime": tr},
+            extra_entities={k: v for k, v in extras.items() if k in RAW_BOLD_ENTITIES},
+        )
         return self._add_fmriprep(
             sub=sub,
             ses=ses,
@@ -150,9 +236,7 @@ class BIDSTree:
             suffix="bold",
             ext=".nii.gz",
             sidecar_json={"RepetitionTime": tr},
-            space=space,
-            desc=desc,
-            **extra_entities,
+            extra_entities={"space": space, "desc": desc, **extras},
         )
 
     def add_events(
@@ -163,24 +247,23 @@ class BIDSTree:
         task: str | None = None,
         run: str | None = None,
         rows: list[dict[str, str | float]] | None = None,
-        events_json: dict | None = None,
+        sidecar_json: dict | None = None,
     ) -> Path:
-        """Write events.tsv (and optionally events.json) colocated with BOLD."""
-        stem = self._stem(self._identity(sub, ses, task, run))
-        func = self.func_dir(sub=sub, ses=ses)
-        func.mkdir(parents=True, exist_ok=True)
-
+        """Write events.tsv (and optionally events.json) under raw BIDS func/."""
         tsv_rows = [
             f"{row['trial_type']}\t{row['onset']}\t{row['duration']}"
             for row in (rows or [])
         ]
-        events_path = func / f"{stem}_events.tsv"
-        events_path.write_text("trial_type\tonset\tduration\n" + "\n".join(tsv_rows))
-
-        if events_json is not None:
-            (func / f"{stem}_events.json").write_text(json.dumps(events_json))
-
-        return events_path
+        return self._add_raw(
+            sub=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            suffix="events",
+            ext=".tsv",
+            sidecar_json=sidecar_json,
+            content="trial_type\tonset\tduration\n" + "\n".join(tsv_rows),
+        )
 
     def add_boldref(
         self,
@@ -198,8 +281,7 @@ class BIDSTree:
             run=run,
             suffix="boldref",
             ext=".nii.gz",
-            space=space,
-            desc="preproc",
+            extra_entities={"space": space, "desc": "preproc"},
         )
 
     def add_brain_mask(
@@ -219,8 +301,7 @@ class BIDSTree:
             suffix="mask",
             ext=".nii.gz",
             sidecar_json={},
-            space=space,
-            desc="brain",
+            extra_entities={"space": space, "desc": "brain"},
         )
 
     def add_dseg(
@@ -240,8 +321,7 @@ class BIDSTree:
             run=run,
             suffix="dseg",
             ext=".nii.gz",
-            space=space,
-            desc=desc,
+            extra_entities={"space": space, "desc": desc},
         )
 
     def add_confounds(
@@ -260,7 +340,7 @@ class BIDSTree:
             suffix="timeseries",
             ext=".tsv",
             sidecar_json={},
-            desc="confounds",
+            extra_entities={"desc": "confounds"},
         )
 
     def add_xfm(
@@ -278,8 +358,7 @@ class BIDSTree:
             run=run,
             suffix="xfm",
             ext=".txt",
-            sidecar_json=None,
-            **{"from": "T1w", "to": "scanner", "mode": "image"},  # `from` is reserved
+            extra_entities={"from": "T1w", "to": "scanner", "mode": "image"},
         )
 
     def add_bold_siblings(

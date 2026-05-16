@@ -120,7 +120,9 @@ class TestFindFeatures:
         assert results[0].ses == "1"
 
     def test_arbitrary_bids_filter(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, desc="gpt3")
+        tree.add_feature(
+            kind="phonemic", sub=SUB, task=TASK, extra_entities={"desc": "gpt3"}
+        )
         tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
         layout = BIDSLayout(tree.root)
         results = layout.find.features(
