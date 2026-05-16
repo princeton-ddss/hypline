@@ -36,6 +36,8 @@ in the sidecar.
 Feature files do **not** carry a BIDS suffix (e.g., `_bold`). The `feat-<label>` entity
 already identifies the data type; a suffix would be redundant, and no standard BIDS suffix
 exists for derived feature files. Feature path validation rejects any path with a suffix.
+`BIDSPath` itself makes suffix optional to allow this — see
+[bidspath-validation.md](bidspath-validation.md).
 
 Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`). Features are
 stimulus-derived — the same stimulus embedding applies regardless of scanner acquisition

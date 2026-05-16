@@ -48,3 +48,4 @@ AI agents alike. Agent-agnostic by design.
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`  |
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/encoding.md` |
 | Locating files in the BIDS tree        | `decisions/layout.md`, `external/bids.md`           |
+| Understanding BIDSPath guarantees      | `decisions/bidspath-validation.md`                  |

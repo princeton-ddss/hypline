@@ -53,13 +53,10 @@ class BIDSPath:
         self._suffix = None
 
         name = self._path.name
-        dot_idx = name.find(".")
-        if dot_idx == -1:
-            stem = name
-            self._ext = ""
-        else:
-            stem = name[:dot_idx]
-            self._ext = name[dot_idx:]
+        head, sep, tail = name.rpartition("_")
+        stem_tail, dot, ext = tail.partition(".")
+        self._ext = f".{ext}" if dot else ""
+        stem = f"{head}{sep}{stem_tail}"
 
         segments = stem.split("_")
         for i, segment in enumerate(segments):
@@ -79,6 +76,9 @@ class BIDSPath:
 
         if not self._entities:
             raise ValueError(f"No BIDS entities found in: {name!r}")
+        if next(iter(self._entities)) != "sub":
+            raise ValueError(f"BIDS filename must start with 'sub-': {name!r}")
+        validate_extension(self._ext)
 
     @property
     def entities(self) -> dict[str, str]:

@@ -25,11 +25,6 @@ class TestBIDSPathParsing:
         assert bp.suffix is None
         assert bp.ext == ".json"
 
-    def test_no_extension(self):
-        bp = BIDSPath("sub-01_ses-1_bold")
-        assert bp.suffix == "bold"
-        assert bp.ext == ""
-
     def test_single_entity_with_suffix(self):
         bp = BIDSPath("sub-01_bold.nii.gz")
         assert bp.entities == {"sub": "01"}
@@ -155,9 +150,21 @@ class TestBIDSPathValidation:
         with pytest.raises(ValueError, match="must be the last segment"):
             BIDSPath("sub-01_notentity_ses-1_bold.nii")
 
+    def test_must_start_with_sub(self):
+        with pytest.raises(ValueError, match="must start with 'sub-'"):
+            BIDSPath("task-rest_sub-01_bold.nii")
+
     def test_invalid_suffix(self):
         with pytest.raises(ValueError, match="Invalid BIDS suffix"):
             BIDSPath("sub-01_bold!.nii")
+
+    def test_dot_in_entity_value_raises(self):
+        with pytest.raises(ValueError, match="Invalid BIDS entity"):
+            BIDSPath("sub-01_item-1.0_bold.nii")
+
+    def test_no_extension_raises(self):
+        with pytest.raises(ValueError, match="Invalid extension"):
+            BIDSPath("sub-01_ses-1_bold")
 
 
 class TestBIDSPathRepr:

@@ -279,12 +279,6 @@ class TestPathStimulus:
         )
         assert out.entities.get("run") == "02"
 
-    def test_raises_if_source_missing_sub(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"ses-{SES}_task-{TASK}_stim-audio.wav")
-        with pytest.raises(ValueError, match="sub"):
-            layout.path.stimulus(kind="transcript", source=source, ext=".csv")
-
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
@@ -334,12 +328,6 @@ class TestPathFeature:
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic", desc="gpt3")
         assert out.entities.get("desc") == "gpt3"
-
-    def test_raises_if_source_missing_sub(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"ses-{SES}_task-{TASK}_stim-transcript.csv")
-        with pytest.raises(ValueError, match="sub"):
-            layout.path.feature(source=source, kind="phonemic")
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
