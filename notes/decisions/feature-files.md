@@ -13,7 +13,7 @@ reads, `resample_feature` handles TR alignment.
 
 - Extension: `.parquet`
 - Required columns:
-  - `start_time` (float, seconds from run onset)
+  - `start_time` (float, seconds from the beginning of the source file — see [Temporal alignment](#temporal-alignment))
   - `feature` (list/array column — per-row feature vector)
 - Generators may add unit-identifying columns (e.g. `word`, `phoneme`, `token`).
 
@@ -138,6 +138,17 @@ At encoding time, all feature files for the same (subject, feature) must have
 identical `hypline` metadata; mismatches are rejected.
 
 ## Temporal alignment
+
+`start_time` is **source-relative**: seconds from the beginning of the source
+file (audio clip, transcript, etc.) that the feature file was derived from —
+not from the BOLD run onset.
+
+Rationale: stimuli are typically already segmented (one audio file per trial),
+so the natural reference is the trial itself. Requiring run-absolute
+timestamps would force generators to know the BIDS segment structure, coupling
+stimulus processing to the BIDS layout. The `onset` column in events.tsv is
+the authoritative bridge between segment-local and run time; encoding reads it
+to align Y (BOLD) and does not apply it to X (features).
 
 Feature files are **not required** to be TR-aligned. Pipelines that need
 TR-level X (encoding) downsample:

@@ -56,6 +56,12 @@ coverage for all requested features, and vice versa. Partial coverage is a
 hard error — silently dropping runs would mask upstream bugs in feature
 generation.
 
+**X/Y temporal alignment**: both X and Y are framed segment-locally —
+features bin into TRs 0…n-1 of the segment, and BOLD is sliced to the same
+segment — so the two meet at the segment boundary without offset arithmetic.
+This relies on `start_time` being source-relative; see
+[../decisions/feature-files.md](../decisions/feature-files.md#temporal-alignment).
+
 Acquisition entities (`acq`, `ce`, `rec`, `dir`) must be invariant across
 all BOLD files in a training call. Mixing fMRIPrep output variants would
 either cause a shape mismatch (`acq`) or silently corrupt alignment

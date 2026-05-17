@@ -50,3 +50,4 @@ AI agents alike. Agent-agnostic by design.
 | Locating files in the BIDS tree        | `decisions/layout.md`, `external/bids.md`           |
 | Understanding BIDSPath guarantees      | `decisions/bidspath-validation.md`                  |
 | Phoneme-level feature questions        | `modules/phonemic.md`, `decisions/feature-files.md` |
+| Reasoning about X/Y temporal alignment | `decisions/feature-files.md`, `modules/encoding.md` |
