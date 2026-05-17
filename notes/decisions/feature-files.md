@@ -7,7 +7,7 @@ Hypline's own derivative type — stimulus-derived features paired to BOLD
 runs for encoding models.
 
 Feature I/O lives in `hypline.features`: `save_feature` writes, `read_feature`
-reads, `resample_feature` handles TR alignment.
+reads, `downsample_feature` handles TR alignment.
 
 ## Format
 
@@ -32,7 +32,7 @@ the feature unit (e.g. phonemes derived from word-level transcripts inherit the
 word's `start_time` — see [../modules/phonemic.md](../modules/phonemic.md)).
 
 TR alignment is the consumer's responsibility: pipelines that need TR-level X
-call `resample_feature`, which downsamples by binning on `start_time`.
+call `downsample_feature`, which bins on `start_time`.
 
 ## Missing-unit rows
 
@@ -41,7 +41,7 @@ unit can be derived from it (OOV token, empty tokenization, punctuation-only
 input, etc.), emit **one row** at that `start_time` with the unit-identifying
 column set to `None` and a zero `feature` vector. Do **not** skip the row.
 
-Why: `resample_feature` bins by `start_time` against TRs. Dropping rows
+Why: `downsample_feature` bins by `start_time` against TRs. Dropping rows
 shifts later events into earlier TRs and silently misaligns the feature
 matrix with BOLD. A null row preserves the grid; downstream code that wants
 to ignore them can filter on the unit column.

@@ -76,7 +76,7 @@ root cause and rerun.
 
 ## Module layout
 
-Feature I/O utilities (`read_feature`, `resample_feature`, `save_feature`) are
+Feature I/O utilities (`read_feature`, `downsample_feature`, `save_feature`) are
 exposed from `hypline.features`. Import from the package root, not submodules.
 
 Feature and BOLD discovery uses `BIDSLayout` (see `hypline.layout`), which walks the

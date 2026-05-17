@@ -15,14 +15,14 @@ class Downsample(StrEnum):
     MEAN = "mean"
 
 
-def resample_feature(
+def downsample_feature(
     feature_df: pl.DataFrame,
     *,
     n_trs: int,
     repetition_time: float,
     method: str | Downsample,
 ) -> np.ndarray:
-    """Resample a feature DataFrame to TR-level resolution.
+    """Downsample a feature DataFrame to TR-level resolution.
 
     If rows already align to TRs (count matches and intervals equal
     repetition_time), the feature values are passed through unchanged.
@@ -30,8 +30,7 @@ def resample_feature(
     aggregated per method. Returns an array of shape (n_trs, feature_dim).
 
     NOTE: Assumes each event's duration is shorter than the TR. Events
-    spanning multiple TRs would be misassigned; revisit when end_time is
-    added to the feature schema.
+    spanning multiple TRs would be misassigned.
 
     Parameters
     ----------

@@ -20,9 +20,9 @@ from hypline.bold import (
 from hypline.enums import Device
 from hypline.features._utils import (
     Downsample,
+    downsample_feature,
     read_feature,
     read_feature_metadata,
-    resample_feature,
 )
 from hypline.layout import BIDSLayout
 
@@ -732,7 +732,7 @@ class Encoding:
             feature_arrays: list[np.ndarray] = []
             for feature_name in self.features:
                 df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
-                arr = resample_feature(
+                arr = downsample_feature(
                     df,
                     n_trs=n_trs,
                     repetition_time=bold_meta.repetition_time,
