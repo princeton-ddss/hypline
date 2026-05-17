@@ -8,7 +8,7 @@ from hypline.features import PhonemicFeature, read_feature, read_feature_metadat
 from hypline.features.phonemic import ARPABET_PHONEMES
 from hypline.layout import BIDSLayout
 
-from .conftest import BIDSTree
+from ..conftest import BIDSTree
 
 SUB = "001"
 TASK = "conv"
