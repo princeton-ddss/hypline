@@ -78,7 +78,7 @@ def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
 class Segment:
     entity: str
     value: str
-    slice: slice
+    tr_slice: slice
     metadata: dict[str, str]
 
 
@@ -129,7 +129,7 @@ def _parse_segments(
             Segment(
                 entity=entity,
                 value=value,
-                slice=slice(onset_tr, onset_tr + n_trs),
+                tr_slice=slice(onset_tr, onset_tr + n_trs),
                 metadata={},
             )
         )
@@ -174,15 +174,15 @@ def _parse_segments(
             )
         values_seen.add(seg.value)
 
-    segments = sorted(segments, key=lambda seg: seg.slice.start)
+    segments = sorted(segments, key=lambda seg: seg.tr_slice.start)
 
     for prev, curr in zip(segments, segments[1:]):
-        if prev.slice.stop > curr.slice.start:
+        if prev.tr_slice.stop > curr.tr_slice.start:
             raise ValueError(
                 f"Segment slices overlap: {segment_entity}-{prev.value} "
-                f"[{prev.slice.start}:{prev.slice.stop}] and "
+                f"[{prev.tr_slice.start}:{prev.tr_slice.stop}] and "
                 f"{segment_entity}-{curr.value} "
-                f"[{curr.slice.start}:{curr.slice.stop}]"
+                f"[{curr.tr_slice.start}:{curr.tr_slice.stop}]"
             )
 
     return segments

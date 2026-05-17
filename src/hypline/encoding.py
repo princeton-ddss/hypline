@@ -675,7 +675,7 @@ class Encoding:
         for bold_key, bold_meta in bold_metas.items():
             if not bold_meta.segments:
                 continue
-            expected = max(seg.slice.stop for seg in bold_meta.segments)
+            expected = max(seg.tr_slice.stop for seg in bold_meta.segments)
             actual = bold_arrays[bold_key].shape[0]
             if expected > actual:
                 loc = _format_loc(
@@ -720,7 +720,10 @@ class Encoding:
                 segment_entity = bold_meta.segments[0].entity
                 segment_value = cell_key[segment_entity]
                 seg = next(s for s in bold_meta.segments if s.value == segment_value)
-                onset_tr, n_trs = seg.slice.start, seg.slice.stop - seg.slice.start
+                onset_tr, n_trs = (
+                    seg.tr_slice.start,
+                    seg.tr_slice.stop - seg.tr_slice.start,
+                )
             row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
             row_offset += n_trs
             Y_parts.append(bold_data[onset_tr : onset_tr + n_trs])
