@@ -1,7 +1,7 @@
 import reprlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, NamedTuple
+from typing import Iterator, NamedTuple, get_args
 
 import numpy as np
 from pydantic import BaseModel
@@ -19,10 +19,11 @@ from hypline.bold import (
 )
 from hypline.enums import Device
 from hypline.features._utils import (
-    Downsample,
-    downsample_feature,
+    FeatureDownsampleMethod,
+    downsample,
     read_feature,
     read_feature_metadata,
+    stack_array_column,
 )
 from hypline.layout import BIDSLayout
 
@@ -160,7 +161,7 @@ class Encoding:
         layout: BIDSLayout,
         features: list[str],
         bold_space: str,
-        downsample: str | Downsample = "mean",
+        downsample: FeatureDownsampleMethod = "mean",
         bids_filters: list[str] | None = None,
     ):
         import torch
@@ -178,7 +179,13 @@ class Encoding:
         self.features = features
 
         self.bold_space = parse_bold_space(bold_space)
-        self.downsample = Downsample(downsample)
+
+        if downsample not in get_args(FeatureDownsampleMethod):
+            raise ValueError(
+                f"downsample must be one of {get_args(FeatureDownsampleMethod)};"
+                f" got {downsample!r}"
+            )
+        self.downsample = downsample
 
         self.bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "space", "feat"}
@@ -732,8 +739,9 @@ class Encoding:
             feature_arrays: list[np.ndarray] = []
             for feature_name in self.features:
                 df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
-                arr = downsample_feature(
-                    df,
+                arr = downsample(
+                    stack_array_column(df.get_column("feature")),
+                    start_times=df.get_column("start_time").to_numpy(),
                     n_trs=n_trs,
                     repetition_time=bold_meta.repetition_time,
                     method=self.downsample,

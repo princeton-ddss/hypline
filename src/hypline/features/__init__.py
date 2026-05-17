@@ -1,6 +1,7 @@
 from ._utils import (
-    Downsample,
-    downsample_feature,
+    DownsampleMethod,
+    FeatureDownsampleMethod,
+    downsample,
     read_feature,
     read_feature_metadata,
     save_feature,
@@ -8,9 +9,10 @@ from ._utils import (
 from .phonemic import PhonemicFeature
 
 __all__ = [
-    "Downsample",
+    "DownsampleMethod",
+    "FeatureDownsampleMethod",
     "PhonemicFeature",
-    "downsample_feature",
+    "downsample",
     "read_feature",
     "read_feature_metadata",
     "save_feature",

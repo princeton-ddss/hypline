@@ -1,7 +1,6 @@
 import json
 import os
-from enum import StrEnum
-from typing import Any
+from typing import Any, Literal, get_args
 
 import numpy as np
 import polars as pl
@@ -10,84 +9,131 @@ import pyarrow.parquet as pq
 from hypline import __version__
 from hypline.bids import BIDSPath
 
+DownsampleMethod = Literal["mean", "sum", "max", "min", "any", "count"]
+FeatureDownsampleMethod = Literal["mean", "sum"]
 
-class Downsample(StrEnum):
-    MEAN = "mean"
+# Public Encoding-facing methods must be a subset of all methods
+if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
+    raise RuntimeError("FeatureDownsampleMethod must be a subset of DownsampleMethod")
 
 
-def downsample_feature(
-    feature_df: pl.DataFrame,
+def stack_array_column(col: pl.Series) -> np.ndarray:
+    """Stack a Polars `Array`-dtype column into a 2-D NumPy array.
+
+    Handles the empty-column case by returning a `(0, dim)` array with
+    `dim` recovered from the column's Array dtype.
+    """
+    if len(col) > 0:
+        return np.vstack(col.to_list())
+    dim = col.dtype.size  # type: ignore[union-attr]
+    return np.empty((0, dim), dtype=np.float64)
+
+
+def downsample(
+    values: np.ndarray,
     *,
+    start_times: np.ndarray,
     n_trs: int,
     repetition_time: float,
-    method: str | Downsample,
+    method: DownsampleMethod,
 ) -> np.ndarray:
-    """Downsample a feature DataFrame to TR-level resolution.
+    """Downsample an event-level array to TR resolution.
 
-    If rows already align to TRs (count matches and intervals equal
-    repetition_time), the feature values are passed through unchanged.
-    Otherwise, each row is assigned to a TR bin by start_time and
-    aggregated per method. Returns an array of shape (n_trs, feature_dim).
-
-    NOTE: Assumes each event's duration is shorter than the TR. Events
-    spanning multiple TRs would be misassigned.
+    If `start_times` already form a TR-cadence grid (count equals `n_trs`
+    and uniform spacing equals `repetition_time`), `values` is returned
+    as a copy unchanged. Otherwise each row is binned by
+    `floor(start_time / repetition_time)` and aggregated.
 
     Parameters
     ----------
-    feature_df : pl.DataFrame
-        Feature DataFrame with `start_time` (numeric) and `feature`
-        (Array or List of floats) columns.
-    n_trs : int
-        Number of TRs in the output.
-    repetition_time : float
+    values
+        Shape `(n_events,)` or `(n_events, dim)`. Ignored when
+        `method` is `"any"` or `"count"`, but a correctly shaped array
+        is still required.
+    start_times
+        Shape `(n_events,)`, seconds from the start of the source file.
+    n_trs
+        Number of TR bins in the output.
+    repetition_time
         TR duration in seconds.
-    method : str or Downsample
-        Aggregation strategy for rows that fall in the same TR bin.
-        Only applied when input is not already TR-aligned. String values
-        are coerced to `Downsample`; invalid values raise `ValueError`.
+    method
+        Aggregation method: `"mean"`, `"sum"`, `"max"`, `"min"`,
+        `"any"` (1 if any event falls in the bin, else 0), or
+        `"count"` (number of events per bin; `values` is ignored).
 
     Raises
     ------
     ValueError
-        If `n_trs` is not positive, or `method` is an invalid string.
+        If `n_trs` is not positive or `method` is unrecognized.
 
     Returns
     -------
     np.ndarray
-        Array of shape `(n_trs, feature_dim)` with TR-aligned feature values.
+        Shape `(n_trs,)` or `(n_trs, dim)`, matching the input
+        dimensionality. `method="any"` and `method="count"` always
+        return shape `(n_trs,)`. Empty bins are `0.0` for every method,
+        including `max`/`min` — callers cannot distinguish "empty" from
+        "true zero."
+
+    Notes
+    -----
+    Assumes each event's duration ≤ TR. Events spanning multiple TRs are
+    misassigned by start-time binning.
     """
     if n_trs <= 0:
         raise ValueError(f"n_trs must be positive, got {n_trs}")
+    if method not in get_args(DownsampleMethod):
+        raise ValueError(f"Unrecognized method: {method!r}")
 
-    method = Downsample(method)
-    start_times = feature_df.get_column("start_time").to_numpy()
-    feature_col = feature_df.get_column("feature")
-    feature_dim = feature_col.dtype.size  # type: ignore[union-attr]
-    features = (
-        np.vstack(feature_col.to_list())
-        if len(start_times) > 0
-        else np.empty((0, feature_dim))
-    )
+    squeeze = values.ndim == 1
+    if squeeze:
+        values = values[:, np.newaxis]
+    dim = values.shape[1]
 
     # Pass through if already at TR level
     if len(start_times) == n_trs:
         intervals = np.diff(start_times)
         if len(intervals) > 0 and np.allclose(intervals, repetition_time):
-            return features
+            out = values.astype(np.float64, copy=True)
+            return out.squeeze(axis=1) if squeeze else out
 
-    result = np.zeros((n_trs, feature_dim), dtype=np.float64)
     bins = np.floor(start_times / repetition_time).astype(int)
+    mask = (bins >= 0) & (bins < n_trs)
+    valid_bins = bins[mask]
+    valid_values = values[mask]
 
-    if method is Downsample.MEAN:
-        counts = np.zeros(n_trs, dtype=int)
-        for i, b in enumerate(bins):
-            if 0 <= b < n_trs:
-                result[b] += features[i]
-                counts[b] += 1
+    # `any` and `count` are bin-level; ignore `dim` and return 1-D
+    if method == "any":
+        result_1d = np.zeros(n_trs, dtype=np.float64)
+        result_1d[np.unique(valid_bins)] = 1.0
+        return result_1d
+    if method == "count":
+        counts = np.zeros(n_trs, dtype=np.intp)
+        np.add.at(counts, valid_bins, 1)
+        return counts.astype(np.float64)
+
+    if method == "mean":
+        result = np.zeros((n_trs, dim), dtype=np.float64)
+        counts = np.zeros(n_trs, dtype=np.intp)
+        np.add.at(result, valid_bins, valid_values)
+        np.add.at(counts, valid_bins, 1)
         nonzero = counts > 0
         result[nonzero] /= counts[nonzero, np.newaxis]
+    elif method == "sum":
+        result = np.zeros((n_trs, dim), dtype=np.float64)
+        np.add.at(result, valid_bins, valid_values)
+    elif method == "max":
+        result = np.full((n_trs, dim), -np.inf, dtype=np.float64)
+        np.maximum.at(result, valid_bins, valid_values)
+        result[result == -np.inf] = 0.0
+    elif method == "min":
+        result = np.full((n_trs, dim), np.inf, dtype=np.float64)
+        np.minimum.at(result, valid_bins, valid_values)
+        result[result == np.inf] = 0.0
+    else:
+        raise NotImplementedError(f"Unhandled method: {method}")
 
-    return result
+    return result.squeeze(axis=1) if squeeze else result
 
 
 def _validate_feature_path(path: str | os.PathLike[str]) -> BIDSPath:
