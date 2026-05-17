@@ -100,10 +100,10 @@ class PhonemicFeature:
             cls._articulatory_vectors[row["phoneme"]] = vec
 
     def generate(self, sub_id: str):
-        feature_fn = (
-            self._get_word_articulatory_vector
+        dim = (
+            len(self._articulatory_feature_names)
             if self._use_articulatory
-            else self._get_word_phoneme_vector
+            else len(ARPABET_PHONEMES)
         )
 
         transcripts = self._layout.find.stimuli(
@@ -116,14 +116,31 @@ class PhonemicFeature:
         for transcript in transcripts:
             logger.info("Generating phonemic features for {}", transcript.path.name)
             df = pl.read_csv(transcript.path)
-            words = df.get_column("word").cast(pl.Utf8).str.strip_chars(PUNCTUATION)
-            features = np.vstack([feature_fn(w) for w in words.to_list()])
-            df = df.with_columns(
-                pl.Series(
-                    "feature",
-                    features.tolist(),
-                    dtype=pl.Array(pl.Float64, features.shape[1]),
-                )
+            start_times = df.get_column("start_time").to_list()
+            raw_words = df.get_column("word").cast(pl.Utf8).to_list()
+
+            rows_start, rows_word, rows_phoneme, rows_feature = [], [], [], []
+            for start, word in zip(start_times, raw_words):
+                phonemes = self._get_phonemes(word.strip(PUNCTUATION)) or [None]
+                for ph in phonemes:
+                    rows_start.append(start)
+                    rows_word.append(word)
+                    rows_phoneme.append(ph)
+                    rows_feature.append(
+                        np.zeros(dim) if ph is None else self._phoneme_vector(ph)
+                    )
+
+            out_df = pl.DataFrame(
+                {
+                    "start_time": rows_start,
+                    "word": rows_word,
+                    "phoneme": rows_phoneme,
+                    "feature": pl.Series(
+                        "feature",
+                        np.vstack(rows_feature).tolist(),
+                        dtype=pl.Array(pl.Float64, dim),
+                    ),
+                }
             )
 
             out = self._layout.path.feature(source=transcript, kind="phonemic")
@@ -138,19 +155,17 @@ class PhonemicFeature:
                 ),
             }
 
-            save_feature(df, out.path, metadata=metadata)
+            save_feature(out_df, out.path, metadata=metadata)
             logger.debug("Wrote phonemic feature to {}", out.path)
 
-    def _get_word_phoneme_vector(self, word: str) -> np.ndarray:
-        vec = np.zeros(len(ARPABET_PHONEMES))
+    def _get_phonemes(self, word: str) -> list[str]:
         if pronunciations := self._pronunciations.get(word.lower()):
-            for phoneme in pronunciations[0]:
-                vec[self._phoneme_index[phoneme.strip("012")]] = 1
-        return vec
+            return [ph.strip("012") for ph in pronunciations[0]]
+        return []
 
-    def _get_word_articulatory_vector(self, word: str) -> np.ndarray:
-        vec = np.zeros(len(self._articulatory_feature_names))
-        if pronunciations := self._pronunciations.get(word.lower()):
-            for phoneme in pronunciations[0]:
-                vec += self._articulatory_vectors[phoneme.strip("012")]
+    def _phoneme_vector(self, phoneme: str) -> np.ndarray:
+        if self._use_articulatory:
+            return self._articulatory_vectors[phoneme]
+        vec = np.zeros(len(ARPABET_PHONEMES))
+        vec[self._phoneme_index[phoneme]] = 1
         return vec

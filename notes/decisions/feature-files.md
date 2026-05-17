@@ -12,9 +12,33 @@ reads, `resample_feature` handles TR alignment.
 ## Format
 
 - Extension: `.parquet`
-- Columns:
+- Required columns:
   - `start_time` (float, seconds from run onset)
-  - `feature` (list/array column — per-timepoint feature vector)
+  - `feature` (list/array column — per-row feature vector)
+- Generators may add unit-identifying columns (e.g. `word`, `phoneme`, `token`).
+
+## Row granularity
+
+Each row is at the generator's natural unit — phonemes for phonemic features,
+tokens for semantic embeddings, words for word-level features, etc. Multiple
+rows may share the same `start_time` when the upstream source is coarser than
+the feature unit (e.g. phonemes derived from word-level transcripts inherit the
+word's `start_time` — see [../modules/phonemic.md](../modules/phonemic.md)).
+
+TR alignment is the consumer's responsibility: pipelines that need TR-level X
+call `resample_feature`, which downsamples by binning on `start_time`.
+
+## Missing-unit rows
+
+When a generator's upstream source yields a timestamped item but no feature
+unit can be derived from it (OOV token, empty tokenization, punctuation-only
+input, etc.), emit **one row** at that `start_time` with the unit-identifying
+column set to `None` and a zero `feature` vector. Do **not** skip the row.
+
+Why: `resample_feature` bins by `start_time` against TRs. Dropping rows
+shifts later events into earlier TRs and silently misaligns the feature
+matrix with BOLD. A null row preserves the grid; downstream code that wants
+to ignore them can filter on the unit column.
 
 ## Naming
 

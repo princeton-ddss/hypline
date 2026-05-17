@@ -49,3 +49,4 @@ AI agents alike. Agent-agnostic by design.
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/encoding.md` |
 | Locating files in the BIDS tree        | `decisions/layout.md`, `external/bids.md`           |
 | Understanding BIDSPath guarantees      | `decisions/bidspath-validation.md`                  |
+| Phoneme-level feature questions        | `modules/phonemic.md`, `decisions/feature-files.md` |
