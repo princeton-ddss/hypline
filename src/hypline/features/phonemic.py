@@ -119,13 +119,13 @@ class PhonemicFeature:
             start_times = df.get_column("start_time").to_list()
             raw_words = df.get_column("word").cast(pl.Utf8).to_list()
 
-            rows_start, rows_word, rows_phoneme, rows_feature = [], [], [], []
+            rows_start, rows_phoneme, rows_word, rows_feature = [], [], [], []
             for start, word in zip(start_times, raw_words):
                 phonemes = self._get_phonemes(word.strip(PUNCTUATION)) or [None]
                 for ph in phonemes:
                     rows_start.append(start)
-                    rows_word.append(word)
                     rows_phoneme.append(ph)
+                    rows_word.append(word)
                     rows_feature.append(
                         np.zeros(dim) if ph is None else self._phoneme_vector(ph)
                     )
@@ -133,8 +133,8 @@ class PhonemicFeature:
             out_df = pl.DataFrame(
                 {
                     "start_time": rows_start,
-                    "word": rows_word,
                     "phoneme": rows_phoneme,
+                    "word": rows_word,
                     "feature": pl.Series(
                         "feature",
                         np.vstack(rows_feature).tolist(),

@@ -17,6 +17,12 @@ reads, `resample_feature` handles TR alignment.
   - `feature` (list/array column — per-row feature vector)
 - Generators may add unit-identifying columns (e.g. `word`, `phoneme`, `token`).
 
+## Column order
+
+Identifiers → descriptors → payload. `start_time` and any unit-identifying
+column come first, descriptive context next, `feature` last. Groups keys for
+sorting/joining and keeps the dense payload column out of the way on inspection.
+
 ## Row granularity
 
 Each row is at the generator's natural unit — phonemes for phonemic features,
