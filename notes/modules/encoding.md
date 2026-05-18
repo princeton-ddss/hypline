@@ -76,8 +76,9 @@ root cause and rerun.
 
 ## Module layout
 
-Feature I/O utilities (`read_feature`, `downsample`, `save_feature`) are
-exposed from `hypline.features`. Import from the package root, not submodules.
+Feature I/O utilities (`read_feature`, `save_feature`) are exposed from
+`hypline.features`. TR-alignment lives in `hypline.downsample` (shared with
+confound generation — see [../decisions/confound-files.md](../decisions/confound-files.md)).
 
 Feature and BOLD discovery uses `BIDSLayout` (see `hypline.layout`), which walks the
 derivatives tree recursively. This handles fMRIPrep's per-subject subdirectories

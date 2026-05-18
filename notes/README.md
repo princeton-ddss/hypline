@@ -43,6 +43,7 @@ AI agents alike. Agent-agnostic by design.
 |----------------------------------------|-----------------------------------------------------|
 | Adding or renaming a BIDS entity       | `external/bids.md`, `decisions/semantic-entity.md`  |
 | Changing the feature file schema       | `decisions/feature-files.md`, `modules/encoding.md` |
+| Changing the confound file schema      | `decisions/confound-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`  |

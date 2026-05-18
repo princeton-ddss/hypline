@@ -1,9 +1,10 @@
 import reprlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, NamedTuple, get_args
+from typing import Iterator, Literal, NamedTuple, get_args
 
 import numpy as np
+import polars as pl
 from pydantic import BaseModel
 
 from hypline.bids import (
@@ -17,15 +18,16 @@ from hypline.bold import (
     load_bold_meta,
     parse_bold_space,
 )
+from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import Device
-from hypline.features._utils import (
-    FeatureDownsampleMethod,
-    downsample,
-    read_feature,
-    read_feature_metadata,
-    stack_array_column,
-)
+from hypline.features import read_feature, read_feature_metadata
 from hypline.layout import BIDSLayout
+
+FeatureDownsampleMethod = Literal["mean", "sum"]
+
+# Public Encoding-facing methods must be a subset of all methods
+if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
+    raise RuntimeError("FeatureDownsampleMethod must be a subset of DownsampleMethod")
 
 
 class BoldKey(NamedTuple):
@@ -137,6 +139,18 @@ def _diff_meta(reference: dict, compare: dict) -> list[str]:
             cs = "<missing>" if cv is missing else reprlib.repr(cv)
             lines.append(f"{key}: {rs} != {cs}")
     return lines
+
+
+def _stack_array_column(col: pl.Series) -> np.ndarray:
+    """Stack a Polars `Array`-dtype column into a 2-D NumPy array.
+
+    Handles the empty-column case by returning a `(0, dim)` array with
+    `dim` recovered from the column's Array dtype.
+    """
+    if len(col) > 0:
+        return np.vstack(col.to_list())
+    dim = col.dtype.size  # type: ignore[union-attr]
+    return np.empty((0, dim), dtype=np.float64)
 
 
 def _load_bold_array(path: Path) -> np.ndarray:
@@ -740,7 +754,7 @@ class Encoding:
             for feature_name in self.features:
                 df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
                 arr = downsample(
-                    stack_array_column(df.get_column("feature")),
+                    _stack_array_column(df.get_column("feature")),
                     start_times=df.get_column("start_time").to_numpy(),
                     n_trs=n_trs,
                     repetition_time=bold_meta.repetition_time,
