@@ -38,23 +38,24 @@ time.
 Within a single events.json (enforced in `bold.load_bold_meta`):
 - Entity-keyed Levels entries match events.tsv segment `entity-value` keys exactly (set equality).
 - All entries share identical metadata key sets (schema invariance).
-- No metadata key collides with BOLD identity entities (`sub`, `ses`, `task`, `acq`, `ce`,
-  `rec`, `dir`, `run`). Encoding-pipeline reserved keys (`space`, `feat`) are rejected
-  by `CellKey.EXCLUDE` at `CellKey.__init__` during `_discover_features` — keeping
-  `bold.py` agnostic of encoding-pipeline concerns.
+- No metadata key collides with a raw BOLD entity. Encoding-pipeline reserved keys
+  are rejected later during feature discovery — keeping `bold.py` agnostic of
+  encoding-pipeline concerns.
 
-## Single-segment runs
+## Segmentation cases
 
-A run with one segment row in events.tsv is **segmented** (segment count = 1), not unsegmented.
-Feature filenames must carry the segment entity (e.g. `block-1`), same as multi-segment runs.
+The distinction is whether a slice contract exists, not how many segments there are.
+A run with one events.tsv row is **segmented** (segment count = 1), not unsegmented.
 
-- **Unsegmented** = no events.tsv rows = use the entire BOLD run. Feature filenames carry `ses`/`run` only.
-- **Single-segment** = one events.tsv row = slice the run by that segment. Feature filenames must identify the segment.
-
-The distinction is whether a slice contract exists, not how many segments there are. Pre/post
-run padding (instructions, fixation, scanner ramp-up) is near-universal in practice, so the
-"whole-run-as-one-segment" case (onset=0, duration=full_run) is rare but permitted — declare
-one explicit row in events.tsv covering the full duration.
+- **Unsegmented** = no events.tsv, or events.tsv with no BIDS key-value rows. Whole run,
+  no metadata. Filenames carry `ses`/`run` only.
+- **Structurally segmented** = one or more events.tsv rows naming real internal units (blocks,
+  trials). Use `block-N`/`trial-N`. Filenames carry the segment entity.
+- **`task-<value>` escape hatch** = one events.tsv row when the run has no genuine internal
+  structure but the user still needs either (a) a slice (e.g. trim instruction/fixation padding,
+  so onset≠0 is expected) or (b) run-level metadata for filtering. Reuses the identity entity
+  rather than inventing a structural one like `block-1` that would falsely advertise multiple
+  blocks. Value must match the filename's `task`.
 
 Cross-run (enforced in `Encoding._discover_bold`):
 - All segmented runs share the same metadata key set. Strict — a segmented run with no
