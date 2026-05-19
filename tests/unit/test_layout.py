@@ -302,6 +302,64 @@ class TestFindFmriprep:
             layout.find.fmriprep(sub=SUB, suffix="boldref", ext=".nii.gz")
 
 
+class TestPathRaw:
+    def test_derives_output_path(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_bold.nii.gz")
+        out = layout.path.raw(source=source, suffix="events", ext=".tsv")
+        assert out.entities.get("sub") == SUB
+        assert out.entities.get("task") == TASK
+        assert out.path.name.endswith("_events.tsv")
+        assert "func" in out.path.parts
+        assert f"sub-{SUB}" in out.path.parts
+
+    def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_bold.nii.gz")
+        out = layout.path.raw(source=source, suffix="events", ext=".tsv")
+        assert not any(p.startswith("ses-") for p in out.path.parts)
+
+    def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_ses-{SES}_task-{TASK}_bold.nii.gz")
+        out = layout.path.raw(source=source, suffix="events", ext=".tsv")
+        assert f"ses-{SES}" in out.path.parts
+
+    def test_strips_non_identity_entities(self, tmp_path: Path):
+        # fmriprep source carries space/desc — must not appear in raw output
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_space-{SPACE}_desc-preproc_bold.nii.gz"
+        )
+        out = layout.path.raw(source=source, suffix="events", ext=".tsv")
+        assert out.entities.get("space") is None
+        assert out.entities.get("desc") is None
+
+    def test_run_entity_preserved(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_bold.nii.gz")
+        out = layout.path.raw(source=source, suffix="events", ext=".tsv")
+        assert out.entities.get("run") == "1"
+
+    def test_compound_extension(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_bold.nii.gz")
+        out = layout.path.raw(source=source, suffix="physio", ext=".tsv.gz")
+        assert out.path.name.endswith("_physio.tsv.gz")
+
+    def test_invalid_suffix_raises(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_bold.nii.gz")
+        with pytest.raises(ValueError, match="suffix"):
+            layout.path.raw(source=source, suffix="bad!", ext=".tsv")
+
+    def test_invalid_extension_raises(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_bold.nii.gz")
+        with pytest.raises(ValueError, match="extension"):
+            layout.path.raw(source=source, suffix="events", ext="tsv")
+
+
 class TestPathStimulus:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
