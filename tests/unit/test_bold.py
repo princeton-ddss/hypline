@@ -4,7 +4,7 @@ from hypline.bids import BIDSPath
 from hypline.bold import load_bold_meta
 from hypline.layout import BIDSLayout
 
-from .conftest import BIDSTree
+from .conftest import BIDSTree, minimal_nifti_gz
 
 SUB = "001"
 TASK = "conv"
@@ -27,6 +27,17 @@ class TestLoadBoldMeta:
         bold_path = tree.add_bold(sub=SUB, space=SPACE, run="1")
         with pytest.raises(ValueError, match="missing required 'task' entity"):
             load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
+
+    def test_derivative_n_trs_mismatches_raw_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
+        bold_path.write_bytes(minimal_nifti_gz(n_trs=8))
+        with pytest.raises(ValueError, match="raw-relative"):
+            load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
+
+    def test_derivative_n_trs_matches_raw_passes(self, tree: BIDSTree):
+        bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
+        meta = load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
+        assert meta.n_trs == 10
 
     def test_no_events_yields_no_segments(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")

@@ -34,7 +34,9 @@ ambiguous same-run variants.
 
 Multiple outputs share the same identity entities, distinguished by `desc`:
 
-- `desc-preproc_bold` — preprocessed BOLD
+- `desc-preproc_bold` — preprocessed BOLD. May have fewer volumes than the
+  raw image due to `--dummy-scans` or auto non-steady-state trimming; see
+  [../modules/bold.md](../modules/bold.md) for `n_trs` sourcing rules.
 - `desc-brain_mask` — brain mask
 - `desc-confounds_timeseries` — confound regressors
 

@@ -80,7 +80,9 @@ auto-injected keys (callers must not supply them):
   Required at save time because a single-row DataFrame carries no spacing,
   and inferring TR from row spacing would silently disagree with the BOLD's
   true TR.
-- `n_trs` — number of TR rows
+- `n_trs` — number of TR rows. Source from the preprocessed BOLD the
+  confounds will be regressed against, not the raw image — see
+  [../modules/bold.md](../modules/bold.md).
 - `confound_dim` — per-row confound vector width
 
 Caller-supplied keys should let a consumer reproduce the regressor (generator

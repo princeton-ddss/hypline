@@ -172,3 +172,9 @@ TR resolution. The output `start_time` is always regenerated as `i * TR`.
 **Assumption**: each event's duration ≤ TR. If features gain events spanning
 multiple TRs (requires adding `end_time` to the schema), current
 binning-by-start-time is incorrect and must be revisited.
+
+**Assumption**: events.tsv `onset`/`duration` are authored against the raw
+BOLD timeline. If fmriprep trims dummy scans (see
+[../modules/bold.md](../modules/bold.md) and [../external/fmriprep.md](../external/fmriprep.md)),
+segment `tr_slice` values computed by `_parse_segments` will be offset
+relative to the trimmed image.

@@ -10,14 +10,16 @@ from hypline.bids import RAW_BOLD_ENTITIES
 
 
 @cache
-def _minimal_nifti_gz() -> bytes:
+def minimal_nifti_gz(n_trs: int = 10) -> bytes:
     import gzip
 
     import nibabel as nib
     import numpy as np
 
     return gzip.compress(
-        nib.Nifti1Image(np.zeros((1, 1, 1, 10), dtype=np.int16), np.eye(4)).to_bytes()
+        nib.Nifti1Image(
+            np.zeros((1, 1, 1, n_trs), dtype=np.int16), np.eye(4)
+        ).to_bytes()
     )
 
 
@@ -233,7 +235,6 @@ class BIDSTree:
             raise ValueError(
                 f"add_bold disallows overriding reserved entities: {sorted(reserved)}"
             )
-        nifti_bytes = _minimal_nifti_gz()
         self._add_raw(
             sub=sub,
             ses=ses,
@@ -241,7 +242,7 @@ class BIDSTree:
             run=run,
             suffix="bold",
             ext=".nii.gz",
-            content=nifti_bytes,
+            content=minimal_nifti_gz(),
             sidecar_json={"RepetitionTime": tr},
             extra_entities={k: v for k, v in extras.items() if k in RAW_BOLD_ENTITIES},
         )
@@ -252,7 +253,7 @@ class BIDSTree:
             run=run,
             suffix="bold",
             ext=".nii.gz",
-            content=nifti_bytes,
+            content=minimal_nifti_gz(),
             sidecar_json={"RepetitionTime": tr},
             extra_entities={"space": space, "desc": desc, **extras},
         )

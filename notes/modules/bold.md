@@ -18,6 +18,18 @@ metadata without loading voxel data.
   header — resolving to raw would give the wrong answer for derivative
   callers.
 
+## Choosing the BOLD source for `n_trs`
+
+Callers producing TR-aligned artifacts (e.g. confound files) must read `n_trs`
+from the BOLD image the artifact will be regressed against — the fmriprep
+preprocessed BOLD, not the raw image. fmriprep usually preserves the raw
+volume count, but `--dummy-scans` / auto non-steady-state trimming can
+shorten it. `n_trs` is space-invariant across fmriprep outputs of the same
+run, so any `space-*` variant works.
+
+For the downstream events-timeline implication of dummy-scan trimming, see
+[../decisions/feature-files.md](../decisions/feature-files.md).
+
 ## Header reads are header-only
 
 Both `get_repetition_time` (header fallback) and `get_n_trs` use

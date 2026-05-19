@@ -283,10 +283,14 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
     Sidecars (events.tsv, events.json) are resolved canonically from the raw
     BIDS tree via `layout.path.raw`; misnamed siblings are not inspected.
 
+    When `bids` is a derivative, its volume count must match the raw BOLD —
+    events.tsv onsets are raw-relative and hypline does not shift them.
+
     Raises ValueError if `bids` lacks a `task` entity (events sidecars are
-    resolved by task), if events.tsv or events.json is invalid, if events.json
-    declares segment entries that events.tsv does not, or if a `task` segment
-    value disagrees with the filename's task entity.
+    resolved by task), if a derivative `bids` has a different volume count
+    than its raw counterpart, if events.tsv or events.json is invalid, if
+    events.json declares segment entries that events.tsv does not, or if a
+    `task` segment value disagrees with the filename's task entity.
     """
     _validate_bold(bids)
 
@@ -296,6 +300,19 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
         )
 
     repetition_time = get_repetition_time(layout, bids)
+    n_trs = get_n_trs(bids)
+
+    # BOLD_EXTENSIONS pins volumetric raw to .nii.gz; surface derivatives
+    # (.func.gii) inherit any trim applied during volumetric preprocessing.
+    raw_bold_bids = layout.path.raw(source=bids, suffix="bold", ext=".nii.gz")
+    if raw_bold_bids.path.exists() and raw_bold_bids.path != bids.path:
+        n_trs_raw = get_n_trs(raw_bold_bids)
+        if n_trs_raw != n_trs:
+            raise ValueError(
+                f"Derivative BOLD {bids.path.name!r} has {n_trs} volumes but "
+                f"raw has {n_trs_raw}. events.tsv onsets are raw-relative; "
+                f"hypline requires derivative n_trs to match raw."
+            )
 
     events_bids = layout.path.raw(source=bids, suffix="events", ext=".tsv")
     events = (
@@ -347,6 +364,6 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
     return BoldMeta(
         bids=bids,
         repetition_time=repetition_time,
-        n_trs=get_n_trs(bids),
+        n_trs=n_trs,
         segments=segments,
     )
