@@ -53,9 +53,9 @@ A run with one events.tsv row is **segmented** (segment count = 1), not unsegmen
   trials). Use `block-N`/`trial-N`. Filenames carry the segment entity.
 - **`task-<value>` escape hatch** = one events.tsv row when the run has no genuine internal
   structure but the user still needs either (a) a slice (e.g. trim instruction/fixation padding,
-  so onset≠0 is expected) or (b) run-level metadata for filtering. Reuses the identity entity
-  rather than inventing a structural one like `block-1` that would falsely advertise multiple
-  blocks. Value must match the filename's `task`.
+  so onset≠0 is expected) or (b) run-level metadata for filtering. Reuses `task` (which BOLD
+  files always carry per BIDS) rather than inventing a structural entity like `block-1` that
+  would falsely advertise multiple blocks. Value must match the filename's `task`.
 
 Cross-run (enforced in `Encoding._discover_bold`):
 - All segmented runs share the same metadata key set. Strict — a segmented run with no

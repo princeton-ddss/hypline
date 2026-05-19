@@ -12,10 +12,10 @@ A single `train(sub_id)` call is scoped to:
 
 - **One subject.** Subjects are modeled independently — different brains,
   different voxel alignment.
-- **One task (or no task).** Task is optional in BIDS — all files must
-  either specify the same task or none at all. Cross-task encoding models
-  are not meaningful. If inconsistent task values are discovered across
-  BOLD or feature files, the pipeline raises.
+- **One task.** BIDS requires `task` on BOLD; all BOLD and feature files
+  in scope must share the same value. Cross-task encoding models are not
+  meaningful. If inconsistent task values are discovered, the pipeline
+  raises.
 - **Multiple sessions and runs: allowed and expected.** Same task, more
   data — concatenated into a single X/Y.
 - **Multiple cells per run: allowed.** The segment entity is inferred from

@@ -273,8 +273,7 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
 
     if "task" not in bids.entities:
         raise ValueError(
-            f"load_bold_meta requires a 'task' entity on {bids.path.name!r}; "
-            f"events sidecars are resolved by task"
+            f"BOLD file {bids.path.name!r} missing required 'task' entity (BIDS)"
         )
 
     repetition_time = get_repetition_time(layout, bids)
