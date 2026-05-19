@@ -45,3 +45,10 @@ Concrete sites:
   inherit it), so loaders raise when it's absent.
 - Encoding invariance checks in `encoding` — feature and BOLD files must agree
   on `task` (see [../modules/encoding.md](../modules/encoding.md)).
+- `layout.find.stimuli` and `layout.find.features` — every file in these
+  areas is tied to a BOLD run via `task`, and derivatives (transcripts,
+  features, confounds) inherit it from their source. The check lives at the
+  discovery boundary, so downstream consumers don't each re-validate.
+  `layout.find.fmriprep` deliberately skips the check because
+  fmriprep produces non-func artifacts (anat, xfm) that legitimately omit
+  `task`; the `bold`-specific loaders enforce it where needed.

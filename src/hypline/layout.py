@@ -138,6 +138,21 @@ def _diagnose_lookup(
     )
 
 
+def _require_task(results: list[BIDSPath]) -> None:
+    """Raise if any file in `results` lacks a `task` entity.
+
+    Enforced at discovery, not in `BIDSPath`, since non-func paths (anat, xfm)
+    legitimately omit `task`.
+    """
+    missing = [bp for bp in results if "task" not in bp.entities]
+    if missing:
+        raise ValueError(
+            f"Files in this area must carry a 'task' entity; "
+            f"{len(missing)} file(s) lack it "
+            f"(example: {missing[0].path.name!r})"
+        )
+
+
 class _Find:
     def __init__(self, root: Path):
         self._root = root
@@ -203,7 +218,7 @@ class _Find:
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         match_filters = user_filters + [f"sub-{sub}", f"stim-{kind}"]
-        return self._find(
+        results = self._find(
             area="stimuli",
             sub=sub,
             kind_dir_name=kind,
@@ -214,6 +229,8 @@ class _Find:
             match_filters=match_filters,
             user_filters=user_filters,
         )
+        _require_task(results)
+        return results
 
     def features(
         self,
@@ -231,7 +248,7 @@ class _Find:
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         match_filters = user_filters + [f"sub-{sub}", f"feat-{kind}"]
-        return self._find(
+        results = self._find(
             area="features",
             sub=sub,
             kind_dir_name=kind,
@@ -242,6 +259,8 @@ class _Find:
             match_filters=match_filters,
             user_filters=user_filters,
         )
+        _require_task(results)
+        return results
 
     def fmriprep(
         self,

@@ -132,6 +132,14 @@ class TestFindStimuli:
                 sub=SUB, kind="audio", ext=".wav", bids_filters=["ses-2"]
             )
 
+    def test_raises_when_task_missing(self, tree: BIDSTree):
+        path = tree.stimuli_dir / f"sub-{SUB}" / "audio" / f"sub-{SUB}_stim-audio.wav"
+        path.parent.mkdir(parents=True)
+        path.touch()
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="task"):
+            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+
 
 class TestFindFeatures:
     def test_translates_kind_to_feature_entity(self, tree: BIDSTree):
@@ -210,6 +218,19 @@ class TestFindFeatures:
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match="sub-999"):
             layout.find.features(sub="999", kind="phonemic")
+
+    def test_raises_when_task_missing(self, tree: BIDSTree):
+        path = (
+            tree.features_dir
+            / f"sub-{SUB}"
+            / "phonemic"
+            / f"sub-{SUB}_feat-phonemic.parquet"
+        )
+        path.parent.mkdir(parents=True)
+        path.touch()
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="task"):
+            layout.find.features(sub=SUB, kind="phonemic")
 
 
 class TestFindFmriprep:
