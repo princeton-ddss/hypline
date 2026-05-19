@@ -47,13 +47,13 @@ def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
 
 
 def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
-    """Extract the repetition time (TR) in seconds for a BOLD run.
+    """Extract TR in seconds for a BOLD run; never loads voxel data.
 
-    Reads TR from the raw `*_bold.json` sidecar (resolved under raw BIDS via
-    `layout.path.raw`, regardless of whether `bids` itself points into raw or
-    fmriprep). Falls back to the NIfTI/GIfTI header when the sidecar is
-    absent, but only if `bids` is the BOLD image itself. Raises ValueError if
-    no source yields a usable TR or the image format is unsupported.
+    Accepts any `bids` carrying the run's identity entities. TR is
+    acquisition-level and identical across raw and derivative files, so
+    resolution is anchored on the raw BIDS tree via `layout.path.raw`: tries
+    `*_bold.json` first, then the raw BOLD image header. Raises ValueError if
+    no source yields a usable TR or the format is unsupported.
     """
     sidecar = layout.path.raw(source=bids, suffix="bold", ext=".json")
     if sidecar.path.exists():
@@ -62,25 +62,43 @@ def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
         if TR is not None:
             return float(TR)
 
-    if bids.suffix != "bold":
+    for ext in BOLD_EXTENSIONS.values():
+        raw_bold = layout.path.raw(source=bids, suffix="bold", ext=ext)
+        if raw_bold.path.exists():
+            break
+    else:
         raise ValueError(
-            f"No RepetitionTime in raw sidecar for {bids.path.name}, and "
-            f"header fallback requires a BOLD image (got suffix {bids.suffix!r})"
+            f"Cannot resolve TR for {bids.path.name}: "
+            f"no raw sidecar or BOLD image found"
         )
+
+    import nibabel as nib
+
+    img = nib.load(raw_bold.path)
+    if isinstance(img, nib.Nifti1Image):
+        TR = img.header.get_zooms()[3]
+        if TR > 0:
+            return float(TR)
+        raise ValueError(f"TR is zero or unset in NIfTI header: {raw_bold.path.name}")
+    if isinstance(img, nib.GiftiImage):
+        time_step = img.darrays[0].meta.get("TimeStep")
+        if time_step is not None:
+            return float(time_step) / 1000  # milliseconds to seconds
+        raise ValueError(f"TimeStep missing from GIfTI metadata: {raw_bold.path.name}")
+    raise ValueError(f"Unsupported image format: {type(img).__name__}")
+
+
+def get_n_trs(bids: BIDSPath) -> int:
+    """Extract volume count for a BOLD run; never loads voxel data."""
+    _validate_bold(bids)
 
     import nibabel as nib
 
     img = nib.load(bids.path)
     if isinstance(img, nib.Nifti1Image):
-        TR = img.header.get_zooms()[3]
-        if TR > 0:
-            return float(TR)
-        raise ValueError(f"TR is zero or unset in NIfTI header: {bids.path.name}")
+        return int(img.header.get_data_shape()[3])
     if isinstance(img, nib.GiftiImage):
-        time_step = img.darrays[0].meta.get("TimeStep")
-        if time_step is not None:
-            return float(time_step) / 1000  # milliseconds to seconds
-        raise ValueError(f"TimeStep missing from GIfTI metadata: {bids.path.name}")
+        return len(img.darrays)
     raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
 
@@ -95,6 +113,7 @@ class Segment:
 class BoldMeta(NamedTuple):
     bids: BIDSPath
     repetition_time: float
+    n_trs: int
     segments: list[Segment]
 
 
@@ -325,4 +344,9 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
             for seg in segments
         ]
 
-    return BoldMeta(bids=bids, repetition_time=repetition_time, segments=segments)
+    return BoldMeta(
+        bids=bids,
+        repetition_time=repetition_time,
+        n_trs=get_n_trs(bids),
+        segments=segments,
+    )

@@ -52,3 +52,4 @@ AI agents alike. Agent-agnostic by design.
 | Understanding BIDSPath guarantees      | `decisions/bidspath-validation.md`                  |
 | Phoneme-level feature questions        | `modules/phonemic.md`, `decisions/feature-files.md` |
 | Reasoning about X/Y temporal alignment | `decisions/feature-files.md`, `modules/encoding.md` |
+| Extracting TR or volume count for a run | `modules/bold.md`                                   |
