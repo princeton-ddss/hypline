@@ -18,6 +18,11 @@ _SEGMENT_ROWS = [
 
 
 class TestLoadBoldMeta:
+    def test_non_bold_input_raises(self, tree: BIDSTree):
+        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
+        with pytest.raises(ValueError, match="Expected a BOLD file"):
+            load_bold_meta(BIDSLayout(tree.root), BIDSPath(feature_path))
+
     def test_missing_task_entity_raises(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, space=SPACE, run="1")
         with pytest.raises(ValueError, match="requires a 'task' entity"):

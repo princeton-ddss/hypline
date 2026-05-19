@@ -26,6 +26,16 @@ BOLD_EXTENSIONS = {
 }
 
 
+def _validate_bold(bids: BIDSPath) -> None:
+    if bids.suffix != "bold" or not bids.path.name.endswith(
+        tuple(BOLD_EXTENSIONS.values())
+    ):
+        raise ValueError(
+            f"Expected a BOLD file (suffix 'bold' with extension in "
+            f"{sorted(BOLD_EXTENSIONS.values())}); got {bids.path.name!r}"
+        )
+
+
 def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
     bold_space = _BOLD_SPACES.get(value)
     if bold_space is None:
@@ -259,6 +269,8 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
     declares segment entries that events.tsv does not, or if a `task` segment
     value disagrees with the filename's task entity.
     """
+    _validate_bold(bids)
+
     if "task" not in bids.entities:
         raise ValueError(
             f"load_bold_meta requires a 'task' entity on {bids.path.name!r}; "
