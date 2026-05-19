@@ -25,7 +25,7 @@ class TestLoadBoldMeta:
 
     def test_missing_task_entity_raises(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, space=SPACE, run="1")
-        with pytest.raises(ValueError, match="requires a 'task' entity"):
+        with pytest.raises(ValueError, match="missing required 'task' entity"):
             load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
 
     def test_no_events_yields_no_segments(self, tree: BIDSTree):

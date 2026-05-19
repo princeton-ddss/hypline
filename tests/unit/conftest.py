@@ -1,4 +1,5 @@
 import json
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -6,6 +7,18 @@ import polars as pl
 import pytest
 
 from hypline.bids import RAW_BOLD_ENTITIES
+
+
+@cache
+def _minimal_nifti_gz() -> bytes:
+    import gzip
+
+    import nibabel as nib
+    import numpy as np
+
+    return gzip.compress(
+        nib.Nifti1Image(np.zeros((1, 1, 1, 10), dtype=np.int16), np.eye(4)).to_bytes()
+    )
 
 
 class BIDSTree:
@@ -70,10 +83,12 @@ class BIDSTree:
         sub_dir = area_root / f"sub-{sub}"
         return sub_dir / f"ses-{ses}" if ses is not None else sub_dir
 
-    def _write(self, path: Path, *, content: str | None = None) -> None:
+    def _write(self, path: Path, *, content: str | bytes | None = None) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         if content is None:
             path.touch()
+        elif isinstance(content, bytes):
+            path.write_bytes(content)
         else:
             path.write_text(content)
 
@@ -87,7 +102,7 @@ class BIDSTree:
         run: str | None,
         suffix: str,
         ext: str,
-        content: str | None = None,
+        content: str | bytes | None = None,
         sidecar_json: dict | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
@@ -108,7 +123,7 @@ class BIDSTree:
         run: str | None,
         suffix: str,
         ext: str,
-        content: str | None = None,
+        content: str | bytes | None = None,
         sidecar_json: dict | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
@@ -140,7 +155,7 @@ class BIDSTree:
         run: str | None,
         suffix: str,
         ext: str,
-        content: str | None = None,
+        content: str | bytes | None = None,
         sidecar_json: dict | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
@@ -218,6 +233,7 @@ class BIDSTree:
             raise ValueError(
                 f"add_bold disallows overriding reserved entities: {sorted(reserved)}"
             )
+        nifti_bytes = _minimal_nifti_gz()
         self._add_raw(
             sub=sub,
             ses=ses,
@@ -225,6 +241,7 @@ class BIDSTree:
             run=run,
             suffix="bold",
             ext=".nii.gz",
+            content=nifti_bytes,
             sidecar_json={"RepetitionTime": tr},
             extra_entities={k: v for k, v in extras.items() if k in RAW_BOLD_ENTITIES},
         )
@@ -235,6 +252,7 @@ class BIDSTree:
             run=run,
             suffix="bold",
             ext=".nii.gz",
+            content=nifti_bytes,
             sidecar_json={"RepetitionTime": tr},
             extra_entities={"space": space, "desc": desc, **extras},
         )
