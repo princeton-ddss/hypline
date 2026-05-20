@@ -5,6 +5,7 @@ import typer
 from loguru import logger
 
 from .clean import clean as clean_func
+from .confoundgen import app as confoundgen_app
 from .featuregen import app as featuregen_app
 from .transcribe import transcribe as transcribe_func
 
@@ -12,6 +13,7 @@ app = typer.Typer()
 app.command(name="clean")(clean_func)
 app.command(name="transcribe")(transcribe_func)
 app.add_typer(featuregen_app, name="featuregen")
+app.add_typer(confoundgen_app, name="confoundgen")
 
 
 def _version_callback(value: bool):
