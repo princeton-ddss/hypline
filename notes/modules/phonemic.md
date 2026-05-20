@@ -43,3 +43,12 @@ token's `start_time` with `phoneme=None` and a zero `feature` vector.
 
 Articulatory features (place, manner, voicing, etc.) are intrinsic phoneme
 properties, so multi-hot per phoneme is the natural representation.
+
+## Confound generation collapses `desc-*` variants
+
+Phonemic confounds (`desc-onset`, `desc-rate`) depend only on phoneme
+`start_time` — values are discarded during downsampling. Since `desc-*`
+variants share a `start_time` grid by convention
+([../decisions/feature-files.md](../decisions/feature-files.md)), confound
+generation deduplicates them: one representative per non-`desc` identity
+group, collapsed variants logged.

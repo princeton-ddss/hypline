@@ -476,6 +476,61 @@ class TestPathFeature:
             layout.path.feature(source=source, kind="phonemic", desc="BAD!")
 
 
+class TestPathConfound:
+    def test_derives_output_path(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
+        )
+        out = layout.path.confound(source=source, kind="phonemic")
+        assert out.entities.get("conf") == "phonemic"
+        assert out.entities.get("desc") is None
+        assert out.path.suffix == ".parquet"
+        assert "confounds" in out.path.parts
+        assert f"sub-{SUB}" in out.path.parts
+        assert "phonemic" in out.path.parts
+
+    def test_sets_desc_entity(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
+        )
+        out = layout.path.confound(source=source, kind="phonemic", desc="onset")
+        assert out.entities.get("conf") == "phonemic"
+        assert out.entities.get("desc") == "onset"
+        assert "desc-onset" in out.path.name
+
+    def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
+        )
+        out = layout.path.confound(source=source, kind="phonemic", desc="onset")
+        assert "confounds" in out.path.parts
+        assert f"sub-{SUB}" in out.path.parts
+        assert not any(p.startswith("ses-") for p in out.path.parts)
+        assert "phonemic" in out.path.parts
+
+    def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_ses-{SES}_task-{TASK}_run-1_feat-phonemic.parquet"
+        )
+        out = layout.path.confound(source=source, kind="phonemic", desc="rate")
+        assert "confounds" in out.path.parts
+        assert f"sub-{SUB}" in out.path.parts
+        assert f"ses-{SES}" in out.path.parts
+        assert "phonemic" in out.path.parts
+
+    def test_invalid_desc_value_raises(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
+        )
+        with pytest.raises(ValueError, match="Invalid BIDS entity"):
+            layout.path.confound(source=source, kind="phonemic", desc="BAD!")
+
+
 class TestListSubjects:
     def test_subjects_stimuli(self, tree: BIDSTree):
         tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)

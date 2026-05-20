@@ -85,6 +85,14 @@ Reproducibility is enforced at encoding time by Parquet-metadata equality across
 files sharing the same `(feat, desc)` pair, not by the tag itself; mismatched
 settings under the same `desc` fail that check loudly.
 
+`desc-*` variants share the same row set and `start_time` column — they carry
+alternative feature *values* over a common event grid. A variant that changes
+the timing (different unit selection, different alignment source) is a
+different event set and must be a distinct `feat-<kind>`, not a `desc-*` of the
+existing one. This invariant lets consumers that depend only on `start_time`
+(e.g. timing-based confound generation) treat all `desc-*` variants of a
+`feat-<kind>` as equivalent.
+
 ## CellKey
 
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:

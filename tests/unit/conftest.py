@@ -8,9 +8,11 @@ import pytest
 
 from hypline.bids import BOLD_IDENTITY_ENTITIES
 
+DEFAULT_BOLD_N_TRS = 10
+
 
 @cache
-def minimal_nifti_gz(n_trs: int = 10) -> bytes:
+def minimal_nifti_gz(n_trs: int = DEFAULT_BOLD_N_TRS) -> bytes:
     import gzip
 
     import nibabel as nib
@@ -200,6 +202,7 @@ class BIDSTree:
         task: str,
         run: str | None = None,
         kind: str,
+        df: pl.DataFrame | None = None,
         metadata: dict[str, Any] | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
@@ -210,10 +213,11 @@ class BIDSTree:
         kind_dir = self._sub_ses_dir(self.features_dir, sub, ses) / kind
         kind_dir.mkdir(parents=True, exist_ok=True)
         path = kind_dir / f"{self._stem(entities)}.parquet"
-        df = pl.DataFrame(
-            {"start_time": [0.0], "feature": [[0.0]]},
-            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
-        )
+        if df is None:
+            df = pl.DataFrame(
+                {"start_time": [0.0], "feature": [[0.0]]},
+                schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+            )
         save_feature(df, path, metadata=metadata)
         return path
 

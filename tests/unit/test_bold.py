@@ -4,7 +4,7 @@ from hypline.bids import BIDSPath
 from hypline.bold import load_bold_meta
 from hypline.layout import BIDSLayout
 
-from .conftest import BIDSTree, minimal_nifti_gz
+from .conftest import DEFAULT_BOLD_N_TRS, BIDSTree, minimal_nifti_gz
 
 SUB = "001"
 TASK = "conv"
@@ -37,7 +37,7 @@ class TestLoadBoldMeta:
     def test_derivative_n_trs_matches_raw_passes(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
         meta = load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
-        assert meta.n_trs == 10
+        assert meta.n_trs == DEFAULT_BOLD_N_TRS
 
     def test_no_events_yields_no_segments(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")

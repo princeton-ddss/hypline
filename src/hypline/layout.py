@@ -11,7 +11,7 @@ from hypline.bids import (
     validate_suffix,
 )
 
-_Area = Literal["stimuli", "features", "fmriprep"]
+_Area = Literal["stimuli", "features", "confounds", "fmriprep"]
 
 
 def _area_root(root: Path, area: _Area) -> Path:
@@ -398,6 +398,30 @@ class _Path:
         return self._derive_path(
             area="features",
             entity_key="feat",
+            source=source,
+            kind=kind,
+            ext=".parquet",
+            entity_overrides=entity_overrides,
+        )
+
+    def confound(
+        self,
+        *,
+        source: BIDSPath,
+        kind: str,
+        **entity_overrides: str,
+    ) -> BIDSPath:
+        """Derive a confound output path from `source`.
+
+        Sets conf-<kind>, applies `entity_overrides`, and places the result
+        under confounds/sub-XX/[ses-YY/]<kind>/ with `.parquet` extension.
+
+        Pass `desc=<label>` to discriminate individually-selectable regressors
+        within a kind (e.g. `onset` vs `rate` for phonemic).
+        """
+        return self._derive_path(
+            area="confounds",
+            entity_key="conf",
             source=source,
             kind=kind,
             ext=".parquet",
