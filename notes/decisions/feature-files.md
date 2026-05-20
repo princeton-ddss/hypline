@@ -124,7 +124,8 @@ don't map 1:1 to BOLD TRs.
 
 Feature files carry a `hypline` JSON blob in the Parquet footer. Hypline reserves
 keys for feature-type identity (validated against the `feat` filename entity on
-read) and package-version provenance; callers must not supply them.
+read), package-version provenance, and feature-vector dimension (`feature_dim`);
+callers must not supply them.
 
 Caller-supplied keys should let a consumer reproduce the array — any generator
 parameter that changes what was written (e.g. model name/version) belongs in

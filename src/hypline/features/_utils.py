@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any
+from typing import Any, cast
 
 import polars as pl
 import pyarrow.parquet as pq
@@ -52,8 +52,9 @@ def save_feature(
     """Save a feature DataFrame to a BIDS-compliant Parquet file.
 
     `feature` is normalized to `Array(Float64)` before writing. Parent
-    directories are created automatically. `feature_name` and
-    `hypline_version` are injected into the Parquet footer automatically.
+    directories are created automatically. `feature_name`,
+    `hypline_version`, and `feature_dim` are injected into the Parquet
+    footer automatically.
 
     Parameters
     ----------
@@ -65,29 +66,34 @@ def save_feature(
         a `feat` entity (e.g., `feat-mfcc`).
     metadata
         Optional metadata merged into the Parquet footer. Must not
-        contain `feature_name` or `hypline_version`.
+        contain a reserved key (`feature_name`, `hypline_version`,
+        `feature_dim`).
 
     Raises
     ------
     ValueError
         If required columns are missing, `feature` dtype is unsupported,
         the path lacks a `feat` entity, or `metadata` contains a
-        reserved key (`feature_name`, `hypline_version`).
+        reserved key.
     """
     bids = _validate_feature_path(path)
 
-    reserved = {"feature_name", "hypline_version"}
+    reserved = {"feature_name", "hypline_version", "feature_dim"}
     if metadata and reserved & metadata.keys():
         raise ValueError(
             f"metadata must not contain reserved keys: {reserved & metadata.keys()}"
         )
+
+    df = _normalize_feature_df(df)
+    dim = cast(pl.Array, df.get_column("feature").dtype).size
+
     auto_metadata = {
         "feature_name": bids.entities["feat"],
         "hypline_version": __version__,
+        "feature_dim": dim,
     }
     metadata = {**(metadata or {}), **auto_metadata}
 
-    df = _normalize_feature_df(df)
     table = df.to_arrow()
     existing = table.schema.metadata or {}
     merged = {**existing, b"hypline": json.dumps(metadata).encode()}
@@ -153,7 +159,8 @@ def read_feature_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
     Returns
     -------
     dict[str, Any]
-        User metadata plus auto-injected `feature_name` and `hypline_version`.
+        User metadata plus auto-injected `feature_name`, `hypline_version`,
+        and `feature_dim`.
 
     Raises
     ------

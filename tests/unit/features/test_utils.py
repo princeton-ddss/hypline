@@ -76,19 +76,17 @@ class TestSaveFeature:
         save_feature(sample_df, feature_path)
         meta = read_feature_metadata(feature_path)
         assert meta["feature_name"] == "mfcc"
+        assert meta["feature_dim"] == 3
         assert "hypline_version" in meta
 
-    def test_reserved_key_feature_name_raises(
-        self, feature_path: Path, sample_df: pl.DataFrame
+    @pytest.mark.parametrize(
+        "key", ["feature_name", "hypline_version", "feature_dim"],
+    )
+    def test_reserved_keys_raise(
+        self, feature_path: Path, sample_df: pl.DataFrame, key: str
     ):
         with pytest.raises(ValueError, match="reserved keys"):
-            save_feature(sample_df, feature_path, metadata={"feature_name": "mfcc"})
-
-    def test_reserved_key_hypline_version_raises(
-        self, feature_path: Path, sample_df: pl.DataFrame
-    ):
-        with pytest.raises(ValueError, match="reserved keys"):
-            save_feature(sample_df, feature_path, metadata={"hypline_version": "0.0.0"})
+            save_feature(sample_df, feature_path, metadata={key: "x"})
 
     def test_missing_required_columns(self, feature_path: Path):
         df = pl.DataFrame({"onset": [0.0, 1.0]})
