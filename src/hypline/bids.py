@@ -115,15 +115,27 @@ class BIDSPath:
         preserved in the filename stem of derived paths.
         """
         validate_bids_entities(f"{key}-{value}")
-
         entities = dict(self._entities)
         entities[key] = value
+        return self._rebuild(entities)
 
+    def without_entity(self, key: str) -> "BIDSPath":
+        """Return a new BIDSPath with `key` removed.
+
+        No-op if `key` is absent. Refuses to remove `sub`, which is required.
+        """
+        if key == "sub":
+            raise ValueError("Cannot remove required 'sub' entity")
+        if key not in self._entities:
+            return self
+        entities = {k: v for k, v in self._entities.items() if k != key}
+        return self._rebuild(entities)
+
+    def _rebuild(self, entities: dict[str, str]) -> "BIDSPath":
         parts = [f"{k}-{v}" for k, v in entities.items()]
         if self._suffix:
             parts.append(self._suffix)
         name = "_".join(parts) + self._ext
-
         return BIDSPath(self._path.with_name(name))
 
     def __eq__(self, other: object) -> bool:

@@ -26,6 +26,12 @@ Two terms name directory levels below `sub-XX/ses-YY/` and must not be conflated
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
 - **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; multiple individually-selectable regressors within a kind are differentiated by an optional `desc-<name>` entity).
 
+## Category entities are mutually exclusive
+
+A derived output carries exactly one of `stim-*`, `feat-*`, `conf-*`.
+A confound derived from a `feat-phonemic` file is named `conf-phonemic`,
+not `feat-phonemic_conf-phonemic`.
+
 ## Post-processed BOLD placement
 
 Post-processed BOLD (e.g. cleaned) lives in-tree alongside fmriprep outputs:

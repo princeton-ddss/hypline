@@ -129,6 +129,24 @@ class TestBIDSPathWithEntity:
             bp.with_entity("desc", "has spaces")
 
 
+class TestBIDSPathWithoutEntity:
+    def test_remove_existing_entity(self):
+        bp = BIDSPath("sub-01_ses-1_desc-clean_bold.nii")
+        bp2 = bp.without_entity("desc")
+        assert bp2.entities == {"sub": "01", "ses": "1"}
+        assert bp2.path.name == "sub-01_ses-1_bold.nii"
+
+    def test_remove_absent_entity_is_noop(self):
+        bp = BIDSPath("sub-01_bold.nii")
+        bp2 = bp.without_entity("desc")
+        assert bp2.path.name == bp.path.name
+
+    def test_remove_sub_raises(self):
+        bp = BIDSPath("sub-01_bold.nii")
+        with pytest.raises(ValueError, match="Cannot remove required 'sub'"):
+            bp.without_entity("sub")
+
+
 class TestBIDSPathValidation:
     def test_no_entities(self):
         with pytest.raises(ValueError, match="No BIDS entities"):

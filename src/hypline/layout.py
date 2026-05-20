@@ -13,6 +13,9 @@ from hypline.bids import (
 
 _Area = Literal["stimuli", "features", "confounds", "fmriprep"]
 
+# Mutually exclusive category tags; a derived output carries exactly one
+_CATEGORY_ENTITIES = frozenset({"stim", "feat", "conf"})
+
 
 def _area_root(root: Path, area: _Area) -> Path:
     if area == "fmriprep":
@@ -342,6 +345,8 @@ class _Path:
     ) -> BIDSPath:
         validate_extension(ext)
         bp = source.with_entity(entity_key, kind)
+        for key in _CATEGORY_ENTITIES - {entity_key}:
+            bp = bp.without_entity(key)
         for key, value in entity_overrides.items():
             bp = bp.with_entity(key, value)
 
