@@ -162,6 +162,13 @@ class TestBIDSPathValidation:
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             BIDSPath("sub-01_item-1.0_bold.nii")
 
+    @pytest.mark.parametrize(
+        "entity", ["acq", "ce", "rec", "dir", "echo", "part", "chunk"]
+    )
+    def test_unsupported_entity_rejected(self, entity: str):
+        with pytest.raises(ValueError, match="not supported"):
+            BIDSPath(f"sub-01_task-X_{entity}-foo_run-1_bold.nii.gz")
+
     def test_no_extension_raises(self):
         with pytest.raises(ValueError, match="Invalid extension"):
             BIDSPath("sub-01_ses-1_bold")

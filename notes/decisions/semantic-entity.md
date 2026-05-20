@@ -63,7 +63,9 @@ segment slice and are excluded from X/Y.
   entity raises. Descriptive attributes must live in `events.json`.
 - `task` is the only BOLD identity entity permitted as a segment entity, and only as a
   single row whose value matches the filename's `task`. All other identity entities (`sub`,
-  `ses`, `acq`, `ce`, `rec`, `dir`, `run`) are rejected.
+  `ses`, `run`) are rejected. Acquisition entities (`acq`, `ce`, `rec`, `dir`, `echo`,
+  `part`, `chunk`) cannot appear in the first place — see
+  [unsupported-entities.md](unsupported-entities.md).
 
 ## Rationale
 

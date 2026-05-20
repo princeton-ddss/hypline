@@ -38,6 +38,14 @@ Some entity names look tempting for custom use but are already reserved:
 
 Check the BIDS spec before introducing a new custom entity.
 
+## Entities hypline does not support
+
+Hypline accepts a BIDS subset. The following entities are rejected at
+`BIDSPath` construction: `acq`, `ce`, `rec`, `dir`, `echo`, `part`, `chunk`.
+These mark methodological variation that has no place in hypline's target
+hyperscanning domain. See
+[../decisions/unsupported-entities.md](../decisions/unsupported-entities.md).
+
 ## Structural entities in hypline
 
 Hypline does not register a fixed segment entity name. User-chosen BIDS key-value names in

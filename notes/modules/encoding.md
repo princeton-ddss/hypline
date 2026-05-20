@@ -62,11 +62,10 @@ segment — so the two meet at the segment boundary without offset arithmetic.
 This relies on `start_time` being source-relative; see
 [../decisions/feature-files.md](../decisions/feature-files.md#temporal-alignment).
 
-Acquisition entities (`acq`, `ce`, `rec`, `dir`) must be invariant across
-all BOLD files in a training call. Mixing fMRIPrep output variants would
-either cause a shape mismatch (`acq`) or silently corrupt alignment
-(`ce`, `rec`, `dir`). Features are not required to carry these entities —
-they are stimulus-derived and independent of acquisition parameters.
+Acquisition entities (`acq`, `ce`, `rec`, `dir`, `echo`, `part`, `chunk`) are
+disallowed project-wide — see [../decisions/unsupported-entities.md](../decisions/unsupported-entities.md).
+Encoding therefore assumes a single coherent acquisition without per-call
+invariance checks.
 
 Coverage failures are reported fail-fast: the first missing (cell, feature)
 pair raises, without aggregating the full list. Mismatches are typically

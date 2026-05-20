@@ -9,20 +9,16 @@ BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
 BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
 EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
 
-# Entities that may appear in raw BOLD run filenames
-RAW_BOLD_ENTITIES = (
-    "sub",
-    "ses",
-    "task",
-    "acq",
-    "ce",
-    "rec",
-    "dir",
-    "run",
-    "echo",
-    "part",
-    "chunk",
-)
+# Entities identifying a single BOLD run
+BOLD_IDENTITY_ENTITIES = frozenset(("sub", "ses", "task", "run"))
+
+# BIDS entities hypline rejects at construction. Hyperscanning fixes a single
+# acquisition protocol, so methodological-variation entities are disallowed.
+UNSUPPORTED_ENTITIES = frozenset(("acq", "ce", "rec", "dir", "echo", "part", "chunk"))
+
+# Identity entities plus unsupported ones. Used to bar `events.tsv` segment
+# rows from colliding with BIDS-reserved entity names.
+RESERVED_BIDS_ENTITIES = BOLD_IDENTITY_ENTITIES | UNSUPPORTED_ENTITIES
 
 
 def validate_bids_entities(*entities: str) -> None:
@@ -65,6 +61,12 @@ class BIDSPath:
                 validate_bids_entities(segment)
                 if key in self._entities:
                     raise ValueError(f"Duplicate BIDS entity key: {key!r}")
+                if key in UNSUPPORTED_ENTITIES:
+                    raise ValueError(
+                        f"BIDS entity {key!r} is not supported by hypline "
+                        f"(got {name!r}); unsupported: "
+                        f"{sorted(UNSUPPORTED_ENTITIES)}"
+                    )
                 self._entities[key] = value
             elif i == len(segments) - 1:
                 validate_suffix(segment)

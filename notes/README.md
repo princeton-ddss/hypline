@@ -42,6 +42,7 @@ AI agents alike. Agent-agnostic by design.
 | Task                                   | Start here                                          |
 |----------------------------------------|-----------------------------------------------------|
 | Adding or renaming a BIDS entity       | `external/bids.md`, `decisions/semantic-entity.md`  |
+| Checking which BIDS entities are rejected | `decisions/unsupported-entities.md`              |
 | Changing the feature file schema       | `decisions/feature-files.md`, `modules/encoding.md` |
 | Changing the confound file schema      | `decisions/confound-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |

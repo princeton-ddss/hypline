@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 from hypline.bids import (
-    RAW_BOLD_ENTITIES,
+    BOLD_IDENTITY_ENTITIES,
     BIDSPath,
     find_bids_files,
     normalize_bids_filters,
@@ -312,7 +312,9 @@ class _Path:
         """
         validate_suffix(suffix)
         validate_extension(ext)
-        entities = {k: v for k, v in source.entities.items() if k in RAW_BOLD_ENTITIES}
+        entities = {
+            k: v for k, v in source.entities.items() if k in BOLD_IDENTITY_ENTITIES
+        }
 
         sub = entities.get("sub")
         ses = entities.get("ses")

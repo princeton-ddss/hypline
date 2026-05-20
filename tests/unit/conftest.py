@@ -6,7 +6,7 @@ from typing import Any
 import polars as pl
 import pytest
 
-from hypline.bids import RAW_BOLD_ENTITIES
+from hypline.bids import BOLD_IDENTITY_ENTITIES
 
 
 @cache
@@ -130,7 +130,7 @@ class BIDSTree:
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
         extras = extra_entities or {}
-        invalid = set(extras) - set(RAW_BOLD_ENTITIES)
+        invalid = set(extras) - BOLD_IDENTITY_ENTITIES
         if invalid:
             raise ValueError(
                 f"Raw BIDS func/ disallows non-identity entities: {sorted(invalid)}"
@@ -244,7 +244,9 @@ class BIDSTree:
             ext=".nii.gz",
             content=minimal_nifti_gz(),
             sidecar_json={"RepetitionTime": tr},
-            extra_entities={k: v for k, v in extras.items() if k in RAW_BOLD_ENTITIES},
+            extra_entities={
+                k: v for k, v in extras.items() if k in BOLD_IDENTITY_ENTITIES
+            },
         )
         return self._add_fmriprep(
             sub=sub,

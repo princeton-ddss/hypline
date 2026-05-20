@@ -24,6 +24,12 @@ splitting, causing `find_bids_files` to silently exclude the file and surface
 a misleading "no files found" downstream. Loud rejection at construction
 prevents that class of bug.
 
+## Disallowed entities
+
+`BIDSPath` rejects a subset of BIDS entities at construction —
+`acq`, `ce`, `rec`, `dir`, `echo`, `part`, `chunk`. See
+[unsupported-entities.md](unsupported-entities.md) for the list and rationale.
+
 ## Deliberate relaxations from the BIDS spec
 
 - **Suffix is optional.** Some hypline-internal paths (e.g., feature files

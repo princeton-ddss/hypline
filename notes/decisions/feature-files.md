@@ -70,10 +70,9 @@ exists for derived feature files. Feature path validation rejects any path with 
 `BIDSPath` itself makes suffix optional to allow this — see
 [bidspath-validation.md](bidspath-validation.md).
 
-Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`). Features are
-stimulus-derived — the same stimulus embedding applies regardless of scanner acquisition
-parameters. Encoding validation enforces this: if BOLD files carry acquisition variants,
-feature files are not required to mirror them.
+Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`, `echo`,
+`part`, `chunk`) — hypline rejects these project-wide at `BIDSPath` construction. See
+[unsupported-entities.md](unsupported-entities.md).
 
 ## CellKey
 
@@ -82,10 +81,10 @@ feature files are not required to mirror them.
 - Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
 - Metadata entities from `events.json` `trial_type.Levels` (e.g. `cond=R`, `item=101`)
 
-Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task`, `acq`, `ce`, `rec`, `dir`
-(invariant within a training call), `desc`, `res`, `den`, `echo` (BOLD image-variant
-derivatives), `space`, `feat` (orthogonal axes). Entities are present or absent — no
-`None` sentinel. Equality and hashing are order-independent.
+Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task` (invariant within a training
+call), `desc`, `res`, `den` (BOLD image-variant derivatives), `space`, `feat` (orthogonal
+axes). Entities are present or absent — no `None` sentinel. Equality and hashing are
+order-independent.
 
 CV splits are expressed by querying `CellKey` entities:
 

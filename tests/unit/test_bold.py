@@ -354,7 +354,7 @@ class TestLoadBoldMeta:
                 }
             },
         )
-        with pytest.raises(ValueError, match="collides with a raw BOLD entity"):
+        with pytest.raises(ValueError, match="collides with a BIDS-reserved entity"):
             load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
 
     def test_events_json_invalid_value_raises(self, tree: BIDSTree):

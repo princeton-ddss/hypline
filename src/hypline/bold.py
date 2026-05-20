@@ -8,7 +8,7 @@ from hypline.bids import (
     BIDS_ENTITY_KEY_RE,
     BIDS_ENTITY_RE,
     BIDS_ENTITY_VALUE_RE,
-    RAW_BOLD_ENTITIES,
+    RESERVED_BIDS_ENTITIES,
     BIDSPath,
 )
 from hypline.enums import SurfaceSpace, VolumeSpace
@@ -171,11 +171,11 @@ def _parse_segments(
         )
     segment_entity = next(iter(entity_names))
 
-    if segment_entity in RAW_BOLD_ENTITIES:
+    if segment_entity in RESERVED_BIDS_ENTITIES:
         if segment_entity != "task":
             raise ValueError(
                 f"segment entity {segment_entity!r} is not allowed; "
-                f"only 'task' is permitted among raw BOLD entities"
+                f"only 'task' is permitted among BIDS-reserved entities"
             )
         if len(segments) > 1:
             raise ValueError(
@@ -256,10 +256,10 @@ def _validate_segment_records(
                 f"events.json metadata key {field!r} must match "
                 f"{BIDS_ENTITY_KEY_RE.pattern}"
             )
-        if field in RAW_BOLD_ENTITIES:
+        if field in RESERVED_BIDS_ENTITIES:
             raise ValueError(
-                f"events.json metadata key {field!r} collides with a raw "
-                f"BOLD entity {sorted(RAW_BOLD_ENTITIES)}"
+                f"events.json metadata key {field!r} collides with a "
+                f"BIDS-reserved entity {sorted(RESERVED_BIDS_ENTITIES)}"
             )
 
     for key, record in segment_records.items():

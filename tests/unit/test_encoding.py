@@ -303,27 +303,6 @@ class TestDiscoverBold:
         with pytest.raises(ValueError, match="task"):
             enc._discover_bold(SUB)
 
-    def test_acq_invariance_violation_raises(self, tree: BIDSTree):
-        tree.add_bold(
-            sub=SUB,
-            task=TASK,
-            space=SPACE,
-            run="1",
-            desc="clean",
-            extra_entities={"acq": "hi"},
-        )
-        tree.add_bold(
-            sub=SUB,
-            task=TASK,
-            space=SPACE,
-            run="2",
-            desc="clean",
-            extra_entities={"acq": "lo"},
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="acq"):
-            enc._discover_bold(SUB)
-
     def test_no_events_gives_no_segments(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
         enc = _make_encoding(tree, ["mfcc"])

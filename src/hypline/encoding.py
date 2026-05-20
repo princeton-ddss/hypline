@@ -39,8 +39,8 @@ class CellKey:
     """Open-schema key identifying a single feature time window.
 
     EXCLUDE defines which entities must never appear on a cell key:
-    - sub, task, acq, ce, rec, dir: invariant across a training call
-    - desc, res, den, echo: image-variant entities (BOLD derivatives only)
+    - sub, task: invariant across a training call
+    - desc, res, den: image-variant entities (BOLD derivatives only)
     - space, feat: orthogonal axes — handled by dedicated arguments
 
     Equality and hashing are order-independent.
@@ -50,14 +50,9 @@ class CellKey:
         (
             "sub",
             "task",
-            "acq",
-            "ce",
-            "rec",
-            "dir",
             "desc",
             "res",
             "den",
-            "echo",
             "space",
             "feat",
         )
@@ -344,10 +339,10 @@ class Encoding:
                 loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
                 raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e
 
-        # Validate: acquisition entities are invariant across all runs
+        # Validate: task is invariant across all runs
         bold_bids = [meta.bids for meta in bold_metas.values()]
         try:
-            validate_entity_invariance(bold_bids, ("task", "acq", "ce", "rec", "dir"))
+            validate_entity_invariance(bold_bids, ("task",))
         except ValueError as e:
             raise ValueError(f"{e} (subject {sub_id})") from e
 
