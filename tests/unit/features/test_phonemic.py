@@ -157,6 +157,28 @@ class TestPhonemicMetadata:
         assert meta["dim_labels"] == PhonemicFeature._articulatory_feature_names
 
 
+class TestPhonemicDesc:
+    def test_desc_lands_on_output_filename(self, tree: BIDSTree, fake_cmudict):
+        _write_transcript(tree, [(0.0, "cat")])
+        layout = BIDSLayout(tree.root)
+        PhonemicFeature(
+            layout=layout,
+            use_articulatory=False,
+            desc="ver1",
+        ).generate(SUB)
+        out = layout.find.features(sub=SUB, kind="phonemic")[0]
+        assert out.entities.get("desc") == "ver1"
+        assert out.path.name.endswith("_feat-phonemic_desc-ver1.parquet")
+
+    def test_no_desc_omits_entity(self, tree: BIDSTree, fake_cmudict):
+        _write_transcript(tree, [(0.0, "cat")])
+        layout = BIDSLayout(tree.root)
+        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        out = layout.find.features(sub=SUB, kind="phonemic")[0]
+        assert "desc" not in out.entities
+        assert out.path.name.endswith("_feat-phonemic.parquet")
+
+
 class TestPhonemicMultiTranscript:
     def test_generates_one_feature_per_transcript(self, tree: BIDSTree, fake_cmudict):
         tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="transcript", ext=".csv")

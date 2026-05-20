@@ -4,8 +4,9 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
-from hypline.features._utils import save_feature
 from hypline.layout import BIDSLayout
+
+from ._utils import save_feature
 
 ARPABET_PHONEMES = [
     "B",
@@ -64,12 +65,14 @@ class PhonemicFeature:
         layout: BIDSLayout,
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
+        desc: str | None = None,
     ):
         self._load()
 
         self._layout = layout
         self._use_articulatory = use_articulatory
         self._bids_filters = bids_filters
+        self._desc = desc
 
     @classmethod
     def _load(cls):
@@ -143,7 +146,10 @@ class PhonemicFeature:
                 }
             )
 
-            out = self._layout.path.feature(source=transcript, kind="phonemic")
+            extras = {"desc": self._desc} if self._desc is not None else {}
+            out = self._layout.path.feature(
+                source=transcript, kind="phonemic", **extras
+            )
             out.path.parent.mkdir(parents=True, exist_ok=True)
 
             metadata = {

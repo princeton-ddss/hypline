@@ -74,6 +74,17 @@ Feature files do **not** carry acquisition entities (`acq`, `ce`, `rec`, `dir`, 
 `part`, `chunk`) — hypline rejects these project-wide at `BIDSPath` construction. See
 [unsupported-entities.md](unsupported-entities.md).
 
+### Optional `desc` variant tag
+
+Feature generators may accept an optional `desc` argument that lands as a
+`desc-<label>` entity on the output filename, distinguishing features generated
+from the same source under different generator settings.
+
+`desc` stays in `CellKey.EXCLUDE` — it labels a settings variant, not identity.
+Reproducibility is enforced at encoding time by Parquet-metadata equality across
+files sharing the same `(feat, desc)` pair, not by the tag itself; mismatched
+settings under the same `desc` fail that check loudly.
+
 ## CellKey
 
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:

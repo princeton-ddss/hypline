@@ -43,6 +43,17 @@ def generate_phonemic_feature(
             show_default=False,
         ),
     ] = None,
+    desc: Annotated[
+        str | None,
+        typer.Option(
+            "--desc",
+            help="""
+            Label to tag outputs (alphanumeric), e.g. --desc v2;
+            appears as desc-<label> in filenames
+            """,
+            show_default=False,
+        ),
+    ] = None,
 ):
     """Generate phonemic feature from word-level transcripts."""
     from hypline.features.phonemic import PhonemicFeature
@@ -57,6 +68,7 @@ def generate_phonemic_feature(
         layout=layout,
         use_articulatory=not no_articulatory,
         bids_filters=resolved_bids_filters,
+        desc=desc,
     )
 
     resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")

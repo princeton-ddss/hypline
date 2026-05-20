@@ -449,6 +449,7 @@ class TestPathFeature:
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic", desc="gpt3")
         assert out.entities.get("desc") == "gpt3"
+        assert out.path.name.endswith("_feat-phonemic_desc-gpt3.parquet")
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)

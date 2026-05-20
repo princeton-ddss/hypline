@@ -391,6 +391,9 @@ class _Path:
 
         Sets feat-<kind>, applies `entity_overrides`, and places the result
         under features/sub-XX/[ses-YY/]<kind>/ with `.parquet` extension.
+
+        Pass `desc=<label>` as a variant tag to distinguish features generated
+        from the same source under different settings (e.g. model version).
         """
         return self._derive_path(
             area="features",
