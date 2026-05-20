@@ -140,7 +140,7 @@ callers must not supply them.
 
 Caller-supplied keys should let a consumer reproduce the array — any generator
 parameter that changes what was written (e.g. model name/version) belongs in
-metadata. `dim_labels` (ordered per-dimension labels) is optional; include when
+metadata. `feature_dim_labels` (ordered per-dimension labels) is optional; include when
 dimensions are nameable.
 
 Keys prefixed with `_` are exempt from cross-file equality checks, reserved

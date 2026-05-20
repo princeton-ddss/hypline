@@ -80,7 +80,8 @@ class TestSaveFeature:
         assert "hypline_version" in meta
 
     @pytest.mark.parametrize(
-        "key", ["feature_name", "hypline_version", "feature_dim"],
+        "key",
+        ["feature_name", "hypline_version", "feature_dim"],
     )
     def test_reserved_keys_raise(
         self, feature_path: Path, sample_df: pl.DataFrame, key: str
@@ -251,4 +252,3 @@ class TestReadFeature:
         shutil.copy(src, dst)
         with pytest.raises(ValueError, match="does not match path entity"):
             read_feature(dst)
-

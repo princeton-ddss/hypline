@@ -78,7 +78,7 @@ def save_feature(
     """
     bids = _validate_feature_path(path)
 
-    reserved = {"feature_name", "hypline_version", "feature_dim"}
+    reserved = {"hypline_version", "feature_name", "feature_dim"}
     if metadata and reserved & metadata.keys():
         raise ValueError(
             f"metadata must not contain reserved keys: {reserved & metadata.keys()}"
@@ -88,11 +88,11 @@ def save_feature(
     dim = cast(pl.Array, df.get_column("feature").dtype).size
 
     auto_metadata = {
-        "feature_name": bids.entities["feat"],
         "hypline_version": __version__,
+        "feature_name": bids.entities["feat"],
         "feature_dim": dim,
     }
-    metadata = {**(metadata or {}), **auto_metadata}
+    metadata = {**auto_metadata, **(metadata or {})}
 
     table = df.to_arrow()
     existing = table.schema.metadata or {}

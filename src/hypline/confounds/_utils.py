@@ -111,9 +111,9 @@ def save_confound(
     bids = _validate_confound_path(path)
 
     reserved = {
+        "hypline_version",
         "confound_kind",
         "confound_variant",
-        "hypline_version",
         "tr_method",
         "repetition_time",
         "n_trs",
@@ -130,15 +130,15 @@ def save_confound(
     dim = cast(pl.Array, df.get_column("confound").dtype).size
 
     auto_metadata = {
+        "hypline_version": __version__,
         "confound_kind": bids.entities["conf"],
         "confound_variant": bids.entities.get("desc"),
-        "hypline_version": __version__,
         "tr_method": tr_method,
         "repetition_time": repetition_time,
         "n_trs": n_trs,
         "confound_dim": dim,
     }
-    metadata = {**(metadata or {}), **auto_metadata}
+    metadata = {**auto_metadata, **(metadata or {})}
 
     table = df.to_arrow()
     existing = table.schema.metadata or {}

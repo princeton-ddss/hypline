@@ -144,7 +144,7 @@ class TestPhonemicMetadata:
             layout.find.features(sub=SUB, kind="phonemic")[0].path
         )
         assert meta["use_articulatory"] is False
-        assert meta["dim_labels"] == ARPABET_PHONEMES
+        assert meta["feature_dim_labels"] == ARPABET_PHONEMES
 
     def test_articulatory_metadata(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
@@ -154,7 +154,7 @@ class TestPhonemicMetadata:
             layout.find.features(sub=SUB, kind="phonemic")[0].path
         )
         assert meta["use_articulatory"] is True
-        assert meta["dim_labels"] == PhonemicFeature._articulatory_feature_names
+        assert meta["feature_dim_labels"] == PhonemicFeature._articulatory_feature_names
 
 
 class TestPhonemicDesc:

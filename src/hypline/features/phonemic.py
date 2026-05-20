@@ -154,7 +154,7 @@ class PhonemicFeature:
 
             metadata = {
                 "use_articulatory": self._use_articulatory,
-                "dim_labels": (
+                "feature_dim_labels": (
                     self._articulatory_feature_names
                     if self._use_articulatory
                     else ARPABET_PHONEMES
