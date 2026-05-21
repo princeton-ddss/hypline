@@ -20,6 +20,17 @@ UNSUPPORTED_ENTITIES = frozenset(("acq", "ce", "rec", "dir", "echo", "part", "ch
 # rows from colliding with BIDS-reserved entity names.
 RESERVED_BIDS_ENTITIES = BOLD_IDENTITY_ENTITIES | UNSUPPORTED_ENTITIES
 
+# Hypline derivative-category tags; a derived output carries exactly one
+CATEGORY_ENTITIES = frozenset({"stim", "feat", "conf"})
+
+# Entities distinguishing processing/image variants of the same logical run
+VARIANT_DESCRIPTORS = frozenset({"desc", "space", "res", "den"})
+
+# Filename entities allowed without an events.json sidecar counterpart.
+# Anything outside this set is descriptive metadata and must be declared
+# in events.json `Levels`.
+STRUCTURAL_ENTITIES = BOLD_IDENTITY_ENTITIES | CATEGORY_ENTITIES | VARIANT_DESCRIPTORS
+
 
 def validate_bids_entities(*entities: str) -> None:
     for entity in entities:
@@ -184,6 +195,19 @@ def normalize_bids_filters(
     return filters
 
 
+def parse_filter_groups(filters: list[str]) -> dict[str, list[str]]:
+    """Group `entity-value` filter strings by key.
+
+    Same-key values are returned together (callers OR-match within a group);
+    different keys yield distinct entries (callers AND-match across groups).
+    """
+    groups: dict[str, list[str]] = {}
+    for entity in filters:
+        key, _, value = entity.partition("-")
+        groups.setdefault(key, []).append(value)
+    return groups
+
+
 def find_bids_files(
     directory: str | os.PathLike[str],
     ext: str,
@@ -203,11 +227,7 @@ def find_bids_files(
         validate_bids_entities(*bids_filters)
     directory = Path(directory)
     ends_with = f"_{suffix}{ext}" if suffix is not None else ext
-
-    groups: dict[str, list[str]] = {}
-    for entity in bids_filters or ():
-        key, _, value = entity.partition("-")
-        groups.setdefault(key, []).append(value)
+    groups = parse_filter_groups(bids_filters or [])
 
     files = directory.rglob("*") if recursive else directory.iterdir()
     results: list[BIDSPath] = []

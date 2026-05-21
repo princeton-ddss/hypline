@@ -1,7 +1,13 @@
 import pytest
 
 from hypline.bids import BIDSPath
-from hypline.events import Segment, load_segments, segment_tr_slice
+from hypline.events import (
+    Segment,
+    load_segments,
+    merge_filename_and_sidecar,
+    resolve_entities,
+    segment_tr_slice,
+)
 from hypline.layout import BIDSLayout
 
 from .conftest import BIDSTree
@@ -14,6 +20,15 @@ _SEGMENT_ROWS = [
     {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
     {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
 ]
+
+_SEGMENT_LEVELS = {
+    "trial_type": {
+        "Levels": {
+            "block-1": {"metadata": {"cond": "R", "item": "101"}},
+            "block-2": {"metadata": {"cond": "L", "item": "102"}},
+        }
+    }
+}
 
 
 class TestSegmentTrSlice:
@@ -98,3 +113,225 @@ class TestLoadSegments:
         segments = load_segments(BIDSLayout(tree.root), BIDSPath(bold_path))
         assert segments[0].metadata == {"cond": "a"}
         assert segments[1].metadata == {"cond": "b"}
+
+
+class TestMergeFilenameAndSidecar:
+    STRUCTURAL = frozenset({"ses", "run", "trial"})
+
+    def test_sidecar_only_key_adopted(self):
+        merged = merge_filename_and_sidecar(
+            filename_entities={"ses": "1", "run": "2", "trial": "3"},
+            sidecar_metadata={"cond": "R", "item": "101"},
+            structural_keys=self.STRUCTURAL,
+        )
+        assert merged == {
+            "ses": "1",
+            "run": "2",
+            "trial": "3",
+            "cond": "R",
+            "item": "101",
+        }
+
+    def test_both_same_allowed(self):
+        merged = merge_filename_and_sidecar(
+            filename_entities={"ses": "1", "run": "2", "trial": "3", "cond": "R"},
+            sidecar_metadata={"cond": "R"},
+            structural_keys=self.STRUCTURAL,
+        )
+        assert merged == {"ses": "1", "run": "2", "trial": "3", "cond": "R"}
+
+    def test_structural_only_filename_returns_as_is(self):
+        merged = merge_filename_and_sidecar(
+            filename_entities={"ses": "1", "run": "2", "trial": "3"},
+            sidecar_metadata={},
+            structural_keys=self.STRUCTURAL,
+        )
+        assert merged == {"ses": "1", "run": "2", "trial": "3"}
+
+    def test_both_differ_raises(self):
+        with pytest.raises(ValueError, match="disagree on .cond."):
+            merge_filename_and_sidecar(
+                filename_entities={"run": "2", "trial": "3", "cond": "R"},
+                sidecar_metadata={"cond": "L"},
+                structural_keys=self.STRUCTURAL,
+            )
+
+    def test_error_names_offending_key_and_values(self):
+        with pytest.raises(
+            ValueError, match=r"'cond'.*filename has 'R'.*sidecar has 'L'"
+        ):
+            merge_filename_and_sidecar(
+                filename_entities={"run": "7", "cond": "R"},
+                sidecar_metadata={"cond": "L"},
+                structural_keys=self.STRUCTURAL,
+            )
+
+    def test_filename_only_descriptive_raises(self):
+        with pytest.raises(ValueError, match="absent from events.json"):
+            merge_filename_and_sidecar(
+                filename_entities={"run": "2", "trial": "3", "item": "101"},
+                sidecar_metadata={"cond": "R"},
+                structural_keys=self.STRUCTURAL,
+            )
+
+    def test_empty_sidecar_with_descriptive_filename_raises(self):
+        with pytest.raises(ValueError, match="absent from events.json"):
+            merge_filename_and_sidecar(
+                filename_entities={"run": "2", "cond": "R"},
+                sidecar_metadata={},
+                structural_keys=self.STRUCTURAL,
+            )
+
+
+class TestResolveEntities:
+    def test_unsegmented_run_returns_filename_entities(self, tree: BIDSTree):
+        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
+        assert merged == {"sub": SUB, "task": TASK, "run": "1", "stim": "audio"}
+
+    def test_task_escape_hatch_merges_run_level_metadata(self, tree: BIDSTree):
+        # Escape hatch: `task-<value>` row reuses filename's `task` as segment entity
+        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[{"trial_type": f"task-{TASK}", "onset": 5.0, "duration": 100.0}],
+            sidecar_json={
+                "trial_type": {"Levels": {f"task-{TASK}": {"metadata": {"cond": "R"}}}}
+            },
+        )
+        merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
+        assert merged == {
+            "sub": SUB,
+            "task": TASK,
+            "run": "1",
+            "stim": "audio",
+            "cond": "R",
+        }
+
+    def test_segmented_stimulus_merges_sidecar_metadata(self, tree: BIDSTree):
+        # No BOLD file — proves stimulus discovery works without it
+        stim = tree.add_stimulus(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            kind="audio",
+            ext=".wav",
+            extra_entities={"block": "1"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
+        assert merged == {
+            "sub": SUB,
+            "task": TASK,
+            "run": "1",
+            "stim": "audio",
+            "block": "1",
+            "cond": "R",
+            "item": "101",
+        }
+
+    def test_segmented_feature_path_matches_stimulus(self, tree: BIDSTree):
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
+        feat = tree.add_feature(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            kind="mfcc",
+            extra_entities={"block": "2"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(feat))
+        assert merged["cond"] == "L"
+        assert merged["item"] == "102"
+
+    def test_missing_segment_entity_on_filename_raises(self, tree: BIDSTree):
+        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        with pytest.raises(ValueError, match="missing segment entity 'block'"):
+            resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
+
+    def test_unknown_segment_value_raises(self, tree: BIDSTree):
+        stim = tree.add_stimulus(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            kind="audio",
+            ext=".wav",
+            extra_entities={"block": "9"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        with pytest.raises(ValueError, match=r"block-9.*not found"):
+            resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
+
+    def test_filename_descriptive_entity_absent_from_sidecar_raises(
+        self, tree: BIDSTree
+    ):
+        stim = tree.add_stimulus(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            kind="audio",
+            ext=".wav",
+            extra_entities={"block": "1", "cond": "R"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"item": "101"}},
+                        "block-2": {"metadata": {"item": "102"}},
+                    }
+                }
+            },
+        )
+        with pytest.raises(ValueError, match="absent from events.json"):
+            resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
+
+    def test_filename_sidecar_disagreement_raises(self, tree: BIDSTree):
+        stim = tree.add_stimulus(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            kind="audio",
+            ext=".wav",
+            extra_entities={"block": "1", "cond": "L"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        with pytest.raises(ValueError, match=r"disagree on 'cond'"):
+            resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))

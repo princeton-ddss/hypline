@@ -39,3 +39,16 @@ explicit at the call site.
 
 Callers always go through `load_segments`, which returns `[]` for
 unsegmented runs.
+
+## Filename ↔ sidecar merge
+
+The four-case merge contract between filename entities and `events.json`
+`Levels.metadata` (sidecar-only adopted, both-same kept, both-differ raises,
+filename-only descriptive raises) lives here as `merge_filename_and_sidecar`.
+`resolve_entities(layout, source)` wraps it for arbitrary BIDSPaths, locating
+the segment by the filename's segment-entity value. Encoding's
+`_resolve_cell_keys` and `BIDSLayout.find.*` descriptive-filter matching both
+delegate here — do not re-implement the cases at the call site.
+
+See [../decisions/feature-files.md](../decisions/feature-files.md#filename-entity-vs-eventsjson-metadata)
+for the contract statement.

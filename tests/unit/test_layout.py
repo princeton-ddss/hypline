@@ -140,6 +140,126 @@ class TestFindStimuli:
         with pytest.raises(ValueError, match="task"):
             layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
 
+    def test_descriptive_filter_via_events_metadata(self, tree: BIDSTree):
+        # Filter `cond-R` matches only the trial whose sidecar metadata says cond=R
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            sub=SUB,
+            task=TASK,
+            run="1",
+            extra_entities={"trial": "1"},
+        )
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            sub=SUB,
+            task=TASK,
+            run="1",
+            extra_entities={"trial": "2"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "trial-1", "onset": 0.0, "duration": 10.0},
+                {"trial_type": "trial-2", "onset": 10.0, "duration": 10.0},
+            ],
+            sidecar_json={
+                "trial_type": {
+                    "Levels": {
+                        "trial-1": {"metadata": {"cond": "R"}},
+                        "trial-2": {"metadata": {"cond": "L"}},
+                    }
+                }
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        results = layout.find.stimuli(
+            sub=SUB, kind="audio", ext=".wav", bids_filters=["cond-R"]
+        )
+        assert len(results) == 1
+        assert results[0].entities["trial"] == "1"
+
+    def test_descriptive_filter_no_match_raises(self, tree: BIDSTree):
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            sub=SUB,
+            task=TASK,
+            run="1",
+            extra_entities={"trial": "1"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[{"trial_type": "trial-1", "onset": 0.0, "duration": 10.0}],
+            sidecar_json={
+                "trial_type": {"Levels": {"trial-1": {"metadata": {"cond": "R"}}}}
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError, match="cond-L"):
+            layout.find.stimuli(
+                sub=SUB, kind="audio", ext=".wav", bids_filters=["cond-L"]
+            )
+
+    def test_descriptive_filter_or_within_key(self, tree: BIDSTree):
+        for trial in ("1", "2", "3"):
+            tree.add_stimulus(
+                kind="audio",
+                ext=".wav",
+                sub=SUB,
+                task=TASK,
+                run="1",
+                extra_entities={"trial": trial},
+            )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": f"trial-{i}", "onset": (i - 1) * 10.0, "duration": 10.0}
+                for i in (1, 2, 3)
+            ],
+            sidecar_json={
+                "trial_type": {
+                    "Levels": {
+                        "trial-1": {"metadata": {"cond": "R"}},
+                        "trial-2": {"metadata": {"cond": "L"}},
+                        "trial-3": {"metadata": {"cond": "R"}},
+                    }
+                }
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        results = layout.find.stimuli(
+            sub=SUB, kind="audio", ext=".wav", bids_filters=["cond-R", "cond-L"]
+        )
+        assert len(results) == 3
+
+    def test_structural_filter_mismatch_uses_tiered_diagnostic(self, tree: BIDSTree):
+        # Asserts on `_diagnose_lookup`'s message, not the descriptive helper's
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            sub=SUB,
+            task=TASK,
+            extra_entities={"desc": "a"},
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError) as exc:
+            layout.find.stimuli(
+                sub=SUB,
+                kind="audio",
+                ext=".wav",
+                bids_filters=["desc-bogus"],
+            )
+        assert "descriptive filters" not in str(exc.value)
+        assert "desc-bogus" in str(exc.value)
+
 
 class TestFindFeatures:
     def test_translates_kind_to_feature_entity(self, tree: BIDSTree):
@@ -232,6 +352,24 @@ class TestFindFeatures:
         with pytest.raises(ValueError, match="task"):
             layout.find.features(sub=SUB, kind="phonemic")
 
+    def test_structural_filter_mismatch_uses_tiered_diagnostic(self, tree: BIDSTree):
+        # Asserts on `_diagnose_lookup`'s message, not the descriptive helper's
+        tree.add_feature(
+            kind="phonemic",
+            sub=SUB,
+            task=TASK,
+            extra_entities={"desc": "gpt3"},
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError) as exc:
+            layout.find.features(
+                sub=SUB,
+                kind="phonemic",
+                bids_filters=["desc-bogus"],
+            )
+        assert "descriptive filters" not in str(exc.value)
+        assert "desc-bogus" in str(exc.value)
+
 
 class TestFindFmriprep:
     def test_returns_bold_files(self, tree: BIDSTree):
@@ -321,6 +459,44 @@ class TestFindFmriprep:
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match="boldref"):
             layout.find.fmriprep(sub=SUB, suffix="boldref", ext=".nii.gz")
+
+    def test_structural_filter_mismatch_uses_tiered_diagnostic(self, tree: BIDSTree):
+        # Asserts on `_diagnose_lookup`'s message, not the descriptive helper's
+        tree.add_bold(space=SPACE, sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(FileNotFoundError) as exc:
+            layout.find.fmriprep(
+                sub=SUB,
+                suffix="bold",
+                ext=".nii.gz",
+                bids_filters=["space-Bogus"],
+            )
+        assert "descriptive filters" not in str(exc.value)
+        assert "space-Bogus" in str(exc.value)
+
+    def test_descriptive_filter_via_task_escape_hatch(self, tree: BIDSTree):
+        # fmriprep BOLD has no segment entity; `task-<value>` escape hatch
+        # attaches run-level metadata for the descriptive filter to resolve against
+        tree.add_bold(space=SPACE, sub=SUB, task=TASK, run="1")
+        tree.add_bold(space=SPACE, sub=SUB, task=TASK, run="2")
+        for run, cond in [("1", "R"), ("2", "L")]:
+            tree.add_events(
+                sub=SUB,
+                task=TASK,
+                run=run,
+                rows=[{"trial_type": f"task-{TASK}", "onset": 0.0, "duration": 100.0}],
+                sidecar_json={
+                    "trial_type": {
+                        "Levels": {f"task-{TASK}": {"metadata": {"cond": cond}}}
+                    }
+                },
+            )
+        layout = BIDSLayout(tree.root)
+        results = layout.find.fmriprep(
+            sub=SUB, suffix="bold", ext=".nii.gz", bids_filters=["cond-R"]
+        )
+        assert len(results) == 1
+        assert results[0].entities.get("run") == "1"
 
 
 class TestPathRaw:
@@ -479,9 +655,7 @@ class TestPathFeature:
 class TestPathConfound:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(
-            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
-        )
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
         out = layout.path.confound(source=source, kind="phonemic")
         assert out.entities.get("conf") == "phonemic"
         assert out.entities.get("desc") is None
@@ -492,9 +666,7 @@ class TestPathConfound:
 
     def test_sets_desc_entity(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(
-            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
-        )
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
         out = layout.path.confound(source=source, kind="phonemic", desc="onset")
         assert out.entities.get("conf") == "phonemic"
         assert out.entities.get("desc") == "onset"
@@ -502,9 +674,7 @@ class TestPathConfound:
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(
-            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
-        )
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
         out = layout.path.confound(source=source, kind="phonemic", desc="onset")
         assert "confounds" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
@@ -524,9 +694,7 @@ class TestPathConfound:
 
     def test_invalid_desc_value_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(
-            f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
-        )
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             layout.path.confound(source=source, kind="phonemic", desc="BAD!")
 

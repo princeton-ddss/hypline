@@ -20,7 +20,7 @@ from hypline.bold import (
 )
 from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import Device
-from hypline.events import segment_tr_slice
+from hypline.events import merge_filename_and_sidecar, segment_tr_slice
 from hypline.features import read_feature, read_feature_metadata
 from hypline.layout import BIDSLayout
 
@@ -495,49 +495,27 @@ class Encoding:
                 seg for seg in bold_meta.segments if seg.value == segment_value
             )
 
-            # Reject filename entities that are not run-locating, segment, or metadata
-            legal_keys = {"ses", "run"} | {segment_entity} | segment.metadata.keys()
-            illegal_keys = cell_key.keys() - legal_keys
-            if illegal_keys:
+            filename_entities = dict(cell_key.items())
+            try:
+                merged = merge_filename_and_sidecar(
+                    filename_entities=filename_entities,
+                    sidecar_metadata=segment.metadata,
+                    structural_keys=frozenset({"ses", "run", segment_entity}),
+                )
+            except ValueError as err:
                 loc = _format_loc(
                     sub=sub_id,
                     ses=bold_key.ses,
                     run=bold_key.run,
                     space=self.bold_space,
                 )
-                raise ValueError(
-                    f"Feature filename at {loc} carries entities "
-                    f"{sorted(illegal_keys)} absent from events.json "
-                    f"events.json Levels metadata — descriptive attributes "
-                    f"must live in events.json, not feature filenames"
-                )
-
-            # Merge metadata: filename value takes precedence only if it agrees
-            extra_metadata: dict[str, str] = {}
-            for entity, value in segment.metadata.items():
-                if cell_key.get(entity) is not None and cell_key[entity] != value:
-                    loc = _format_loc(
-                        sub=sub_id,
-                        ses=bold_key.ses,
-                        run=bold_key.run,
-                        space=self.bold_space,
-                    )
-                    raise ValueError(
-                        f"Feature filename and events.json disagree on {entity!r} "
-                        f"at {loc} for {segment_entity}-{segment_value}: "
-                        f"filename has {cell_key[entity]!r}, sidecar has {value!r}"
-                    )
-                if cell_key.get(entity) is None:
-                    extra_metadata[entity] = value
-            if extra_metadata:
-                resolved_cell_key = CellKey(
-                    **{**dict(cell_key.items()), **extra_metadata}
-                )
-                resolved_feature_bids[
-                    FeatureKey(cell=resolved_cell_key, feature=feature_key.feature)
-                ] = bids
-            else:
+                raise ValueError(f"{err} (at {loc})") from None
+            if merged == filename_entities:
                 resolved_feature_bids[feature_key] = bids
+            else:
+                resolved_feature_bids[
+                    FeatureKey(cell=CellKey(**merged), feature=feature_key.feature)
+                ] = bids
 
         return resolved_feature_bids
 

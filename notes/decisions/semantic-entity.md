@@ -59,8 +59,9 @@ segment slice and are excluded from X/Y.
 - All BOLD runs in a training call must agree on the segment entity name, or all be
   unsegmented. Mixed levels are incoherent for a single encoding model.
 - Unsegmented runs are valid — no key-value events required.
-- For unsegmented runs, only `ses` and `run` are valid on feature filenames — any other
-  entity raises. Descriptive attributes must live in `events.json`.
+- For unsegmented runs, only entities in `STRUCTURAL_ENTITIES` (BOLD identity, hypline
+  category tags, image-variant descriptors) are valid on filenames — any other entity
+  raises. Descriptive attributes must live in `events.json`.
 - `task` is the only BOLD identity entity permitted as a segment entity, and only as a
   single row whose value matches the filename's `task`. All other identity entities (`sub`,
   `ses`, `run`) are rejected. Acquisition entities (`acq`, `ce`, `rec`, `dir`, `echo`,

@@ -58,3 +58,16 @@ pinpointing where the tree walk stopped.
 Callers rely on this contract and do not perform their own emptiness checks.
 Tools that need a soft "no data yet" path must catch `FileNotFoundError`
 explicitly rather than expect an empty list.
+
+## `bids_filters` — structural vs. descriptive
+
+`find.{stimuli,features,fmriprep}` accept both kinds of filter uniformly:
+
+- **Structural** (keys in `STRUCTURAL_ENTITIES`: BOLD identity, category tags,
+  image-variant descriptors) — matched against filenames during the on-disk walk.
+- **Descriptive** — matched against each candidate's resolved entities (filename
+  merged with `events.json` `Levels` metadata for the matching segment) via
+  `events.resolve_entities`. Empty descriptive matches raise `FileNotFoundError`
+  with a diagnostic; resolve failures re-raise as `ValueError`.
+
+Same-key filter values OR-match; different keys AND-match.

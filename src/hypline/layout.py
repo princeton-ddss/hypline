@@ -4,17 +4,37 @@ from typing import Literal
 
 from hypline.bids import (
     BOLD_IDENTITY_ENTITIES,
+    CATEGORY_ENTITIES,
+    STRUCTURAL_ENTITIES,
     BIDSPath,
     find_bids_files,
     normalize_bids_filters,
+    parse_filter_groups,
     validate_extension,
     validate_suffix,
 )
+from hypline.events import resolve_entities
 
 _Area = Literal["stimuli", "features", "confounds", "fmriprep"]
 
-# Mutually exclusive category tags; a derived output carries exactly one
-_CATEGORY_ENTITIES = frozenset({"stim", "feat", "conf"})
+
+def _split_filters_by_structurality(
+    user_filters: list[str],
+) -> tuple[list[str], list[str]]:
+    """Partition `entity-value` filters into (structural, descriptive).
+
+    Structural filters address entities that live on filenames by hypline
+    convention (BIDS identity, category, image-variant descriptors); these
+    can be pre-filtered on disk via `find_bids_files`. Descriptive filters
+    address `events.json` `Levels.metadata` entries and must be matched
+    post-resolve.
+    """
+    structural: list[str] = []
+    descriptive: list[str] = []
+    for f in user_filters:
+        key = f.partition("-")[0]
+        (structural if key in STRUCTURAL_ENTITIES else descriptive).append(f)
+    return structural, descriptive
 
 
 def _area_root(root: Path, area: _Area) -> Path:
@@ -157,8 +177,17 @@ def _require_task(results: list[BIDSPath]) -> None:
 
 
 class _Find:
-    def __init__(self, root: Path):
-        self._root = root
+    """File discovery within a BIDS area.
+
+    Each finder accepts `bids_filters` split into two tiers: structural filters
+    (BIDS identity, category, image-variant descriptors) match against filenames
+    on disk; descriptive filters (e.g. `cond-R`) match against each file's
+    resolved entities — filename merged with `events.json` `Levels.metadata` for
+    the matching segment. See `events.resolve_entities` for the merge contract.
+    """
+
+    def __init__(self, layout: "BIDSLayout"):
+        self._layout = layout
 
     def _find(
         self,
@@ -179,7 +208,7 @@ class _Find:
         structural entities (`sub-*`, `stim-*`, etc.) appended by the caller.
         `user_filters` is the caller-supplied subset, used only for error attribution.
         """
-        area_root = _area_root(self._root, area)
+        area_root = _area_root(self._layout.root, area)
         sub_dir = area_root / f"sub-{sub}"
 
         results: list[BIDSPath] = []
@@ -205,6 +234,42 @@ class _Find:
 
         return sorted(results)
 
+    def _apply_metadata_filters(
+        self,
+        candidates: list[BIDSPath],
+        *,
+        filters: list[str],
+        where: str,
+    ) -> list[BIDSPath]:
+        """Narrow candidates by descriptive filters resolved against events.json.
+
+        Same-key filter values OR-match; different keys AND-match. Raises
+        `FileNotFoundError` if every candidate is filtered out; `where` is the
+        human-readable path fragment for the error message. Resolve failures
+        are re-raised as `ValueError` with filename context.
+        """
+        if not filters:
+            return candidates
+
+        groups = parse_filter_groups(filters)
+        results: list[BIDSPath] = []
+        for bids in candidates:
+            try:
+                entities = resolve_entities(self._layout, bids)
+            except ValueError as err:
+                raise ValueError(f"{err} (at {bids.path.name})") from None
+            if all(entities.get(k) in vals for k, vals in groups.items()):
+                results.append(bids)
+
+        if not results:
+            raise FileNotFoundError(
+                f"Files found but none matched descriptive filters "
+                f"{filters} under {where} "
+                f"(filters apply against filename entities merged with "
+                f"events.json Levels metadata; check for typos in filter keys/values)"
+            )
+        return results
+
     def stimuli(
         self,
         *,
@@ -220,8 +285,8 @@ class _Find:
         filters = normalize_bids_filters(bids_filters, reserved={"sub", "stim"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
-        match_filters = user_filters + [f"sub-{sub}", f"stim-{kind}"]
-        results = self._find(
+        structural, descriptive = _split_filters_by_structurality(user_filters)
+        candidates = self._find(
             area="stimuli",
             sub=sub,
             kind_dir_name=kind,
@@ -229,11 +294,15 @@ class _Find:
             ext=ext,
             suffix=None,
             ses_values=ses_values,
-            match_filters=match_filters,
-            user_filters=user_filters,
+            match_filters=structural + [f"sub-{sub}", f"stim-{kind}"],
+            user_filters=structural,
         )
-        _require_task(results)
-        return results
+        _require_task(candidates)
+        return self._apply_metadata_filters(
+            candidates,
+            filters=descriptive,
+            where=f"stimuli/sub-{sub}/[ses-*/]{kind}/",
+        )
 
     def features(
         self,
@@ -250,8 +319,8 @@ class _Find:
         filters = normalize_bids_filters(bids_filters, reserved={"sub", "feat"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
-        match_filters = user_filters + [f"sub-{sub}", f"feat-{kind}"]
-        results = self._find(
+        structural, descriptive = _split_filters_by_structurality(user_filters)
+        candidates = self._find(
             area="features",
             sub=sub,
             kind_dir_name=kind,
@@ -259,11 +328,15 @@ class _Find:
             ext=".parquet",
             suffix=None,
             ses_values=ses_values,
-            match_filters=match_filters,
-            user_filters=user_filters,
+            match_filters=structural + [f"sub-{sub}", f"feat-{kind}"],
+            user_filters=structural,
         )
-        _require_task(results)
-        return results
+        _require_task(candidates)
+        return self._apply_metadata_filters(
+            candidates,
+            filters=descriptive,
+            where=f"features/sub-{sub}/[ses-*/]{kind}/",
+        )
 
     def fmriprep(
         self,
@@ -276,8 +349,8 @@ class _Find:
         filters = normalize_bids_filters(bids_filters, reserved={"sub"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
-        match_filters = user_filters + [f"sub-{sub}"]
-        return self._find(
+        structural, descriptive = _split_filters_by_structurality(user_filters)
+        candidates = self._find(
             area="fmriprep",
             sub=sub,
             kind_dir_name="func",
@@ -285,14 +358,19 @@ class _Find:
             ext=ext,
             suffix=suffix,
             ses_values=ses_values,
-            match_filters=match_filters,
-            user_filters=user_filters,
+            match_filters=structural + [f"sub-{sub}"],
+            user_filters=structural,
+        )
+        return self._apply_metadata_filters(
+            candidates,
+            filters=descriptive,
+            where=f"derivatives/fmriprep/sub-{sub}/[ses-*/]func/",
         )
 
 
 class _Path:
-    def __init__(self, root: Path):
-        self._root = root
+    def __init__(self, layout: "BIDSLayout"):
+        self._layout = layout
 
     def raw(
         self,
@@ -324,7 +402,7 @@ class _Path:
         if sub is None:
             raise ValueError(f"source has no 'sub' entity: {source!r}")
 
-        sub_dir = self._root / f"sub-{sub}"
+        sub_dir = self._layout.root / f"sub-{sub}"
         run_dir = (
             sub_dir / f"ses-{ses}" / "func" if ses is not None else sub_dir / "func"
         )
@@ -345,7 +423,7 @@ class _Path:
     ) -> BIDSPath:
         validate_extension(ext)
         bp = source.with_entity(entity_key, kind)
-        for key in _CATEGORY_ENTITIES - {entity_key}:
+        for key in CATEGORY_ENTITIES - {entity_key}:
             bp = bp.without_entity(key)
         for key, value in entity_overrides.items():
             bp = bp.with_entity(key, value)
@@ -356,7 +434,7 @@ class _Path:
         if sub is None:
             raise ValueError(f"source has no 'sub' entity: {source!r}")
 
-        sub_dir = _area_root(self._root, area) / f"sub-{sub}"
+        sub_dir = _area_root(self._layout.root, area) / f"sub-{sub}"
         out_dir = sub_dir / f"ses-{ses}" / kind if ses is not None else sub_dir / kind
 
         stem = "_".join(f"{k}-{v}" for k, v in entities.items())
@@ -435,12 +513,12 @@ class _Path:
 
 
 class _List:
-    def __init__(self, root: Path):
-        self._root = root
+    def __init__(self, layout: "BIDSLayout"):
+        self._layout = layout
 
     def subjects(self, *, area: _Area) -> list[str]:
         """Return sorted unique subject IDs present in the given area."""
-        area_dir = _area_root(self._root, area)
+        area_dir = _area_root(self._layout.root, area)
         if not area_dir.exists():
             return []
 
@@ -453,7 +531,7 @@ class _List:
 
     def sessions(self, *, sub: str, area: _Area) -> list[str]:
         """Return sorted unique session IDs for a subject in the given area."""
-        sub_dir = _area_root(self._root, area) / f"sub-{sub}"
+        sub_dir = _area_root(self._layout.root, area) / f"sub-{sub}"
         if not sub_dir.exists():
             return []
 
@@ -476,6 +554,10 @@ class BIDSLayout:
         self._root = Path(bids_root)
         if not self._root.exists():
             raise FileNotFoundError(f"bids_root does not exist: {self._root}")
-        self.find = _Find(self._root)
-        self.path = _Path(self._root)
-        self.list = _List(self._root)
+        self.find = _Find(self)
+        self.path = _Path(self)
+        self.list = _List(self)
+
+    @property
+    def root(self) -> Path:
+        return self._root
