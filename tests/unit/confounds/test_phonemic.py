@@ -224,9 +224,9 @@ class TestPhonemicConfoundGenerate:
 
         PhonemicConfound(layout=layout).generate(SUB)
 
-        conf_dir = tree.root / "confounds" / f"sub-{SUB}" / "phonemic"
-        onset_files = sorted(conf_dir.glob("*desc-onset*.parquet"))
-        rate_files = sorted(conf_dir.glob("*desc-rate*.parquet"))
+        sub_dir = tree.root / "confounds" / f"sub-{SUB}"
+        onset_files = sorted((sub_dir / "phonemic-onset").glob("*desc-onset*.parquet"))
+        rate_files = sorted((sub_dir / "phonemic-rate").glob("*desc-rate*.parquet"))
         assert len(onset_files) == 1
         assert len(rate_files) == 1
 

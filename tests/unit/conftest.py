@@ -29,8 +29,8 @@ class BIDSTree:
     """Minimal on-disk fixture mirroring the hypline BIDS tree.
 
     Layout (`ses` is optional everywhere):
-        stimuli/sub-XX/[ses-YY/]<kind>/
-        features/sub-XX/[ses-YY/]<kind>/
+        stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/
+        features/sub-XX/[ses-YY/]<kind>[-<desc>]/
         derivatives/fmriprep/sub-XX/[ses-YY/]func/
 
     All helpers require identity entities (`sub`, optional `ses`, `task`, `run`)
@@ -189,7 +189,9 @@ class BIDSTree:
     ) -> Path:
         entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
         entities["stim"] = kind
-        kind_dir = self._sub_ses_dir(self.stimuli_dir, sub, ses) / kind
+        desc = entities.get("desc")
+        subdir = f"{kind}-{desc}" if desc else kind
+        kind_dir = self._sub_ses_dir(self.stimuli_dir, sub, ses) / subdir
         path = kind_dir / f"{self._stem(entities)}{ext}"
         self._write(path)
         return path
@@ -210,7 +212,9 @@ class BIDSTree:
 
         entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
         entities["feat"] = kind
-        kind_dir = self._sub_ses_dir(self.features_dir, sub, ses) / kind
+        desc = entities.get("desc")
+        subdir = f"{kind}-{desc}" if desc else kind
+        kind_dir = self._sub_ses_dir(self.features_dir, sub, ses) / subdir
         kind_dir.mkdir(parents=True, exist_ok=True)
         path = kind_dir / f"{self._stem(entities)}.parquet"
         if df is None:

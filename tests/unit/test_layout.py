@@ -626,6 +626,8 @@ class TestPathFeature:
         out = layout.path.feature(source=source, kind="phonemic", desc="gpt3")
         assert out.entities.get("desc") == "gpt3"
         assert out.path.name.endswith("_feat-phonemic_desc-gpt3.parquet")
+        assert "phonemic-gpt3" in out.path.parts
+        assert "phonemic" not in out.path.parts
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
@@ -679,7 +681,7 @@ class TestPathConfound:
         assert "confounds" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
         assert not any(p.startswith("ses-") for p in out.path.parts)
-        assert "phonemic" in out.path.parts
+        assert "phonemic-onset" in out.path.parts
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
@@ -690,7 +692,7 @@ class TestPathConfound:
         assert "confounds" in out.path.parts
         assert f"sub-{SUB}" in out.path.parts
         assert f"ses-{SES}" in out.path.parts
-        assert "phonemic" in out.path.parts
+        assert "phonemic-rate" in out.path.parts
 
     def test_invalid_desc_value_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)

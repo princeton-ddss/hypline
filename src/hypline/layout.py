@@ -44,17 +44,26 @@ def _area_root(root: Path, area: _Area) -> Path:
 
 
 def _kind_dirs(sub_dir: Path, kind: str, ses_values: list[str] | None) -> list[Path]:
-    """Return existing <kind>/ dirs under sub_dir for the given sessions.
+    """Return existing <kind>/ and <kind>-<desc>/ dirs under sub_dir.
 
-    When `ses_values` is None, returns both `ses-*/<kind>/` dirs and the
-    sub-level `<kind>/` dir (BIDS allows session to be omitted).
+    When `ses_values` is None, walks both `ses-*/` and the sub-level (BIDS
+    allows session to be omitted). Within each parent, matches a directory
+    whose name is exactly `kind` or starts with `f"{kind}-"` (the desc-variant
+    subdir convention).
     """
     if ses_values is None:
-        ses_dirs = sorted(p for p in sub_dir.glob("ses-*") if p.is_dir())
-        candidates = [d / kind for d in ses_dirs] + [sub_dir / kind]
+        parents = sorted(p for p in sub_dir.glob("ses-*") if p.is_dir())
+        parents.append(sub_dir)
     else:
-        candidates = [sub_dir / f"ses-{ses}" / kind for ses in ses_values]
-    return [d for d in candidates if d.is_dir()]
+        parents = [sub_dir / f"ses-{ses}" for ses in ses_values]
+    prefix = f"{kind}-"
+    return [
+        d
+        for parent in parents
+        if parent.is_dir()
+        for d in sorted(parent.iterdir())
+        if d.is_dir() and (d.name == kind or d.name.startswith(prefix))
+    ]
 
 
 def _diagnose_lookup(
@@ -107,7 +116,12 @@ def _diagnose_lookup(
     if not kind_dirs:
         ses_dirs = [sub_dir, *(p for p in sub_dir.glob("ses-*") if p.is_dir())]
         siblings = {c.name for d in ses_dirs for c in d.iterdir() if c.is_dir()}
-        siblings.discard(kind_dir_name)
+        variant_prefix = f"{kind_dir_name}-"
+        siblings = {
+            s
+            for s in siblings
+            if s != kind_dir_name and not s.startswith(variant_prefix)
+        }
         hint = f" (found instead: {sorted(siblings)})" if siblings else ""
         return (
             f"No {kind_dir_name!r} subdirectory found under "
@@ -124,7 +138,7 @@ def _diagnose_lookup(
         present_exts = sorted({"".join(f.suffixes) for f in all_files if f.suffixes})
         return (
             f"No files matching suffix={suffix!r}, ext={ext!r} found under "
-            f"{area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+            f"{area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
             f"(present extensions: {present_exts})"
         )
 
@@ -136,7 +150,7 @@ def _diagnose_lookup(
             continue
     if not parsed:
         return (
-            f"Files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+            f"Files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
             f"but none parsed as valid BIDS (example: {ext_matches[0].name!r})"
         )
 
@@ -151,12 +165,12 @@ def _diagnose_lookup(
     if user_filters:
         return (
             f"Files found but none matched user filters {user_filters} "
-            f"under {area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+            f"under {area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
             f"(check for typos in filter keys/values)"
         )
 
     return (
-        f"No files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}/ "
+        f"No files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
         f"(unknown cause)"
     )
 
@@ -301,7 +315,7 @@ class _Find:
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
-            where=f"stimuli/sub-{sub}/[ses-*/]{kind}/",
+            where=f"stimuli/sub-{sub}/[ses-*/]{kind}[-*]/",
         )
 
     def features(
@@ -335,7 +349,7 @@ class _Find:
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
-            where=f"features/sub-{sub}/[ses-*/]{kind}/",
+            where=f"features/sub-{sub}/[ses-*/]{kind}[-*]/",
         )
 
     def fmriprep(
@@ -435,7 +449,11 @@ class _Path:
             raise ValueError(f"source has no 'sub' entity: {source!r}")
 
         sub_dir = _area_root(self._layout.root, area) / f"sub-{sub}"
-        out_dir = sub_dir / f"ses-{ses}" / kind if ses is not None else sub_dir / kind
+        desc = entities.get("desc")
+        subdir = f"{kind}-{desc}" if desc else kind
+        out_dir = (
+            sub_dir / f"ses-{ses}" / subdir if ses is not None else sub_dir / subdir
+        )
 
         stem = "_".join(f"{k}-{v}" for k, v in entities.items())
 
@@ -452,7 +470,9 @@ class _Path:
         """Derive a stimulus output path from `source`.
 
         Sets stim-<kind>, applies `entity_overrides`, and places the result
-        under stimuli/sub-XX/[ses-YY/]<kind>/.
+        under stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/. When `desc` is set,
+        the subdirectory becomes `<kind>-<desc>` so variants live in
+        separate folders.
         """
         return self._derive_path(
             area="stimuli",
@@ -473,10 +493,12 @@ class _Path:
         """Derive a feature output path from `source`.
 
         Sets feat-<kind>, applies `entity_overrides`, and places the result
-        under features/sub-XX/[ses-YY/]<kind>/ with `.parquet` extension.
+        under features/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
 
         Pass `desc=<label>` as a variant tag to distinguish features generated
-        from the same source under different settings (e.g. model version).
+        from the same source under different settings (e.g. model version);
+        the subdirectory becomes `<kind>-<desc>` so variants live in separate
+        folders.
         """
         return self._derive_path(
             area="features",
@@ -497,10 +519,12 @@ class _Path:
         """Derive a confound output path from `source`.
 
         Sets conf-<kind>, applies `entity_overrides`, and places the result
-        under confounds/sub-XX/[ses-YY/]<kind>/ with `.parquet` extension.
+        under confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet`
+        extension.
 
         Pass `desc=<label>` to discriminate individually-selectable regressors
-        within a kind (e.g. `onset` vs `rate` for phonemic).
+        within a kind (e.g. `onset` vs `rate` for phonemic); the subdirectory
+        becomes `<kind>-<desc>` so variants live in separate folders.
         """
         return self._derive_path(
             area="confounds",

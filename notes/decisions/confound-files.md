@@ -45,7 +45,8 @@ exists for derived confounds. Validation rejects any path with a suffix.
 
 `conf-<kind>` mirrors `feat-<kind>` on feature files: it names the generator
 kind (matches the `confoundgen` subcommand) and the `confounds/<kind>/`
-directory. `desc-<name>` is used when a kind exposes multiple
+directory — or `confounds/<kind>-<desc>/` when `desc` is present (see
+[layout.md](layout.md)). `desc-<name>` is used when a kind exposes multiple
 individually-selectable regressors (phonemic → `desc-onset`, `desc-rate`);
 omit it when a kind has a single canonical confound. Downstream selection
 uses `kind` or `kind-name`, e.g. `--confounds=phonemic-onset,phonemic-rate`.

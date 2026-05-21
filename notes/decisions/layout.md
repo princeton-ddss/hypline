@@ -8,13 +8,18 @@ Directory contract for the hypline-flavored BIDS root tree.
 <root>/
 ├── sub-XX/[ses-YY/]<datatype>/                        # raw BIDS
 ├── derivatives/fmriprep/sub-XX/[ses-YY/]<datatype>/   # fmriprep outputs
-├── stimuli/sub-XX/[ses-YY/]<kind>/                    # audio, transcript, ...
-├── features/sub-XX/[ses-YY/]<kind>/                   # phonemic, semantic, ...
-└── confounds/sub-XX/[ses-YY/]<kind>/                  # phonemic, semantic, ...
+├── stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/           # audio, transcript, ...
+├── features/sub-XX/[ses-YY/]<kind>[-<desc>]/          # phonemic, semantic, ...
+└── confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/         # phonemic, semantic, ...
 ```
 
 `ses-YY/` is present only for datasets with sessions; sessionless datasets nest
 `<datatype>` / `<kind>` directly under `sub-XX/`. Path resolution handles both.
+
+When a derived file carries a `desc-<desc>` entity, it lives in a
+`<kind>-<desc>/` subdirectory (not the parent `<kind>/`), so variants are
+physically separated on disk. Discovery walks both `<kind>/` and `<kind>-*/`
+under each subject/session.
 
 `stimuli/`, `features/`, and `confounds/` are hypline extensions — not in the
 BIDS spec. CLI commands take a single `<bids_root>`; path resolution is centralized.
