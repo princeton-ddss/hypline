@@ -35,12 +35,13 @@ time.
 
 ## Validation
 
-Within a single events.json (enforced in `bold.load_bold_meta`):
+Within a single events.json (enforced in `events.load_segments`, which
+`bold.load_bold_meta` delegates to):
 - Entity-keyed Levels entries match events.tsv segment `entity-value` keys exactly (set equality).
 - All entries share identical metadata key sets (schema invariance).
 - No metadata key collides with a raw BOLD entity. Encoding-pipeline reserved keys
-  are rejected later during feature discovery — keeping `bold.py` agnostic of
-  encoding-pipeline concerns.
+  are rejected later during feature discovery — keeping the events module
+  agnostic of encoding-pipeline concerns.
 
 ## Segmentation cases
 

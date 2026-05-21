@@ -47,8 +47,9 @@ AI agents alike. Agent-agnostic by design.
 | Changing the confound file schema      | `decisions/confound-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
-| Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`  |
-| Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/encoding.md` |
+| Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`, `modules/events.md` |
+| Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/events.md`, `modules/encoding.md` |
+| Loading segments without a BOLD file   | `modules/events.md`                                 |
 | Locating files in the BIDS tree        | `decisions/layout.md`, `external/bids.md`           |
 | Understanding BIDSPath guarantees      | `decisions/bidspath-validation.md`                  |
 | Phoneme-level feature questions        | `modules/phonemic.md`, `decisions/feature-files.md` |

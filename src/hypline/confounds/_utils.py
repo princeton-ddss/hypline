@@ -10,6 +10,7 @@ from loguru import logger
 from hypline import __version__
 from hypline.bids import BIDSPath
 from hypline.bold import BoldMeta
+from hypline.events import segment_tr_slice
 
 
 def collapse_desc_variants(feature_files: list[BIDSPath]) -> list[BIDSPath]:
@@ -52,7 +53,8 @@ def segment_n_trs(feat_file: BIDSPath, bold_meta: BoldMeta) -> int:
 
     for seg in bold_meta.segments:
         if seg.value == segment_value:
-            return seg.tr_slice.stop - seg.tr_slice.start
+            tr_slice = segment_tr_slice(seg, bold_meta.repetition_time)
+            return tr_slice.stop - tr_slice.start
 
     valid = sorted(seg.value for seg in bold_meta.segments)
     raise ValueError(

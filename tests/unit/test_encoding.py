@@ -327,9 +327,11 @@ class TestDiscoverBold:
         assert len(bold_meta.segments) == 2
         assert bold_meta.segments[0].entity == "block"
         assert bold_meta.segments[0].value == "1"
-        assert bold_meta.segments[0].tr_slice == slice(0, 50)
+        assert bold_meta.segments[0].onset == 0.0
+        assert bold_meta.segments[0].duration == 100.0
         assert bold_meta.segments[1].value == "2"
-        assert bold_meta.segments[1].tr_slice == slice(50, 100)
+        assert bold_meta.segments[1].onset == 100.0
+        assert bold_meta.segments[1].duration == 100.0
 
     def test_multiple_kv_entities_raises(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
@@ -406,7 +408,8 @@ class TestDiscoverBold:
         bold_metas = enc._discover_bold(SUB)
         bold_meta = bold_metas[BoldKey(ses=None, run="1")]
         assert len(bold_meta.segments) == 2
-        assert bold_meta.segments[0].tr_slice == slice(5, 50)
+        assert bold_meta.segments[0].onset == 10.0
+        assert bold_meta.segments[0].duration == 90.0
 
     def test_hyphen_free_trial_type_ignored(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")

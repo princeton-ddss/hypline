@@ -1,0 +1,41 @@
+# Events / segments
+
+Domain semantics behind `hypline.events` — events.tsv parsing, segment
+loading, and TR-index conversion. Separated from `bold` so events-aware code
+paths can run without a BOLD file on disk.
+
+## Why a separate module from `bold`
+
+Events parsing and Levels-metadata validation live here so they don't
+depend on a BOLD file being present. `bold.load_bold_meta` delegates to
+`load_segments` for its events portion. The BIDSPath-source signature
+(`load_segments(layout, source)` accepts any path carrying a `task`
+entity, resolving events sidecars from the raw tree via
+`layout.path.raw`) also leaves room for future stimulus- or feature-only
+callers to reuse it without going through `bold`.
+
+## Segment shape
+
+`Segment` carries seconds-based `onset` / `duration` (mirroring events.tsv
+exactly), not TR indices. The events domain is independent of TR — TR is an
+acquisition property owned by `bold`, and TR-index conversion is an
+encoding-pipeline concern. See
+[../decisions/feature-files.md](../decisions/feature-files.md) for the
+boundary convention and the dummy-scan-trim interaction.
+
+## TR-index conversion
+
+`segment_tr_slice(segment, repetition_time)` is the one allowed conversion
+helper. It preserves the left-inclusive `[t*TR, (t+1)*TR)` convention:
+`onset=0.0` lands in TR 0; `onset=k*TR` lands in TR `k`, not `k-1`. Pinned
+by a dedicated test in `tests/unit/test_events.py`.
+
+The helper takes no trim offset. If a caller needs trim-aware indices, it
+must shift `Segment.onset` before calling. This keeps the helper's contract
+identical for the common (no-trim) case and makes any trim handling
+explicit at the call site.
+
+## Entry point
+
+Callers always go through `load_segments`, which returns `[]` for
+unsegmented runs.

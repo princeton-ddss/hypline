@@ -166,7 +166,7 @@ class TestLoadBoldMeta:
         with pytest.raises(ValueError, match="appears more than once"):
             load_bold_meta(BIDSLayout(tree.root), BIDSPath(bold_path))
 
-    def test_overlapping_segment_slices_raises(self, tree: BIDSTree):
+    def test_overlapping_segments_raises(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
         tree.add_events(
             sub=SUB,

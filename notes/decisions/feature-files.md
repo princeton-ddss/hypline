@@ -193,7 +193,10 @@ multiple TRs (requires adding `end_time` to the schema), current
 binning-by-start-time is incorrect and must be revisited.
 
 **Assumption**: events.tsv `onset`/`duration` are authored against the raw
-BOLD timeline. If fmriprep trims dummy scans (see
-[../modules/bold.md](../modules/bold.md) and [../external/fmriprep.md](../external/fmriprep.md)),
-segment `tr_slice` values computed by `_parse_segments` will be offset
-relative to the trimmed image.
+BOLD timeline. `Segment.onset`/`duration` (parsed in `events._parse_segments`)
+are in seconds and carry these values through unchanged. TR-index conversion
+happens at the call site via `events.segment_tr_slice`. If fmriprep trims
+dummy scans (see [../modules/bold.md](../modules/bold.md) and
+[../external/fmriprep.md](../external/fmriprep.md)), the resulting TR indices
+are offset relative to the trimmed image — callers must shift `Segment.onset`
+before calling `segment_tr_slice` if they need trim-aware indices.
