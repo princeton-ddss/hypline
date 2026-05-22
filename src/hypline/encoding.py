@@ -405,6 +405,15 @@ class Encoding:
         Invariant: _discover_bold guarantees all segments share the same metadata
         schema across runs, so resolved cells always end up with a uniform key set.
         """
+
+        def _loc(bold_key: BoldKey) -> str:
+            return _format_loc(
+                sub=sub_id,
+                ses=bold_key.ses,
+                run=bold_key.run,
+                space=self.bold_space,
+            )
+
         cell_keys_by_bold_key: dict[BoldKey, set[CellKey]] = {}
         for feature_key in feature_bids:
             bold_key = BoldKey(feature_key.cell.get("ses"), feature_key.cell.get("run"))
@@ -413,13 +422,7 @@ class Encoding:
         orphan_bold_keys = cell_keys_by_bold_key.keys() - bold_metas.keys()
         if orphan_bold_keys:
             bold_key = next(iter(orphan_bold_keys))
-            loc = _format_loc(
-                sub=sub_id,
-                ses=bold_key.ses,
-                run=bold_key.run,
-                space=self.bold_space,
-            )
-            msg = f"No BOLD file found for features at {loc}"
+            msg = f"No BOLD file found for features at {_loc(bold_key)}"
             if len(orphan_bold_keys) > 1:
                 msg += f" ({len(orphan_bold_keys) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
@@ -433,28 +436,16 @@ class Encoding:
             if not bold_meta.segments:
                 run_cell_keys = cell_keys_by_bold_key[bold_key]
                 if len(run_cell_keys) > 1:
-                    loc = _format_loc(
-                        sub=sub_id,
-                        ses=bold_key.ses,
-                        run=bold_key.run,
-                        space=self.bold_space,
-                    )
                     raise ValueError(
                         f"Run is unsegmented but has {len(run_cell_keys)} feature "
-                        f"files at {loc} — provide an events.tsv with BIDS key-value "
-                        f"entities to segment the run"
+                        f"files at {_loc(bold_key)} — provide an events.tsv with "
+                        f"BIDS key-value entities to segment the run"
                     )
                 illegal_keys = cell_key.keys() - {"ses", "run"}
                 if illegal_keys:
-                    loc = _format_loc(
-                        sub=sub_id,
-                        ses=bold_key.ses,
-                        run=bold_key.run,
-                        space=self.bold_space,
-                    )
                     raise ValueError(
-                        f"Unsegmented run at {loc} has feature filename with "
-                        f"unexpected entities {sorted(illegal_keys)} — only ses "
+                        f"Unsegmented run at {_loc(bold_key)} has feature filename "
+                        f"with unexpected entities {sorted(illegal_keys)} — only ses "
                         f"and run are valid on feature filenames for unsegmented "
                         f"runs. To attach metadata, declare a segment row in "
                         f"events.tsv and add descriptive attributes to "
@@ -469,26 +460,15 @@ class Encoding:
             # Validate the cell carries a known segment value for this run
             segment_value = cell_key.get(segment_entity)
             if segment_value is None:
-                loc = _format_loc(
-                    sub=sub_id,
-                    ses=bold_key.ses,
-                    run=bold_key.run,
-                    space=self.bold_space,
-                )
                 raise ValueError(
-                    f"Feature filename at {loc} is missing segment entity "
-                    f"{segment_entity!r} declared in events"
+                    f"Feature filename at {_loc(bold_key)} is missing segment "
+                    f"entity {segment_entity!r} declared in events"
                 )
             if segment_value not in segment_values:
-                loc = _format_loc(
-                    sub=sub_id,
-                    ses=bold_key.ses,
-                    run=bold_key.run,
-                    space=self.bold_space,
-                )
                 raise ValueError(
-                    f"Segment value {segment_entity}-{segment_value} at {loc} not "
-                    f"found in events — valid values: {sorted(segment_values)}"
+                    f"Segment value {segment_entity}-{segment_value} at "
+                    f"{_loc(bold_key)} not found in events — valid values: "
+                    f"{sorted(segment_values)}"
                 )
 
             segment = next(
@@ -503,13 +483,7 @@ class Encoding:
                     structural_keys=frozenset({"ses", "run", segment_entity}),
                 )
             except ValueError as err:
-                loc = _format_loc(
-                    sub=sub_id,
-                    ses=bold_key.ses,
-                    run=bold_key.run,
-                    space=self.bold_space,
-                )
-                raise ValueError(f"{err} (at {loc})") from None
+                raise ValueError(f"{err} (at {_loc(bold_key)})") from None
             if merged == filename_entities:
                 resolved_feature_bids[feature_key] = bids
             else:
@@ -601,6 +575,15 @@ class Encoding:
         Also checks sub/task invariance across all feature and BOLD files.
         Raises if either side is empty — indicates filters selected nothing.
         """
+
+        def _loc(bold_key: BoldKey) -> str:
+            return _format_loc(
+                sub=sub_id,
+                ses=bold_key.ses,
+                run=bold_key.run,
+                space=self.bold_space,
+            )
+
         if not feature_bids:
             raise FileNotFoundError("No feature files match the given filters")
         if not bold_metas:
@@ -622,13 +605,7 @@ class Encoding:
         bold_without_features = bold_metas.keys() - covered_bold_keys
         if bold_without_features:
             bold_key = next(iter(bold_without_features))
-            loc = _format_loc(
-                sub=sub_id,
-                ses=bold_key.ses,
-                run=bold_key.run,
-                space=self.bold_space,
-            )
-            msg = f"No feature files found for BOLD at {loc}"
+            msg = f"No feature files found for BOLD at {_loc(bold_key)}"
             if len(bold_without_features) > 1:
                 msg += f" ({len(bold_without_features) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
@@ -636,13 +613,7 @@ class Encoding:
         features_without_bold = covered_bold_keys - bold_metas.keys()
         if features_without_bold:
             bold_key = next(iter(features_without_bold))
-            loc = _format_loc(
-                sub=sub_id,
-                ses=bold_key.ses,
-                run=bold_key.run,
-                space=self.bold_space,
-            )
-            msg = f"No BOLD file found for features at {loc}"
+            msg = f"No BOLD file found for features at {_loc(bold_key)}"
             if len(features_without_bold) > 1:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
