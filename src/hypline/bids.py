@@ -31,6 +31,12 @@ VARIANT_DESCRIPTORS = frozenset({"desc", "space", "res", "den"})
 # in events.json `Levels`.
 STRUCTURAL_ENTITIES = BOLD_IDENTITY_ENTITIES | CATEGORY_ENTITIES | VARIANT_DESCRIPTORS
 
+# Fixed slots for `BIDSPath.from_entities`; non-fixed keys fill the middle
+# alphabetically, keeping `desc` adjacent to the category it modifies
+_LEADING_ENTITY_ORDER = ("sub", "ses", "task", "run")
+_TRAILING_ENTITY_ORDER = (*sorted(CATEGORY_ENTITIES), "desc")
+_FIXED_ENTITIES = frozenset(_LEADING_ENTITY_ORDER) | frozenset(_TRAILING_ENTITY_ORDER)
+
 
 def validate_bids_entities(*entities: str) -> None:
     for entity in entities:
@@ -92,6 +98,54 @@ class BIDSPath:
         if next(iter(self._entities)) != "sub":
             raise ValueError(f"BIDS filename must start with 'sub-': {name!r}")
         validate_extension(self._ext)
+
+    @classmethod
+    def from_entities(
+        cls,
+        *,
+        ext: str,
+        suffix: str | None = None,
+        parent: str | os.PathLike[str] = ".",
+        **entities: str,
+    ) -> "BIDSPath":
+        """Build a BIDSPath from entity kwargs in canonical order.
+
+        Order: identity (`sub`/`ses`/`task`/`run`), then non-fixed keys
+        alphabetically, then category (`stim`/`feat`/`conf`) and `desc`.
+        Requires `sub`; rejects unsupported entities and more than one
+        category entity.
+        """
+        if "sub" not in entities:
+            raise ValueError("`sub` is required")
+
+        categories = CATEGORY_ENTITIES & entities.keys()
+        if len(categories) > 1:
+            raise ValueError(
+                f"At most one category entity allowed, got {sorted(categories)}"
+            )
+
+        for key, value in entities.items():
+            validate_bids_entities(f"{key}-{value}")
+            if key in UNSUPPORTED_ENTITIES:
+                raise ValueError(
+                    f"BIDS entity {key!r} is not supported by hypline; "
+                    f"unsupported: {sorted(UNSUPPORTED_ENTITIES)}"
+                )
+
+        custom = sorted(k for k in entities if k not in _FIXED_ENTITIES)
+        ordered_keys = [
+            *(k for k in _LEADING_ENTITY_ORDER if k in entities),
+            *custom,
+            *(k for k in _TRAILING_ENTITY_ORDER if k in entities),
+        ]
+        parts = [f"{k}-{entities[k]}" for k in ordered_keys]
+        if suffix is not None:
+            validate_suffix(suffix)
+            parts.append(suffix)
+        validate_extension(ext)
+        name = "_".join(parts) + ext
+
+        return cls(Path(parent) / name)
 
     @property
     def entities(self) -> dict[str, str]:

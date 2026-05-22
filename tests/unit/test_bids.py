@@ -65,6 +65,72 @@ class TestBIDSPathParsing:
         assert a.entities == b.entities
 
 
+class TestBIDSPathFromEntities:
+    def test_canonical_order_identity_only(self):
+        bp = BIDSPath.from_entities(
+            ext=".parquet",
+            run="1",
+            task="rest",
+            ses="1",
+            sub="01",
+        )
+        assert bp.path.name == "sub-01_ses-1_task-rest_run-1.parquet"
+
+    def test_feat_and_desc_trail(self):
+        bp = BIDSPath.from_entities(
+            ext=".parquet",
+            desc="v1",
+            feat="llm",
+            task="conv",
+            sub="01",
+        )
+        assert bp.path.name == "sub-01_task-conv_feat-llm_desc-v1.parquet"
+
+    def test_custom_entities_sorted_alphabetically(self):
+        bp = BIDSPath.from_entities(
+            ext=".parquet",
+            sub="01",
+            task="conv",
+            trial="3",
+            cond="G",
+            feat="llm",
+            desc="v1",
+        )
+        assert (
+            bp.path.name == "sub-01_task-conv_cond-G_trial-3_feat-llm_desc-v1.parquet"
+        )
+
+    def test_with_suffix(self):
+        bp = BIDSPath.from_entities(ext=".nii.gz", suffix="bold", sub="01", task="rest")
+        assert bp.path.name == "sub-01_task-rest_bold.nii.gz"
+
+    def test_with_parent(self):
+        bp = BIDSPath.from_entities(
+            ext=".parquet", parent="/tmp/data", sub="01", feat="llm"
+        )
+        assert bp.path == Path("/tmp/data/sub-01_feat-llm.parquet")
+
+    def test_requires_sub(self):
+        with pytest.raises(ValueError, match="`sub` is required"):
+            BIDSPath.from_entities(ext=".parquet", task="rest")
+
+    def test_rejects_unsupported_entity(self):
+        with pytest.raises(ValueError, match="not supported"):
+            BIDSPath.from_entities(ext=".parquet", sub="01", acq="x")
+
+    def test_rejects_multiple_categories(self):
+        with pytest.raises(ValueError, match="At most one category"):
+            BIDSPath.from_entities(ext=".parquet", sub="01", feat="a", stim="b")
+
+    def test_rejects_invalid_entity_value(self):
+        with pytest.raises(ValueError, match="Invalid BIDS entity"):
+            BIDSPath.from_entities(ext=".parquet", sub="01", task="bad_value")
+
+    def test_rejects_invalid_ext(self):
+        with pytest.raises(ValueError, match="Invalid extension"):
+            BIDSPath.from_entities(ext="parquet", sub="01")
+
+
 class TestBIDSPathEntityAccess:
     def test_getattr(self):
         bp = BIDSPath("sub-01_task-rest_bold.nii")

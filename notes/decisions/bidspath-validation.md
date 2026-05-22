@@ -30,6 +30,20 @@ prevents that class of bug.
 `acq`, `ce`, `rec`, `dir`, `echo`, `part`, `chunk`. See
 [unsupported-entities.md](unsupported-entities.md) for the list and rationale.
 
+## Canonical entity order when constructing from kwargs
+
+`BIDSPath.from_entities` places entities in a fixed order so derived paths
+across the codebase look identical regardless of kwarg order:
+
+1. Identity: `sub`, `ses`, `task`, `run`
+2. Any other entities, alphabetically
+3. Category (`stim`/`feat`/`conf`), then `desc`
+
+`desc` trails the category so variant tagging stays adjacent to what it
+modifies (e.g. `feat-llm_desc-v1`). At most one category entity is allowed.
+Parsing (`BIDSPath(path)`) preserves whatever order the filename already has;
+canonical ordering applies only on construction from kwargs.
+
 ## Deliberate relaxations from the BIDS spec
 
 - **Suffix is optional.** Some hypline-internal paths (e.g., feature files
