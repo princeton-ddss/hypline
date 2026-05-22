@@ -15,10 +15,11 @@ read in place; they are converted into hypline confound files via
 `confoundgen` so provenance lives in the Parquet footer rather than relying
 on the source pipeline's column conventions at read time.
 
-Confound I/O lives in `hypline.io`: `save_confound` writes, `read_confound`
-reads, `read_confound_metadata` reads the footer without loading data. TR
-alignment is handled by `hypline.downsample` (shared with feature files —
-see [feature-files.md](feature-files.md)).
+Confound I/O lives in `hypline.io` and is re-exported at `hypline.*`:
+entity-based `save_confound`, path-based `read_confound` /
+`read_confound_metadata` — same shape as feature I/O, see
+[feature-files.md](feature-files.md) for rationale. TR alignment is handled
+by `hypline.downsample` (shared with feature files).
 
 Standard confounds are produced by `hypline confoundgen <kind>` (e.g.
 `hypline confoundgen phonemic` for stimulus-derived, `hypline confoundgen

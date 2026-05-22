@@ -208,7 +208,7 @@ class BIDSTree:
         metadata: dict[str, Any] | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
-        from hypline.io import save_feature
+        from hypline.io import write_feature
 
         entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
         entities["feat"] = kind
@@ -222,7 +222,7 @@ class BIDSTree:
                 {"start_time": [0.0], "feature": [[0.0]]},
                 schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
             )
-        save_feature(df, path, metadata=metadata)
+        write_feature(df, path, metadata=metadata)
         return path
 
     def add_bold(

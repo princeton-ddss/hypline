@@ -1,15 +1,71 @@
-"""Parquet I/O primitives for hypline feature and confound files."""
+"""I/O for hypline feature and confound files.
+
+Public API (re-exported at `hypline.*`): saves are entity-based
+(`save_feature(df, bids_root, *, sub, feat, ...)`) because the canonical
+output path is layout-derived; reads are path-based (`read_feature(path)`)
+because users typically already have a file in hand.
+
+Internal: `write_feature` / `write_confound` take an explicit path and back
+the `save_*` wrappers. Used by in-package generators driven by
+`BIDSLayout.path.*` (which already know the target path). Not re-exported.
+"""
 
 import json
 import os
+from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
 import polars as pl
 import pyarrow.parquet as pq
 
-from hypline import __version__
+from hypline._version import __version__
 from hypline.bids import BIDSPath
+from hypline.layout import Area, kind_subdir
+
+__all__ = [
+    "read_confound",
+    "read_confound_metadata",
+    "read_feature",
+    "read_feature_metadata",
+    "save_confound",
+    "save_feature",
+]
+
+
+# --------------------------------------------------------------------------- #
+# Shared helpers
+# --------------------------------------------------------------------------- #
+
+
+def _derive_parquet_path(
+    bids_root: str | os.PathLike[str],
+    *,
+    area: Area,
+    category_entity: str,
+    kind: str,
+    entities: dict[str, str],
+) -> Path:
+    """Resolve the canonical Parquet path for a derived file.
+
+    Builds the BIDS filename via `BIDSPath.from_entities` (which enforces
+    entity ordering and validation), then places it under the canonical
+    `<area>/sub-XX/[ses-YY/]<kind>[-<desc>]/` subdirectory.
+    """
+    bp = BIDSPath.from_entities(
+        ext=".parquet",
+        **{category_entity: kind},
+        **entities,
+    )
+    out_dir = kind_subdir(
+        Path(bids_root),
+        area,
+        sub=bp.entities["sub"],
+        ses=bp.entities.get("ses"),
+        kind=kind,
+        desc=bp.entities.get("desc"),
+    )
+    return out_dir / bp.path.name
 
 
 def _validate_bids_parquet_path(
@@ -81,6 +137,11 @@ def _check_reserved(metadata: dict[str, Any] | None, reserved: set[str]) -> None
         )
 
 
+# --------------------------------------------------------------------------- #
+# Feature
+# --------------------------------------------------------------------------- #
+
+
 def _normalize_feature_df(df: pl.DataFrame) -> tuple[pl.DataFrame, int]:
     missing = {"start_time", "feature"} - set(df.columns)
     if missing:
@@ -102,16 +163,17 @@ def _parse_feature_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, Any
     return metadata
 
 
-def save_feature(
+def write_feature(
     df: pl.DataFrame,
     path: str | os.PathLike[str],
     *,
     metadata: dict[str, Any] | None = None,
-):
-    """Save a feature DataFrame to a BIDS Parquet file.
+) -> None:
+    """Write a feature DataFrame to a BIDS Parquet file.
 
     Reserved metadata keys (auto-injected): `feature_name`,
-    `hypline_version`, `feature_dim`.
+    `hypline_version`, `feature_dim`. Keys prefixed with `_` are exempt
+    from cross-file equality checks at encoding time.
     """
     bids = _validate_bids_parquet_path(path, required_entity="feat", kind="feature")
     _check_reserved(metadata, {"hypline_version", "feature_name", "feature_dim"})
@@ -127,7 +189,30 @@ def save_feature(
 
 
 def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
-    """Read a feature DataFrame written by `save_feature`."""
+    """Read a feature DataFrame from a hypline-format Parquet file.
+
+    Validates that the path carries a `feat` entity, `.parquet` extension,
+    and no BIDS suffix; checks the footer's `feature_name` matches the
+    `feat` entity; normalizes the `feature` column to fixed-width
+    `Array(Float64)`.
+
+    Parameters
+    ----------
+    path
+        Path to a hypline feature Parquet file.
+
+    Returns
+    -------
+    pl.DataFrame
+        The stored feature DataFrame.
+
+    Raises
+    ------
+    ValueError
+        If the path is not a valid hypline feature path, the footer lacks
+        a `hypline` metadata blob, or `feature_name` disagrees with the
+        path entity.
+    """
     bids = _validate_bids_parquet_path(path, required_entity="feat", kind="feature")
     table = pq.read_table(bids.path)
     _parse_feature_metadata(table.schema.metadata or {}, bids)
@@ -136,10 +221,88 @@ def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
 
 
 def read_feature_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
-    """Read footer metadata from a feature file without loading data."""
+    """Read footer metadata from a hypline feature file without loading data.
+
+    Parameters
+    ----------
+    path
+        Path to a hypline feature Parquet file.
+
+    Returns
+    -------
+    dict
+        The `hypline` JSON blob from the Parquet footer, including the
+        auto-injected `feature_name`, `feature_dim`, and `hypline_version`
+        keys alongside any caller-supplied keys.
+
+    Raises
+    ------
+    ValueError
+        Same conditions as `read_feature`.
+    """
     bids = _validate_bids_parquet_path(path, required_entity="feat", kind="feature")
     raw_metadata = pq.read_metadata(bids.path).metadata
     return _parse_feature_metadata(raw_metadata or {}, bids)
+
+
+def save_feature(
+    df: pl.DataFrame,
+    *,
+    bids_root: str | os.PathLike[str],
+    sub: str,
+    feat: str,
+    metadata: dict[str, Any] | None = None,
+    **entities: str,
+) -> Path:
+    """Save a feature DataFrame to its canonical layout location.
+
+    Parameters
+    ----------
+    df
+        Must contain `start_time` (numeric, source-relative seconds) and
+        `feature` (Array or List of equal width per row). The `feature`
+        column is normalized to fixed-width `Array(Float64)` on write;
+        other columns are preserved.
+    bids_root
+        Project root; the file lands under
+        `<bids_root>/features/sub-<sub>/[ses-<ses>/]<feat>[-<desc>]/`.
+    sub, feat
+        Required subject and feature-kind labels.
+    metadata
+        Extra keys merged into the Parquet footer's `hypline` blob. The
+        reserved keys `feature_name`, `feature_dim`, and `hypline_version`
+        are auto-injected and must not be supplied. Keys prefixed with `_`
+        are exempt from cross-file equality checks at encoding time.
+    **entities
+        Additional BIDS entities (`ses`, `task`, `run`, `desc`, custom
+        descriptors). Entity ordering and validation are handled by
+        `BIDSPath`.
+
+    Returns
+    -------
+    Path
+        Resolved output path.
+
+    Raises
+    ------
+    ValueError
+        If required columns are missing, `feature` widths are ragged, or
+        `metadata` supplies a reserved key.
+    """
+    path = _derive_parquet_path(
+        bids_root,
+        area="features",
+        category_entity="feat",
+        kind=feat,
+        entities={"sub": sub, **entities},
+    )
+    write_feature(df, path, metadata=metadata)
+    return path
+
+
+# --------------------------------------------------------------------------- #
+# Confound
+# --------------------------------------------------------------------------- #
 
 
 def _normalize_confound_df(
@@ -167,7 +330,6 @@ def _normalize_confound_df(
                 f"'start_time' intervals must equal repetition_time "
                 f"{repetition_time}, got {intervals.tolist()}"
             )
-
     return _coerce_array_column(df, "confound")
 
 
@@ -187,15 +349,15 @@ def _parse_confound_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, An
     return metadata
 
 
-def save_confound(
+def write_confound(
     df: pl.DataFrame,
     path: str | os.PathLike[str],
     *,
     repetition_time: float,
     tr_method: str | None,
     metadata: dict[str, Any] | None = None,
-):
-    """Save a confound DataFrame to a BIDS Parquet file.
+) -> None:
+    """Write a confound DataFrame to a BIDS Parquet file.
 
     `path` may carry an optional `desc` entity discriminating individually-
     selectable regressors within the kind (e.g., `desc-onset`).
@@ -211,7 +373,8 @@ def save_confound(
 
     Reserved metadata keys (auto-injected): `confound_kind`,
     `confound_variant`, `hypline_version`, `tr_method`, `repetition_time`,
-    `n_trs`, `confound_dim`.
+    `n_trs`, `confound_dim`. Keys prefixed with `_` are exempt from
+    cross-file equality checks at encoding time.
     """
     bids = _validate_bids_parquet_path(path, required_entity="conf", kind="confound")
     _check_reserved(
@@ -242,7 +405,30 @@ def save_confound(
 
 
 def read_confound(path: str | os.PathLike[str]) -> pl.DataFrame:
-    """Read a confound DataFrame written by `save_confound`."""
+    """Read a confound DataFrame from a hypline-format Parquet file.
+
+    Validates that the path carries a `conf` entity, `.parquet` extension,
+    and no BIDS suffix; checks that the footer's `confound_kind` and
+    `confound_variant` match the path's `conf` and `desc` entities;
+    normalizes the `confound` column to fixed-width `Array(Float64)`.
+
+    Parameters
+    ----------
+    path
+        Path to a hypline confound Parquet file.
+
+    Returns
+    -------
+    pl.DataFrame
+        The stored confound DataFrame.
+
+    Raises
+    ------
+    ValueError
+        If the path is not a valid hypline confound path, the footer lacks
+        a `hypline` metadata blob, or `confound_kind`/`confound_variant`
+        disagrees with the path entities.
+    """
     bids = _validate_bids_parquet_path(path, required_entity="conf", kind="confound")
     table = pq.read_table(bids.path)
     metadata = _parse_confound_metadata(table.schema.metadata or {}, bids)
@@ -253,7 +439,101 @@ def read_confound(path: str | os.PathLike[str]) -> pl.DataFrame:
 
 
 def read_confound_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
-    """Read footer metadata from a confound file without loading data."""
+    """Read footer metadata from a hypline confound file without loading data.
+
+    Parameters
+    ----------
+    path
+        Path to a hypline confound Parquet file.
+
+    Returns
+    -------
+    dict
+        The `hypline` JSON blob from the Parquet footer, including the
+        auto-injected `confound_kind`, `confound_variant`, `tr_method`,
+        `repetition_time`, `n_trs`, `confound_dim`, and `hypline_version`
+        keys alongside any caller-supplied keys.
+
+    Raises
+    ------
+    ValueError
+        Same conditions as `read_confound`.
+    """
     bids = _validate_bids_parquet_path(path, required_entity="conf", kind="confound")
     raw_metadata = pq.read_metadata(bids.path).metadata
     return _parse_confound_metadata(raw_metadata or {}, bids)
+
+
+def save_confound(
+    df: pl.DataFrame,
+    *,
+    bids_root: str | os.PathLike[str],
+    sub: str,
+    conf: str,
+    repetition_time: float,
+    tr_method: str | None,
+    metadata: dict[str, Any] | None = None,
+    **entities: str,
+) -> Path:
+    """Save a confound DataFrame to its canonical layout location.
+
+    Parameters
+    ----------
+    df
+        Must contain `start_time` (numeric, beginning at `0.0` with
+        intervals equal to `repetition_time`) and `confound` (Array or
+        List of equal width per row). The `confound` column is normalized
+        to fixed-width `Array(Float64)` on write.
+    bids_root
+        Project root; the file lands under
+        `<bids_root>/confounds/sub-<sub>/[ses-<ses>/]<conf>[-<desc>]/`.
+    sub, conf
+        Required subject and confound-kind labels.
+    repetition_time
+        TR of the target BOLD acquisition, in seconds. Must be passed
+        explicitly: a single-row DataFrame carries no spacing, and
+        inferring TR from row spacing would silently disagree with the
+        BOLD's true TR.
+    tr_method
+        Free-form label for how TR-aligned rows were produced
+        (downsampling/upsampling method, or a marker for native-TR
+        computation). Pass `None` if not applicable. Recorded verbatim;
+        must be equal across files sharing the same `(conf, desc)` pair
+        for downstream consistency checks to pass.
+    metadata
+        Extra keys merged into the Parquet footer's `hypline` blob.
+        Reserved keys (`confound_kind`, `confound_variant`, `tr_method`,
+        `repetition_time`, `n_trs`, `confound_dim`, `hypline_version`)
+        are auto-injected and must not be supplied. Keys prefixed with
+        `_` are exempt from cross-file equality checks.
+    **entities
+        Additional BIDS entities (`ses`, `task`, `run`, the optional
+        `desc` variant tag, custom descriptors).
+
+    Returns
+    -------
+    Path
+        Resolved output path.
+
+    Raises
+    ------
+    ValueError
+        If required columns are missing, `start_time` is not TR-aligned,
+        `confound` widths are ragged, or `metadata` supplies a reserved
+        key.
+    """
+    path = _derive_parquet_path(
+        bids_root,
+        area="confounds",
+        category_entity="conf",
+        kind=conf,
+        entities={"sub": sub, **entities},
+    )
+    write_confound(
+        df,
+        path,
+        repetition_time=repetition_time,
+        tr_method=tr_method,
+        metadata=metadata,
+    )
+    return path

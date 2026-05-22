@@ -75,10 +75,12 @@ root cause and rerun.
 
 ## Module layout
 
-Feature I/O utilities (`read_feature`, `save_feature`) live in `hypline.io`
-(shared module for feature and confound Parquet I/O). TR-alignment lives in
-`hypline.downsample` (shared with
-confound generation — see [../decisions/confound-files.md](../decisions/confound-files.md)).
+Feature I/O lives in `hypline.io` — see
+[../decisions/feature-files.md](../decisions/feature-files.md) for the API
+shape. Encoding operates on `BIDSPath` objects discovered via `BIDSLayout`
+and reads feature files via `read_feature` / `read_feature_metadata`.
+TR-alignment lives in `hypline.downsample` (shared with confound
+generation — see [../decisions/confound-files.md](../decisions/confound-files.md)).
 
 Feature and BOLD discovery uses `BIDSLayout` (see `hypline.layout`), which walks the
 derivatives tree recursively. This handles fMRIPrep's per-subject subdirectories

@@ -5,7 +5,7 @@ from loguru import logger
 from hypline.bold import BOLD_EXTENSIONS, load_bold_meta
 from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import VolumeSpace
-from hypline.io import read_feature, save_confound
+from hypline.io import read_feature, write_confound
 from hypline.layout import BIDSLayout
 
 from ._utils import collapse_desc_variants, segment_n_trs
@@ -70,7 +70,7 @@ class PhonemicConfound:
                         "confound": pl.Array(pl.Float64, 1),
                     },
                 )
-                save_confound(
+                write_confound(
                     out_df,
                     out.path,
                     repetition_time=bold_meta.repetition_time,

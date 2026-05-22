@@ -6,10 +6,15 @@ alignment contract with BOLD data.
 Hypline's own derivative type — stimulus-derived features paired to BOLD
 runs for encoding models.
 
-Feature I/O lives in `hypline.io`: `save_feature` writes, `read_feature` reads,
-`read_feature_metadata` reads the footer without loading data. TR alignment is
-handled by `hypline.downsample` (shared with confound files — see
-[confound-files.md](confound-files.md)).
+Feature I/O lives in `hypline.io` and is re-exported at `hypline.*`. Writes
+are entity-based (`save_feature`) so files land in the canonical layout
+location without the caller typing a path. Reads are path-based
+(`read_feature`, `read_feature_metadata`) because the realistic user case
+is "I already have a file." A path-based writer `write_feature` exists for
+in-package generators that already hold a layout-derived path; it is not
+re-exported at `hypline.*`. The same shape applies to confound I/O — see
+[confound-files.md](confound-files.md). TR alignment is handled by
+`hypline.downsample` (also shared with confound files).
 
 ## Format
 

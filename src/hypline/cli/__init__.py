@@ -18,7 +18,7 @@ app.add_typer(confoundgen_app, name="confoundgen")
 
 def _version_callback(value: bool):
     if value:
-        from hypline import __version__
+        from hypline._version import __version__
 
         typer.echo(__version__)
         raise typer.Exit()

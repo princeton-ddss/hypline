@@ -15,7 +15,28 @@ from hypline.bids import (
 )
 from hypline.events import resolve_entities
 
-_Area = Literal["stimuli", "features", "confounds", "fmriprep"]
+Area = Literal["stimuli", "features", "confounds", "fmriprep"]
+
+
+def area_root(root: Path, area: Area) -> Path:
+    if area == "fmriprep":
+        return root / "derivatives" / "fmriprep"
+    return root / area
+
+
+def kind_subdir(
+    root: Path,
+    area: Area,
+    *,
+    sub: str,
+    ses: str | None,
+    kind: str,
+    desc: str | None,
+) -> Path:
+    """Resolve `<root>/<area>/sub-XX/[ses-YY/]<kind>[-<desc>]/`."""
+    sub_dir = area_root(root, area) / f"sub-{sub}"
+    subdir = f"{kind}-{desc}" if desc else kind
+    return sub_dir / f"ses-{ses}" / subdir if ses is not None else sub_dir / subdir
 
 
 def _split_filters_by_structurality(
@@ -35,12 +56,6 @@ def _split_filters_by_structurality(
         key = f.partition("-")[0]
         (structural if key in STRUCTURAL_ENTITIES else descriptive).append(f)
     return structural, descriptive
-
-
-def _area_root(root: Path, area: _Area) -> Path:
-    if area == "fmriprep":
-        return root / "derivatives" / "fmriprep"
-    return root / area
 
 
 def _kind_dirs(sub_dir: Path, kind: str, ses_values: list[str] | None) -> list[Path]:
@@ -69,7 +84,7 @@ def _kind_dirs(sub_dir: Path, kind: str, ses_values: list[str] | None) -> list[P
 def _diagnose_lookup(
     *,
     area_root: Path,
-    area: _Area,
+    area: Area,
     sub: str,
     kind_dir_name: str,
     ses_values: list[str] | None,
@@ -206,7 +221,7 @@ class _Find:
     def _find(
         self,
         *,
-        area: _Area,
+        area: Area,
         sub: str,
         kind_dir_name: str,
         required_entity: tuple[str, str] | None,
@@ -222,8 +237,8 @@ class _Find:
         structural entities (`sub-*`, `stim-*`, etc.) appended by the caller.
         `user_filters` is the caller-supplied subset, used only for error attribution.
         """
-        area_root = _area_root(self._layout.root, area)
-        sub_dir = area_root / f"sub-{sub}"
+        root = area_root(self._layout.root, area)
+        sub_dir = root / f"sub-{sub}"
 
         results: list[BIDSPath] = []
         for d in _kind_dirs(sub_dir, kind_dir_name, ses_values):
@@ -234,7 +249,7 @@ class _Find:
         if not results:
             raise FileNotFoundError(
                 _diagnose_lookup(
-                    area_root=area_root,
+                    area_root=root,
                     area=area,
                     sub=sub,
                     kind_dir_name=kind_dir_name,
@@ -428,7 +443,7 @@ class _Path:
     def _derive_path(
         self,
         *,
-        area: _Area,
+        area: Area,
         entity_key: str,
         source: BIDSPath,
         kind: str,
@@ -448,11 +463,9 @@ class _Path:
         if sub is None:
             raise ValueError(f"source has no 'sub' entity: {source!r}")
 
-        sub_dir = _area_root(self._layout.root, area) / f"sub-{sub}"
         desc = entities.get("desc")
-        subdir = f"{kind}-{desc}" if desc else kind
-        out_dir = (
-            sub_dir / f"ses-{ses}" / subdir if ses is not None else sub_dir / subdir
+        out_dir = kind_subdir(
+            self._layout.root, area, sub=sub, ses=ses, kind=kind, desc=desc
         )
 
         stem = "_".join(f"{k}-{v}" for k, v in entities.items())
@@ -540,9 +553,9 @@ class _List:
     def __init__(self, layout: "BIDSLayout"):
         self._layout = layout
 
-    def subjects(self, *, area: _Area) -> list[str]:
+    def subjects(self, *, area: Area) -> list[str]:
         """Return sorted unique subject IDs present in the given area."""
-        area_dir = _area_root(self._layout.root, area)
+        area_dir = area_root(self._layout.root, area)
         if not area_dir.exists():
             return []
 
@@ -553,9 +566,9 @@ class _List:
 
         return sorted(ids)
 
-    def sessions(self, *, sub: str, area: _Area) -> list[str]:
+    def sessions(self, *, sub: str, area: Area) -> list[str]:
         """Return sorted unique session IDs for a subject in the given area."""
-        sub_dir = _area_root(self._layout.root, area) / f"sub-{sub}"
+        sub_dir = area_root(self._layout.root, area) / f"sub-{sub}"
         if not sub_dir.exists():
             return []
 

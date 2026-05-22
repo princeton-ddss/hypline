@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
-from hypline.io import save_feature
+from hypline.io import write_feature
 from hypline.layout import BIDSLayout
 
 ARPABET_PHONEMES = [
@@ -160,7 +160,7 @@ class PhonemicFeature:
                 ),
             }
 
-            save_feature(out_df, out.path, metadata=metadata)
+            write_feature(out_df, out.path, metadata=metadata)
             logger.debug("Wrote phonemic feature to {}", out.path)
 
     def _get_phonemes(self, word: str) -> list[str]:
