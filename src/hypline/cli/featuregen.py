@@ -57,26 +57,23 @@ def generate_phonemic_feature(
 ):
     """Generate phonemic feature from word-level transcripts."""
     from hypline.features.phonemic import PhonemicFeature
-    from hypline.layout import BIDSLayout
 
-    resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
-    resolved_bids_filters = split_csv(bids_filters, param_hint="--data-filters")
-
-    layout = BIDSLayout(bids_root)
+    _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     feature = PhonemicFeature(
-        layout=layout,
+        bids_root=bids_root,
         use_articulatory=not no_articulatory,
-        bids_filters=resolved_bids_filters,
+        bids_filters=_bids_filters,
         desc=desc,
     )
 
-    resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")
+    _sub_ids = _sub_ids or feature._layout.list.subjects(area="stimuli")
 
-    if not resolved_sub_ids:
+    if not _sub_ids:
         logger.warning("No subjects found — nothing to generate")
         return
 
-    for sub_id in resolved_sub_ids:
+    for sub_id in _sub_ids:
         with subject_log(bids_root, "featuregen", "phonemic", sub_id=sub_id):
             feature.generate(sub_id)

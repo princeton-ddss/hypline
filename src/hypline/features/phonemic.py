@@ -1,3 +1,4 @@
+import os
 from importlib.resources import files
 
 import numpy as np
@@ -61,14 +62,14 @@ class PhonemicFeature:
     def __init__(
         self,
         *,
-        layout: BIDSLayout,
+        bids_root: str | os.PathLike[str],
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
         desc: str | None = None,
     ):
         self._load()
 
-        self._layout = layout
+        self._layout = BIDSLayout(bids_root)
         self._use_articulatory = use_articulatory
         self._bids_filters = bids_filters
         self._desc = desc

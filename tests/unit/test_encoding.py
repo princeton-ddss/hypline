@@ -3,7 +3,6 @@ import pyarrow.parquet as pq
 import pytest
 
 from hypline.encoding import BoldKey, CellKey, Encoding, EncodingConfig, FeatureKey
-from hypline.layout import BIDSLayout
 
 from .conftest import BIDSTree
 
@@ -21,7 +20,7 @@ def _make_encoding(
 ) -> Encoding:
     return Encoding(
         EncodingConfig(),
-        layout=BIDSLayout(tree.root),
+        bids_root=tree.root,
         features=features,
         bold_space=bold_space,
         bids_filters=bids_filters,

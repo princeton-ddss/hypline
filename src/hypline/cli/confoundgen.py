@@ -39,24 +39,21 @@ def generate_phonemic_confound(
 ):
     """Generate phonemic confounds (onset, rate) from phonemic feature files."""
     from hypline.confounds.phonemic import PhonemicConfound
-    from hypline.layout import BIDSLayout
 
-    resolved_sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
-    resolved_bids_filters = split_csv(bids_filters, param_hint="--data-filters")
-
-    layout = BIDSLayout(bids_root)
+    _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     confound = PhonemicConfound(
-        layout=layout,
-        bids_filters=resolved_bids_filters,
+        bids_root=bids_root,
+        bids_filters=_bids_filters,
     )
 
-    resolved_sub_ids = resolved_sub_ids or layout.list.subjects(area="stimuli")
+    _sub_ids = _sub_ids or confound._layout.list.subjects(area="stimuli")
 
-    if not resolved_sub_ids:
+    if not _sub_ids:
         logger.warning("No subjects found — nothing to generate")
         return
 
-    for sub_id in resolved_sub_ids:
+    for sub_id in _sub_ids:
         with subject_log(bids_root, "confoundgen", "phonemic", sub_id=sub_id):
             confound.generate(sub_id)

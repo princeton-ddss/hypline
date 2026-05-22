@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import polars as pl
 from loguru import logger
@@ -20,10 +22,10 @@ class PhonemicConfound:
     def __init__(
         self,
         *,
-        layout: BIDSLayout,
+        bids_root: str | os.PathLike[str],
         bids_filters: list[str] | None = None,
     ):
-        self._layout = layout
+        self._layout = BIDSLayout(bids_root)
         self._bids_filters = bids_filters
 
     def generate(self, sub_id: str):

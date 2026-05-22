@@ -1,3 +1,4 @@
+import os
 import reprlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -168,7 +169,7 @@ class Encoding:
         self,
         config: EncodingConfig,
         *,
-        layout: BIDSLayout,
+        bids_root: str | os.PathLike[str],
         features: list[str],
         bold_space: str,
         downsample: FeatureDownsampleMethod = "mean",
@@ -179,7 +180,7 @@ class Encoding:
         if config.device is Device.CUDA and not torch.cuda.is_available():
             raise RuntimeError("CUDA is requested but not available")
         self.config = config
-        self._layout = layout
+        self._layout = BIDSLayout(bids_root)
 
         if not features:
             raise ValueError("features must be a non-empty list")

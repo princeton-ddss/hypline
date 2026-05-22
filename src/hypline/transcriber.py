@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -32,7 +33,7 @@ class Transcriber:
         self,
         config: WhisperConfig,
         *,
-        layout: BIDSLayout,
+        bids_root: str | os.PathLike[str],
         audio_ext: str,
         bids_filters: list[str] | None = None,
     ):
@@ -52,7 +53,7 @@ class Transcriber:
         assert config.model_dir is not None  # For type inference
 
         self.config = config
-        self._layout = layout
+        self._layout = BIDSLayout(bids_root)
         self._audio_ext = audio_ext
         self._bids_filters = bids_filters
 

@@ -56,7 +56,7 @@ class TestPhonemicGenerateArpabet:
     def test_writes_one_row_per_phoneme(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat"), (1.0, "dog")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         out = layout.find.features(sub=SUB, kind="phonemic")[0]
         df = read_feature(out.path)
         assert df.get_column("phoneme").to_list() == ["K", "AE", "T", "D", "AO", "G"]
@@ -64,14 +64,14 @@ class TestPhonemicGenerateArpabet:
     def test_phonemes_share_word_start_time(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat"), (1.5, "dog")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
         assert df.get_column("start_time").to_list() == [0.0, 0.0, 0.0, 1.5, 1.5, 1.5]
 
     def test_one_hot_vectors_match_arpabet_indices(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
         feats = np.array(df.get_column("feature").to_list())
         assert feats.shape == (3, len(ARPABET_PHONEMES))
@@ -85,7 +85,7 @@ class TestPhonemicGenerateArticulatory:
     def test_vectors_are_articulatory_multi_hot(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
-        feat = PhonemicFeature(layout=layout, use_articulatory=True)
+        feat = PhonemicFeature(bids_root=tree.root, use_articulatory=True)
         feat.generate(SUB)
         dim = len(PhonemicFeature._articulatory_feature_names)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
@@ -97,7 +97,7 @@ class TestPhonemicGenerateArticulatory:
     def test_matches_articulatory_vectors_lookup(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=True).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=True).generate(SUB)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
         feats = np.array(df.get_column("feature").to_list())
         for row, ph in zip(feats, ["K", "AE", "T"]):
@@ -109,7 +109,7 @@ class TestPhonemicMissingUnits:
     def test_oov_word_emits_null_row(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat"), (1.0, "qwerty")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
         phonemes = df.get_column("phoneme").to_list()
         assert phonemes == ["K", "AE", "T", None]
@@ -121,14 +121,14 @@ class TestPhonemicMissingUnits:
     def test_punctuation_stripped_before_lookup(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat,")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
         assert df.get_column("phoneme").to_list() == ["K", "AE", "T"]
 
     def test_punctuation_only_token_emits_null_row(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat"), (1.0, "...")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
         phonemes = df.get_column("phoneme").to_list()
         assert phonemes[-1] is None
@@ -140,7 +140,7 @@ class TestPhonemicMetadata:
     def test_arpabet_metadata(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         meta = read_feature_metadata(
             layout.find.features(sub=SUB, kind="phonemic")[0].path
         )
@@ -150,7 +150,7 @@ class TestPhonemicMetadata:
     def test_articulatory_metadata(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=True).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=True).generate(SUB)
         meta = read_feature_metadata(
             layout.find.features(sub=SUB, kind="phonemic")[0].path
         )
@@ -163,7 +163,7 @@ class TestPhonemicDesc:
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
         PhonemicFeature(
-            layout=layout,
+            bids_root=tree.root,
             use_articulatory=False,
             desc="ver1",
         ).generate(SUB)
@@ -174,7 +174,7 @@ class TestPhonemicDesc:
     def test_no_desc_omits_entity(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])
         layout = BIDSLayout(tree.root)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         out = layout.find.features(sub=SUB, kind="phonemic")[0]
         assert "desc" not in out.entities
         assert out.path.name.endswith("_feat-phonemic.parquet")
@@ -188,6 +188,6 @@ class TestPhonemicMultiTranscript:
         df = pl.DataFrame({"start_time": [0.0], "word": ["cat"]})
         for transcript in layout.find.stimuli(sub=SUB, kind="transcript", ext=".csv"):
             df.write_csv(transcript.path)
-        PhonemicFeature(layout=layout, use_articulatory=False).generate(SUB)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
         outs = layout.find.features(sub=SUB, kind="phonemic")
         assert len(outs) == 2
