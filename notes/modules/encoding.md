@@ -75,8 +75,9 @@ root cause and rerun.
 
 ## Module layout
 
-Feature I/O utilities (`read_feature`, `save_feature`) are exposed from
-`hypline.features`. TR-alignment lives in `hypline.downsample` (shared with
+Feature I/O utilities (`read_feature`, `save_feature`) live in `hypline.io`
+(shared module for feature and confound Parquet I/O). TR-alignment lives in
+`hypline.downsample` (shared with
 confound generation — see [../decisions/confound-files.md](../decisions/confound-files.md)).
 
 Feature and BOLD discovery uses `BIDSLayout` (see `hypline.layout`), which walks the

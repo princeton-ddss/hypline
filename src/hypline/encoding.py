@@ -21,7 +21,7 @@ from hypline.bold import (
 from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import Device
 from hypline.events import merge_filename_and_sidecar, segment_tr_slice
-from hypline.features import read_feature, read_feature_metadata
+from hypline.io import read_feature, read_feature_metadata
 from hypline.layout import BIDSLayout
 
 FeatureDownsampleMethod = Literal["mean", "sum"]

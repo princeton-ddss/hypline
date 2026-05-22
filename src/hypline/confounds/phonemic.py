@@ -5,10 +5,10 @@ from loguru import logger
 from hypline.bold import BOLD_EXTENSIONS, load_bold_meta
 from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import VolumeSpace
-from hypline.features import read_feature
+from hypline.io import read_feature, save_confound
 from hypline.layout import BIDSLayout
 
-from ._utils import collapse_desc_variants, save_confound, segment_n_trs
+from ._utils import collapse_desc_variants, segment_n_trs
 
 _VARIANTS: tuple[tuple[str, DownsampleMethod], ...] = (
     ("onset", "any"),

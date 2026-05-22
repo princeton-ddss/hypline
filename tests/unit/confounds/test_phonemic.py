@@ -2,7 +2,8 @@ import numpy as np
 import polars as pl
 import pytest
 
-from hypline.confounds import PhonemicConfound, read_confound, read_confound_metadata
+from hypline.confounds import PhonemicConfound
+from hypline.io import read_confound, read_confound_metadata
 from hypline.layout import BIDSLayout
 
 from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree

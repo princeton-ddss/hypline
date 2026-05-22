@@ -4,8 +4,9 @@ import numpy as np
 import polars as pl
 import pytest
 
-from hypline.features import PhonemicFeature, read_feature, read_feature_metadata
+from hypline.features import PhonemicFeature
 from hypline.features.phonemic import ARPABET_PHONEMES
+from hypline.io import read_feature, read_feature_metadata
 from hypline.layout import BIDSLayout
 
 from ..conftest import BIDSTree

@@ -7,7 +7,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from hypline.bids import BIDSPath
-from hypline.confounds._utils import (
+from hypline.io import (
     read_confound,
     read_confound_metadata,
     save_confound,

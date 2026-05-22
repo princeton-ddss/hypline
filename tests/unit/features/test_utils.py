@@ -7,7 +7,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from hypline.bids import BIDSPath
-from hypline.features._utils import (
+from hypline.io import (
     read_feature,
     read_feature_metadata,
     save_feature,

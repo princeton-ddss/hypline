@@ -6,9 +6,10 @@ alignment contract with BOLD data.
 Hypline's own derivative type — stimulus-derived features paired to BOLD
 runs for encoding models.
 
-Feature I/O lives in `hypline.features`: `save_feature` writes, `read_feature`
-reads. TR alignment is handled by `hypline.downsample` (shared with confound
-files — see [confound-files.md](confound-files.md)).
+Feature I/O lives in `hypline.io`: `save_feature` writes, `read_feature` reads,
+`read_feature_metadata` reads the footer without loading data. TR alignment is
+handled by `hypline.downsample` (shared with confound files — see
+[confound-files.md](confound-files.md)).
 
 ## Format
 

@@ -208,7 +208,7 @@ class BIDSTree:
         metadata: dict[str, Any] | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
-        from hypline.features import save_feature
+        from hypline.io import save_feature
 
         entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
         entities["feat"] = kind
