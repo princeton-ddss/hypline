@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -587,7 +586,7 @@ class BIDSLayout:
     (features/ may be absent before featuregen runs).
     """
 
-    def __init__(self, bids_root: str | os.PathLike[str]):
+    def __init__(self, bids_root: str | Path):
         self._root = Path(bids_root)
         if not self._root.exists():
             raise FileNotFoundError(f"bids_root does not exist: {self._root}")

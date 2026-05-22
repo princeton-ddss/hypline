@@ -1,5 +1,5 @@
-import os
 from importlib.resources import files
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -62,7 +62,7 @@ class PhonemicFeature:
     def __init__(
         self,
         *,
-        bids_root: str | os.PathLike[str],
+        bids_root: str | Path,
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
         desc: str | None = None,

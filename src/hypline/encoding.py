@@ -1,4 +1,3 @@
-import os
 import reprlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -169,7 +168,7 @@ class Encoding:
         self,
         config: EncodingConfig,
         *,
-        bids_root: str | os.PathLike[str],
+        bids_root: str | Path,
         features: list[str],
         bold_space: str,
         downsample: FeatureDownsampleMethod = "mean",

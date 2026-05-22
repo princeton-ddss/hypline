@@ -1,4 +1,3 @@
-import os
 import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -60,7 +59,7 @@ class BIDSPath:
     _ext: str
     _path: Path
 
-    def __init__(self, path: str | os.PathLike[str]):
+    def __init__(self, path: str | Path):
         self._path = Path(path)
         self._entities = {}
         self._suffix = None
@@ -105,7 +104,7 @@ class BIDSPath:
         *,
         ext: str,
         suffix: str | None = None,
-        parent: str | os.PathLike[str] = ".",
+        parent: str | Path = ".",
         **entities: str,
     ) -> "BIDSPath":
         """Build a BIDSPath from entity kwargs in canonical order.
@@ -263,7 +262,7 @@ def parse_filter_groups(filters: list[str]) -> dict[str, list[str]]:
 
 
 def find_bids_files(
-    directory: str | os.PathLike[str],
+    directory: str | Path,
     ext: str,
     *,
     suffix: str | None = None,

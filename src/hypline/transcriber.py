@@ -1,4 +1,3 @@
-import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -33,7 +32,7 @@ class Transcriber:
         self,
         config: WhisperConfig,
         *,
-        bids_root: str | os.PathLike[str],
+        bids_root: str | Path,
         audio_ext: str,
         bids_filters: list[str] | None = None,
     ):

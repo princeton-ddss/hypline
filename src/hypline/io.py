@@ -11,7 +11,6 @@ the `save_*` wrappers. Used by in-package generators driven by
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Any, cast
 
@@ -39,7 +38,7 @@ __all__ = [
 
 
 def _derive_parquet_path(
-    bids_root: str | os.PathLike[str],
+    bids_root: str | Path,
     *,
     area: Area,
     category_entity: str,
@@ -69,7 +68,7 @@ def _derive_parquet_path(
 
 
 def _validate_bids_parquet_path(
-    path: str | os.PathLike[str],
+    path: str | Path,
     *,
     required_entity: str,
     kind: str,
@@ -165,7 +164,7 @@ def _parse_feature_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, Any
 
 def write_feature(
     df: pl.DataFrame,
-    path: str | os.PathLike[str],
+    path: str | Path,
     *,
     metadata: dict[str, Any] | None = None,
 ) -> None:
@@ -188,7 +187,7 @@ def write_feature(
     _write_with_hypline_metadata(df, bids, {**auto_metadata, **(metadata or {})})
 
 
-def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
+def read_feature(path: str | Path) -> pl.DataFrame:
     """Read a feature DataFrame from a hypline-format Parquet file.
 
     Validates that the path carries a `feat` entity, `.parquet` extension,
@@ -220,7 +219,7 @@ def read_feature(path: str | os.PathLike[str]) -> pl.DataFrame:
     return df
 
 
-def read_feature_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
+def read_feature_metadata(path: str | Path) -> dict[str, Any]:
     """Read footer metadata from a hypline feature file without loading data.
 
     Parameters
@@ -248,7 +247,7 @@ def read_feature_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
 def save_feature(
     df: pl.DataFrame,
     *,
-    bids_root: str | os.PathLike[str],
+    bids_root: str | Path,
     sub: str,
     feat: str,
     metadata: dict[str, Any] | None = None,
@@ -351,7 +350,7 @@ def _parse_confound_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, An
 
 def write_confound(
     df: pl.DataFrame,
-    path: str | os.PathLike[str],
+    path: str | Path,
     *,
     repetition_time: float,
     tr_method: str | None,
@@ -404,7 +403,7 @@ def write_confound(
     _write_with_hypline_metadata(df, bids, {**auto_metadata, **(metadata or {})})
 
 
-def read_confound(path: str | os.PathLike[str]) -> pl.DataFrame:
+def read_confound(path: str | Path) -> pl.DataFrame:
     """Read a confound DataFrame from a hypline-format Parquet file.
 
     Validates that the path carries a `conf` entity, `.parquet` extension,
@@ -438,7 +437,7 @@ def read_confound(path: str | os.PathLike[str]) -> pl.DataFrame:
     return df
 
 
-def read_confound_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
+def read_confound_metadata(path: str | Path) -> dict[str, Any]:
     """Read footer metadata from a hypline confound file without loading data.
 
     Parameters
@@ -467,7 +466,7 @@ def read_confound_metadata(path: str | os.PathLike[str]) -> dict[str, Any]:
 def save_confound(
     df: pl.DataFrame,
     *,
-    bids_root: str | os.PathLike[str],
+    bids_root: str | Path,
     sub: str,
     conf: str,
     repetition_time: float,

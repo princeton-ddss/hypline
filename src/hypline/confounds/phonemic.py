@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -22,7 +22,7 @@ class PhonemicConfound:
     def __init__(
         self,
         *,
-        bids_root: str | os.PathLike[str],
+        bids_root: str | Path,
         bids_filters: list[str] | None = None,
     ):
         self._layout = BIDSLayout(bids_root)
