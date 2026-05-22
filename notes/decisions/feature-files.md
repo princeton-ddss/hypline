@@ -103,13 +103,14 @@ existing one. This invariant lets consumers that depend only on `start_time`
 
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:
 
-- Filename entities: `ses`, `run`, segment entity value (e.g. `trial=1`)
+- Filename entities: `ses`, `task`, `run`, segment entity value (e.g. `trial=1`)
 - Metadata entities from `events.json` `trial_type.Levels` (e.g. `cond=R`, `item=101`)
 
-Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub`, `task` (invariant within a training
-call), `desc`, `res`, `den` (BOLD image-variant derivatives), `space`, `feat` (orthogonal
-axes). Entities are present or absent — no `None` sentinel. Equality and hashing are
-order-independent.
+Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub` (invariant within a training call),
+`desc`, `res`, `den` (BOLD image-variant derivatives), `space`, `feat` (orthogonal axes).
+`task` flows through as a cell axis — single-task calls leave it constant, multi-task calls
+(`Encoding(tasks=["A","B"])`) yield distinct cells per task. Entities are present or absent
+— no `None` sentinel. Equality and hashing are order-independent.
 
 CV splits are expressed by querying `CellKey` entities:
 

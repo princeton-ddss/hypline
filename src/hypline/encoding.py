@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from hypline.bids import (
     BIDSPath,
     normalize_bids_filters,
-    validate_entity_invariance,
 )
 from hypline.bold import (
     BOLD_EXTENSIONS,
@@ -33,6 +32,7 @@ if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod))
 
 class BoldKey(NamedTuple):
     ses: str | None
+    task: str
     run: str | None
 
 
@@ -40,9 +40,13 @@ class CellKey:
     """Open-schema key identifying a single feature time window.
 
     EXCLUDE defines which entities must never appear on a cell key:
-    - sub, task: invariant across a training call
+    - sub: invariant across a training call
     - desc, res, den: image-variant entities (BOLD derivatives only)
     - space, feat: orthogonal axes — handled by dedicated arguments
+
+    `task` flows through as a cell axis: a training call may declare multiple
+    tasks (`tasks=["A", "B"]`), in which case cells from different tasks become
+    distinct rows in X/Y. Single-task calls leave `task` constant on every cell.
 
     Equality and hashing are order-independent.
     """
@@ -50,7 +54,6 @@ class CellKey:
     EXCLUDE: frozenset[str] = frozenset(
         (
             "sub",
-            "task",
             "desc",
             "res",
             "den",
@@ -89,6 +92,9 @@ class CellKey:
     def __repr__(self) -> str:
         pairs = ", ".join(f"{k}={v!r}" for k, v in sorted(self._entities.items()))
         return f"CellKey({pairs})"
+
+    def to_bold_key(self) -> BoldKey:
+        return BoldKey(self.get("ses"), self["task"], self.get("run"))
 
 
 class FeatureKey(NamedTuple):
@@ -170,6 +176,7 @@ class Encoding:
         *,
         bids_root: str | Path,
         features: list[str],
+        tasks: list[str],
         bold_space: str,
         downsample: FeatureDownsampleMethod = "mean",
         bids_filters: list[str] | None = None,
@@ -188,6 +195,14 @@ class Encoding:
             raise ValueError(f"Duplicate entries in features: {dupes}")
         self.features = features
 
+        if not tasks:
+            raise ValueError("tasks must be a non-empty list")
+        if len(tasks) != len(set(tasks)):
+            dupes = sorted({t for t in tasks if tasks.count(t) > 1})
+            raise ValueError(f"Duplicate entries in tasks: {dupes}")
+        self.tasks = tasks
+        self._task_filters = [f"task-{task}" for task in tasks]
+
         self.bold_space = parse_bold_space(bold_space)
 
         if downsample not in get_args(FeatureDownsampleMethod):
@@ -198,7 +213,7 @@ class Encoding:
         self.downsample = downsample
 
         self.bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "space", "feat"}
+            bids_filters, reserved={"sub", "task", "space", "feat"}
         )
 
     def train(self, sub_id: str):
@@ -227,7 +242,9 @@ class Encoding:
         """
         feature_bids: dict[FeatureKey, BIDSPath] = {}
         for feature_name in self.features:
-            feature_files = self._layout.find.features(sub=sub_id, kind=feature_name)
+            feature_files = self._layout.find.features(
+                sub=sub_id, kind=feature_name, bids_filters=self._task_filters
+            )
 
             for bids in feature_files:
                 cell_key = CellKey(
@@ -279,12 +296,6 @@ class Encoding:
                     f"  {ref_path}\n  {bids.path}\n  differing keys:\n{diff}"
                 )
 
-        # Validate: task entity is invariant across all files
-        try:
-            validate_entity_invariance(list(feature_bids.values()), ("task",))
-        except ValueError as e:
-            raise ValueError(f"{e} (subject {sub_id})") from e
-
         # Validate: all features present at every cell
         expected = {
             FeatureKey(cell_key, feature_name)
@@ -319,6 +330,7 @@ class Encoding:
             bids_filters=[
                 f"space-{self.bold_space}",
                 "desc-clean",  # hardcoded until parameterization is needed
+                *self._task_filters,
             ],
         )
 
@@ -326,10 +338,16 @@ class Encoding:
         for bids in bold_files:
             bold_key = BoldKey(
                 ses=bids.entities.get("ses"),
+                task=bids.entities["task"],
                 run=bids.entities.get("run"),
             )
             if bold_key in bold_metas:
-                loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
+                loc = _format_loc(
+                    sub=sub_id,
+                    ses=bold_key.ses,
+                    task=bold_key.task,
+                    run=bold_key.run,
+                )
                 raise ValueError(
                     f"Duplicate BOLD file at {loc}:\n"
                     f"  {bold_metas[bold_key].bids.path}\n  {bids.path}"
@@ -337,15 +355,13 @@ class Encoding:
             try:
                 bold_metas[bold_key] = load_bold_meta(self._layout, bids)
             except ValueError as e:
-                loc = _format_loc(sub=sub_id, ses=bold_key.ses, run=bold_key.run)
+                loc = _format_loc(
+                    sub=sub_id,
+                    ses=bold_key.ses,
+                    task=bold_key.task,
+                    run=bold_key.run,
+                )
                 raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e
-
-        # Validate: task is invariant across all runs
-        bold_bids = [meta.bids for meta in bold_metas.values()]
-        try:
-            validate_entity_invariance(bold_bids, ("task",))
-        except ValueError as e:
-            raise ValueError(f"{e} (subject {sub_id})") from e
 
         # Validate: TR is invariant across all runs
         repetition_times = {meta.repetition_time for meta in bold_metas.values()}
@@ -410,13 +426,14 @@ class Encoding:
             return _format_loc(
                 sub=sub_id,
                 ses=bold_key.ses,
+                task=bold_key.task,
                 run=bold_key.run,
                 space=self.bold_space,
             )
 
         cell_keys_by_bold_key: dict[BoldKey, set[CellKey]] = {}
         for feature_key in feature_bids:
-            bold_key = BoldKey(feature_key.cell.get("ses"), feature_key.cell.get("run"))
+            bold_key = feature_key.cell.to_bold_key()
             cell_keys_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
 
         orphan_bold_keys = cell_keys_by_bold_key.keys() - bold_metas.keys()
@@ -430,7 +447,7 @@ class Encoding:
         resolved_feature_bids: dict[FeatureKey, BIDSPath] = {}
         for feature_key, bids in feature_bids.items():
             cell_key = feature_key.cell
-            bold_key = BoldKey(cell_key.get("ses"), cell_key.get("run"))
+            bold_key = cell_key.to_bold_key()
             bold_meta = bold_metas[bold_key]
 
             if not bold_meta.segments:
@@ -441,14 +458,14 @@ class Encoding:
                         f"files at {_loc(bold_key)} — provide an events.tsv with "
                         f"BIDS key-value entities to segment the run"
                     )
-                illegal_keys = cell_key.keys() - {"ses", "run"}
+                illegal_keys = cell_key.keys() - {"ses", "task", "run"}
                 if illegal_keys:
                     raise ValueError(
                         f"Unsegmented run at {_loc(bold_key)} has feature filename "
-                        f"with unexpected entities {sorted(illegal_keys)} — only ses "
-                        f"and run are valid on feature filenames for unsegmented "
-                        f"runs. To attach metadata, declare a segment row in "
-                        f"events.tsv and add descriptive attributes to "
+                        f"with unexpected entities {sorted(illegal_keys)} — only "
+                        f"ses, task, and run are valid on feature filenames for "
+                        f"unsegmented runs. To attach metadata, declare a segment "
+                        f"row in events.tsv and add descriptive attributes to "
                         f"events.json Levels."
                     )
                 resolved_feature_bids[feature_key] = bids
@@ -480,7 +497,7 @@ class Encoding:
                 merged = merge_filename_and_sidecar(
                     filename_entities=filename_entities,
                     sidecar_metadata=segment.metadata,
-                    structural_keys=frozenset({"ses", "run", segment_entity}),
+                    structural_keys=frozenset({"ses", "task", "run", segment_entity}),
                 )
             except ValueError as err:
                 raise ValueError(f"{err} (at {_loc(bold_key)})") from None
@@ -570,9 +587,8 @@ class Encoding:
         feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> None:
-        """Validate bidirectional ses/run coverage between filtered features and BOLD.
+        """Validate bidirectional (ses, task, run) coverage between features and BOLD.
 
-        Also checks sub/task invariance across all feature and BOLD files.
         Raises if either side is empty — indicates filters selected nothing.
         """
 
@@ -580,6 +596,7 @@ class Encoding:
             return _format_loc(
                 sub=sub_id,
                 ses=bold_key.ses,
+                task=bold_key.task,
                 run=bold_key.run,
                 space=self.bold_space,
             )
@@ -589,18 +606,8 @@ class Encoding:
         if not bold_metas:
             raise FileNotFoundError("No BOLD files match the given filters")
 
-        bold_bids = [meta.bids for meta in bold_metas.values()]
-        try:
-            validate_entity_invariance(
-                list(feature_bids.values()) + bold_bids, ("sub", "task")
-            )
-        except ValueError as e:
-            raise ValueError(f"{e} (subject {sub_id})") from e
-
         cell_keys = {feature_key.cell for feature_key in feature_bids}
-        covered_bold_keys = {
-            BoldKey(key.get("ses"), key.get("run")) for key in cell_keys
-        }
+        covered_bold_keys = {key.to_bold_key() for key in cell_keys}
 
         bold_without_features = bold_metas.keys() - covered_bold_keys
         if bold_without_features:
@@ -650,6 +657,7 @@ class Encoding:
                 loc = _format_loc(
                     sub=sub_id,
                     ses=bold_key.ses,
+                    task=bold_key.task,
                     run=bold_key.run,
                     space=self.bold_space,
                 )
@@ -661,9 +669,12 @@ class Encoding:
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
         def _sort_key(k: CellKey) -> tuple:
             ses = k.get("ses")
+            task = k["task"]
             run = k.get("run")
-            rest = sorted(val for key, val in k.items() if key not in ("ses", "run"))
-            return (ses is not None, ses or "", run is not None, run or "", *rest)
+            rest = sorted(
+                val for key, val in k.items() if key not in ("ses", "run", "task")
+            )
+            return (ses is not None, ses or "", task, run is not None, run or "", *rest)
 
         cell_keys = sorted(
             {feature_key.cell for feature_key in feature_bids}, key=_sort_key
@@ -678,7 +689,7 @@ class Encoding:
         col_slices_initialized = False
 
         for cell_key in cell_keys:
-            bold_key = BoldKey(cell_key.get("ses"), cell_key.get("run"))
+            bold_key = cell_key.to_bold_key()
             bold_meta = bold_metas[bold_key]
             bold_data = bold_arrays[bold_key]
 

@@ -12,12 +12,14 @@ A single `train(sub_id)` call is scoped to:
 
 - **One subject.** Subjects are modeled independently — different brains,
   different voxel alignment.
-- **One task.** BIDS requires `task` on BOLD; all BOLD and feature files
-  in scope must share the same value. Cross-task encoding models are not
-  meaningful. If inconsistent task values are discovered, the pipeline
-  raises.
-- **Multiple sessions and runs: allowed and expected.** Same task, more
-  data — concatenated into a single X/Y.
+- **Tasks are an explicit input.** `Encoding(tasks=[...])` declares which
+  task values are in scope; others are excluded at discovery. `task` is a
+  `CellKey` axis: `tasks=["A", "B"]` opts into a multi-task fit where
+  A-cells and B-cells are distinct rows sharing regression weights.
+  Single-task is the norm; the explicit list makes any deviation visible
+  at the call site.
+- **Multiple sessions and runs: allowed and expected.** More data,
+  concatenated into a single X/Y.
 - **Multiple cells per run: allowed.** The segment entity is inferred from
   events.tsv at discovery time. Each segment value is a separate row block,
   identified by a `CellKey` carrying all non-excluded entities (filename +
@@ -42,9 +44,9 @@ A single `train(sub_id)` call is scoped to:
 4. **`_apply_filters`** — applies user `bids_filters` to both enriched feature cells
    and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns
    filtered `(dict[FeatureKey, Path], dict[BoldKey, BoldMeta])`.
-5. **`_validate_coverage`** — checks `sub`/`task` invariance across all files.
-   Bidirectional `ses`/`run` coverage: every filtered BOLD run must have feature
-   coverage and vice versa. Raises if either filtered set is empty. Void-returning.
+5. **`_validate_coverage`** — bidirectional `(ses, task, run)` coverage: every
+   filtered BOLD run must have feature coverage and vice versa. Raises if either
+   filtered set is empty. Void-returning.
 6. **`_build_xy`** — loads BOLD arrays; validates `max(slice.stop) ≤ BOLD TRs`;
    assembles X (features) and Y (BOLD) matrices.
 
@@ -97,17 +99,17 @@ Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and canno
 to `BIDSLayout` queries. Applying all filters uniformly post-resolution ensures consistent
 behaviour whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
 
-- **Reserved entities** (`sub`, `space`, `feat`): rejected at construction — use the
-  dedicated arguments instead.
+- **Reserved entities** (`sub`, `task`, `space`, `feat`): rejected at construction — use
+  the dedicated arguments instead.
 
 **Match semantics:** multiple filters sharing the same entity key OR-match within that group;
-different entity keys AND-match across groups (e.g. `["task-rest", "task-nback", "ses-1"]`
-selects runs where task is rest or nback, AND session is 1).
+different entity keys AND-match across groups (e.g. `["run-1", "run-2", "ses-1"]` selects
+runs where run is 1 or 2, AND session is 1).
 
-**Asymmetric schemas:** feature cells and BOLD files do not share the same entity key set
-(e.g. `task` is excluded from `CellKey` but present on BOLD filenames). A filter key absent
-from one side is silently skipped on that side — it applies only where the entity is meaningful.
-A filter key absent from _both_ sides raises `ValueError` (typo diagnostic).
+**Asymmetric schemas:** feature cells and BOLD files do not always share the same entity
+key set (e.g. enrichment metadata lives on `CellKey` but not BOLD filenames). A filter key
+absent from one side is silently skipped on that side — it applies only where the entity is
+meaningful. A filter key absent from _both_ sides raises `ValueError` (typo diagnostic).
 
 Filter entity validation is **fail-then-diagnose**: every filter entity is checked against the
 union of resolved cell keys and BOLD filename keys — any absent entity raises `ValueError`

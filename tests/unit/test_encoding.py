@@ -15,6 +15,7 @@ def _make_encoding(
     tree: BIDSTree,
     features: list[str],
     *,
+    tasks: list[str] | None = None,
     bold_space: str = SPACE,
     bids_filters: list[str] | None = None,
 ) -> Encoding:
@@ -22,6 +23,7 @@ def _make_encoding(
         EncodingConfig(),
         bids_root=tree.root,
         features=features,
+        tasks=tasks if tasks is not None else [TASK],
         bold_space=bold_space,
         bids_filters=bids_filters,
     )
@@ -79,7 +81,7 @@ class TestDiscoverFeatures:
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
-        expected = FeatureKey(cell=CellKey(run="1"), feature="mfcc")
+        expected = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="mfcc")
         assert expected in feature_paths
 
     def test_no_files_raises(self, tree: BIDSTree):
@@ -104,12 +106,24 @@ class TestDiscoverFeatures:
         with pytest.raises(FileNotFoundError, match="Missing feat=clip"):
             enc._discover_features(SUB)
 
-    def test_task_invariance_violation_raises(self, tree: BIDSTree):
+    def test_unrequested_task_files_filtered_out(self, tree: BIDSTree):
         tree.add_feature(sub=SUB, task="rest", kind="mfcc", run="1")
         tree.add_feature(sub=SUB, task="conv", kind="mfcc", run="2")
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="task"):
-            enc._discover_features(SUB)
+        enc = _make_encoding(tree, ["mfcc"], tasks=["conv"])
+        feature_paths = enc._discover_features(SUB)
+        cell_keys = {fk.cell for fk in feature_paths}
+        assert cell_keys == {CellKey(task="conv", run="2")}
+
+    def test_multi_task_cells_distinct(self, tree: BIDSTree):
+        tree.add_feature(sub=SUB, task="rest", kind="mfcc", run="1")
+        tree.add_feature(sub=SUB, task="conv", kind="mfcc", run="1")
+        enc = _make_encoding(tree, ["mfcc"], tasks=["rest", "conv"])
+        feature_paths = enc._discover_features(SUB)
+        cell_keys = {fk.cell for fk in feature_paths}
+        assert cell_keys == {
+            CellKey(task="rest", run="1"),
+            CellKey(task="conv", run="1"),
+        }
 
     def test_mixed_segmented_unsegmented_runs_raises(self, tree: BIDSTree):
         tree.add_feature(
@@ -241,7 +255,7 @@ class TestDiscoverBold:
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        assert BoldKey(ses=None, run="1") in bold_metas
+        assert BoldKey(ses=None, task=TASK, run="1") in bold_metas
 
     def test_no_files_raises(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
@@ -269,15 +283,15 @@ class TestDiscoverBold:
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, ses="2", run="1", desc="clean")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        assert BoldKey(ses="1", run="1") in bold_metas
-        assert BoldKey(ses="2", run="1") in bold_metas
+        assert BoldKey(ses="1", task=TASK, run="1") in bold_metas
+        assert BoldKey(ses="2", task=TASK, run="1") in bold_metas
 
     def test_bold_siblings_excluded(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
         tree.add_bold_siblings(sub=SUB, task=TASK, space=SPACE, run="1")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        assert list(bold_metas.keys()) == [BoldKey(ses=None, run="1")]
+        assert list(bold_metas.keys()) == [BoldKey(ses=None, task=TASK, run="1")]
 
     def test_wrong_space_bold_excluded(self, tree: BIDSTree):
         tree.add_bold(
@@ -286,7 +300,7 @@ class TestDiscoverBold:
         tree.add_bold(sub=SUB, task=TASK, run="1", space="T1w", desc="clean")
         enc = _make_encoding(tree, ["mfcc"], bold_space="MNI152NLin6Asym")
         bold_metas = enc._discover_bold(SUB)
-        assert list(bold_metas.keys()) == [BoldKey(ses=None, run="1")]
+        assert list(bold_metas.keys()) == [BoldKey(ses=None, task=TASK, run="1")]
 
     def test_inconsistent_tr_raises(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
@@ -295,18 +309,28 @@ class TestDiscoverBold:
         with pytest.raises(ValueError, match="Inconsistent repetition times"):
             enc._discover_bold(SUB)
 
-    def test_task_invariance_violation_raises(self, tree: BIDSTree):
+    def test_unrequested_task_bold_filtered_out(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="clean")
         tree.add_bold(sub=SUB, space=SPACE, task="conv", run="2", desc="clean")
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="task"):
-            enc._discover_bold(SUB)
+        enc = _make_encoding(tree, ["mfcc"], tasks=["conv"])
+        bold_metas = enc._discover_bold(SUB)
+        assert list(bold_metas.keys()) == [BoldKey(ses=None, task="conv", run="2")]
+
+    def test_multi_task_bold_distinct(self, tree: BIDSTree):
+        tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="clean")
+        tree.add_bold(sub=SUB, space=SPACE, task="conv", run="1", desc="clean")
+        enc = _make_encoding(tree, ["mfcc"], tasks=["rest", "conv"])
+        bold_metas = enc._discover_bold(SUB)
+        assert set(bold_metas.keys()) == {
+            BoldKey(ses=None, task="rest", run="1"),
+            BoldKey(ses=None, task="conv", run="1"),
+        }
 
     def test_no_events_gives_no_segments(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        bold_meta = bold_metas[BoldKey(ses=None, run="1")]
+        bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert bold_meta.segments == []
 
     def test_structural_entity_slices_parsed(self, tree: BIDSTree):
@@ -322,7 +346,7 @@ class TestDiscoverBold:
         )
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        bold_meta = bold_metas[BoldKey(ses=None, run="1")]
+        bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert len(bold_meta.segments) == 2
         assert bold_meta.segments[0].entity == "block"
         assert bold_meta.segments[0].value == "1"
@@ -405,7 +429,7 @@ class TestDiscoverBold:
         )
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        bold_meta = bold_metas[BoldKey(ses=None, run="1")]
+        bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert len(bold_meta.segments) == 2
         assert bold_meta.segments[0].onset == 10.0
         assert bold_meta.segments[0].duration == 90.0
@@ -420,7 +444,7 @@ class TestDiscoverBold:
         )
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        bold_meta = bold_metas[BoldKey(ses=None, run="1")]
+        bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert bold_meta.segments == []
 
     def test_kv_entity_with_gap_passes(self, tree: BIDSTree):
@@ -436,7 +460,7 @@ class TestDiscoverBold:
         )
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        bold_meta = bold_metas[BoldKey(ses=None, run="1")]
+        bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert len(bold_meta.segments) == 2
 
     def test_flat_labels_alongside_segments_ignored(self, tree: BIDSTree):
@@ -453,7 +477,7 @@ class TestDiscoverBold:
         )
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
-        bold_meta = bold_metas[BoldKey(ses=None, run="1")]
+        bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert len(bold_meta.segments) == 2
         assert bold_meta.segments[0].entity == "block"
 
@@ -617,7 +641,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="only ses and run are valid"):
+        with pytest.raises(ValueError, match="only ses, task, and run are valid"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     # Segmented run cases
@@ -898,9 +922,9 @@ class TestApplyFilters:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        assert BoldKey(ses="1", run="1") in bold_metas
-        assert BoldKey(ses="1", run="2") in bold_metas
-        assert BoldKey(ses="2", run="1") not in bold_metas
+        assert BoldKey(ses="1", task=TASK, run="1") in bold_metas
+        assert BoldKey(ses="1", task=TASK, run="2") in bold_metas
+        assert BoldKey(ses="2", task=TASK, run="1") not in bold_metas
 
     def test_filter_on_bold_only_entity_skipped_on_features(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
@@ -1030,17 +1054,6 @@ class TestValidateCoverage:
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         enc._validate_coverage(SUB, feature_paths, bold_metas)
-
-    def test_cross_file_task_invariance_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, space=SPACE, task="conv", run="1", desc="clean")
-        tree.add_feature(sub=SUB, task="rest", kind="mfcc", run="1")
-        enc = _make_encoding(tree, ["mfcc"])
-        feature_paths = enc._discover_features(SUB)
-        bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(ValueError, match="task"):
-            enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_empty_features_after_filter_raises(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")

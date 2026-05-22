@@ -51,8 +51,9 @@ canonical ordering applies only on construction from kwargs.
   [feature-files.md](feature-files.md).
 - **`task` is not required.** BIDS mandates `task` for `bold`/`events` but not
   for anatomicals. BIDSPath stays general; callers that need `task` (BOLD
-  loading, encoding) enforce it themselves — typically via
-  `validate_entity_invariance(..., ("task",))` or direct entity access.
+  loading, encoding) enforce it themselves — via direct entity access, an
+  explicit `task-*` filter at discovery, or `validate_entity_invariance(...,
+  ("task",))`.
 
 ## Why call-site enforcement for `task`
 
@@ -63,8 +64,9 @@ that depend on `task` raise where the dependency actually exists.
 Concrete sites:
 - BOLD/events loading in `bold` — BIDS requires `task` on `bold` (events
   inherit it), so loaders raise when it's absent.
-- Encoding invariance checks in `encoding` — feature and BOLD files must agree
-  on `task` (see [../modules/encoding.md](../modules/encoding.md)).
+- Encoding in `encoding` — `Encoding(tasks=[...])` declares which tasks are in
+  scope; discovery passes `task-*` filters to `layout.find`, so out-of-scope
+  files never enter the pipeline (see [../modules/encoding.md](../modules/encoding.md)).
 - `layout.find.stimuli` and `layout.find.features` — every file in these
   areas is tied to a BOLD run via `task`, and derivatives (transcripts,
   features, confounds) inherit it from their source. The check lives at the
