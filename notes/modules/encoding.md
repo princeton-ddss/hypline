@@ -20,6 +20,14 @@ A single `train(sub_id)` call is scoped to:
   at the call site.
 - **Multiple sessions and runs: allowed and expected.** More data,
   concatenated into a single X/Y.
+- **Features are named with optional variant.** Each `Encoding(features=[...])`
+  entry is `<kind>` (canonical, reads the bare `<kind>/` folder) or
+  `<kind>-<desc>` (reads the `<kind>-<desc>/` variant folder). Two entries
+  sharing a `kind` are rejected at construction — variants of one kind are
+  near-collinear and belong in separate models, not bands in one fit. There is
+  no implicit fallback: a named variant missing on disk raises rather than
+  reading the canonical folder. (Confound generators instead source all
+  variants; see [../decisions/confound-files.md](../decisions/confound-files.md).)
 - **Multiple cells per run: allowed.** The segment entity is inferred from
   events.tsv at discovery time. Each segment value is a separate row block,
   identified by a `CellKey` carrying all non-excluded entities (filename +
@@ -92,15 +100,19 @@ derivatives tree recursively. This handles fMRIPrep's per-subject subdirectories
 
 All user-supplied `bids_filters` are applied post-resolution in `_apply_filters` against
 resolved `CellKey`s (features) and BOLD filename entities (BOLD). Neither `_discover_features`
-nor `_discover_bold` apply user filters — both use only hard-coded structural filters
-(`sub`, `feat`, `space`).
+nor `_discover_bold` apply user filters. `_discover_features` uses only structural
+filters (`sub`, `feat`) plus the per-feature `desc` variant selector;
+`_discover_bold` uses `sub`, `space`, `desc` (the `bold_desc` derivative flavor),
+and `task`.
 
 Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
 to `BIDSLayout` queries. Applying all filters uniformly post-resolution ensures consistent
 behaviour whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
 
-- **Reserved entities** (`sub`, `task`, `space`, `feat`): rejected at construction — use
-  the dedicated arguments instead.
+**Reserved entities** (`sub`, `task`, `space`, `feat`, `desc`) are rejected at construction —
+use the dedicated arguments instead. `desc` is reserved because it is overloaded:
+feature-file variant selector (`features=[...]`) vs. BOLD derivative flavor (`bold_desc`,
+default `"clean"`); neither routes through `bids_filters`.
 
 **Match semantics:** multiple filters sharing the same entity key OR-match within that group;
 different entity keys AND-match across groups (e.g. `["run-1", "run-2", "ses-1"]` selects

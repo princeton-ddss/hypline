@@ -99,6 +99,13 @@ existing one. This invariant lets consumers that depend only on `start_time`
 (e.g. timing-based confound generation) treat all `desc-*` variants of a
 `feat-<kind>` as equivalent.
 
+A feature's user-facing identifier matches its folder name: `<kind>` for the
+canonical (`desc=None`) folder, `<kind>-<desc>` for a variant. Encoding selects
+one variant per identifier (see
+[../modules/encoding.md](../modules/encoding.md)); confound generators instead
+source all variants and collapse on the shared grid (see
+[confound-files.md](confound-files.md)).
+
 This grid invariant is **caller-guaranteed and unenforced** — no layer checks
 it. `save_feature` writes one file from one DataFrame and has no view of sibling
 variants, so a divergent grid is never caught at write time; checking at read

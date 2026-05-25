@@ -8,6 +8,7 @@ import polars as pl
 from pydantic import BaseModel
 
 from hypline.bids import (
+    BIDS_ENTITY_VALUE_RE,
     BIDSPath,
     normalize_bids_filters,
 )
@@ -28,6 +29,21 @@ FeatureDownsampleMethod = Literal["mean", "sum"]
 # Public Encoding-facing methods must be a subset of all methods
 if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
     raise RuntimeError("FeatureDownsampleMethod must be a subset of DownsampleMethod")
+
+
+def _parse_feature(entry: str) -> tuple[str, str | None]:
+    """Parse a `features` entry into `(kind, desc)`.
+
+    `<kind>` -> `(kind, None)`; `<kind>-<desc>` -> `(kind, desc)`. Both parts
+    must match the BIDS entity-value rule, so `partition("-")` is unambiguous
+    (entity values carry no `-`).
+    """
+    kind, _, desc = entry.partition("-")
+    if not BIDS_ENTITY_VALUE_RE.match(kind):
+        raise ValueError(f"Invalid feature kind in {entry!r}")
+    if "-" in entry and not BIDS_ENTITY_VALUE_RE.match(desc):
+        raise ValueError(f"Invalid feature desc in {entry!r}")
+    return kind, (desc or None)
 
 
 class BoldKey(NamedTuple):
@@ -178,6 +194,7 @@ class Encoding:
         features: list[str],
         tasks: list[str],
         bold_space: str,
+        bold_desc: str = "clean",
         downsample: FeatureDownsampleMethod = "mean",
         bids_filters: list[str] | None = None,
     ):
@@ -190,10 +207,16 @@ class Encoding:
 
         if not features:
             raise ValueError("features must be a non-empty list")
-        if len(features) != len(set(features)):
-            dupes = sorted({f for f in features if features.count(f) > 1})
-            raise ValueError(f"Duplicate entries in features: {dupes}")
-        self.features = features
+        parsed = [_parse_feature(entry) for entry in features]
+        kinds = [kind for kind, _ in parsed]
+        if len(kinds) != len(set(kinds)):
+            dupes = sorted({k for k in kinds if kinds.count(k) > 1})
+            raise ValueError(
+                f"Duplicate feature kind(s) {dupes} in features"
+                " — each kind may appear once"
+            )
+        # Iteration order fixes X column layout
+        self._features: dict[str, tuple[str, str | None]] = dict(zip(features, parsed))
 
         if not tasks:
             raise ValueError("tasks must be a non-empty list")
@@ -205,6 +228,10 @@ class Encoding:
 
         self.bold_space = parse_bold_space(bold_space)
 
+        if not BIDS_ENTITY_VALUE_RE.match(bold_desc):
+            raise ValueError(f"Invalid bold_desc: {bold_desc!r}")
+        self._bold_desc = bold_desc
+
         if downsample not in get_args(FeatureDownsampleMethod):
             raise ValueError(
                 f"downsample must be one of {get_args(FeatureDownsampleMethod)};"
@@ -213,7 +240,7 @@ class Encoding:
         self.downsample = downsample
 
         self.bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "task", "space", "feat"}
+            bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
         )
 
     def train(self, sub_id: str):
@@ -241,9 +268,9 @@ class Encoding:
         All files are guaranteed to share the same cell schema (entity key set).
         """
         feature_bids: dict[FeatureKey, BIDSPath] = {}
-        for feature_name in self.features:
+        for feature_name, (kind, desc) in self._features.items():
             feature_files = self._layout.find.features(
-                sub=sub_id, kind=feature_name, bids_filters=self._task_filters
+                sub=sub_id, kind=kind, desc=desc, bids_filters=self._task_filters
             )
 
             for bids in feature_files:
@@ -300,7 +327,7 @@ class Encoding:
         expected = {
             FeatureKey(cell_key, feature_name)
             for cell_key in {feature_key.cell for feature_key in feature_bids}
-            for feature_name in self.features
+            for feature_name in self._features
         }
         missing = expected - feature_bids.keys()
         if missing:
@@ -329,7 +356,7 @@ class Encoding:
             ext=bold_ext,
             bids_filters=[
                 f"space-{self.bold_space}",
-                "desc-clean",  # hardcoded until parameterization is needed
+                f"desc-{self._bold_desc}",
                 *self._task_filters,
             ],
         )
@@ -708,7 +735,7 @@ class Encoding:
 
             # Construct X for the given cell
             feature_arrays: list[np.ndarray] = []
-            for feature_name in self.features:
+            for feature_name in self._features:
                 df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
                 arr = downsample(
                     _stack_array_column(df.get_column("feature")),
@@ -719,7 +746,7 @@ class Encoding:
                 )
                 feature_arrays.append(arr)
             if not col_slices_initialized:
-                for feature_name, arr in zip(self.features, feature_arrays):
+                for feature_name, arr in zip(self._features, feature_arrays):
                     n_cols = arr.shape[1]
                     col_slices[feature_name] = slice(col_offset, col_offset + n_cols)
                     col_offset += n_cols

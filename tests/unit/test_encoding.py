@@ -17,6 +17,7 @@ def _make_encoding(
     *,
     tasks: list[str] | None = None,
     bold_space: str = SPACE,
+    bold_desc: str = "clean",
     bids_filters: list[str] | None = None,
 ) -> Encoding:
     return Encoding(
@@ -25,6 +26,7 @@ def _make_encoding(
         features=features,
         tasks=tasks if tasks is not None else [TASK],
         bold_space=bold_space,
+        bold_desc=bold_desc,
         bids_filters=bids_filters,
     )
 
@@ -32,7 +34,7 @@ def _make_encoding(
 class TestEncodingInit:
     def test_valid_config_succeeds(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
-        assert enc.features == ["mfcc"]
+        assert list(enc._features) == ["mfcc"]
 
     def test_empty_features_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="non-empty"):
@@ -41,6 +43,23 @@ class TestEncodingInit:
     def test_duplicate_features_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="Duplicate"):
             _make_encoding(tree, ["mfcc", "mfcc"])
+
+    def test_duplicate_kind_across_variants_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="Duplicate feature kind"):
+            _make_encoding(tree, ["semantic", "semantic-gpt2"])
+
+    @pytest.mark.parametrize("entry", ["a_b", "a-", "-b", "a-b-c", ""])
+    def test_malformed_feature_entry_raises(self, tree: BIDSTree, entry: str):
+        with pytest.raises(ValueError, match="Invalid feature"):
+            _make_encoding(tree, [entry])
+
+    def test_variant_entry_parsed(self, tree: BIDSTree):
+        enc = _make_encoding(tree, ["semantic-gpt3"])
+        assert enc._features == {"semantic-gpt3": ("semantic", "gpt3")}
+
+    def test_desc_reserved_in_filters_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="desc"):
+            _make_encoding(tree, ["mfcc"], bids_filters=["desc-gpt3"])
 
     def test_reserved_entity_in_filters_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="sub"):
@@ -53,6 +72,10 @@ class TestEncodingInit:
     def test_invalid_bold_space_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="Unsupported BOLD data space"):
             _make_encoding(tree, ["mfcc"], bold_space="notaspace")
+
+    def test_invalid_bold_desc_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="Invalid bold_desc"):
+            _make_encoding(tree, ["mfcc"], bold_desc="not-valid")
 
 
 class TestCellKey:
@@ -105,6 +128,40 @@ class TestDiscoverFeatures:
         enc = _make_encoding(tree, ["mfcc", "clip"])
         with pytest.raises(FileNotFoundError, match="Missing feat=clip"):
             enc._discover_features(SUB)
+
+    def test_canonical_reads_bare_folder_not_variants(self, tree: BIDSTree):
+        # The user-visible bug fix: variants on disk no longer collide
+        bare = tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1")
+        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1", desc="gpt3")
+        enc = _make_encoding(tree, ["phonemic"])
+        feature_paths = enc._discover_features(SUB)
+        key = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="phonemic")
+        assert feature_paths[key].path == bare
+
+    def test_variant_reads_variant_folder_only(self, tree: BIDSTree):
+        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1")
+        variant = tree.add_feature(
+            sub=SUB, task=TASK, kind="phonemic", run="1", desc="gpt3"
+        )
+        enc = _make_encoding(tree, ["phonemic-gpt3"])
+        feature_paths = enc._discover_features(SUB)
+        key = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="phonemic-gpt3")
+        assert feature_paths[key].path == variant
+
+    def test_missing_variant_raises(self, tree: BIDSTree):
+        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1")
+        enc = _make_encoding(tree, ["phonemic-gpt3"])
+        with pytest.raises(FileNotFoundError):
+            enc._discover_features(SUB)
+
+    def test_distinct_variants_form_separate_feature_groups(self, tree: BIDSTree):
+        # Distinct kinds, each a variant — verbatim strings key the groups
+        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1", desc="gpt3")
+        tree.add_feature(sub=SUB, task=TASK, kind="semantic", run="1", desc="bert")
+        enc = _make_encoding(tree, ["phonemic-gpt3", "semantic-bert"])
+        feature_paths = enc._discover_features(SUB)
+        features = {fk.feature for fk in feature_paths}
+        assert features == {"phonemic-gpt3", "semantic-bert"}
 
     def test_unrequested_task_files_filtered_out(self, tree: BIDSTree):
         tree.add_feature(sub=SUB, task="rest", kind="mfcc", run="1")
@@ -301,6 +358,14 @@ class TestDiscoverBold:
         enc = _make_encoding(tree, ["mfcc"], bold_space="MNI152NLin6Asym")
         bold_metas = enc._discover_bold(SUB)
         assert list(bold_metas.keys()) == [BoldKey(ses=None, task=TASK, run="1")]
+
+    def test_bold_desc_selects_matching_derivative(self, tree: BIDSTree):
+        # bold_desc picks one derivative flavor; sibling flavors are not discovered
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="smooth")
+        enc = _make_encoding(tree, ["mfcc"], bold_desc="smooth")
+        bold_metas = enc._discover_bold(SUB)
+        assert set(bold_metas) == {BoldKey(ses=None, task=TASK, run="2")}
 
     def test_inconsistent_tr_raises(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
@@ -925,35 +990,6 @@ class TestApplyFilters:
         assert BoldKey(ses="1", task=TASK, run="1") in bold_metas
         assert BoldKey(ses="1", task=TASK, run="2") in bold_metas
         assert BoldKey(ses="2", task=TASK, run="1") not in bold_metas
-
-    def test_filter_on_bold_only_entity_skipped_on_features(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
-        tree.add_events(
-            sub=SUB,
-            task=TASK,
-            run="1",
-            rows=[
-                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
-            ],
-        )
-        tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
-        )
-        tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
-        )
-        enc = _make_encoding(
-            tree,
-            ["mfcc"],
-            bids_filters=["desc-clean"],  # on BOLD filenames but not on CellKey
-        )
-        feature_paths = enc._discover_features(SUB)
-        bold_metas = enc._discover_bold(SUB)
-        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
-        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        assert len(feature_paths) == 2
-        assert len(bold_metas) == 1
 
     def test_filter_on_cell_only_entity_skipped_on_bold(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
