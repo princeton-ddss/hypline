@@ -447,14 +447,14 @@ class _Path:
         source: BIDSPath,
         kind: str,
         ext: str,
-        entity_overrides: dict[str, str],
+        desc: str | None,
     ) -> BIDSPath:
         validate_extension(ext)
         bp = source.with_entity(entity_key, kind)
         for key in CATEGORY_ENTITIES - {entity_key}:
             bp = bp.without_entity(key)
-        for key, value in entity_overrides.items():
-            bp = bp.with_entity(key, value)
+        if desc is not None:
+            bp = bp.with_entity("desc", desc)
 
         entities = bp.entities
         sub = entities.get("sub")
@@ -477,22 +477,28 @@ class _Path:
         source: BIDSPath,
         kind: str,
         ext: str,
-        **entity_overrides: str,
     ) -> BIDSPath:
         """Derive a stimulus output path from `source`.
 
-        Sets stim-<kind>, applies `entity_overrides`, and places the result
-        under stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/. When `desc` is set,
-        the subdirectory becomes `<kind>-<desc>` so variants live in
-        separate folders.
+        Sets stim-<kind> and places the result under
+        stimuli/sub-XX/[ses-YY/]<kind>/. Stimuli have no `desc` variants: a
+        stimulus is the experimental record (the audio, transcript, movie),
+        with one ground truth. An artifact that needs variants is a feature,
+        not a stimulus.
+
+        Raises ValueError if `source` carries a `desc` entity.
         """
+        if "desc" in source.entities:
+            raise ValueError(
+                f"source carries 'desc' but stimuli have no variants: {source!r}"
+            )
         return self._derive_path(
             area="stimuli",
             entity_key="stim",
             source=source,
             kind=kind,
             ext=ext,
-            entity_overrides=entity_overrides,
+            desc=None,
         )
 
     def feature(
@@ -500,12 +506,12 @@ class _Path:
         *,
         source: BIDSPath,
         kind: str,
-        **entity_overrides: str,
+        desc: str | None = None,
     ) -> BIDSPath:
         """Derive a feature output path from `source`.
 
-        Sets feat-<kind>, applies `entity_overrides`, and places the result
-        under features/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
+        Sets feat-<kind> and places the result under
+        features/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
 
         Pass `desc=<label>` as a variant tag to distinguish features generated
         from the same source under different settings (e.g. model version);
@@ -518,7 +524,7 @@ class _Path:
             source=source,
             kind=kind,
             ext=".parquet",
-            entity_overrides=entity_overrides,
+            desc=desc,
         )
 
     def confound(
@@ -526,13 +532,12 @@ class _Path:
         *,
         source: BIDSPath,
         kind: str,
-        **entity_overrides: str,
+        desc: str | None = None,
     ) -> BIDSPath:
         """Derive a confound output path from `source`.
 
-        Sets conf-<kind>, applies `entity_overrides`, and places the result
-        under confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet`
-        extension.
+        Sets conf-<kind> and places the result under
+        confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
 
         Pass `desc=<label>` to discriminate individually-selectable regressors
         within a kind (e.g. `onset` vs `rate` for phonemic); the subdirectory
@@ -544,7 +549,7 @@ class _Path:
             source=source,
             kind=kind,
             ext=".parquet",
-            entity_overrides=entity_overrides,
+            desc=desc,
         )
 
 

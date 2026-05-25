@@ -568,14 +568,6 @@ class TestPathStimulus:
         assert f"sub-{SUB}" in out.path.parts
         assert "transcript" in out.path.parts
 
-    def test_applies_entity_override(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
-        out = layout.path.stimulus(
-            kind="transcript", source=source, ext=".csv", run="02"
-        )
-        assert out.entities.get("run") == "02"
-
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
@@ -600,13 +592,11 @@ class TestPathStimulus:
         with pytest.raises(ValueError, match="extension"):
             layout.path.stimulus(kind="transcript", source=source, ext="csv")
 
-    def test_invalid_override_value_raises(self, tmp_path: Path):
+    def test_source_with_desc_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
-        with pytest.raises(ValueError, match="Invalid BIDS entity"):
-            layout.path.stimulus(
-                kind="transcript", source=source, ext=".csv", run="BAD!"
-            )
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio_desc-v2.wav")
+        with pytest.raises(ValueError, match="no variants"):
+            layout.path.stimulus(kind="transcript", source=source, ext=".csv")
 
 
 class TestPathFeature:

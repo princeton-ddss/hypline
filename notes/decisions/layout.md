@@ -8,7 +8,7 @@ Directory contract for the hypline-flavored BIDS root tree.
 <root>/
 ├── sub-XX/[ses-YY/]<datatype>/                        # raw BIDS
 ├── derivatives/fmriprep/sub-XX/[ses-YY/]<datatype>/   # fmriprep outputs
-├── stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/           # audio, transcript, ...
+├── stimuli/sub-XX/[ses-YY/]<kind>/                    # audio, transcript, ...
 ├── features/sub-XX/[ses-YY/]<kind>[-<desc>]/          # phonemic, semantic, ...
 └── confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/         # phonemic, semantic, ...
 ```
@@ -21,6 +21,11 @@ When a derived file carries a `desc-<desc>` entity, it lives in a
 physically separated on disk. Discovery walks both `<kind>/` and `<kind>-*/`
 under each subject/session.
 
+`desc` variants apply to `features/` and `confounds/` only. A stimulus is the
+experimental record (the audio, transcript, movie) with one ground truth, so
+`stimuli/` has no variants — `path.stimulus` takes no `desc`. An artifact that
+needs variants is a feature, not a stimulus.
+
 `stimuli/`, `features/`, and `confounds/` are hypline extensions — not in the
 BIDS spec. CLI commands take a single `<bids_root>`; path resolution is centralized.
 
@@ -29,7 +34,7 @@ BIDS spec. CLI commands take a single `<bids_root>`; path resolution is centrali
 Two terms name directory levels below `sub-XX/ses-YY/` and must not be conflated:
 
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
-- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; multiple individually-selectable regressors within a kind are differentiated by an optional `desc-<name>` entity).
+- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames; no `desc` variants — see above). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; multiple individually-selectable regressors within a kind are differentiated by an optional `desc-<name>` entity).
 
 ## Category entities are mutually exclusive
 

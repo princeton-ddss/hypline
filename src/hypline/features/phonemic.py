@@ -146,9 +146,8 @@ class PhonemicFeature:
                 }
             )
 
-            extras = {"desc": self._desc} if self._desc is not None else {}
             out = self._layout.path.feature(
-                source=transcript, kind="phonemic", **extras
+                source=transcript, kind="phonemic", desc=self._desc
             )
             out.path.parent.mkdir(parents=True, exist_ok=True)
 
