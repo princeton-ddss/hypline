@@ -247,7 +247,7 @@ class TestFindStimuli:
             ext=".wav",
             sub=SUB,
             task=TASK,
-            extra_entities={"desc": "a"},
+            run="1",
         )
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError) as exc:
@@ -255,10 +255,10 @@ class TestFindStimuli:
                 sub=SUB,
                 kind="audio",
                 ext=".wav",
-                bids_filters=["desc-bogus"],
+                bids_filters=["run-99"],
             )
         assert "descriptive filters" not in str(exc.value)
-        assert "desc-bogus" in str(exc.value)
+        assert "run-99" in str(exc.value)
 
 
 class TestFindFeatures:
@@ -277,17 +277,35 @@ class TestFindFeatures:
         assert len(results) == 1
         assert results[0].ses == "1"
 
-    def test_arbitrary_bids_filter(self, tree: BIDSTree):
-        tree.add_feature(
-            kind="phonemic", sub=SUB, task=TASK, extra_entities={"desc": "gpt3"}
-        )
+    def test_desc_none_excludes_variants(self, tree: BIDSTree):
+        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, desc="gpt3")
         tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(
-            sub=SUB, kind="phonemic", bids_filters=["desc-gpt3"]
-        )
+        results = layout.find.features(sub=SUB, kind="phonemic")
+        assert len(results) == 1
+        assert results[0].entities.get("desc") is None
+
+    def test_desc_label_selects_variant(self, tree: BIDSTree):
+        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, desc="gpt3")
+        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.features(sub=SUB, kind="phonemic", desc="gpt3")
         assert len(results) == 1
         assert results[0].entities.get("desc") == "gpt3"
+
+    def test_desc_star_returns_all_variants(self, tree: BIDSTree):
+        # Variant folder holds a cell absent from the canonical folder
+        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="1")
+        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="2", desc="gpt3")
+        layout = BIDSLayout(tree.root)
+        results = layout.find.features(sub=SUB, kind="phonemic", desc="*")
+        descs = {r.entities.get("desc") for r in results}
+        assert descs == {None, "gpt3"}
+
+    def test_rejects_reserved_desc_filter(self, tree: BIDSTree):
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="desc"):
+            layout.find.features(sub=SUB, kind="phonemic", bids_filters=["desc-gpt3"])
 
     def test_rejects_reserved_sub_filter(self, tree: BIDSTree):
         layout = BIDSLayout(tree.root)
@@ -358,17 +376,17 @@ class TestFindFeatures:
             kind="phonemic",
             sub=SUB,
             task=TASK,
-            extra_entities={"desc": "gpt3"},
+            run="1",
         )
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError) as exc:
             layout.find.features(
                 sub=SUB,
                 kind="phonemic",
-                bids_filters=["desc-bogus"],
+                bids_filters=["run-99"],
             )
         assert "descriptive filters" not in str(exc.value)
-        assert "desc-bogus" in str(exc.value)
+        assert "run-99" in str(exc.value)
 
 
 class TestFindFmriprep:

@@ -32,6 +32,7 @@ class PhonemicConfound:
         feature_files = self._layout.find.features(
             sub=sub_id,
             kind="phonemic",
+            desc="*",
             bids_filters=self._bids_filters,
         )
         feature_files = collapse_desc_variants(feature_files)

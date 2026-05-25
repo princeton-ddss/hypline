@@ -57,27 +57,37 @@ def _split_filters_by_structurality(
     return structural, descriptive
 
 
-def _kind_dirs(sub_dir: Path, kind: str, ses_values: list[str] | None) -> list[Path]:
-    """Return existing <kind>/ and <kind>-<desc>/ dirs under sub_dir.
+def _kind_parents(sub_dir: Path, ses_values: list[str] | None) -> list[Path]:
+    """Return candidate parent dirs for kind subdirectories under sub_dir.
 
-    When `ses_values` is None, walks both `ses-*/` and the sub-level (BIDS
-    allows session to be omitted). Within each parent, matches a directory
-    whose name is exactly `kind` or starts with `f"{kind}-"` (the desc-variant
-    subdir convention).
+    With `ses_values` None, includes both `ses-*/` and the sub-level (BIDS
+    allows session to be omitted). Returned paths are not existence-checked;
+    callers that iterate a parent guard with `.is_dir()`.
     """
     if ses_values is None:
         parents = sorted(p for p in sub_dir.glob("ses-*") if p.is_dir())
         parents.append(sub_dir)
-    else:
-        parents = [sub_dir / f"ses-{ses}" for ses in ses_values]
+        return parents
+    return [sub_dir / f"ses-{ses}" for ses in ses_values]
+
+
+def _list_variant_subdirs(
+    sub_dir: Path, kind: str, ses_values: list[str] | None
+) -> list[str]:
+    """Return sorted-unique names of `<kind>/` and `<kind>-*/` dirs under sub_dir.
+
+    Sole globber of the desc-variant convention (the `desc="*"` path). Returns
+    names, not paths, so a variant spanning several sessions collapses to one.
+    """
     prefix = f"{kind}-"
-    return [
-        d
-        for parent in parents
+    names = {
+        d.name
+        for parent in _kind_parents(sub_dir, ses_values)
         if parent.is_dir()
-        for d in sorted(parent.iterdir())
+        for d in parent.iterdir()
         if d.is_dir() and (d.name == kind or d.name.startswith(prefix))
-    ]
+    }
+    return sorted(names)
 
 
 def _diagnose_lookup(
@@ -85,7 +95,7 @@ def _diagnose_lookup(
     area_root: Path,
     area: Area,
     sub: str,
-    kind_dir_name: str,
+    kind: str,
     ses_values: list[str] | None,
     ext: str,
     required_entity: tuple[str, str] | None,
@@ -126,25 +136,27 @@ def _diagnose_lookup(
                 f"(available: {existing_ses})"
             )
 
-    kind_dirs = _kind_dirs(sub_dir, kind_dir_name, ses_values)
+    prefix = f"{kind}-"
+    kind_dirs = [
+        d
+        for parent in _kind_parents(sub_dir, ses_values)
+        if parent.is_dir()
+        for d in sorted(parent.iterdir())
+        if d.is_dir() and (d.name == kind or d.name.startswith(prefix))
+    ]
     if not kind_dirs:
         ses_dirs = [sub_dir, *(p for p in sub_dir.glob("ses-*") if p.is_dir())]
         siblings = {c.name for d in ses_dirs for c in d.iterdir() if c.is_dir()}
-        variant_prefix = f"{kind_dir_name}-"
+        variant_prefix = f"{kind}-"
         siblings = {
-            s
-            for s in siblings
-            if s != kind_dir_name and not s.startswith(variant_prefix)
+            s for s in siblings if s != kind and not s.startswith(variant_prefix)
         }
         hint = f" (found instead: {sorted(siblings)})" if siblings else ""
-        return (
-            f"No {kind_dir_name!r} subdirectory found under "
-            f"{area}/sub-{sub}/[ses-*/]{hint}"
-        )
+        return f"No {kind!r} subdirectory found under {area}/sub-{sub}/[ses-*/]{hint}"
 
     all_files = [f for d in kind_dirs for f in d.iterdir() if f.is_file()]
     if not all_files:
-        return f"Directory {kind_dir_name!r} is empty for sub-{sub} under {area}/"
+        return f"Directory {kind!r} is empty for sub-{sub} under {area}/"
 
     ends_with = f"_{suffix}{ext}" if suffix is not None else ext
     ext_matches = [f for f in all_files if f.name.endswith(ends_with)]
@@ -152,7 +164,7 @@ def _diagnose_lookup(
         present_exts = sorted({"".join(f.suffixes) for f in all_files if f.suffixes})
         return (
             f"No files matching suffix={suffix!r}, ext={ext!r} found under "
-            f"{area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
+            f"{area}/sub-{sub}/[ses-*/]{kind}[-*]/ "
             f"(present extensions: {present_exts})"
         )
 
@@ -164,7 +176,7 @@ def _diagnose_lookup(
             continue
     if not parsed:
         return (
-            f"Files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
+            f"Files found under {area}/sub-{sub}/[ses-*/]{kind}[-*]/ "
             f"but none parsed as valid BIDS (example: {ext_matches[0].name!r})"
         )
 
@@ -179,14 +191,11 @@ def _diagnose_lookup(
     if user_filters:
         return (
             f"Files found but none matched user filters {user_filters} "
-            f"under {area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
+            f"under {area}/sub-{sub}/[ses-*/]{kind}[-*]/ "
             f"(check for typos in filter keys/values)"
         )
 
-    return (
-        f"No files found under {area}/sub-{sub}/[ses-*/]{kind_dir_name}[-*]/ "
-        f"(unknown cause)"
-    )
+    return f"No files found under {area}/sub-{sub}/[ses-*/]{kind}[-*]/ (unknown cause)"
 
 
 def _require_task(results: list[BIDSPath]) -> None:
@@ -222,7 +231,8 @@ class _Find:
         *,
         area: Area,
         sub: str,
-        kind_dir_name: str,
+        kind: str,
+        desc: str | None,
         required_entity: tuple[str, str] | None,
         ext: str,
         suffix: str | None,
@@ -232,6 +242,11 @@ class _Find:
     ) -> list[BIDSPath]:
         """Core file lookup with tiered diagnostics on empty results.
 
+        `desc` selects which subdirectory variant(s) to read: `None` -> bare
+        `<kind>/`; `"<label>"` -> `<kind>-<label>/`; `"*"` -> all variant folders
+        gathered together under one aggregate empty-check. `kind` also feeds the
+        family-aware diagnostic message.
+
         `match_filters` is the full set passed to `find_bids_files`, including
         structural entities (`sub-*`, `stim-*`, etc.) appended by the caller.
         `user_filters` is the caller-supplied subset, used only for error attribution.
@@ -239,11 +254,22 @@ class _Find:
         root = area_root(self._layout.root, area)
         sub_dir = root / f"sub-{sub}"
 
+        if desc is None:
+            kind_dir_names = [kind]
+        elif desc == "*":
+            kind_dir_names = _list_variant_subdirs(sub_dir, kind, ses_values)
+        else:
+            kind_dir_names = [f"{kind}-{desc}"]
+
         results: list[BIDSPath] = []
-        for d in _kind_dirs(sub_dir, kind_dir_name, ses_values):
-            results.extend(
-                find_bids_files(d, ext, suffix=suffix, bids_filters=match_filters)
-            )
+        for parent in _kind_parents(sub_dir, ses_values):
+            for name in kind_dir_names:
+                d = parent / name
+                if not d.is_dir():
+                    continue
+                results.extend(
+                    find_bids_files(d, ext, suffix=suffix, bids_filters=match_filters)
+                )
 
         if not results:
             raise FileNotFoundError(
@@ -251,7 +277,7 @@ class _Find:
                     area_root=root,
                     area=area,
                     sub=sub,
-                    kind_dir_name=kind_dir_name,
+                    kind=kind,
                     ses_values=ses_values,
                     ext=ext,
                     required_entity=required_entity,
@@ -317,7 +343,8 @@ class _Find:
         candidates = self._find(
             area="stimuli",
             sub=sub,
-            kind_dir_name=kind,
+            kind=kind,
+            desc=None,
             required_entity=("stim", kind),
             ext=ext,
             suffix=None,
@@ -337,21 +364,25 @@ class _Find:
         *,
         sub: str,
         kind: str,
+        desc: str | None = None,
         bids_filters: list[str] | None = None,
     ) -> list["BIDSPath"]:
         """Find feature files.
 
         `kind` maps to the feat-<kind> entity and the per-session subdirectory
-        name. Extension is `.parquet`.
+        name. `desc` selects which variant folder(s) to read: `None` -> bare
+        `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only; `"*"` -> all
+        variant folders gathered together. Extension is `.parquet`.
         """
-        filters = normalize_bids_filters(bids_filters, reserved={"sub", "feat"})
+        filters = normalize_bids_filters(bids_filters, reserved={"sub", "feat", "desc"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
             area="features",
             sub=sub,
-            kind_dir_name=kind,
+            kind=kind,
+            desc=desc,
             required_entity=("feat", kind),
             ext=".parquet",
             suffix=None,
@@ -381,7 +412,8 @@ class _Find:
         candidates = self._find(
             area="fmriprep",
             sub=sub,
-            kind_dir_name="func",
+            kind="func",
+            desc=None,
             required_entity=None,
             ext=ext,
             suffix=suffix,

@@ -18,8 +18,9 @@ Directory contract for the hypline-flavored BIDS root tree.
 
 When a derived file carries a `desc-<desc>` entity, it lives in a
 `<kind>-<desc>/` subdirectory (not the parent `<kind>/`), so variants are
-physically separated on disk. Discovery walks both `<kind>/` and `<kind>-*/`
-under each subject/session.
+physically separated on disk. Discovery selects bare vs. variant folders via the
+`desc` argument; `desc="*"` aggregates all variants together. `desc` is a
+dedicated argument, not a `bids_filters` key.
 
 `desc` variants apply to `features/` and `confounds/` only. A stimulus is the
 experimental record (the audio, transcript, movie) with one ground truth, so

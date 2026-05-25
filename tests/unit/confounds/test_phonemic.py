@@ -22,6 +22,7 @@ def _add_phonemic(
     ses: str | None = None,
     task: str = TASK,
     run: str = "1",
+    desc: str | None = None,
     extra_entities: dict[str, str] | None = None,
 ):
     """Write a phonemic feature mirroring `PhonemicFeature.generate`:
@@ -49,6 +50,7 @@ def _add_phonemic(
         run=run,
         kind="phonemic",
         df=df,
+        desc=desc,
         extra_entities=extra_entities,
     )
 
@@ -212,13 +214,13 @@ class TestPhonemicConfoundGenerate:
             tree,
             start_times=[0.5, 0.5, 5.0],
             phonemes=["K", "AE", "T"],
-            extra_entities={"desc": "v1"},
+            desc="v1",
         )
         _add_phonemic(
             tree,
             start_times=[0.5, 0.5, 5.0],
             phonemes=["K", "AE", "T"],
-            extra_entities={"desc": "v2"},
+            desc="v2",
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
 

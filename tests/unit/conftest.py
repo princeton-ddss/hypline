@@ -187,11 +187,12 @@ class BIDSTree:
         ext: str,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
-        entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
+        extras = extra_entities or {}
+        if "desc" in extras:
+            raise ValueError("stimuli have no desc variants")
+        entities = self._entities(sub, ses, task, run, **extras)
         entities["stim"] = kind
-        desc = entities.get("desc")
-        subdir = f"{kind}-{desc}" if desc else kind
-        kind_dir = self._sub_ses_dir(self.stimuli_dir, sub, ses) / subdir
+        kind_dir = self._sub_ses_dir(self.stimuli_dir, sub, ses) / kind
         path = kind_dir / f"{self._stem(entities)}{ext}"
         self._write(path)
         return path
@@ -204,15 +205,20 @@ class BIDSTree:
         task: str,
         run: str | None = None,
         kind: str,
+        desc: str | None = None,
         df: pl.DataFrame | None = None,
         metadata: dict[str, Any] | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
         from hypline.io import write_feature
 
-        entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
+        extras = extra_entities or {}
+        if "desc" in extras:
+            raise ValueError("pass desc as an explicit argument, not in extra_entities")
+        entities = self._entities(sub, ses, task, run, **extras)
         entities["feat"] = kind
-        desc = entities.get("desc")
+        if desc is not None:
+            entities["desc"] = desc
         subdir = f"{kind}-{desc}" if desc else kind
         kind_dir = self._sub_ses_dir(self.features_dir, sub, ses) / subdir
         kind_dir.mkdir(parents=True, exist_ok=True)

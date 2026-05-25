@@ -167,7 +167,7 @@ class TestPhonemicDesc:
             use_articulatory=False,
             desc="ver1",
         ).generate(SUB)
-        out = layout.find.features(sub=SUB, kind="phonemic")[0]
+        out = layout.find.features(sub=SUB, kind="phonemic", desc="ver1")[0]
         assert out.entities.get("desc") == "ver1"
         assert out.path.name.endswith("_feat-phonemic_desc-ver1.parquet")
 
