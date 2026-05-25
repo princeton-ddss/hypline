@@ -26,6 +26,15 @@ Pyannote never receives a file path — only the already-decoded tensor.
   in pyannote's transitive deps — upstream and not worth pinning around
   for a pipeline that never touches torchcodec.
 
+## Null-timed tokens
+
+WhisperX's forced aligner cannot time tokens outside its character dictionary
+(numerals like `"5"`, some symbols). Whisper still emits the token, but
+`word_segments` carries it with `start`/`end` absent, which becomes a `null`
+`start_time` row in the transcript CSV. The class can't be fixed upstream, so
+downstream consumers must tolerate null `start_time` rows — see
+[phonemic.md](phonemic.md) for how phonemic features handle them.
+
 ## Caveat
 
 If a future change routes audio through pyannote by file path (e.g.

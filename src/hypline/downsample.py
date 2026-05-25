@@ -40,7 +40,9 @@ def downsample(
     Raises
     ------
     ValueError
-        If `n_trs` is not positive or `method` is unrecognized.
+        If `n_trs` is not positive, `method` is unrecognized, or
+        `start_times` contains NaN (null timestamps must be cleaned
+        upstream, not silently binned).
 
     Returns
     -------
@@ -60,6 +62,8 @@ def downsample(
         raise ValueError(f"n_trs must be positive, got {n_trs}")
     if method not in get_args(DownsampleMethod):
         raise ValueError(f"Unrecognized method: {method!r}")
+    if np.isnan(start_times).any():
+        raise ValueError("start_times contains NaN; clean null timestamps upstream")
 
     squeeze = values.ndim == 1
     if squeeze:

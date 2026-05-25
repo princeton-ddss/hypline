@@ -42,7 +42,11 @@ def fake_cmudict(monkeypatch):
 
 
 def _write_transcript(
-    tree: BIDSTree, rows: list[tuple[float, str]], *, sub: str = SUB, task: str = TASK
+    tree: BIDSTree,
+    rows: list[tuple[float | None, str]],
+    *,
+    sub: str = SUB,
+    task: str = TASK,
 ) -> Path:
     path = tree.add_stimulus(sub=sub, task=task, kind="transcript", ext=".csv")
     df = pl.DataFrame(
@@ -134,6 +138,14 @@ class TestPhonemicMissingUnits:
         assert phonemes[-1] is None
         last_feat = np.array(df.get_column("feature").to_list())[-1]
         assert np.allclose(last_feat, 0.0)
+
+    def test_null_start_time_word_is_dropped(self, tree: BIDSTree, fake_cmudict):
+        _write_transcript(tree, [(0.0, "cat"), (None, "5"), (1.0, "dog")])
+        layout = BIDSLayout(tree.root)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
+        df = read_feature(layout.find.features(sub=SUB, kind="phonemic")[0].path)
+        assert df.get_column("start_time").null_count() == 0
+        assert df.get_column("word").to_list() == ["cat"] * 3 + ["dog"] * 3
 
 
 class TestPhonemicMetadata:

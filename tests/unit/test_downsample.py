@@ -254,6 +254,16 @@ class TestDownsample:
                 method="invalid",  # type: ignore[arg-type]
             )
 
+    def test_nan_start_time_raises(self):
+        with pytest.raises(ValueError, match="NaN"):
+            downsample(
+                _features([[1.0], [2.0]]),
+                start_times=_times([0.0, np.nan]),
+                n_trs=2,
+                repetition_time=2.0,
+                method="count",
+            )
+
     def test_empty_input_returns_zero_filled_output(self):
         result = downsample(
             np.empty((0, 2), dtype=np.float64),

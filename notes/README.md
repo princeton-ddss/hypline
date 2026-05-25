@@ -46,6 +46,7 @@ AI agents alike. Agent-agnostic by design.
 | Changing the feature file schema       | `decisions/feature-files.md`, `modules/encoding.md` |
 | Changing the confound file schema      | `decisions/confound-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
+| Handling null / un-timed transcript tokens | `modules/transcriber.md`, `modules/phonemic.md` |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`, `modules/events.md` |
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/events.md`, `modules/encoding.md` |

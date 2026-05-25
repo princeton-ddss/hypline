@@ -39,6 +39,13 @@ All three follow the project-wide missing-unit convention — see
 [../decisions/feature-files.md](../decisions/feature-files.md): one row at the
 token's `start_time` with `phoneme=None` and a zero `feature` vector.
 
+A token with a null `start_time` (un-alignable by WhisperX — see
+[transcriber.md](transcriber.md)) is handled differently: it is **dropped**, not
+emitted as a missing-unit row. A timing-less event cannot be binned to a TR, so
+it carries no usable signal, and a kept null row would be rejected by
+downstream downsampling, which fails fast on NaN timestamps (see
+[../../src/hypline/downsample.py](../../src/hypline/downsample.py)).
+
 ## Feature vector
 
 Articulatory features (place, manner, voicing, etc.) are intrinsic phoneme
