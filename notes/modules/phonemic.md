@@ -50,5 +50,7 @@ Phonemic confounds (`desc-onset`, `desc-rate`) depend only on phoneme
 `start_time` — values are discarded during downsampling. Since `desc-*`
 variants share a `start_time` grid by convention
 ([../decisions/feature-files.md](../decisions/feature-files.md)), confound
-generation deduplicates them: one representative per non-`desc` identity
-group, collapsed variants logged.
+generation collapses each non-`desc` identity group to one representative.
+Output is therefore independent of which variant is present — the basis for the
+timing-only scope rule
+([../decisions/confound-files.md](../decisions/confound-files.md)).

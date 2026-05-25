@@ -26,6 +26,24 @@ Standard confounds are produced by `hypline confoundgen <kind>` (e.g.
 fmriprep` for imports from fmriprep outputs). Users may also write custom
 confounds directly, as long as the conventions below are followed.
 
+## Scope: standard generators produce variant-independent confounds only
+
+Shipped standard generators (e.g. `phonemic`) derive confounds purely from
+event **timing** (`start_time`), never from the feature **value** column. Every
+`desc` variant of a feature shares an identical timing grid (feature-files
+contract), so the confound output is provably independent of which variant is
+read. A generator therefore sources all variants and collapses each to a single
+timing source per cell, picked deterministically so repeated runs agree.
+
+A shipped generator that reads the `feature` value column is a policy
+violation — its output would silently depend on which variant was picked.
+**Value-dependent regressors are out of scope for standard generation**; users
+author those themselves via `save_confound`, choosing their own `desc`.
+
+The collapse (`pick_timing_source`) **trusts** the shared-grid invariant rather
+than validating it. Why it is unenforced — and what happens to a mislabeled
+divergent variant — is covered in [feature-files.md](feature-files.md).
+
 ## Format
 
 - Extension: `.parquet`

@@ -99,6 +99,17 @@ existing one. This invariant lets consumers that depend only on `start_time`
 (e.g. timing-based confound generation) treat all `desc-*` variants of a
 `feat-<kind>` as equivalent.
 
+This grid invariant is **caller-guaranteed and unenforced** — no layer checks
+it. `save_feature` writes one file from one DataFrame and has no view of sibling
+variants, so a divergent grid is never caught at write time; checking at read
+time would mean reading every variant's `start_time` only to discard all but
+one, defeating the point of sourcing a single variant. A variant mislabeled with
+a divergent grid is therefore silently dropped, not detected. Unlike the
+metadata-equality check above (which guards against silent config drift),
+violating this invariant requires actively mislabeling a different event set as
+a `desc-*` — a gross authoring error, not subtle drift — so it is left to the
+author rather than validated.
+
 ## CellKey
 
 `CellKey` is the open-schema row key for a feature time window. After enrichment it carries:

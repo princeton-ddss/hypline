@@ -3,6 +3,7 @@ import polars as pl
 import pytest
 
 from hypline.confounds import PhonemicConfound
+from hypline.confounds._utils import pick_timing_source
 from hypline.io import read_confound, read_confound_metadata
 from hypline.layout import BIDSLayout
 
@@ -231,6 +232,16 @@ class TestPhonemicConfoundGenerate:
         rate_files = sorted((sub_dir / "phonemic-rate").glob("*desc-rate*.parquet"))
         assert len(onset_files) == 1
         assert len(rate_files) == 1
+
+    def test_picks_lexicographically_first_desc(self, tree: BIDSTree):
+        # Bare folder (desc=None) sorts before any labeled variant
+        _add_phonemic(tree, start_times=[0.5], phonemes=["K"], desc="gpt3")
+        _add_phonemic(tree, start_times=[0.5], phonemes=["K"], desc=None)
+        layout = BIDSLayout(tree.root)
+        files = layout.find.features(sub=SUB, kind="phonemic", desc="*")
+        kept = pick_timing_source(files)
+        assert len(kept) == 1
+        assert kept[0].entities.get("desc") is None
 
     def test_raises_when_segment_value_unknown(self, tree: BIDSTree):
         _add_phonemic(

@@ -5,8 +5,18 @@ from hypline.bold import BoldMeta
 from hypline.events import segment_tr_slice
 
 
-def collapse_desc_variants(feature_files: list[BIDSPath]) -> list[BIDSPath]:
-    """Collapse `desc-*` variants sharing all non-desc entities."""
+def pick_timing_source(feature_files: list[BIDSPath]) -> list[BIDSPath]:
+    """Pick one `desc-*` variant per non-desc entity group.
+
+    Valid ONLY for generators reading `start_time`, never the `feature` column:
+    variants are assumed to share an identical timing grid (a caller-guaranteed
+    feature-files invariant, NOT checked here), so the pick cannot affect output.
+    A value-reading generator's output would silently depend on which variant
+    won, and a divergent-grid variant is silently dropped rather than detected.
+
+    The lexicographically-first `desc` wins (bare `<kind>/`, `desc=None`, sorts
+    first), so the choice is reproducible.
+    """
     groups: dict[tuple, list[BIDSPath]] = {}
     for feat_file in feature_files:
         key = tuple((k, v) for k, v in feat_file.entities.items() if k != "desc")
@@ -14,11 +24,12 @@ def collapse_desc_variants(feature_files: list[BIDSPath]) -> list[BIDSPath]:
 
     kept = []
     for variants in groups.values():
+        variants = sorted(variants, key=lambda v: v.entities.get("desc") or "")
         kept.append(variants[0])
         if len(variants) > 1:
             dropped = ", ".join(v.path.name for v in variants[1:])
             logger.debug(
-                "Collapsing desc-* variants — using {}, skipping {}",
+                "Multiple desc-* variants — using {}, skipping {}",
                 variants[0].path.name,
                 dropped,
             )

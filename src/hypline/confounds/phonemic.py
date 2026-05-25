@@ -10,7 +10,7 @@ from hypline.enums import VolumeSpace
 from hypline.io import read_feature, write_confound
 from hypline.layout import BIDSLayout
 
-from ._utils import collapse_desc_variants, segment_n_trs
+from ._utils import pick_timing_source, segment_n_trs
 
 _VARIANTS: tuple[tuple[str, DownsampleMethod], ...] = (
     ("onset", "any"),
@@ -35,7 +35,7 @@ class PhonemicConfound:
             desc="*",
             bids_filters=self._bids_filters,
         )
-        feature_files = collapse_desc_variants(feature_files)
+        feature_files = pick_timing_source(feature_files)
 
         for feat_file in feature_files:
             logger.info("Generating phonemic confounds for {}", feat_file.path.name)
