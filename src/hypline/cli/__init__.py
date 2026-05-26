@@ -49,5 +49,6 @@ def callback(
     logger.add(
         sys.stderr,
         level="DEBUG" if verbose else "INFO",
-        colorize=True,
+        colorize=sys.stderr.isatty(),
+        format="{time:YYYY-MM-DD HH:mm:ss} | <level>{level: <7}</level> | {message}",
     )

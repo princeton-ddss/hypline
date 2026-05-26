@@ -26,7 +26,13 @@ def split_csv(value: str | None, param_hint: str | None = None) -> list[str] | N
 def subject_log(bids_root: Path, *command_parts: str, sub_id: str):
     log_path = bids_root / "logs" / Path(*command_parts) / f"sub-{sub_id}.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    sink_id = logger.add(log_path, level="DEBUG", rotation="5 MB", retention=1)
+    sink_id = logger.add(
+        log_path,
+        level="DEBUG",
+        rotation="5 MB",
+        retention=1,
+        format="{time:YYYY-MM-DD HH:mm:ss} {level: <7} {message}",
+    )
     try:
         yield
     finally:
