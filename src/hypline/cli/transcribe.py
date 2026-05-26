@@ -68,7 +68,7 @@ def transcribe(
     """
     Transcribe audio files using a Whisper ASR model.
     """
-    from hypline.transcriber import Transcriber, WhisperConfig
+    from hypline.transcribe import Transcriber, WhisperConfig
 
     _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
