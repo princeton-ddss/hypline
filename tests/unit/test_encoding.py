@@ -50,7 +50,7 @@ class TestEncodingInit:
 
     @pytest.mark.parametrize("entry", ["a_b", "a-", "-b", "a-b-c", ""])
     def test_malformed_feature_entry_raises(self, tree: BIDSTree, entry: str):
-        with pytest.raises(ValueError, match="Invalid feature"):
+        with pytest.raises(ValueError, match="Invalid (kind|desc)"):
             _make_encoding(tree, [entry])
 
     def test_variant_entry_parsed(self, tree: BIDSTree):

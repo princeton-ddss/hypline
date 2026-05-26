@@ -11,6 +11,7 @@ from hypline.bids import (
     BIDS_ENTITY_VALUE_RE,
     BIDSPath,
     normalize_bids_filters,
+    parse_kind_desc,
 )
 from hypline.bold import (
     BOLD_EXTENSIONS,
@@ -29,21 +30,6 @@ FeatureDownsampleMethod = Literal["mean", "sum"]
 # Public Encoding-facing methods must be a subset of all methods
 if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
     raise RuntimeError("FeatureDownsampleMethod must be a subset of DownsampleMethod")
-
-
-def _parse_feature(entry: str) -> tuple[str, str | None]:
-    """Parse a `features` entry into `(kind, desc)`.
-
-    `<kind>` -> `(kind, None)`; `<kind>-<desc>` -> `(kind, desc)`. Both parts
-    must match the BIDS entity-value rule, so `partition("-")` is unambiguous
-    (entity values carry no `-`).
-    """
-    kind, _, desc = entry.partition("-")
-    if not BIDS_ENTITY_VALUE_RE.match(kind):
-        raise ValueError(f"Invalid feature kind in {entry!r}")
-    if "-" in entry and not BIDS_ENTITY_VALUE_RE.match(desc):
-        raise ValueError(f"Invalid feature desc in {entry!r}")
-    return kind, (desc or None)
 
 
 class BoldKey(NamedTuple):
@@ -207,7 +193,7 @@ class Encoding:
 
         if not features:
             raise ValueError("features must be a non-empty list")
-        parsed = [_parse_feature(entry) for entry in features]
+        parsed = [parse_kind_desc(entry) for entry in features]
         kinds = [kind for kind, _ in parsed]
         if len(kinds) != len(set(kinds)):
             dupes = sorted({k for k in kinds if kinds.count(k) > 1})

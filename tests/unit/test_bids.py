@@ -6,6 +6,7 @@ from hypline.bids import (
     BIDSPath,
     find_bids_files,
     normalize_bids_filters,
+    parse_kind_desc,
     validate_bids_entities,
     validate_entity_invariance,
     validate_extension,
@@ -433,3 +434,21 @@ class TestValidateBidsEntities:
     def test_invalid(self):
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             validate_bids_entities("sub-01", "BAD")
+
+
+class TestParseKindDesc:
+    def test_kind_only(self):
+        assert parse_kind_desc("mfcc") == ("mfcc", None)
+
+    def test_kind_and_desc(self):
+        assert parse_kind_desc("semantic-gpt3") == ("semantic", "gpt3")
+
+    @pytest.mark.parametrize("entry", ["", "a_b", "-b"])
+    def test_invalid_kind_raises(self, entry: str):
+        with pytest.raises(ValueError, match="Invalid kind"):
+            parse_kind_desc(entry)
+
+    @pytest.mark.parametrize("entry", ["a-", "a-b-c"])
+    def test_invalid_desc_raises(self, entry: str):
+        with pytest.raises(ValueError, match="Invalid desc"):
+            parse_kind_desc(entry)

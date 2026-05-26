@@ -261,6 +261,21 @@ def parse_filter_groups(filters: list[str]) -> dict[str, list[str]]:
     return groups
 
 
+def parse_kind_desc(entry: str) -> tuple[str, str | None]:
+    """Parse a `<kind>` or `<kind>-<desc>` string into `(kind, desc)`.
+
+    `<kind>` -> `(kind, None)`; `<kind>-<desc>` -> `(kind, desc)`. Both parts
+    must match the BIDS entity-value rule, so `partition("-")` is unambiguous
+    (entity values carry no `-`).
+    """
+    kind, _, desc = entry.partition("-")
+    if not BIDS_ENTITY_VALUE_RE.match(kind):
+        raise ValueError(f"Invalid kind in {entry!r}")
+    if "-" in entry and not BIDS_ENTITY_VALUE_RE.match(desc):
+        raise ValueError(f"Invalid desc in {entry!r}")
+    return kind, (desc or None)
+
+
 def find_bids_files(
     directory: str | Path,
     ext: str,
