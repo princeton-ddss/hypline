@@ -366,8 +366,9 @@ def write_confound(
 ) -> None:
     """Write a confound DataFrame to a BIDS Parquet file.
 
-    `path` may carry an optional `desc` entity discriminating individually-
-    selectable regressors within the kind (e.g., `desc-onset`).
+    `path` may carry an optional `desc` entity naming which derivation of the
+    kind's source the file holds (e.g., `desc-onset`); a bare path is the kind's
+    unnamed default derivation.
 
     `repetition_time` must be passed explicitly: a single-row DataFrame
     carries no spacing, and inferring TR from row spacing would silently
@@ -509,9 +510,9 @@ def save_confound(
         must be equal across files sharing the same `(conf, desc)` pair
         for downstream consistency checks to pass.
     desc
-        Optional variant tag landing as a `desc-<desc>` entity, placing the
-        file under a `<conf>-<desc>/` subdirectory. Omit for the canonical
-        (variant-free) confound.
+        Names which derivation of the kind's source this file holds, landing
+        as a `desc-<desc>` entity under a `<conf>-<desc>/` subdirectory. Omit
+        for the kind's unnamed default derivation.
     metadata
         Extra keys merged into the Parquet footer's `hypline` blob.
         Reserved keys (`confound_kind`, `confound_variant`, `tr_method`,

@@ -56,27 +56,25 @@ divergent variant — is covered in [feature-files.md](feature-files.md).
 ## Naming
 
 Confound filenames carry **stimulus-side identity entities** from the source
-BOLD (`sub`, `ses`, `task`, `run`), any segment entity value, hypline's own
-`conf-<kind>` entity (e.g. `conf-phonemic`), and an **optional** `desc-<name>`
-entity discriminating variants within a kind (e.g. `desc-onset`, `desc-rate`).
-Like feature files, they carry **no BIDS suffix** — no standard BIDS suffix
-exists for derived confounds. Validation rejects any path with a suffix.
+BOLD (`sub`, `ses`, `task`, `run`), any segment entity value, and two hypline
+entities: `conf-<kind>` names the **source** a confound is derived from (matches
+the `confoundgen` subcommand and the `confounds/<kind>/` directory), and an
+**optional** `desc-<name>` names **which derivation** of that source (phonemic
+timestamps → `desc-onset` indicator, `desc-rate` count). This is the same
+source/derivation meaning and `<kind>[-<desc>]` template feature files use — see
+[feature-files.md](feature-files.md). Like feature files, they carry **no BIDS
+suffix** (none exists for derived confounds); validation rejects any path with one.
 
-`conf-<kind>` mirrors `feat-<kind>` on feature files: it names the generator
-kind (matches the `confoundgen` subcommand) and the `confounds/<kind>/`
-directory — or `confounds/<kind>-<desc>/` when `desc` is present (see
-[layout.md](layout.md)). `desc-<name>` is used when a kind exposes multiple
-individually-selectable regressors (phonemic → `desc-onset`, `desc-rate`);
-omit it when a kind has a single canonical confound. Downstream selection
-uses `kind` or `kind-name`, e.g. `--confounds=phonemic-onset,phonemic-rate`.
+A bare `conf-<kind>` is the kind's unnamed default derivation and a legitimate
+confound on its own: a user computing their own single derivation of the
+`phonemic` source writes a bare `conf-phonemic`, independent of the shipped
+`desc-onset`/`desc-rate`. Bare and named forms coexist freely under one kind.
+A selector token resolves to its matching derivation — `phonemic` to the bare
+file, `phonemic-onset` to that named one, `*` to the whole kind.
 
-Within a single kind, files must either **all** carry `desc` or **none**
-do — mixing `conf-phonemic.parquet` with `conf-phonemic_desc-onset.parquet`
-is ambiguous and disallowed.
-
-`desc` here means "which confound within the kind," **not** "variant of one
-confound." Two different ways of computing `desc-onset` cannot coexist under
-`conf-phonemic` — pick one canonical method per `(conf, desc)` pair.
+One invariant: a `desc` labels *which* derivation, not *how* it was computed, so
+one canonical method per `(conf, desc)` pair — two ways of computing `desc-onset`
+cannot coexist under `conf-phonemic`.
 
 Confound files live under `confounds/` — see [layout.md](layout.md) for the
 root tree.

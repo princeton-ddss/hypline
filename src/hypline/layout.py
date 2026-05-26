@@ -397,6 +397,44 @@ class _Find:
             where=f"features/sub-{sub}/[ses-*/]{kind}[-*]/",
         )
 
+    def confounds(
+        self,
+        *,
+        sub: str,
+        kind: str,
+        desc: str | None = None,
+        bids_filters: list[str] | None = None,
+    ) -> list["BIDSPath"]:
+        """Find confound files.
+
+        `kind` maps to the conf-<kind> entity and the per-session subdirectory
+        name. `desc` selects which variant folder(s) to read: `None` -> bare
+        `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only; `"*"` -> all
+        variant folders gathered together. Extension is `.parquet`.
+        """
+        filters = normalize_bids_filters(bids_filters, reserved={"sub", "conf", "desc"})
+        ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
+        user_filters = [f for f in filters if not f.startswith("ses-")]
+        structural, descriptive = _split_filters_by_structurality(user_filters)
+        candidates = self._find(
+            area="confounds",
+            sub=sub,
+            kind=kind,
+            desc=desc,
+            required_entity=("conf", kind),
+            ext=".parquet",
+            suffix=None,
+            ses_values=ses_values,
+            match_filters=structural + [f"sub-{sub}", f"conf-{kind}"],
+            user_filters=structural,
+        )
+        _require_task(candidates)
+        return self._apply_metadata_filters(
+            candidates,
+            filters=descriptive,
+            where=f"confounds/sub-{sub}/[ses-*/]{kind}[-*]/",
+        )
+
     def fmriprep(
         self,
         *,
@@ -571,9 +609,9 @@ class _Path:
         Sets conf-<kind> and places the result under
         confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
 
-        Pass `desc=<label>` to discriminate individually-selectable regressors
-        within a kind (e.g. `onset` vs `rate` for phonemic); the subdirectory
-        becomes `<kind>-<desc>` so variants live in separate folders.
+        Pass `desc=<label>` to name which derivation of the kind's source this
+        is (e.g. `onset` vs `rate` for phonemic); the subdirectory becomes
+        `<kind>-<desc>` so derivations live in separate folders.
         """
         return self._derive_path(
             area="confounds",

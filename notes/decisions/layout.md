@@ -35,7 +35,7 @@ BIDS spec. CLI commands take a single `<bids_root>`; path resolution is centrali
 Two terms name directory levels below `sub-XX/ses-YY/` and must not be conflated:
 
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
-- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames; no `desc` variants — see above). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; multiple individually-selectable regressors within a kind are differentiated by an optional `desc-<name>` entity).
+- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames; no `desc` variants — see above). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; different derivations of a kind's source are differentiated by an optional `desc-<name>` entity).
 
 ## Category entities are mutually exclusive
 
@@ -62,7 +62,7 @@ See [confound-files.md](confound-files.md) for confound file naming and path con
 
 ## Discovery contract — `_Find.*` raises on empty
 
-`BIDSLayout.find.{stimuli,features,fmriprep}` never return `[]`. When nothing
+`BIDSLayout.find.{stimuli,features,confounds,fmriprep}` never return `[]`. When nothing
 matches, they raise `FileNotFoundError` with a tier-specific diagnostic
 pinpointing where the tree walk stopped.
 
@@ -72,7 +72,7 @@ explicitly rather than expect an empty list.
 
 ## `bids_filters` — structural vs. descriptive
 
-`find.{stimuli,features,fmriprep}` accept both kinds of filter uniformly:
+`find.{stimuli,features,confounds,fmriprep}` accept both kinds of filter uniformly:
 
 - **Structural** (keys in `STRUCTURAL_ENTITIES`: BOLD identity, category tags,
   image-variant descriptors) — matched against filenames during the on-disk walk.

@@ -389,6 +389,74 @@ class TestFindFeatures:
         assert "run-99" in str(exc.value)
 
 
+class TestFindConfounds:
+    def test_translates_kind_to_confound_entity(self, tree: BIDSTree):
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.confounds(sub=SUB, kind="phonemic")
+        assert len(results) == 1
+        assert results[0].entities.get("conf") == "phonemic"
+
+    def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
+        tree.add_confound(kind="phonemic", sub=SUB, ses="1", task=TASK)
+        tree.add_confound(kind="phonemic", sub=SUB, ses="2", task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.confounds(
+            sub=SUB, kind="phonemic", bids_filters=["ses-1"]
+        )
+        assert len(results) == 1
+        assert results[0].ses == "1"
+
+    def test_desc_none_excludes_variants(self, tree: BIDSTree):
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, desc="onset")
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.confounds(sub=SUB, kind="phonemic")
+        assert len(results) == 1
+        assert results[0].entities.get("desc") is None
+
+    def test_desc_label_selects_variant(self, tree: BIDSTree):
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, desc="onset")
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.confounds(sub=SUB, kind="phonemic", desc="onset")
+        assert len(results) == 1
+        assert results[0].entities.get("desc") == "onset"
+
+    def test_desc_star_returns_all_variants(self, tree: BIDSTree):
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, run="1")
+        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, run="2", desc="onset")
+        layout = BIDSLayout(tree.root)
+        results = layout.find.confounds(sub=SUB, kind="phonemic", desc="*")
+        descs = {r.entities.get("desc") for r in results}
+        assert descs == {None, "onset"}
+
+    def test_rejects_reserved_desc_filter(self, tree: BIDSTree):
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="desc"):
+            layout.find.confounds(
+                sub=SUB, kind="phonemic", bids_filters=["desc-onset"]
+            )
+
+    def test_raises_when_area_absent(self, tmp_path):
+        layout = BIDSLayout(tmp_path)
+        with pytest.raises(FileNotFoundError, match="confounds"):
+            layout.find.confounds(sub=SUB, kind="phonemic")
+
+    def test_raises_when_task_missing(self, tree: BIDSTree):
+        path = (
+            tree.confounds_dir
+            / f"sub-{SUB}"
+            / "phonemic"
+            / f"sub-{SUB}_conf-phonemic.parquet"
+        )
+        path.parent.mkdir(parents=True)
+        path.touch()
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="task"):
+            layout.find.confounds(sub=SUB, kind="phonemic")
+
+
 class TestFindFmriprep:
     def test_returns_bold_files(self, tree: BIDSTree):
         tree.add_bold(space=SPACE, sub=SUB, task=TASK)

@@ -49,6 +49,10 @@ class BIDSTree:
         return self.root / "features"
 
     @property
+    def confounds_dir(self) -> Path:
+        return self.root / "confounds"
+
+    @property
     def fmriprep_dir(self) -> Path:
         return self.root / "derivatives" / "fmriprep"
 
@@ -231,6 +235,42 @@ class BIDSTree:
         write_feature(df, path, metadata=metadata)
         return path
 
+    def add_confound(
+        self,
+        *,
+        sub: str,
+        ses: str | None = None,
+        task: str,
+        run: str | None = None,
+        kind: str,
+        desc: str | None = None,
+        df: pl.DataFrame | None = None,
+        metadata: dict[str, Any] | None = None,
+        extra_entities: dict[str, str] | None = None,
+    ) -> Path:
+        from hypline.io import write_confound
+
+        extras = extra_entities or {}
+        if "desc" in extras:
+            raise ValueError("pass desc as an explicit argument, not in extra_entities")
+        entities = self._entities(sub, ses, task, run, **extras)
+        entities["conf"] = kind
+        if desc is not None:
+            entities["desc"] = desc
+        subdir = f"{kind}-{desc}" if desc else kind
+        kind_dir = self._sub_ses_dir(self.confounds_dir, sub, ses) / subdir
+        kind_dir.mkdir(parents=True, exist_ok=True)
+        path = kind_dir / f"{self._stem(entities)}.parquet"
+        if df is None:
+            df = pl.DataFrame(
+                {"start_time": [0.0], "confound": [[0.0]]},
+                schema={"start_time": pl.Float64, "confound": pl.Array(pl.Float64, 1)},
+            )
+        write_confound(
+            df, path, repetition_time=2.0, tr_method=None, metadata=metadata
+        )
+        return path
+
     def add_bold(
         self,
         *,
@@ -359,7 +399,7 @@ class BIDSTree:
             extra_entities={"space": space, "desc": desc},
         )
 
-    def add_confounds(
+    def add_confounds_timeseries(
         self,
         *,
         sub: str,
@@ -412,7 +452,7 @@ class BIDSTree:
             sub=sub, ses=ses, task=task, run=run, space=space, desc="aparcaseg"
         )
         self.add_dseg(sub=sub, ses=ses, task=task, run=run, space=space, desc="aseg")
-        self.add_confounds(sub=sub, ses=ses, task=task, run=run)
+        self.add_confounds_timeseries(sub=sub, ses=ses, task=task, run=run)
         self.add_xfm(sub=sub, ses=ses, task=task, run=run)
 
 
