@@ -250,6 +250,7 @@ def save_feature(
     bids_root: str | Path,
     sub: str,
     feat: str,
+    desc: str | None = None,
     metadata: dict[str, Any] | None = None,
     **entities: str,
 ) -> Path:
@@ -267,13 +268,17 @@ def save_feature(
         `<bids_root>/features/sub-<sub>/[ses-<ses>/]<feat>[-<desc>]/`.
     sub, feat
         Required subject and feature-kind labels.
+    desc
+        Optional variant tag landing as a `desc-<desc>` entity, placing the
+        file under a `<feat>-<desc>/` subdirectory. Omit for the canonical
+        (variant-free) feature.
     metadata
         Extra keys merged into the Parquet footer's `hypline` blob. The
         reserved keys `feature_name`, `feature_dim`, and `hypline_version`
         are auto-injected and must not be supplied. Keys prefixed with `_`
         are exempt from cross-file equality checks at encoding time.
     **entities
-        Additional BIDS entities (`ses`, `task`, `run`, `desc`, custom
+        Additional BIDS entities (`ses`, `task`, `run`, custom
         descriptors). Entity ordering and validation are handled by
         `BIDSPath`.
 
@@ -288,12 +293,15 @@ def save_feature(
         If required columns are missing, `feature` widths are ragged, or
         `metadata` supplies a reserved key.
     """
+    entities = {"sub": sub, **entities}
+    if desc is not None:
+        entities["desc"] = desc
     path = _derive_parquet_path(
         bids_root,
         area="features",
         category_entity="feat",
         kind=feat,
-        entities={"sub": sub, **entities},
+        entities=entities,
     )
     write_feature(df, path, metadata=metadata)
     return path
@@ -471,6 +479,7 @@ def save_confound(
     conf: str,
     repetition_time: float,
     tr_method: str | None,
+    desc: str | None = None,
     metadata: dict[str, Any] | None = None,
     **entities: str,
 ) -> Path:
@@ -499,6 +508,10 @@ def save_confound(
         computation). Pass `None` if not applicable. Recorded verbatim;
         must be equal across files sharing the same `(conf, desc)` pair
         for downstream consistency checks to pass.
+    desc
+        Optional variant tag landing as a `desc-<desc>` entity, placing the
+        file under a `<conf>-<desc>/` subdirectory. Omit for the canonical
+        (variant-free) confound.
     metadata
         Extra keys merged into the Parquet footer's `hypline` blob.
         Reserved keys (`confound_kind`, `confound_variant`, `tr_method`,
@@ -506,8 +519,8 @@ def save_confound(
         are auto-injected and must not be supplied. Keys prefixed with
         `_` are exempt from cross-file equality checks.
     **entities
-        Additional BIDS entities (`ses`, `task`, `run`, the optional
-        `desc` variant tag, custom descriptors).
+        Additional BIDS entities (`ses`, `task`, `run`, custom
+        descriptors).
 
     Returns
     -------
@@ -521,12 +534,15 @@ def save_confound(
         `confound` widths are ragged, or `metadata` supplies a reserved
         key.
     """
+    entities = {"sub": sub, **entities}
+    if desc is not None:
+        entities["desc"] = desc
     path = _derive_parquet_path(
         bids_root,
         area="confounds",
         category_entity="conf",
         kind=conf,
-        entities={"sub": sub, **entities},
+        entities=entities,
     )
     write_confound(
         df,
