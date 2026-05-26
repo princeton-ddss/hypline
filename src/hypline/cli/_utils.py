@@ -1,3 +1,4 @@
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from multiprocessing import Process
 from pathlib import Path
@@ -30,6 +31,29 @@ def subject_log(bids_root: Path, *command_parts: str, sub_id: str):
         yield
     finally:
         logger.remove(sink_id)
+
+
+def run_per_subject(
+    bids_root: Path,
+    *command_parts: str,
+    sub_ids: Iterable[str],
+    task: Callable[[str], None],
+):
+    sub_ids = list(sub_ids)
+    failed = []
+    for sub_id in sub_ids:
+        with subject_log(bids_root, *command_parts, sub_id=sub_id):
+            try:
+                task(sub_id)
+            except Exception:
+                logger.exception("sub-{} failed", sub_id)
+                failed.append(sub_id)
+
+    if failed:
+        logger.error(
+            "{}/{} subjects failed: {}", len(failed), len(sub_ids), ",".join(failed)
+        )
+        raise typer.Exit(code=1)
 
 
 class DillProcess(Process):

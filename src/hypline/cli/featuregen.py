@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from loguru import logger
 
-from ._utils import split_csv, subject_log
+from ._utils import run_per_subject, split_csv
 
 app = typer.Typer()
 
@@ -74,6 +74,10 @@ def generate_phonemic_feature(
         logger.warning("No subjects found — nothing to generate")
         return
 
-    for sub_id in _sub_ids:
-        with subject_log(bids_root, "featuregen", "phonemic", sub_id=sub_id):
-            feature.generate(sub_id)
+    run_per_subject(
+        bids_root,
+        "featuregen",
+        "phonemic",
+        sub_ids=_sub_ids,
+        task=feature.generate,
+    )

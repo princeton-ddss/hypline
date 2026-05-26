@@ -6,7 +6,7 @@ from loguru import logger
 
 from hypline.enums import Device, WhisperModel
 
-from ._utils import split_csv, subject_log
+from ._utils import run_per_subject, split_csv
 
 
 def transcribe(
@@ -92,6 +92,9 @@ def transcribe(
         logger.warning("No subjects found — nothing to transcribe")
         return
 
-    for sub_id in _sub_ids:
-        with subject_log(bids_root, "transcribe", sub_id=sub_id):
-            transcriber.transcribe(sub_id)
+    run_per_subject(
+        bids_root,
+        "transcribe",
+        sub_ids=_sub_ids,
+        task=transcriber.transcribe,
+    )
