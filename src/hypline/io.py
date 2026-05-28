@@ -37,6 +37,18 @@ __all__ = [
 # --------------------------------------------------------------------------- #
 
 
+def stack_array_column(col: pl.Series) -> np.ndarray:
+    """Stack a Polars `Array`-dtype column into a 2-D NumPy array.
+
+    Handles the empty-column case by returning a `(0, dim)` array with
+    `dim` recovered from the column's Array dtype.
+    """
+    if len(col) > 0:
+        return np.vstack(col.to_list())
+    dim = col.dtype.size  # type: ignore[union-attr]
+    return np.empty((0, dim), dtype=np.float64)
+
+
 def _derive_parquet_path(
     bids_root: str | Path,
     *,
@@ -337,7 +349,10 @@ def _normalize_confound_df(
                 f"'start_time' intervals must equal repetition_time "
                 f"{repetition_time}, got {intervals.tolist()}"
             )
-    return _coerce_array_column(df, "confound")
+    df, dim = _coerce_array_column(df, "confound")
+    if not np.isfinite(stack_array_column(df.get_column("confound"))).all():
+        raise ValueError("'confound' column contains non-finite values (NaN or inf)")
+    return df, dim
 
 
 def _parse_confound_metadata(raw_metadata: dict, bids: BIDSPath) -> dict[str, Any]:

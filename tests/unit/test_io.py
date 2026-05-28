@@ -457,6 +457,22 @@ class TestWriteConfound:
         with pytest.raises(ValueError, match="intervals must equal repetition_time"):
             write_confound(df, confound_path, repetition_time=2.0, tr_method="mean")
 
+    def test_nan_confound_value_raises(self, confound_path: Path):
+        df = pl.DataFrame(
+            {"start_time": [0.0, 2.0], "confound": [[1.0], [float("nan")]]},
+            schema={"start_time": pl.Float64, "confound": pl.Array(pl.Float64, 1)},
+        )
+        with pytest.raises(ValueError, match="non-finite values"):
+            write_confound(df, confound_path, repetition_time=2.0, tr_method="mean")
+
+    def test_inf_confound_value_raises(self, confound_path: Path):
+        df = pl.DataFrame(
+            {"start_time": [0.0, 2.0], "confound": [[1.0], [float("inf")]]},
+            schema={"start_time": pl.Float64, "confound": pl.Array(pl.Float64, 1)},
+        )
+        with pytest.raises(ValueError, match="non-finite values"):
+            write_confound(df, confound_path, repetition_time=2.0, tr_method="mean")
+
     def test_missing_conf_entity_in_path(
         self, tmp_path: Path, confound_df: pl.DataFrame
     ):
@@ -488,6 +504,18 @@ class TestReadConfound:
     ):
         _write_raw_confound(confound_df, confound_path, repetition_time=1.0)
         with pytest.raises(ValueError, match="intervals must equal repetition_time"):
+            read_confound(confound_path)
+
+    def test_non_finite_confound_value_raises(
+        self, confound_path: Path, confound_df: pl.DataFrame
+    ):
+        corrupt = confound_df.with_columns(
+            pl.Series("confound", [[1.0, 2.0], [3.0, 4.0], [5.0, float("nan")]]).cast(
+                pl.Array(pl.Float64, 2)
+            )
+        )
+        _write_raw_confound(corrupt, confound_path)
+        with pytest.raises(ValueError, match="non-finite values"):
             read_confound(confound_path)
 
     def test_confound_kind_mismatch_raises(

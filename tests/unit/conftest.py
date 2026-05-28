@@ -266,9 +266,7 @@ class BIDSTree:
                 {"start_time": [0.0], "confound": [[0.0]]},
                 schema={"start_time": pl.Float64, "confound": pl.Array(pl.Float64, 1)},
             )
-        write_confound(
-            df, path, repetition_time=2.0, tr_method=None, metadata=metadata
-        )
+        write_confound(df, path, repetition_time=2.0, tr_method=None, metadata=metadata)
         return path
 
     def add_bold(
@@ -406,7 +404,15 @@ class BIDSTree:
         ses: str | None = None,
         task: str | None = None,
         run: str | None = None,
+        df: pl.DataFrame | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Path:
+        """Write desc-confounds_timeseries.tsv (+ .json sidecar) under fmriprep func/.
+
+        `df` columns become the confound regressors (empty if None); `metadata`
+        is the JSON sidecar of CompCor component descriptions (`{}` if None).
+        """
+        content = df.write_csv(separator="\t") if df is not None else None
         return self._add_fmriprep(
             sub=sub,
             ses=ses,
@@ -414,7 +420,8 @@ class BIDSTree:
             run=run,
             suffix="timeseries",
             ext=".tsv",
-            sidecar_json={},
+            content=content,
+            sidecar_json=metadata or {},
             extra_entities={"desc": "confounds"},
         )
 

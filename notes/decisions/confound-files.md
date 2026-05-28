@@ -51,7 +51,9 @@ divergent variant — is covered in [feature-files.md](feature-files.md).
   - `start_time` (numeric, seconds; must begin at `0.0` and have intervals
     equal to `repetition_time` — TR-aligned at save time)
   - `confound` (Array or List column — per-TR confound vector; normalized to
-    `Array(Float64)` on write)
+    `Array(Float64)` on write. Finite values only — NaN/inf are rejected at
+    both write and read, so consumers may regress confound data without
+    re-checking for non-finite values.)
 
 ## Naming
 
