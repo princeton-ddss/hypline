@@ -5,6 +5,7 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
+from hypline.bids import BIDS_ENTITY_VALUE_RE, normalize_bids_filters
 from hypline.io import write_feature
 from hypline.layout import BIDSLayout
 
@@ -71,7 +72,12 @@ class PhonemicFeature:
 
         self._layout = BIDSLayout(bids_root)
         self._use_articulatory = use_articulatory
-        self._bids_filters = bids_filters
+        self._bids_filters = normalize_bids_filters(
+            bids_filters, reserved={"sub", "stim"}
+        )
+
+        if desc is not None and not BIDS_ENTITY_VALUE_RE.match(desc):
+            raise ValueError(f"Invalid desc: {desc!r}")
         self._desc = desc
 
     @classmethod

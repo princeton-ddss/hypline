@@ -56,6 +56,16 @@ def _write_transcript(
     return path
 
 
+class TestPhonemicInit:
+    def test_invalid_desc_raises(self, tree: BIDSTree, fake_cmudict):
+        with pytest.raises(ValueError, match="Invalid desc"):
+            PhonemicFeature(bids_root=tree.root, desc="not-valid")
+
+    def test_reserved_entity_in_filters_raises(self, tree: BIDSTree, fake_cmudict):
+        with pytest.raises(ValueError, match="stim"):
+            PhonemicFeature(bids_root=tree.root, bids_filters=["stim-foo"])
+
+
 class TestPhonemicGenerateArpabet:
     def test_writes_one_row_per_phoneme(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat"), (1.0, "dog")])

@@ -5,6 +5,7 @@ from pathlib import Path
 from loguru import logger
 from pydantic import BaseModel, field_validator
 
+from hypline.bids import normalize_bids_filters, validate_extension
 from hypline.enums import Device, WhisperModel
 from hypline.layout import BIDSLayout
 
@@ -53,8 +54,13 @@ class Transcriber:
 
         self.config = config
         self._layout = BIDSLayout(bids_root)
+
+        validate_extension(audio_ext)
         self._audio_ext = audio_ext
-        self._bids_filters = bids_filters
+
+        self._bids_filters = normalize_bids_filters(
+            bids_filters, reserved={"sub", "stim"}
+        )
 
         self._model = whisperx.load_model(
             whisper_arch=config.model,

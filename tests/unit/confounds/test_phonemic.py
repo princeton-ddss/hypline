@@ -56,6 +56,12 @@ def _add_phonemic(
     )
 
 
+class TestPhonemicConfoundInit:
+    def test_reserved_entity_in_filters_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="feat"):
+            PhonemicConfound(bids_root=tree.root, bids_filters=["feat-foo"])
+
+
 class TestPhonemicConfoundGenerate:
     def test_writes_onset_and_rate_files(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0, 0.0, 0.0], phonemes=["K", "AE", "T"])

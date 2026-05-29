@@ -4,6 +4,7 @@ import numpy as np
 import polars as pl
 from loguru import logger
 
+from hypline.bids import normalize_bids_filters
 from hypline.bold import BOLD_EXTENSIONS, load_bold_meta
 from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import VolumeSpace
@@ -26,7 +27,9 @@ class PhonemicConfound:
         bids_filters: list[str] | None = None,
     ):
         self._layout = BIDSLayout(bids_root)
-        self._bids_filters = bids_filters
+        self._bids_filters = normalize_bids_filters(
+            bids_filters, reserved={"sub", "feat", "desc"}
+        )
 
     def generate(self, sub_id: str):
         feature_files = self._layout.find.features(
