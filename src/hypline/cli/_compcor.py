@@ -41,7 +41,7 @@ def parse_compcor(value: str | None):
         if method is CompCorMethod.ANATOMICAL:
             if not mask_str:
                 raise typer.BadParameter(
-                    f"'{token}' aCompCor requires a mask (e.g. a:CSF:5)",
+                    f"'{token}' aCompCor requires a mask (e.g., a:CSF:5)",
                     param_hint=hint,
                 )
             try:
@@ -54,7 +54,7 @@ def parse_compcor(value: str | None):
         elif mask_str:
             raise typer.BadParameter(
                 f"'{token}' tCompCor is not mask-restricted — leave mask empty "
-                "(e.g. t::10)",
+                "(e.g., t::10)",
                 param_hint=hint,
             )
 
@@ -67,7 +67,9 @@ def parse_compcor(value: str | None):
 def parse_n_comps(n_str: str, *, token: str, hint: str) -> int | float:
     """Parse the `n` field: a positive int (top-N) or positive float (variance)."""
     if not n_str:
-        raise typer.BadParameter(f"'{token}' missing n (e.g. a:CSF:5)", param_hint=hint)
+        raise typer.BadParameter(
+            f"'{token}' missing n (e.g., a:CSF:5)", param_hint=hint
+        )
     try:
         n_comps: int | float = int(n_str)
     except ValueError:

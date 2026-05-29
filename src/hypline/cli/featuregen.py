@@ -48,7 +48,7 @@ def generate_phonemic_feature(
         typer.Option(
             "--desc",
             help="""
-            Label to tag outputs (alphanumeric), e.g. --desc v2;
+            Label to tag outputs (alphanumeric), e.g., --desc v2;
             appears as desc-<label> in filenames
             """,
             show_default=False,

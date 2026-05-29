@@ -26,7 +26,7 @@ def denoise(
             "--confounds",
             help="""
             Comma-separated confound refs <kind>[-<desc>] to regress out
-            (e.g. fmriprep-minimal,phonemic)
+            (e.g., fmriprep-minimal,phonemic)
             """,
             show_default=False,
         ),

@@ -24,7 +24,7 @@ def generate_fmriprep_confound(
         typer.Option(
             "--desc",
             help="""
-            Label naming this bundle (alphanumeric), e.g. --desc minimal;
+            Label naming this bundle (alphanumeric), e.g., --desc minimal;
             output is written as conf-fmriprep_desc-<label>
             """,
             show_default=False,
@@ -35,8 +35,8 @@ def generate_fmriprep_confound(
         typer.Option(
             "--columns",
             help="""
-            Comma-separated tsv column names; literals plus the cosine/
-            motion_outlier group prefixes (e.g. trans_x,rot_x,cosine)
+            Comma-separated confound columns: exact tsv names (e.g., trans_x,rot_x)
+            plus group prefixes that expand to all matches (cosine, motion_outlier)
             """,
             show_default=False,
         ),
@@ -46,9 +46,9 @@ def generate_fmriprep_confound(
         typer.Option(
             "--compcor",
             help="""
-            Comma-separated CompCor selectors [a|t]:[mask]:[n]; a=aCompCor (mask
-            required), t=tCompCor (no mask), n=top-N int or variance fraction
-            (e.g. a:CSF:5,t::10)
+            Comma-separated CompCor selectors type:mask:n (e.g., a:CSF:5 = top-5
+            aCompCor in CSF; t::10 = top-10 tCompCor). type a=anatomical (mask
+            required), t=temporal (no mask); n = top-N int or variance fraction (0-1)
             """,
             show_default=False,
         ),
