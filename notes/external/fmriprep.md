@@ -34,9 +34,10 @@ ambiguous same-run variants.
 
 Multiple outputs share the same identity entities, distinguished by `desc`:
 
-- `desc-preproc_bold` — preprocessed BOLD. May have fewer volumes than the
-  raw image due to `--dummy-scans` or auto non-steady-state trimming; see
-  [../modules/bold.md](../modules/bold.md) for `n_trs` sourcing rules.
+- `desc-preproc_bold` — preprocessed BOLD. fMRIPrep *can* produce fewer
+  volumes than the raw image (`--dummy-scans` / auto non-steady-state
+  trimming), but hypline rejects runs where derivative and raw counts differ —
+  see [../modules/bold.md](../modules/bold.md).
 - `desc-brain_mask` — brain mask
 - `desc-confounds_timeseries` — confound regressors
 

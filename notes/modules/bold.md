@@ -12,23 +12,26 @@ metadata without loading voxel data.
   accepts any `bids` carrying the run's identity entities and resolves to the
   raw tree via `layout.path.raw`.
 - **n_trs** is a *file* property — the volume count of the specific image.
-  Raw and derivative files may differ: fmriprep can drop dummy scans, which
-  changes the volume count but not the sampling interval between remaining
-  volumes. `get_n_trs` therefore requires a BOLD `bids` and reads its own
-  header — resolving to raw would give the wrong answer for derivative
-  callers.
+  `get_n_trs` requires a BOLD `bids` and reads its own header. fmriprep *can*
+  drop dummy scans (`--dummy-scans` / auto non-steady-state trimming) and
+  shorten the derivative count, but hypline rejects such runs — see the
+  invariant below.
 
-## Choosing the BOLD source for `n_trs`
+## Enforced invariant: derivative n_trs must equal raw
 
-Callers producing TR-aligned artifacts (e.g. confound files) must read `n_trs`
-from the BOLD image the artifact will be regressed against — the fmriprep
-preprocessed BOLD, not the raw image. fmriprep usually preserves the raw
-volume count, but `--dummy-scans` / auto non-steady-state trimming can
-shorten it. `n_trs` is space-invariant across fmriprep outputs of the same
-run, so any `space-*` variant works.
+`get_bold_meta` raises if a derivative BOLD's `n_trs` differs from the raw
+image. events.tsv onsets are raw-relative; hypline does not shift them, so a
+trimmed derivative would misalign and is refused outright rather than
+silently re-indexed.
 
-For the downstream events-timeline implication of dummy-scan trimming, see
-[../decisions/feature-files.md](../decisions/feature-files.md).
+Because the counts are guaranteed equal, callers producing TR-aligned
+artifacts (e.g. confound files) may anchor `n_trs` on either the raw or the
+preprocessed BOLD — both are correct, and a mismatch can only surface as the
+invariant raising. `n_trs` is also space-invariant across fmriprep outputs of
+the same run, so any `space-*` variant works.
+
+For the downstream events-timeline reasoning behind the raw-relative onset
+rule, see [../decisions/feature-files.md](../decisions/feature-files.md).
 
 ## Header reads are header-only
 

@@ -7,31 +7,25 @@ derivative; one `denoise(sub_id)` call cleans every matching run for a subject.
 The cleaned output (`desc-clean`) is what encoding reads by default
 (`bold_desc="clean"`).
 
-## Confound sources
+## Confound source
 
-Two origins, loaded together into one regressor matrix:
-
-- **Standard confounds** — fmriprep's `desc-confounds_timeseries.tsv`, read
-  **in place** from the fmriprep tree (TSV + JSON sidecar). This is an interim
-  deviation from the target [confound-files.md](../decisions/confound-files.md)
-  design, where external sources are converted into hypline confound files via
-  `confoundgen` rather than read in place. Until that import exists, denoise
-  reads the TSV directly.
-- **Custom confounds** — hypline confound files in the `confounds/` parquet
-  area, selected by `ModelSpec.custom_confounds` entries of the form `<kind>`
-  or `<kind>-<desc>`. A bare `<kind>` resolves to the bare derivation only, not
-  all variants — name each derivation explicitly. See
-  [../decisions/confound-files.md](../decisions/confound-files.md) for the
-  selector contract.
+One origin: hypline confound files in the `confounds/` parquet area. The
+`Denoiser` takes `confounds: list[str]` of `<kind>` or `<kind>-<desc>` refs and
+loads each into one regressor matrix. fmriprep's `desc-confounds_timeseries.tsv`
+is no longer read in place — `confoundgen fmriprep` imports selected tsv columns
+into `conf-fmriprep_desc-*` bundles, so every confound reaches denoise through
+the single parquet path. A bare `<kind>` resolves to the bare derivation only,
+not all variants — name each derivation explicitly. See
+[../decisions/confound-files.md](../decisions/confound-files.md) for the
+selector contract.
 
 ## Assumptions that could break
 
-- **Row count must match across BOLD, standard, and custom confounds.** Two
-  separate checks: standard-vs-custom at load, and confounds-vs-BOLD-TRs at
+- **Row count must match across all confound bundles and the BOLD.** Two
+  checks: inter-bundle TR (row) equality at load, and confounds-vs-BOLD-TRs at
   clean time. Either mismatch raises.
-- **One confounds file per run** for both standard (fmriprep TSV) and each
-  resolved custom-confound selector — multiple matches raise.
-- **Custom confound parquet is pre-validated.** Finite-values and TR-alignment
-  are enforced at write time (see
+- **One confound file per resolved ref** — multiple matches raise.
+- **Confound parquet is pre-validated.** Finite-values and TR-alignment are
+  enforced at write time (see
   [../decisions/confound-files.md](../decisions/confound-files.md)), so denoise
   does not re-check them.
