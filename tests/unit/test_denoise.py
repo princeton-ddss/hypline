@@ -13,7 +13,7 @@ VOLUME_SPACE = VolumeSpace.MNI_152_NLIN_2009_C_ASYM
 def _denoiser(tree: BIDSTree, confounds: list[str], **kwargs) -> Denoiser:
     return Denoiser(
         bids_root=tree.root,
-        space=VOLUME_SPACE,
+        space=VOLUME_SPACE.value,
         confounds=confounds,
         **kwargs,
     )
@@ -231,3 +231,7 @@ class TestDenoise:
     def test_reserved_filter_rejected(self, tree: BIDSTree, reserved: str):
         with pytest.raises(ValueError, match="bids_filters cannot contain"):
             _denoiser(tree, ["motion"], bids_filters=[reserved])
+
+    def test_invalid_space_rejected(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="Unsupported BOLD data space"):
+            Denoiser(bids_root=tree.root, space="not-a-space", confounds=["motion"])

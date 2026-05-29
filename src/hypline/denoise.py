@@ -11,7 +11,12 @@ from hypline.bids import (
     normalize_bids_filters,
     parse_kind_desc,
 )
-from hypline.bold import BOLD_EXTENSIONS, get_n_trs, get_repetition_time
+from hypline.bold import (
+    BOLD_EXTENSIONS,
+    get_n_trs,
+    get_repetition_time,
+    parse_bold_space,
+)
 from hypline.enums import SurfaceSpace, VolumeSpace
 from hypline.io import read_confound, stack_array_column
 from hypline.layout import BIDSLayout
@@ -40,7 +45,7 @@ class Denoiser:
         self,
         *,
         bids_root: str | Path,
-        space: SurfaceSpace | VolumeSpace,
+        space: str,
         confounds: list[str],
         bids_filters: list[str] | None = None,
     ):
@@ -49,7 +54,7 @@ class Denoiser:
         if not confounds:
             raise ValueError("confounds must be non-empty")
         self._layout = BIDSLayout(bids_root)
-        self._space = space
+        self._space = parse_bold_space(space)
         self._confounds = [parse_kind_desc(entry) for entry in confounds]
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "desc", "space"}
