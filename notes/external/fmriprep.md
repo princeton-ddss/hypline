@@ -40,6 +40,9 @@ Multiple outputs share the same identity entities, distinguished by `desc`:
   see [../modules/bold.md](../modules/bold.md).
 - `desc-brain_mask` — brain mask
 - `desc-confounds_timeseries` — confound regressors
+- `desc-clean_bold` — hypline-written, not from fMRIPrep; denoise writes the
+  cleaned run into this tree beside its `desc-preproc` source. See
+  [../modules/denoise.md](../modules/denoise.md).
 
 ## Surface vs volume
 

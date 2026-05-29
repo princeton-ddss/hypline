@@ -7,6 +7,14 @@ derivative; one `denoise(sub_id)` call cleans every matching run for a subject.
 The cleaned output (`desc-clean`) is what encoding reads by default
 (`bold_desc="clean"`).
 
+## Output
+
+Cleaned BOLD (`desc-clean`) is written **in place** in the fmriprep `func/`
+dir beside its `desc-preproc` source, differing only in the `desc` entity.
+Input is fixed to `desc-preproc` so denoise never re-cleans its own output.
+Surface BOLD is per-hemisphere (`hemi-L`/`hemi-R`); each hemi file is cleaned
+independently — no L/R coupling.
+
 ## Confound source
 
 One origin: hypline confound files in the `confounds/` parquet area. The
