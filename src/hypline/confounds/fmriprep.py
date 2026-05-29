@@ -33,8 +33,7 @@ class CompCorMask(StrEnum):
 
 
 class CompCorOptions(BaseModel):
-    # `method` is None when the denoiser supplies it via the ModelSpec field
-    # name (aCompCor/tCompCor); the fmriprep CLI always sets it explicitly.
+    # Optional default only; `_validate_compcor` rejects None.
     method: CompCorMethod | None = None
     n_comps: PositiveInt | PositiveFloat = 5
     mask: CompCorMask | None = None
