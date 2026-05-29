@@ -18,11 +18,8 @@ def minimal_nifti_gz(n_trs: int = DEFAULT_BOLD_N_TRS) -> bytes:
     import nibabel as nib
     import numpy as np
 
-    return gzip.compress(
-        nib.Nifti1Image(
-            np.zeros((1, 1, 1, n_trs), dtype=np.int16), np.eye(4)
-        ).to_bytes()
-    )
+    data = np.arange(1, n_trs + 1, dtype=np.int16).reshape(1, 1, 1, n_trs)
+    return gzip.compress(nib.Nifti1Image(data, np.eye(4)).to_bytes())
 
 
 class BIDSTree:
