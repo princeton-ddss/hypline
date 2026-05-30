@@ -18,7 +18,7 @@ from hypline.bold import (
     parse_bold_space,
 )
 from hypline.enums import SurfaceSpace, VolumeSpace
-from hypline.io import read_confound, stack_array_column
+from hypline.io import read_confound, skip_existing, stack_array_column
 from hypline.layout import BIDSLayout
 
 
@@ -48,6 +48,7 @@ class Denoiser:
         space: str,
         confounds: list[str],
         bids_filters: list[str] | None = None,
+        force: bool = False,
     ):
         # Each entry is a `<kind>-<desc>` (or bare `<kind>`) ref into `confounds/`;
         # fmriprep tsv columns arrive as `conf-fmriprep_desc-*` bundles too.
@@ -59,6 +60,7 @@ class Denoiser:
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "desc", "space"}
         )
+        self._force = force
 
     def denoise(self, sub_id: str) -> None:
         clean = {
@@ -78,6 +80,8 @@ class Denoiser:
         )
 
         for bold in bolds:
+            if skip_existing(bold.with_entity("desc", "clean").path, force=self._force):
+                continue
             logger.info("Cleaning starting: {}", bold.path.name)
             clean(bold)
             logger.info("Cleaning complete: {}", bold.path.name)

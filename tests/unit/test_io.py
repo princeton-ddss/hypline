@@ -5,6 +5,7 @@ from pathlib import Path
 import polars as pl
 import pyarrow.parquet as pq
 import pytest
+from loguru import logger
 
 from hypline.bids import BIDSPath
 from hypline.io import (
@@ -14,6 +15,7 @@ from hypline.io import (
     read_feature_metadata,
     save_confound,
     save_feature,
+    skip_existing,
     write_confound,
     write_feature,
 )
@@ -78,6 +80,33 @@ def _write_raw_confound(df: pl.DataFrame, path: Path, **meta_overrides) -> None:
 # ---------------------------------------------------------------------------
 # Path-based: feature
 # ---------------------------------------------------------------------------
+
+
+class TestSkipExisting:
+    def test_missing_path_not_skipped(self, tmp_path: Path):
+        assert skip_existing(tmp_path / "absent.parquet", force=False) is False
+
+    def test_existing_path_skipped(self, tmp_path: Path):
+        path = tmp_path / "out.parquet"
+        path.write_bytes(b"sentinel")
+        assert skip_existing(path, force=False) is True
+        assert path.read_bytes() == b"sentinel"
+
+    def test_force_overrides_existing(self, tmp_path: Path):
+        path = tmp_path / "out.parquet"
+        path.write_bytes(b"sentinel")
+        assert skip_existing(path, force=True) is False
+
+    def test_logs_info_on_skip(self, tmp_path: Path):
+        path = tmp_path / "out.parquet"
+        path.write_bytes(b"sentinel")
+        messages: list[str] = []
+        sink_id = logger.add(messages.append, level="INFO", format="{message}")
+        try:
+            skip_existing(path, force=False)
+        finally:
+            logger.remove(sink_id)
+        assert any("out.parquet" in m for m in messages)
 
 
 class TestWriteFeature:

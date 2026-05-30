@@ -8,7 +8,7 @@ from pydantic import BaseModel, PositiveFloat, PositiveInt, TypeAdapter
 
 from hypline.bids import BIDS_ENTITY_VALUE_RE, BIDSPath, normalize_bids_filters
 from hypline.bold import get_n_trs, get_repetition_time
-from hypline.io import write_confound
+from hypline.io import skip_existing, write_confound
 from hypline.layout import BIDSLayout
 
 # fmriprep writes confound columns already aligned to the BOLD TR grid; no
@@ -155,6 +155,7 @@ class FmriprepConfound:
         columns: list[str],
         compcor: list[CompCorOptions],
         bids_filters: list[str] | None = None,
+        force: bool = False,
     ):
         if not BIDS_ENTITY_VALUE_RE.match(desc):
             raise ValueError(f"desc must be alphanumeric, got {desc!r}")
@@ -166,6 +167,7 @@ class FmriprepConfound:
         self._columns = columns
         self._compcor = compcor
         self._bids_filters = normalize_bids_filters(bids_filters, reserved={"sub"})
+        self._force = force
 
     def generate(self, sub_id: str):
         tsv_files = self._layout.find.fmriprep(
@@ -176,6 +178,14 @@ class FmriprepConfound:
         )
 
         for tsv in tsv_files:
+            out = self._layout.path.confound(
+                source=tsv,
+                kind="fmriprep",
+                desc=self._desc,
+            )
+            if skip_existing(out.path, force=self._force):
+                continue
+
             logger.info("Generating fmriprep confounds for {}", tsv.path.name)
             df = (
                 pl.read_csv(tsv.path, separator="\t")
@@ -191,11 +201,6 @@ class FmriprepConfound:
 
             self._assert_n_trs(tsv, n_trs=block.shape[0])
             repetition_time = get_repetition_time(self._layout, tsv)
-            out = self._layout.path.confound(
-                source=tsv,
-                kind="fmriprep",
-                desc=self._desc,
-            )
             out_df = pl.DataFrame(
                 {
                     "start_time": np.arange(block.shape[0]) * repetition_time,

@@ -64,6 +64,13 @@ def transcribe(
             show_default=False,
         ),
     ] = None,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing outputs (default skips them)",
+        ),
+    ] = False,
 ):
     """
     Transcribe audio files using a Whisper ASR model.
@@ -84,6 +91,7 @@ def transcribe(
         bids_root=bids_root,
         audio_ext=audio_ext,
         bids_filters=_bids_filters,
+        force=force,
     )
 
     _sub_ids = _sub_ids or transcriber._layout.list.subjects(area="stimuli")

@@ -6,7 +6,7 @@ import polars as pl
 from loguru import logger
 
 from hypline.bids import BIDS_ENTITY_VALUE_RE, normalize_bids_filters
-from hypline.io import write_feature
+from hypline.io import skip_existing, write_feature
 from hypline.layout import BIDSLayout
 
 ARPABET_PHONEMES = [
@@ -67,6 +67,7 @@ class PhonemicFeature:
         use_articulatory: bool = True,
         bids_filters: list[str] | None = None,
         desc: str | None = None,
+        force: bool = False,
     ):
         self._load()
 
@@ -79,6 +80,7 @@ class PhonemicFeature:
         if desc is not None and not BIDS_ENTITY_VALUE_RE.match(desc):
             raise ValueError(f"Invalid desc: {desc!r}")
         self._desc = desc
+        self._force = force
 
     @classmethod
     def _load(cls):
@@ -123,6 +125,12 @@ class PhonemicFeature:
         )
 
         for transcript in transcripts:
+            out = self._layout.path.feature(
+                source=transcript, kind="phonemic", desc=self._desc
+            )
+            if skip_existing(out.path, force=self._force):
+                continue
+
             logger.info("Generating phonemic features for {}", transcript.path.name)
             df = pl.read_csv(transcript.path)
             start_times = df.get_column("start_time").to_list()
@@ -160,12 +168,6 @@ class PhonemicFeature:
                     ),
                 }
             )
-
-            out = self._layout.path.feature(
-                source=transcript, kind="phonemic", desc=self._desc
-            )
-            out.path.parent.mkdir(parents=True, exist_ok=True)
-
             metadata = {
                 "use_articulatory": self._use_articulatory,
                 "feature_dim_labels": (
@@ -174,7 +176,6 @@ class PhonemicFeature:
                     else ARPABET_PHONEMES
                 ),
             }
-
             write_feature(out_df, out.path, metadata=metadata)
             logger.debug("Wrote phonemic feature to {}", out.path)
 

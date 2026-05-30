@@ -95,6 +95,31 @@ class TestPhonemicGenerateArpabet:
             assert row.sum() == 1.0
 
 
+class TestPhonemicGenerateSkip:
+    def test_existing_output_skipped(self, tree: BIDSTree, fake_cmudict):
+        _write_transcript(tree, [(0.0, "cat")])
+        layout = BIDSLayout(tree.root)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
+        out = layout.find.features(sub=SUB, kind="phonemic")[0].path
+        out.write_bytes(b"sentinel")
+
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
+        assert out.read_bytes() == b"sentinel"
+
+    def test_force_overwrites_output(self, tree: BIDSTree, fake_cmudict):
+        _write_transcript(tree, [(0.0, "cat")])
+        layout = BIDSLayout(tree.root)
+        PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(SUB)
+        out = layout.find.features(sub=SUB, kind="phonemic")[0].path
+        out.write_bytes(b"sentinel")
+
+        PhonemicFeature(
+            bids_root=tree.root, use_articulatory=False, force=True
+        ).generate(SUB)
+        assert out.read_bytes() != b"sentinel"
+        assert read_feature(out).get_column("phoneme").to_list() == ["K", "AE", "T"]
+
+
 class TestPhonemicGenerateArticulatory:
     def test_vectors_are_articulatory_multi_hot(self, tree: BIDSTree, fake_cmudict):
         _write_transcript(tree, [(0.0, "cat")])

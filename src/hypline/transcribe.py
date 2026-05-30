@@ -7,6 +7,7 @@ from pydantic import BaseModel, field_validator
 
 from hypline.bids import normalize_bids_filters, validate_extension
 from hypline.enums import Device, WhisperModel
+from hypline.io import skip_existing
 from hypline.layout import BIDSLayout
 
 
@@ -36,6 +37,7 @@ class Transcriber:
         bids_root: str | Path,
         audio_ext: str,
         bids_filters: list[str] | None = None,
+        force: bool = False,
     ):
         import torch
         import whisperx
@@ -61,6 +63,8 @@ class Transcriber:
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "stim"}
         )
+
+        self._force = force
 
         self._model = whisperx.load_model(
             whisper_arch=config.model,
@@ -93,6 +97,14 @@ class Transcriber:
             batch_size = 16 if self.config.device is Device.CUDA else 1
 
         for audio_file in audio_files:
+            out = self._layout.path.stimulus(
+                source=audio_file,
+                kind="transcript",
+                ext=".csv",
+            )
+            if skip_existing(out.path, force=self._force):
+                continue
+
             logger.info("Transcribing {}", audio_file.path.name)
             audio = whisperx.load_audio(str(audio_file.path))
 
@@ -112,11 +124,6 @@ class Transcriber:
                     "end": "end_time",
                     "score": "confidence_score",
                 }
-            )
-            out = self._layout.path.stimulus(
-                source=audio_file,
-                kind="transcript",
-                ext=".csv",
             )
             out.path.parent.mkdir(parents=True, exist_ok=True)
             df.write_csv(out.path)

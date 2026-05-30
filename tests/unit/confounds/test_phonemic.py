@@ -249,6 +249,60 @@ class TestPhonemicConfoundGenerate:
         assert len(kept) == 1
         assert kept[0].entities.get("desc") is None
 
+    def test_partial_skip_regenerates_only_missing_variant(self, tree: BIDSTree):
+        _add_phonemic(
+            tree,
+            start_times=[0.5, 0.5, 5.0],
+            phonemes=["K", "AE", "T"],
+        )
+        tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        layout = BIDSLayout(tree.root)
+        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        onset = layout.path.confound(source=feat, kind="phonemic", desc="onset").path
+        rate = layout.path.confound(source=feat, kind="phonemic", desc="rate").path
+
+        # Pre-place a valid onset (skipped) and leave rate missing
+        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        onset.write_bytes(b"sentinel")
+        rate.unlink()
+
+        PhonemicConfound(bids_root=tree.root).generate(SUB)
+
+        assert onset.read_bytes() == b"sentinel"  # existing variant left untouched
+        assert read_confound(rate).height == DEFAULT_BOLD_N_TRS  # missing one rebuilt
+
+    def test_all_variants_skipped(self, tree: BIDSTree):
+        _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
+        tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        layout = BIDSLayout(tree.root)
+        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        onset = layout.path.confound(source=feat, kind="phonemic", desc="onset").path
+        rate = layout.path.confound(source=feat, kind="phonemic", desc="rate").path
+
+        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        onset.write_bytes(b"sent-onset")
+        rate.write_bytes(b"sent-rate")
+
+        PhonemicConfound(bids_root=tree.root).generate(SUB)
+
+        assert onset.read_bytes() == b"sent-onset"
+        assert rate.read_bytes() == b"sent-rate"
+
+    def test_force_regenerates_all_variants(self, tree: BIDSTree):
+        _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
+        tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        layout = BIDSLayout(tree.root)
+        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        onset = layout.path.confound(source=feat, kind="phonemic", desc="onset").path
+
+        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        onset.write_bytes(b"sentinel")
+
+        PhonemicConfound(bids_root=tree.root, force=True).generate(SUB)
+
+        assert onset.read_bytes() != b"sentinel"
+        assert read_confound(onset).height == DEFAULT_BOLD_N_TRS
+
     def test_raises_when_segment_value_unknown(self, tree: BIDSTree):
         _add_phonemic(
             tree,

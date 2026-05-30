@@ -8,7 +8,7 @@ from hypline.bids import normalize_bids_filters
 from hypline.bold import BOLD_EXTENSIONS, load_bold_meta
 from hypline.downsample import DownsampleMethod, downsample
 from hypline.enums import VolumeSpace
-from hypline.io import read_feature, write_confound
+from hypline.io import read_feature, skip_existing, write_confound
 from hypline.layout import BIDSLayout
 
 from ._utils import pick_timing_source, segment_n_trs
@@ -25,11 +25,13 @@ class PhonemicConfound:
         *,
         bids_root: str | Path,
         bids_filters: list[str] | None = None,
+        force: bool = False,
     ):
         self._layout = BIDSLayout(bids_root)
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "feat", "desc"}
         )
+        self._force = force
 
     def generate(self, sub_id: str):
         feature_files = self._layout.find.features(
@@ -41,6 +43,18 @@ class PhonemicConfound:
         feature_files = pick_timing_source(feature_files)
 
         for feat_file in feature_files:
+            pending = []
+            for desc, method in _VARIANTS:
+                out = self._layout.path.confound(
+                    source=feat_file,
+                    kind="phonemic",
+                    desc=desc,
+                )
+                if not skip_existing(out.path, force=self._force):
+                    pending.append((out, method))
+            if not pending:
+                continue
+
             logger.info("Generating phonemic confounds for {}", feat_file.path.name)
             df = read_feature(feat_file.path)
             start_times = df.get_column("start_time").to_numpy()
@@ -53,18 +67,13 @@ class PhonemicConfound:
             bold_meta = load_bold_meta(self._layout, raw_bold)
             n_trs = segment_n_trs(feat_file, bold_meta)
 
-            for desc, method in _VARIANTS:
+            for out, method in pending:
                 series = downsample(
                     np.zeros(len(start_times)),
                     start_times=start_times,
                     n_trs=n_trs,
                     repetition_time=bold_meta.repetition_time,
                     method=method,
-                )
-                out = self._layout.path.confound(
-                    source=feat_file,
-                    kind="phonemic",
-                    desc=desc,
                 )
                 out_df = pl.DataFrame(
                     {

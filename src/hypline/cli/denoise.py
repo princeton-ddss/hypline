@@ -56,6 +56,13 @@ def denoise(
             show_default=False,
         ),
     ] = None,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing outputs (default skips them)",
+        ),
+    ] = False,
 ):
     """Regress out confounds from preprocessed BOLD, writing desc-clean in place."""
     from hypline.denoise import Denoiser
@@ -74,6 +81,7 @@ def denoise(
         space=space.value,
         confounds=_confounds,
         bids_filters=_bids_filters,
+        force=force,
     )
 
     _sub_ids = _sub_ids or denoiser._layout.list.subjects(area="fmriprep")

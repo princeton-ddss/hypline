@@ -54,6 +54,13 @@ def generate_phonemic_feature(
             show_default=False,
         ),
     ] = None,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing outputs (default skips them)",
+        ),
+    ] = False,
 ):
     """Generate phonemic feature from word-level transcripts."""
     from hypline.features.phonemic import PhonemicFeature
@@ -66,6 +73,7 @@ def generate_phonemic_feature(
         use_articulatory=not no_articulatory,
         bids_filters=_bids_filters,
         desc=desc,
+        force=force,
     )
 
     _sub_ids = _sub_ids or feature._layout.list.subjects(area="stimuli")

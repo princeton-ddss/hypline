@@ -77,9 +77,7 @@ class TestLoadConfounds:
             desc="onset",
             df=_array_df([[3.0], [4.0]]),
         )
-        denoiser = _denoiser(
-            tree, ["phonemic-rate", "phonemic-onset"]
-        )
+        denoiser = _denoiser(tree, ["phonemic-rate", "phonemic-onset"])
         loaded = denoiser._load_confounds(bold)
         assert loaded.columns == ["phonemic-rate_0", "phonemic-onset_0"]
 
@@ -96,9 +94,7 @@ class TestLoadConfounds:
             desc="minimal",
             df=_array_df([[1.0], [2.0]]),
         )
-        denoiser = _denoiser(
-            tree, ["motion", "fmriprep-minimal"]
-        )
+        denoiser = _denoiser(tree, ["motion", "fmriprep-minimal"])
         loaded = denoiser._load_confounds(bold)
         assert loaded.columns == ["motion_0", "fmriprep-minimal_0"]
 
@@ -130,9 +126,7 @@ class TestLoadConfounds:
             desc="minimal",
             df=_array_df([[1.0], [2.0], [3.0]]),
         )
-        denoiser = _denoiser(
-            tree, ["motion", "fmriprep-minimal"]
-        )
+        denoiser = _denoiser(tree, ["motion", "fmriprep-minimal"])
         with pytest.raises(ValueError, match="Unequal number of rows"):
             denoiser._load_confounds(bold)
 
@@ -177,7 +171,22 @@ class TestDenoise:
         with pytest.raises(ValueError, match="Unequal number of TRs"):
             denoiser.denoise("01")
 
-    def test_denoise_ignores_existing_desc_clean(self, tree: BIDSTree):
+    def test_existing_desc_clean_skipped(self, tree: BIDSTree):
+        tree.add_bold(sub="01", task="A", run="1", space=VOLUME_SPACE.value)
+        clean_path = tree.func_dir(sub="01") / (
+            f"sub-01_task-A_run-1_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
+        )
+        clean_path.write_bytes(b"sentinel")
+        tree.add_confound(
+            sub="01", task="A", run="1", kind="motion", df=self._confound_df()
+        )
+
+        _denoiser(tree, ["motion"]).denoise("01")
+
+        # Sentinel survives untouched: the existing output was skipped
+        assert clean_path.read_bytes() == b"sentinel"
+
+    def test_force_overwrites_desc_clean(self, tree: BIDSTree):
         tree.add_bold(sub="01", task="A", run="1", space=VOLUME_SPACE.value)
         clean_path = tree.func_dir(sub="01") / (
             f"sub-01_task-A_run-1_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
@@ -188,9 +197,8 @@ class TestDenoise:
         tree.add_confound(
             sub="01", task="A", run="1", kind="motion", df=self._confound_df()
         )
-        denoiser = _denoiser(tree, ["motion"])
 
-        denoiser.denoise("01")
+        _denoiser(tree, ["motion"], force=True).denoise("01")
 
         import nibabel as nib
         from nibabel.nifti1 import Nifti1Image
@@ -209,9 +217,7 @@ class TestDenoise:
         tree.add_confound(
             sub="01", task="A", run="2", kind="motion", df=self._confound_df()
         )
-        denoiser = _denoiser(
-            tree, ["motion"], bids_filters=["task-A", "run-2"]
-        )
+        denoiser = _denoiser(tree, ["motion"], bids_filters=["task-A", "run-2"])
 
         denoiser.denoise("01")
 

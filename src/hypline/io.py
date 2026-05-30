@@ -17,6 +17,7 @@ from typing import Any, cast
 import numpy as np
 import polars as pl
 import pyarrow.parquet as pq
+from loguru import logger
 
 from hypline._version import __version__
 from hypline.bids import BIDSPath
@@ -35,6 +36,19 @@ __all__ = [
 # --------------------------------------------------------------------------- #
 # Shared helpers
 # --------------------------------------------------------------------------- #
+
+
+def skip_existing(path: Path, *, force: bool) -> bool:
+    """Return True (and INFO-log) when `path` exists and `force` is False.
+
+    Guards generation loops so an existing output is left untouched unless the
+    caller opts into overwriting. Check before the compute that produces the
+    file, not at the write, so a skip avoids redoing the work.
+    """
+    if path.exists() and not force:
+        logger.info("Skipping {} (exists; use force to overwrite)", path.name)
+        return True
+    return False
 
 
 def stack_array_column(col: pl.Series) -> np.ndarray:

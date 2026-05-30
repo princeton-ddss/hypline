@@ -269,6 +269,33 @@ class TestGenerate:
         meta = read_confound_metadata(self._output(tree))
         assert meta["_confound_dim_labels"] == ["trans_x", "a_comp_cor_00"]
 
+    def test_existing_output_skipped(self, tree: BIDSTree):
+        self._setup(tree)
+        FmriprepConfound(
+            bids_root=tree.root, desc="min", columns=["trans_x"], compcor=[]
+        ).generate("01")
+        out = self._output(tree)
+        out.write_bytes(b"sentinel")
+
+        FmriprepConfound(
+            bids_root=tree.root, desc="min", columns=["trans_x"], compcor=[]
+        ).generate("01")
+        assert out.read_bytes() == b"sentinel"
+
+    def test_force_overwrites_output(self, tree: BIDSTree):
+        self._setup(tree)
+        FmriprepConfound(
+            bids_root=tree.root, desc="min", columns=["trans_x"], compcor=[]
+        ).generate("01")
+        out = self._output(tree)
+        out.write_bytes(b"sentinel")
+
+        FmriprepConfound(
+            bids_root=tree.root, desc="min", columns=["trans_x"], compcor=[], force=True
+        ).generate("01")
+        assert out.read_bytes() != b"sentinel"
+        assert read_confound(out).height == DEFAULT_BOLD_N_TRS
+
     def test_missing_column_raises(self, tree: BIDSTree):
         self._setup(tree)
         confound = FmriprepConfound(

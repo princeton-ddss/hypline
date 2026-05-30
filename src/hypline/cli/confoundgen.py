@@ -71,6 +71,13 @@ def generate_fmriprep_confound(
             show_default=False,
         ),
     ] = None,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing outputs (default skips them)",
+        ),
+    ] = False,
 ):
     """Extract fmriprep confound columns into a named conf-fmriprep bundle."""
     from hypline.confounds.fmriprep import FmriprepConfound
@@ -92,6 +99,7 @@ def generate_fmriprep_confound(
         columns=_columns,
         compcor=_compcor,
         bids_filters=_bids_filters,
+        force=force,
     )
 
     _sub_ids = _sub_ids or confound._layout.list.subjects(area="fmriprep")
@@ -136,6 +144,13 @@ def generate_phonemic_confound(
             show_default=False,
         ),
     ] = None,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing outputs (default skips them)",
+        ),
+    ] = False,
 ):
     """Generate phonemic confounds (onset, rate) from phonemic feature files."""
     from hypline.confounds.phonemic import PhonemicConfound
@@ -146,6 +161,7 @@ def generate_phonemic_confound(
     confound = PhonemicConfound(
         bids_root=bids_root,
         bids_filters=_bids_filters,
+        force=force,
     )
 
     _sub_ids = _sub_ids or confound._layout.list.subjects(area="stimuli")
