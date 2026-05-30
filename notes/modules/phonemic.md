@@ -51,6 +51,22 @@ downstream downsampling, which fails fast on NaN timestamps (see
 Articulatory features (place, manner, voicing, etc.) are intrinsic phoneme
 properties, so multi-hot per phoneme is the natural representation.
 
+## `featuregen phonemic` chains confound generation
+
+`featuregen phonemic` generates phonemic confounds by default after writing
+features. Failure is isolated per subject: a subject's feature failure skips
+only its own confound, and other subjects proceed. `--skip-confoundgen` writes
+features only.
+
+Defaulting to chained generation is intentional: feature → its timing-only
+confound is the dominant path. `confoundgen phonemic` stays standalone for
+regenerating confounds without regenerating features.
+
+The feature's `--desc` is not forwarded — confound paths carry only the variant
+(`desc-onset`, `desc-rate`), per the collapse below. So re-running with a new
+`--desc` writes the new feature but finds the identical confounds already
+present and skip-logs them. Use `--skip-confoundgen` to suppress those skips.
+
 ## Confound generation collapses `desc-*` variants
 
 Phonemic confounds (`desc-onset`, `desc-rate`) depend only on phoneme

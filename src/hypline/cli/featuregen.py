@@ -61,8 +61,16 @@ def generate_phonemic_feature(
             help="Overwrite existing outputs (default skips them)",
         ),
     ] = False,
+    skip_confoundgen: Annotated[
+        bool,
+        typer.Option(
+            "--skip-confoundgen",
+            help="Do not also generate phonemic confounds from the new features",
+        ),
+    ] = False,
 ):
     """Generate phonemic feature from word-level transcripts."""
+    from hypline.confounds.phonemic import PhonemicConfound
     from hypline.features.phonemic import PhonemicFeature
 
     _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
@@ -82,10 +90,23 @@ def generate_phonemic_feature(
         logger.warning("No subjects found — nothing to generate")
         return
 
+    if skip_confoundgen:
+        task = feature.generate
+    else:
+        confound = PhonemicConfound(
+            bids_root=bids_root,
+            bids_filters=_bids_filters,
+            force=force,
+        )
+
+        def task(sub_id: str):
+            feature.generate(sub_id)
+            confound.generate(sub_id)
+
     run_per_subject(
         bids_root,
         "featuregen",
         "phonemic",
         sub_ids=_sub_ids,
-        task=feature.generate,
+        task=task,
     )
