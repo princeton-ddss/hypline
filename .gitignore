@@ -11,3 +11,6 @@ wheels/
 
 # Playground
 playground
+
+# MkDocs build output
+docs/site/

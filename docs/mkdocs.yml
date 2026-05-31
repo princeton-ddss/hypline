@@ -58,5 +58,17 @@ plugins:
 
 nav:
   - Home: index.md
-  - Guides:
-    - Cleaning BOLD Data: guides/clean.md
+  - How-to guides:
+    - Filter to specific runs or conditions: how-to/filter.md
+    - Regenerate outputs after a fix: how-to/regenerate.md
+  - Concepts:
+    - The hypline dataset layout: concepts/layout.md
+    - Segments and metadata: concepts/segments.md
+  - Reference:
+    - hypline transcribe: reference/transcribe.md
+    - hypline featuregen: reference/featuregen.md
+    - hypline confoundgen: reference/confoundgen.md
+    - hypline denoise: reference/denoise.md
+  # Tutorial section is added once the example dataset is finalized:
+  # - Tutorial:
+  #   - Walkthrough: tutorial/walkthrough.md
