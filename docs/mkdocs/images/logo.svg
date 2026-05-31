@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- H monogram: each post is a participant (head + body), the pulse crossbar is their neural coupling -->
+  <defs>
+    <linearGradient id="cpl" x1="13" y1="0" x2="35" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00897b"/>
+      <stop offset="1" stop-color="#ffb300"/>
+    </linearGradient>
+  </defs>
+  <!-- Speaker (teal): head + body -->
+  <circle cx="13" cy="10.2" r="4.2" fill="#00897b"/>
+  <line x1="13" y1="15.4" x2="13" y2="40" stroke="#00897b" stroke-width="5"/>
+  <!-- Listener (amber): head + body -->
+  <circle cx="35" cy="10.2" r="4.2" fill="#ffb300"/>
+  <line x1="35" y1="15.4" x2="35" y2="40" stroke="#ffb300" stroke-width="5"/>
+  <!-- Coupling: pulse crossbar, snapped to post centers, teal→amber -->
+  <path d="M13 24 H19 L21.5 17 L24 24 L26.5 31 L29 24 H35"
+        stroke="url(#cpl)" stroke-width="4.4" fill="none"/>
+</svg>

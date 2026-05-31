@@ -1,0 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap");
+
+/* Header wordmark */
+.md-header__title .md-ellipsis {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
