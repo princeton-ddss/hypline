@@ -9,21 +9,25 @@
       
       
       
+        <link rel="prev" href="../confoundgen/">
       
       
-      <link rel="icon" href="/assets/images/favicon.png">
+        <link rel="next" href="../python-api/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
     
     
       
-        <title>Hypline</title>
+        <title>hypline denoise - Hypline</title>
       
     
     
-      <link rel="stylesheet" href="/assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
-        <link rel="stylesheet" href="/assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -42,9 +46,9 @@
       
     
     
-      <link rel="stylesheet" href="/assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -69,6 +73,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#hypline-denoise" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -83,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
+    <a href="../.." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -103,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              hypline denoise
             
           </span>
         </div>
@@ -216,7 +225,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -237,7 +246,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/filter/" class="md-tabs__link">
           
   
   
@@ -257,7 +266,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/concepts/layout/" class="md-tabs__link">
+        <a href="../../concepts/layout/" class="md-tabs__link">
           
   
   
@@ -273,11 +282,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/reference/transcribe/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../transcribe/" class="md-tabs__link">
           
   
   
@@ -311,7 +322,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
+    <a href="../.." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -341,7 +352,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -404,7 +415,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/how-to/filter/" class="md-nav__link">
+      <a href="../../how-to/filter/" class="md-nav__link">
         
   
   
@@ -427,7 +438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/how-to/regenerate/" class="md-nav__link">
+      <a href="../../how-to/regenerate/" class="md-nav__link">
         
   
   
@@ -498,7 +509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/concepts/layout/" class="md-nav__link">
+      <a href="../../concepts/layout/" class="md-nav__link">
         
   
   
@@ -521,7 +532,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/concepts/segments/" class="md-nav__link">
+      <a href="../../concepts/segments/" class="md-nav__link">
         
   
   
@@ -548,24 +559,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -578,7 +594,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Reference
@@ -592,7 +608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/transcribe/" class="md-nav__link">
+      <a href="../transcribe/" class="md-nav__link">
         
   
   
@@ -615,7 +631,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/featuregen/" class="md-nav__link">
+      <a href="../featuregen/" class="md-nav__link">
         
   
   
@@ -638,7 +654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/confoundgen/" class="md-nav__link">
+      <a href="../confoundgen/" class="md-nav__link">
         
   
   
@@ -658,10 +674,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/reference/denoise/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    hypline denoise
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -672,6 +710,71 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -684,7 +787,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/python-api/" class="md-nav__link">
+      <a href="../python-api/" class="md-nav__link">
         
   
   
@@ -724,6 +827,61 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -735,8 +893,180 @@
             <div class="md-content" data-md-component="content">
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="hypline-denoise"><code>hypline denoise</code><a class="headerlink" href="#hypline-denoise" title="Permanent link">&para;</a></h1>
+<p>Regress nuisance confounds out of preprocessed BOLD, writing a cleaned
+derivative. This is where the two pipeline branches meet: <code>denoise</code> reads
+fMRIPrep's preprocessed BOLD and the <a href="../confoundgen/">confound files</a> you
+generated, and produces a <code>desc-clean</code> BOLD ready for an encoding model.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span>--confounds<span class="w"> </span>&lt;refs&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div>
+<h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
+<p>Two things, both already in your dataset:</p>
+<ul>
+<li><strong>Preprocessed BOLD</strong> (<code>desc-preproc</code>) under <code>derivatives/fmriprep/</code>.</li>
+<li><strong>Confound files</strong> under <code>confounds/</code>, named by <code>--confounds</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
+├── derivatives/fmriprep/sub-01/func/
+│   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
+│   └── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
+└── confounds/sub-01/
+    ├── fmriprep-minimal/...conf-fmriprep_desc-minimal.parquet
+    └── phonemic-onset/...conf-phonemic_desc-onset.parquet
+</code></pre></div>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--confounds</code></td>
+<td>Comma-separated confound refs to regress out (see below) <strong>(required)</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--space</code></td>
+<td>BOLD space to clean: <code>fsaverage5</code>, <code>fsaverage6</code>, <code>MNI152NLin6Asym</code>, <code>MNI152NLin2009cAsym</code></td>
+<td><code>MNI152NLin2009cAsym</code></td>
+</tr>
+<tr>
+<td><code>--sub-ids</code></td>
+<td>Comma-separated subject IDs to process; omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>--confounds</code></strong> selects which confound files to load, by reference. Each
+reference is a <code>&lt;kind&gt;</code> or <code>&lt;kind&gt;-&lt;desc&gt;</code> token matching the files
+<a href="../confoundgen/"><code>confoundgen</code></a> wrote:</p>
+<table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Resolves to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fmriprep-minimal</code></td>
+<td><code>conf-fmriprep_desc-minimal</code></td>
+</tr>
+<tr>
+<td><code>phonemic-onset</code></td>
+<td><code>conf-phonemic_desc-onset</code></td>
+</tr>
+<tr>
+<td><code>phonemic</code></td>
+<td>the bare <code>conf-phonemic</code> (no <code>desc</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>All referenced confounds are stacked into one regressor matrix. A bare <code>&lt;kind&gt;</code>
+resolves only to the <code>desc</code>-less file, so name each derivation explicitly.</p>
+<div class="admonition warning">
+<p class="admonition-title">Two things must line up</p>
+<ul>
+<li><strong>Space must exist.</strong> <code>--space</code> must name a space present in your fMRIPrep
+  outputs. Surface spaces (<code>fsaverage*</code>) are cleaned per hemisphere
+  automatically.</li>
+<li><strong>TR counts must match.</strong> Every referenced confound file and the BOLD must
+  have the same number of TRs, or <code>denoise</code> raises.</li>
+</ul>
+</div>
+<h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
+<p>Clean surface BOLD for all subjects, regressing out a motion bundle plus the
+phonemic onset confound:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal,phonemic-onset
+</code></pre></div>
+<p>Clean only run 1 of subjects 01 and 02:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-full<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>run-1
+</code></pre></div>
+<h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
+<p>The cleaned BOLD is written <strong>in place</strong>, in the same fMRIPrep <code>func/</code> directory
+as its <code>desc-preproc</code> source, differing only in the <code>desc</code> entity
+(<code>desc-clean</code>):</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/fmriprep/sub-01/func/
+├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii   # input
+├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-clean_bold.func.gii     # output
+├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii   # input
+└── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-clean_bold.func.gii     # output
+</code></pre></div>
+<p>The output keeps the input's dimensions and metadata — only the signal values
+change. Cleaned BOLD lives beside its source because it continues the fMRIPrep
+pipeline and shares the run's identity. An encoding model reads <code>desc-clean</code> by
+default.</p>
+<h2 id="common-errors">Common errors<a class="headerlink" href="#common-errors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Expected one '&lt;ref&gt;' confound for ..., found 0</code></td>
+<td>A <code>--confounds</code> ref names a file <code>confoundgen</code> never wrote (wrong <code>desc</code>, or that step was skipped).</td>
+<td>Check the ref spelling against the <a href="../confoundgen/"><code>confoundgen</code> outputs</a>; a bare <code>phonemic</code> matches only the <code>desc</code>-less file, so use <code>phonemic-onset</code> / <code>phonemic-rate</code>.</td>
+</tr>
+<tr>
+<td><code>Unequal number of TRs between BOLD and confounds</code></td>
+<td>A confound table has a different row count than the BOLD it is paired with.</td>
+<td>Regenerate that confound against the same run; fMRIPrep and phonemic confounds must both span every TR.</td>
+</tr>
+<tr>
+<td>Command finishes, but no <code>desc-clean</code> files appear</td>
+<td><code>--space</code> names a valid space that is <strong>absent</strong> from your fMRIPrep outputs, so nothing matched.</td>
+<td>Pass a <code>--space</code> you actually preprocessed (check the <code>space-</code> entity on your <code>desc-preproc</code> files).</td>
+</tr>
+<tr>
+<td><code>No subjects found — nothing to denoise</code></td>
+<td>No subjects under <code>derivatives/fmriprep/</code>, or <code>--sub-ids</code> / <code>--data-filters</code> excluded them all.</td>
+<td>Confirm fMRIPrep outputs exist and that your filters are not too narrow.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -754,6 +1084,44 @@
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../confoundgen/" class="md-footer__link md-footer__link--prev" aria-label="Previous: hypline confoundgen">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                hypline confoundgen
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../python-api/" class="md-footer__link md-footer__link--next" aria-label="Next: Python API">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Python API
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">
@@ -784,12 +1152,12 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "/", "features": ["content.code.annotate", "content.code.copy", "header.autohide", "navigation.instant", "navigation.tabs", "navigation.top", "navigation.footer", "search.highlight", "search.suggest"], "search": "/assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.annotate", "content.code.copy", "header.autohide", "navigation.instant", "navigation.tabs", "navigation.top", "navigation.footer", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="/assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
       
-        <script src="/javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

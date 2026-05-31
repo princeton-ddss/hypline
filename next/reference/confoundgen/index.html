@@ -9,23 +9,25 @@
       
       
       
+        <link rel="prev" href="../featuregen/">
       
-        <link rel="next" href="how-to/filter/">
+      
+        <link rel="next" href="../denoise/">
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
     
     
       
-        <title>Hypline</title>
+        <title>hypline confoundgen - Hypline</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -44,9 +46,9 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -72,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#hypline" class="md-skip">
+        <a href="#hypline-confoundgen" class="md-skip">
           Skip to content
         </a>
       
@@ -90,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
+    <a href="../.." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -110,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              hypline confoundgen
             
           </span>
         </div>
@@ -221,11 +223,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -246,7 +246,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/filter/" class="md-tabs__link">
           
   
   
@@ -266,7 +266,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="concepts/layout/" class="md-tabs__link">
+        <a href="../../concepts/layout/" class="md-tabs__link">
           
   
   
@@ -282,11 +282,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="reference/transcribe/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../transcribe/" class="md-tabs__link">
           
   
   
@@ -320,7 +322,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
+    <a href="../.." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -347,32 +349,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Home
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -383,62 +363,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-pipeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      The pipeline
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run-the-pipeline" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run the pipeline
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-to-go-next" class="md-nav__link">
-    <span class="md-ellipsis">
-      Where to go next
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -491,7 +415,7 @@
   
   
     <li class="md-nav__item">
-      <a href="how-to/filter/" class="md-nav__link">
+      <a href="../../how-to/filter/" class="md-nav__link">
         
   
   
@@ -514,7 +438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="how-to/regenerate/" class="md-nav__link">
+      <a href="../../how-to/regenerate/" class="md-nav__link">
         
   
   
@@ -585,7 +509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="concepts/layout/" class="md-nav__link">
+      <a href="../../concepts/layout/" class="md-nav__link">
         
   
   
@@ -608,7 +532,7 @@
   
   
     <li class="md-nav__item">
-      <a href="concepts/segments/" class="md-nav__link">
+      <a href="../../concepts/segments/" class="md-nav__link">
         
   
   
@@ -635,24 +559,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -665,7 +594,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Reference
@@ -679,7 +608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/transcribe/" class="md-nav__link">
+      <a href="../transcribe/" class="md-nav__link">
         
   
   
@@ -702,7 +631,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/featuregen/" class="md-nav__link">
+      <a href="../featuregen/" class="md-nav__link">
         
   
   
@@ -722,10 +651,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="reference/confoundgen/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    hypline confoundgen
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -736,6 +687,128 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#confoundgen-fmriprep" class="md-nav__link">
+    <span class="md-ellipsis">
+      confoundgen fmriprep
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="confoundgen fmriprep">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confoundgen-phonemic" class="md-nav__link">
+    <span class="md-ellipsis">
+      confoundgen phonemic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="confoundgen phonemic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -748,7 +821,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/denoise/" class="md-nav__link">
+      <a href="../denoise/" class="md-nav__link">
         
   
   
@@ -771,7 +844,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/python-api/" class="md-nav__link">
+      <a href="../python-api/" class="md-nav__link">
         
   
   
@@ -821,38 +894,104 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#confoundgen-fmriprep" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
+      confoundgen fmriprep
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="confoundgen fmriprep">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#the-pipeline" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
     <span class="md-ellipsis">
-      The pipeline
+      Options
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#run-the-pipeline" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
-      Run the pipeline
+      Example
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#where-to-go-next" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
     <span class="md-ellipsis">
-      Where to go next
+      Outputs
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confoundgen-phonemic" class="md-nav__link">
+    <span class="md-ellipsis">
+      confoundgen phonemic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="confoundgen phonemic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -875,151 +1014,198 @@
   
 
 
-<h1 id="hypline">Hypline<a class="headerlink" href="#hypline" title="Permanent link">&para;</a></h1>
-<p>Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. It turns stimulus audio
-and <a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> outputs into the
-inputs an <strong>encoding model</strong> needs — transcripts, features, confounds, and
-cleaned BOLD — all organized in one <a href="https://bids.neuroimaging.io/">BIDS</a>-style
-dataset. An encoding model predicts the brain's BOLD response from features of
-the speech a participant heard; hypline prepares both sides of that fit, the
-stimulus features (the predictors) and the denoised BOLD (the target).</p>
-<p>Hypline implements the encoding-model approach of Zada et al. (2026),<sup id="fnref:zada"><a class="footnote-ref" href="#fn:zada">1</a></sup>
-which used fMRI hyperscanning and language-model features to study the shared
-neural systems for speech production and comprehension in real-time dyadic
-conversations.</p>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">pip</label><label for="__tabbed_1_2">uv</label><label for="__tabbed_1_3">poetry</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>hypline
+<h1 id="hypline-confoundgen"><code>hypline confoundgen</code><a class="headerlink" href="#hypline-confoundgen" title="Permanent link">&para;</a></h1>
+<p>Generate <strong>confound files</strong> — TR-aligned nuisance regressors that
+<a href="../denoise/"><code>denoise</code></a> regresses out of the BOLD signal. <code>confoundgen</code> is a
+group of subcommands, one per confound source.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>&lt;source&gt;<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>add<span class="w"> </span>hypline
-</code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code>poetry<span class="w"> </span>add<span class="w"> </span>hypline
-</code></pre></div>
-</div>
-</div>
-</div>
-<p>This installs the <code>hypline</code> command. Confirm it works:</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>--help
-</code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">FFmpeg required for transcription</p>
-<p><code>hypline transcribe</code> decodes audio through <a href="https://ffmpeg.org/">FFmpeg</a>,
-which must be installed separately and available on your <code>PATH</code>. Other
-commands do not need it.</p>
-</div>
-<h2 id="the-pipeline">The pipeline<a class="headerlink" href="#the-pipeline" title="Permanent link">&para;</a></h2>
-<p>Hypline commands form a pipeline. Each one reads from a shared dataset root and
-writes its outputs back into the same tree. The steps fall into two independent
-branches — a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong> — that never touch
-until they converge at <code>denoise</code>:</p>
 <table>
 <thead>
 <tr>
-<th>Command</th>
-<th>Branch</th>
-<th>Reads</th>
-<th>Writes</th>
+<th>Subcommand</th>
+<th>Source</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>transcribe</code></td>
-<td>stimulus</td>
-<td>stimulus audio</td>
-<td>word-level transcripts</td>
+<td><code>fmriprep</code></td>
+<td>columns from fMRIPrep's confounds table</td>
 </tr>
 <tr>
-<td><code>featuregen phonemic</code></td>
-<td>stimulus</td>
-<td>transcripts</td>
-<td>phonemic features (+ confounds)</td>
-</tr>
-<tr>
-<td><code>confoundgen phonemic</code></td>
-<td>stimulus</td>
-<td>phonemic features</td>
-<td><code>conf-phonemic</code> confounds</td>
-</tr>
-<tr>
-<td><code>confoundgen fmriprep</code></td>
-<td>fMRIPrep</td>
-<td>fMRIPrep confounds TSV</td>
-<td><code>conf-fmriprep</code> confounds</td>
-</tr>
-<tr>
-<td><code>denoise</code></td>
-<td>converge</td>
-<td>preprocessed BOLD, confounds</td>
-<td>cleaned BOLD (<code>desc-clean</code>)</td>
+<td><code>phonemic</code></td>
+<td>timing of phonemic features (onset indicator, rate)</td>
 </tr>
 </tbody>
 </table>
-<div class="admonition tip">
-<p class="admonition-title">Features and their confounds in one step</p>
-<p><code>featuregen phonemic</code> also generates the matching phonemic confounds by
-default, so you rarely call <code>confoundgen phonemic</code> directly. See the
-<a href="reference/featuregen/">featuregen reference</a>.</p>
-</div>
-<p>You do not have to run every step. Each command works on its own as long as its
-inputs exist — for example, you can run <code>confoundgen fmriprep</code> and <code>denoise</code>
-without ever transcribing audio.</p>
-<h2 id="run-the-pipeline">Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permanent link">&para;</a></h2>
-<p>Once your files sit where hypline expects (see
-<a href="concepts/layout/">the dataset layout</a>), every command takes the dataset root
-and discovers its inputs from there — you never pass file paths. End to end, the
-whole pipeline is four commands. Each reads what the previous ones wrote, so
-order matters only where one step's output is the next step's input:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># stimulus branch: audio → transcripts → features (+ phonemic confounds, auto)</span>
-hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav
-hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/
-
-<span class="c1"># fMRIPrep branch: pull a motion + drift confound bundle</span>
-hypline<span class="w"> </span>confoundgen<span class="w"> </span>fmriprep<span class="w"> </span>data/<span class="w"> </span>--desc<span class="w"> </span>minimal<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
-
-<span class="c1"># converge: regress the chosen confounds out of the BOLD</span>
-hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal,phonemic-onset
-</code></pre></div>
-<p>After this, <code>data/</code> holds <code>desc-clean</code> BOLD ready for an encoding model. You can
-also start with <code>transcribe</code> alone and follow the table above step by step.
-Re-run any single step with <code>--force</code> to overwrite its outputs; without it,
-hypline skips work it has already done.</p>
-<div class="admonition tip">
-<p class="admonition-title">If a command seems to do nothing</p>
-<p>Two harmless cases look like failures. <strong><code>No subjects found</code></strong> means the area
-that command reads is empty or your <code>--sub-ids</code> / <code>--data-filters</code> excluded
-everything — widen the filter or check the files are in place. A command that
-exits instantly with no log means its outputs already exist and were skipped;
-re-run with <code>--force</code> to regenerate. Per-command failure modes are listed
-under <strong>Common errors</strong> on each reference page.</p>
-</div>
-<h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>New to hypline?</strong> Start with <a href="concepts/layout/">The hypline dataset layout</a>
-  to learn how a dataset is organized — every command depends on it.</li>
-<li><strong>Want command details?</strong> See the <a href="reference/transcribe/">Reference</a> for each
-  command's arguments and options.</li>
-</ul>
-<div class="footnote">
+<p>All confound files share one on-disk format regardless of source, so <code>denoise</code>
+can mix them freely. Each is a Parquet table already aligned to the BOLD TR grid.</p>
 <hr />
-<ol>
-<li id="fn:zada">
-<p>Zada, Z., Nastase, S. A., Speer, S., Mwilambwe-Tshilobo, L., Tsoi, L.,
-Burns, S. M., Falk, E., Hasson, U., &amp; Tamir, D. I. (2026). Linguistic
-coupling between neural systems for speech production and comprehension
-during real-time dyadic conversations. <em>Neuron</em>, <em>114</em>, 1–14.
-<a href="https://doi.org/10.1016/j.neuron.2025.11.004">https://doi.org/10.1016/j.neuron.2025.11.004</a>&#160;<a class="footnote-backref" href="#fnref:zada" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
-</ol>
+<h2 id="confoundgen-fmriprep"><code>confoundgen fmriprep</code><a class="headerlink" href="#confoundgen-fmriprep" title="Permanent link">&para;</a></h2>
+<p>Import selected columns from fMRIPrep's <code>desc-confounds_timeseries.tsv</code> into a
+named hypline confound bundle (<code>conf-fmriprep</code>). A bundle is a single Parquet
+file per run that stacks all the columns you selected into one regressor table.
+This converts fMRIPrep's regressors into hypline's format so they reach
+<code>denoise</code> through the same path as every other confound. It reads only the
+confounds table — never the BOLD.</p>
+<h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
+<p>fMRIPrep's per-run confounds table under <code>derivatives/fmriprep/</code>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/fmriprep/sub-01/func/
+├── sub-01_task-conv_run-1_desc-confounds_timeseries.tsv
+└── sub-01_task-conv_run-1_desc-confounds_timeseries.json   # needed for CompCor
+</code></pre></div>
+<h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--desc</code></td>
+<td>Label naming this bundle (alphanumeric), e.g. <code>--desc minimal</code> → <code>conf-fmriprep_desc-minimal</code> <strong>(required)</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--columns</code></td>
+<td>Comma-separated confound columns to pull (see below)</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--compcor</code></td>
+<td>Comma-separated CompCor selectors (see below)</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--sub-ids</code></td>
+<td>Comma-separated subject IDs to process; omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<p>At least one of <code>--columns</code> or <code>--compcor</code> is required.</p>
+<p><strong><code>--columns</code></strong> accepts exact column names from the fMRIPrep table
+(<code>trans_x</code>, <code>rot_x</code>, …) plus <em>group prefixes</em> that expand to every matching
+column (<code>cosine</code> → all cosine regressors, <code>motion_outlier</code> → all motion-outlier
+columns).</p>
+<p><strong><code>--compcor</code></strong> selects principal components using <code>type:mask:n</code> tokens:</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a:CSF:5</code></td>
+<td>top-5 <strong>a</strong>natomical CompCor components in the CSF mask</td>
+</tr>
+<tr>
+<td><code>a:WM:5</code></td>
+<td>top-5 anatomical components in the white-matter mask</td>
+</tr>
+<tr>
+<td><code>t::10</code></td>
+<td>top-10 <strong>t</strong>emporal CompCor components (no mask)</td>
+</tr>
+<tr>
+<td><code>a:CSF:0.5</code></td>
+<td>enough CSF components to explain 50% of variance</td>
+</tr>
+</tbody>
+</table>
+<p><code>type</code> is <code>a</code> (anatomical — mask required) or <code>t</code> (temporal — no mask). <code>n</code> is a
+top-N integer, or a fraction between 0 and 1 for a variance threshold.</p>
+<h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h3>
+<p>A minimal motion model (6 motion parameters + cosine drift):</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>fmriprep<span class="w"> </span>data/<span class="w"> </span>--desc<span class="w"> </span>minimal<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
+</code></pre></div>
+<p>A fuller model adding CompCor components:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>fmriprep<span class="w"> </span>data/<span class="w"> </span>--desc<span class="w"> </span>full<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5
+</code></pre></div>
+<h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
+<p>One bundle per run, tagged <code>conf-fmriprep</code> and the <code>--desc</code> label. Each bundle
+lives in its own <code>fmriprep-&lt;label&gt;/</code> subdirectory:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/sub-01/
+├── fmriprep-minimal/
+│   └── sub-01_task-conv_run-1_conf-fmriprep_desc-minimal.parquet
+└── fmriprep-full/
+    └── sub-01_task-conv_run-1_conf-fmriprep_desc-full.parquet
+</code></pre></div>
+<hr />
+<h2 id="confoundgen-phonemic"><code>confoundgen phonemic</code><a class="headerlink" href="#confoundgen-phonemic" title="Permanent link">&para;</a></h2>
+<p>Generate phonemic confounds from phonemic feature files. These capture <em>when</em>
+speech occurred, not its content — an <strong>onset</strong> indicator and a speech <strong>rate</strong>
+regressor, derived purely from phoneme timing.</p>
+<div class="admonition tip">
+<p class="admonition-title">Usually automatic</p>
+<p><a href="../featuregen/"><code>featuregen phonemic</code></a> runs this step for you by default.
+Call <code>confoundgen phonemic</code> directly only to regenerate confounds without
+regenerating features.</p>
 </div>
+<h3 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h3>
+<p>Phonemic feature files produced by <a href="../featuregen/"><code>featuregen phonemic</code></a>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/sub-01/phonemic/
+└── sub-01_task-conv_run-1_feat-phonemic.parquet
+</code></pre></div>
+<h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--sub-ids</code></td>
+<td>Comma-separated subject IDs to process; omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<h3 id="example_1">Example<a class="headerlink" href="#example_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>phonemic<span class="w"> </span>data/
+</code></pre></div>
+<h3 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h3>
+<p>Two derivations per run, tagged <code>conf-phonemic</code> and distinguished by <code>desc</code>.
+Each <code>desc</code> lands in its own subdirectory:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/sub-01/
+├── phonemic-onset/
+│   └── sub-01_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
+└── phonemic-rate/
+    └── sub-01_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
+</code></pre></div>
+<p>Refer to a derivation by name when denoising: <code>phonemic-onset</code>, <code>phonemic-rate</code>
+(see <a href="../denoise/"><code>denoise --confounds</code></a>).</p>
 
 
 
@@ -1054,15 +1240,31 @@ during real-time dyadic conversations. <em>Neuron</em>, <em>114</em>, 1–14.
       
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
+          
+          <a href="../featuregen/" class="md-footer__link md-footer__link--prev" aria-label="Previous: hypline featuregen">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                hypline featuregen
+              </div>
+            </div>
+          </a>
+        
         
           
-          <a href="how-to/filter/" class="md-footer__link md-footer__link--next" aria-label="Next: Filter to specific runs or conditions">
+          <a href="../denoise/" class="md-footer__link md-footer__link--next" aria-label="Next: hypline denoise">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Filter to specific runs or conditions
+                hypline denoise
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1102,12 +1304,12 @@ during real-time dyadic conversations. <em>Neuron</em>, <em>114</em>, 1–14.
     
     
       
-      <script id="__config" type="application/json">{"base": ".", "features": ["content.code.annotate", "content.code.copy", "header.autohide", "navigation.instant", "navigation.tabs", "navigation.top", "navigation.footer", "search.highlight", "search.suggest"], "search": "assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.annotate", "content.code.copy", "header.autohide", "navigation.instant", "navigation.tabs", "navigation.top", "navigation.footer", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
       
-        <script src="javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

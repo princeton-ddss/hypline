@@ -9,21 +9,25 @@
       
       
       
+        <link rel="prev" href="../filter/">
       
       
-      <link rel="icon" href="/assets/images/favicon.png">
+        <link rel="next" href="../../concepts/layout/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
     
     
       
-        <title>Hypline</title>
+        <title>Regenerate outputs after a fix - Hypline</title>
       
     
     
-      <link rel="stylesheet" href="/assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
-        <link rel="stylesheet" href="/assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -42,9 +46,9 @@
       
     
     
-      <link rel="stylesheet" href="/assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -69,6 +73,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#regenerate-outputs-after-a-fix" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -83,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="/." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
+    <a href="../.." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -103,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              
+              Regenerate outputs after a fix
             
           </span>
         </div>
@@ -216,7 +225,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="/." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -233,11 +242,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="/how-to/filter/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../filter/" class="md-tabs__link">
           
   
   
@@ -257,7 +268,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/concepts/layout/" class="md-tabs__link">
+        <a href="../../concepts/layout/" class="md-tabs__link">
           
   
   
@@ -277,7 +288,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="/reference/transcribe/" class="md-tabs__link">
+        <a href="../../reference/transcribe/" class="md-tabs__link">
           
   
   
@@ -311,7 +322,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="/." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
+    <a href="../.." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -341,7 +352,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -360,24 +371,29 @@
       
   
   
+    
   
   
+  
     
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -390,7 +406,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             How-to guides
@@ -404,7 +420,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/how-to/filter/" class="md-nav__link">
+      <a href="../filter/" class="md-nav__link">
         
   
   
@@ -424,10 +440,32 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="/how-to/regenerate/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Regenerate outputs after a fix
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -438,6 +476,53 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-a-plain-rerun-does-nothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why a plain rerun does nothing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-rerun-after-each-kind-of-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      What to rerun after each kind of fix
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-example-you-fixed-run-1s-eventstsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worked example: you fixed run 1's events.tsv
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -498,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/concepts/layout/" class="md-nav__link">
+      <a href="../../concepts/layout/" class="md-nav__link">
         
   
   
@@ -521,7 +606,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/concepts/segments/" class="md-nav__link">
+      <a href="../../concepts/segments/" class="md-nav__link">
         
   
   
@@ -592,7 +677,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/transcribe/" class="md-nav__link">
+      <a href="../../reference/transcribe/" class="md-nav__link">
         
   
   
@@ -615,7 +700,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/featuregen/" class="md-nav__link">
+      <a href="../../reference/featuregen/" class="md-nav__link">
         
   
   
@@ -638,7 +723,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/confoundgen/" class="md-nav__link">
+      <a href="../../reference/confoundgen/" class="md-nav__link">
         
   
   
@@ -661,7 +746,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/denoise/" class="md-nav__link">
+      <a href="../../reference/denoise/" class="md-nav__link">
         
   
   
@@ -684,7 +769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="/reference/python-api/" class="md-nav__link">
+      <a href="../../reference/python-api/" class="md-nav__link">
         
   
   
@@ -724,6 +809,43 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-a-plain-rerun-does-nothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why a plain rerun does nothing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-to-rerun-after-each-kind-of-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      What to rerun after each kind of fix
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worked-example-you-fixed-run-1s-eventstsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worked example: you fixed run 1's events.tsv
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -735,8 +857,135 @@
             <div class="md-content" data-md-component="content">
               <article class="md-content__inner md-typeset">
                 
-  <h1>404 - Not found</h1>
+                  
 
+
+  
+  
+
+
+<h1 id="regenerate-outputs-after-a-fix">Regenerate outputs after a fix<a class="headerlink" href="#regenerate-outputs-after-a-fix" title="Permanent link">&para;</a></h1>
+<p>You ran part of the pipeline, then something upstream changed — you re-recorded
+audio, fixed an <code>events.tsv</code>, or chose different confound columns. This guide
+shows how to redo just the affected work without recomputing the whole dataset,
+and — importantly — which <strong>downstream</strong> steps you must also rerun.</p>
+<h2 id="why-a-plain-rerun-does-nothing">Why a plain rerun does nothing<a class="headerlink" href="#why-a-plain-rerun-does-nothing" title="Permanent link">&para;</a></h2>
+<p>By default, hypline <strong>skips any output that already exists</strong>. This makes reruns
+cheap, but it means a second run after a fix appears to do nothing: the outputs
+are still there, so every step is skipped.</p>
+<p>To overwrite, pass <strong><code>--force</code></strong>. Skipping is decided per output file, so
+<code>--force</code> combined with <a href="../filter/"><code>--sub-ids</code> / <code>--data-filters</code></a> regenerates
+<strong>only</strong> the subset you select — everything else is left untouched.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># regenerate features for run 1 only; all other runs stay as they were</span>
+hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Skipping is existence-only — there is no staleness detection</p>
+<p>Hypline decides to skip by asking <em>“does this output file exist?”</em> — <strong>not</strong>
+<em>“is this output older than its inputs?”</em> It never compares timestamps. So
+regenerating an input does <strong>not</strong> mark anything downstream as stale.</p>
+<p>If a later step's output already exists, that step will <strong>skip and leave its
+old result in place</strong>, now computed from inputs you have since changed. You
+must rerun every downstream step with <code>--force</code> yourself. The propagation
+table below tells you which ones.</p>
+</div>
+<h2 id="what-to-rerun-after-each-kind-of-fix">What to rerun after each kind of fix<a class="headerlink" href="#what-to-rerun-after-each-kind-of-fix" title="Permanent link">&para;</a></h2>
+<p>Find the row for what you changed; rerun the listed steps <strong>in order</strong>, each with
+<code>--force</code> (scoped with filters as needed). Each step reads what the one before it
+wrote, so a gap leaves stale output behind.</p>
+<table>
+<thead>
+<tr>
+<th>You changed…</th>
+<th>Rerun, in order (each <code>--force</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stimulus audio</strong></td>
+<td><code>transcribe</code> → <code>featuregen phonemic</code> → <code>denoise</code></td>
+</tr>
+<tr>
+<td><strong>An <code>events.tsv</code></strong> (segment onsets/durations)</td>
+<td><code>featuregen phonemic</code> → <code>denoise</code></td>
+</tr>
+<tr>
+<td><strong>An <code>events.json</code></strong> (metadata only, e.g. <code>cond</code>)</td>
+<td>nothing to regenerate — metadata is read at filter time, not baked into outputs<sup id="fnref:meta"><a class="footnote-ref" href="#fn:meta">1</a></sup></td>
+</tr>
+<tr>
+<td><strong>fMRIPrep confound columns</strong> (<code>--columns</code> / <code>--desc</code>)</td>
+<td><code>confoundgen fmriprep</code> → <code>denoise</code></td>
+</tr>
+<tr>
+<td><strong>fMRIPrep preprocessed BOLD</strong></td>
+<td><code>confoundgen fmriprep</code> → <code>denoise</code></td>
+</tr>
+<tr>
+<td><strong>Which confounds to regress</strong> (<code>--confounds</code> on denoise)</td>
+<td><code>denoise</code> only</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Why <code>featuregen phonemic</code>, not <code>confoundgen phonemic</code>, in those rows</p>
+<p><code>featuregen phonemic</code> emits both the features <strong>and</strong> the matching
+<code>conf-phonemic</code> confounds in one step, so <code>--force</code> refreshes both — no
+separate <code>confoundgen phonemic</code> call needed after an audio or <code>events.tsv</code>
+fix. The catch worth knowing: segment onsets and durations affect only the
+<strong>confound</strong> half. <code>feat-phonemic</code> carries per-word timing and is
+segment-agnostic, so re-emitting it is harmless rework, not a correctness
+fix; the segmenting that <code>events.tsv</code> drives happens when the confounds are
+built.</p>
+</div>
+<h2 id="worked-example-you-fixed-run-1s-eventstsv">Worked example: you fixed run 1's <code>events.tsv</code><a class="headerlink" href="#worked-example-you-fixed-run-1s-eventstsv" title="Permanent link">&para;</a></h2>
+<p>You corrected a segment onset in <code>sub-01_task-conv_run-1_events.tsv</code>. That run's
+<strong>phonemic confounds</strong> are now wrong — they are sliced to the segment windows
+your <code>events.tsv</code> defines — and the cleaned BOLD built on them is stale.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. refresh phonemic confounds for just that run</span>
+<span class="c1">#    (featuregen also re-emits feat-phonemic; harmless, segment-agnostic)</span>
+hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">01</span><span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
+
+<span class="c1"># 2. rebuild the cleaned BOLD that consumed them</span>
+hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal,phonemic-onset<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span><span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
+</code></pre></div>
+<p>Without step 2's <code>--force</code>, <code>denoise</code> would see the existing <code>desc-clean</code> file
+and skip — leaving cleaned BOLD built from the old, wrongly-segmented confounds.</p>
+<div class="admonition tip">
+<p class="admonition-title">When in doubt, force the whole tail</p>
+<p>If you are unsure how far a change propagates, rerun every step from the
+fix onward with <code>--force</code>. Hypline recomputes from scratch each time, so a
+broader <code>--force</code> is never <em>wrong</em> — only more expensive. Scope it with
+<code>--sub-ids</code> / <code>--data-filters</code> to keep the cost down.</p>
+</div>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:meta">
+<p><code>events.json</code> metadata (like <code>cond</code>) is matched by <code>--data-filters</code> when
+a command runs; it is never written into a filename or output. Changing it
+changes <em>which</em> files a future filter selects, not the contents of files
+already generated. (Segment onsets/durations in <code>events.tsv</code>, by contrast,
+<em>do</em> change generated confounds — so that row regenerates.)&#160;<a class="footnote-backref" href="#fnref:meta" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
               </article>
             </div>
           
@@ -754,6 +1003,44 @@
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../filter/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Filter to specific runs or conditions">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Filter to specific runs or conditions
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../concepts/layout/" class="md-footer__link md-footer__link--next" aria-label="Next: The hypline dataset layout">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                The hypline dataset layout
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">
@@ -784,12 +1071,12 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "/", "features": ["content.code.annotate", "content.code.copy", "header.autohide", "navigation.instant", "navigation.tabs", "navigation.top", "navigation.footer", "search.highlight", "search.suggest"], "search": "/assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.annotate", "content.code.copy", "header.autohide", "navigation.instant", "navigation.tabs", "navigation.top", "navigation.footer", "search.highlight", "search.suggest"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="/assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
       
-        <script src="/javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       
