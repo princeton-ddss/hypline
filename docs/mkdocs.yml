@@ -55,6 +55,17 @@ extra_javascript:
 
 plugins:
   - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [../src]
+          options:
+            docstring_style: numpy
+            show_root_heading: true
+            show_source: false
+            heading_level: 4
+            separate_signature: true
+            show_signature_annotations: true
 
 nav:
   - Home: index.md
@@ -69,6 +80,7 @@ nav:
     - hypline featuregen: reference/featuregen.md
     - hypline confoundgen: reference/confoundgen.md
     - hypline denoise: reference/denoise.md
+    - Python API: reference/python-api.md
   # Tutorial section is added once the example dataset is finalized:
   # - Tutorial:
   #   - Walkthrough: tutorial/walkthrough.md
