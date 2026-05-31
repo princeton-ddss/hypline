@@ -1,10 +1,14 @@
 import reprlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Literal, NamedTuple, get_args
+from typing import TYPE_CHECKING, Iterator, Literal, NamedTuple, get_args
 
 import numpy as np
 from pydantic import BaseModel
+from sklearn.base import BaseEstimator, TransformerMixin
+
+if TYPE_CHECKING:
+    from sklearn.pipeline import Pipeline
 
 from hypline.bids import (
     BIDS_ENTITY_VALUE_RE,
@@ -25,6 +29,11 @@ from hypline.io import read_feature, read_feature_metadata, stack_array_column
 from hypline.layout import BIDSLayout
 
 FeatureDownsampleMethod = Literal["mean", "sum"]
+
+# Stopgap inner-CV seed; proper seed source lands with the structural rule in Phase 4
+_INNER_CV_SEED = 0
+_SOLVER_N_ITER = 100
+_SOLVER_DIAGONALIZE_METHOD = "svd"
 
 # Public Encoding-facing methods must be a subset of all methods
 if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
@@ -105,6 +114,8 @@ class FeatureKey(NamedTuple):
 
 class EncodingConfig(BaseModel):
     device: Device = Device.CPU
+    delays: list[int] = [0, 1, 2, 3, 4, 5]
+    alphas: list[float] = np.logspace(0, 12, 13).tolist()
 
 
 @dataclass(frozen=True)
@@ -156,6 +167,109 @@ def _load_bold_array(path: Path) -> np.ndarray:
         return np.column_stack([d.data for d in img.darrays]).T
     else:
         raise ValueError(f"Unsupported image format: {type(img).__name__}")
+
+
+class CellDelayer(BaseEstimator, TransformerMixin):
+    """Stack finite-impulse-response delays of X, one column block per delay.
+
+    A row's delayed source `row - d` is zeroed when it falls before the start of
+    that row's cell, so a cell never sees feature values from the cell above it.
+    `cell_lengths` gives the per-cell row counts in the same cell order as
+    `TrainingData.row_slices`; it is set per `train`/`predict` call rather than
+    frozen, since cell lengths are per-subject.
+
+    Assumes `delays >= 0`. Negative delays would need the mirror-image mask
+    (zeroing rows near a cell's *end*) and are out of scope.
+    """
+
+    def __init__(self, delays: list[int], cell_lengths: list[int]):
+        self.delays = delays
+        self.cell_lengths = cell_lengths
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        if any(d < 0 for d in self.delays):
+            raise ValueError(
+                f"CellDelayer supports delays >= 0 only; got {self.delays}"
+            )
+        X = np.asarray(X)
+        if X.shape[0] != sum(self.cell_lengths):
+            raise ValueError(
+                f"X has {X.shape[0]} rows but cell_lengths sum to "
+                f"{sum(self.cell_lengths)}"
+            )
+
+        cell_starts = np.repeat(
+            np.concatenate(([0], np.cumsum(self.cell_lengths)[:-1])),
+            self.cell_lengths,
+        )
+        rows = np.arange(X.shape[0])
+
+        delayed_blocks = []
+        for d in self.delays:
+            block = np.zeros_like(X)
+            # row i takes source i-d, valid only when i-d stays within i's cell
+            valid = rows - d >= cell_starts
+            block[valid] = X[rows[valid] - d]
+            delayed_blocks.append(block)
+
+        return np.hstack(delayed_blocks)
+
+
+def _build_pipeline(
+    col_slices: dict[str, slice],
+    cell_lengths: list[int],
+    delays: list[int],
+    alphas: list[float],
+) -> "Pipeline":
+    """Assemble an unfitted banded-ridge pipeline, one kernel band per feature.
+
+    Each feature in `col_slices` gets its own band:
+    `StandardScaler -> CellDelayer -> Kernelizer(linear)`. Bands are bundled via
+    `ColumnKernelizer` (one precomputed kernel each) and scored by
+    `MultipleKernelRidgeCV`. The caller must have set the himalaya backend before
+    calling this — estimators bind the backend at construction.
+
+    A single feature still goes through `MultipleKernelRidgeCV` over one band,
+    not plain `KernelRidge`, to pin the shape later phases extend.
+    """
+    from himalaya.kernel_ridge import (
+        ColumnKernelizer,
+        Kernelizer,
+        MultipleKernelRidgeCV,
+    )
+    from sklearn.model_selection import KFold
+    from sklearn.pipeline import Pipeline, make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    transformers = [
+        (
+            feature_name,
+            make_pipeline(
+                StandardScaler(),
+                CellDelayer(delays=delays, cell_lengths=cell_lengths),
+                Kernelizer(kernel="linear"),
+            ),
+            col_slice,
+        )
+        for feature_name, col_slice in col_slices.items()
+    ]
+    column_kernelizer = ColumnKernelizer(transformers)
+
+    model = MultipleKernelRidgeCV(
+        kernels="precomputed",
+        solver_params=dict(
+            alphas=np.asarray(alphas),
+            n_iter=_SOLVER_N_ITER,
+            diagonalize_method=_SOLVER_DIAGONALIZE_METHOD,
+            progress_bar=False,
+        ),
+        cv=KFold(n_splits=2, shuffle=True, random_state=_INNER_CV_SEED),
+    )
+
+    return Pipeline([("kernelizer", column_kernelizer), ("model", model)])
 
 
 class Encoding:
@@ -216,7 +330,7 @@ class Encoding:
             bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
         )
 
-    def train(self, sub_id: str):
+    def train(self, sub_id: str) -> "Pipeline":
         feature_bids = self._discover_features(sub_id)
         bold_metas = self._discover_bold(sub_id)
         feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
@@ -224,8 +338,28 @@ class Encoding:
         self._validate_coverage(sub_id, feature_bids, bold_metas)
         data = self._build_xy(sub_id, feature_bids, bold_metas)
 
-        # TODO: modeling (banded ridge regression) goes here
-        data
+        # himalaya binds the backend at estimator construction, not at fit — set it
+        # before building the pipeline or fitting silently falls back to CPU
+        from himalaya.backend import set_backend
+
+        set_backend("torch_cuda" if self.config.device is Device.CUDA else "torch")
+
+        # Cell order here must match _build_xy's row_slices order so CellDelayer
+        # masks the right boundaries
+        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
+        pipeline = _build_pipeline(
+            col_slices=data.col_slices,
+            cell_lengths=cell_lengths,
+            delays=self.config.delays,
+            alphas=self.config.alphas,
+        )
+
+        # torch backends want float32; float64 doubles memory and can error on CUDA
+        X = data.X.astype(np.float32)
+        Y = data.Y.astype(np.float32)
+        pipeline.fit(X, Y)
+
+        return pipeline
 
     def _discover_features(self, sub_id: str) -> dict[FeatureKey, BIDSPath]:
         """Discover and validate feature file paths for a subject.

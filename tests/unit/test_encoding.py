@@ -1,8 +1,18 @@
+import numpy as np
 import polars as pl
 import pyarrow.parquet as pq
 import pytest
 
-from hypline.encoding import BoldKey, CellKey, Encoding, EncodingConfig, FeatureKey
+from hypline.encoding import (
+    BoldKey,
+    CellDelayer,
+    CellKey,
+    Encoding,
+    EncodingConfig,
+    FeatureKey,
+    TrainingData,
+    _build_pipeline,
+)
 
 from .conftest import BIDSTree
 
@@ -29,6 +39,87 @@ def _make_encoding(
         bold_desc=bold_desc,
         bids_filters=bids_filters,
     )
+
+
+class TestCellDelayer:
+    def test_cell_delayer_resets_at_boundaries(self):
+        # Two stacked cells of 4 rows; values encode (cell, row) so bleed is visible
+        cell_lengths = [4, 4]
+        X = np.arange(1, 9, dtype=float).reshape(-1, 1)
+        delays = [0, 1, 2]
+        out = CellDelayer(delays=delays, cell_lengths=cell_lengths).transform(X)
+
+        # Output columns are [delay0, delay1, delay2]; cell 2 spans rows 4..7
+        # The first max(delays)=2 rows of cell 2 must not pull from cell 1
+        col_d1, col_d2 = out[:, 1], out[:, 2]
+        assert col_d1[4] == 0  # row 4, delay 1 would source row 3 (cell 1)
+        assert col_d2[4] == 0  # row 4, delay 2 would source row 2 (cell 1)
+        assert col_d2[5] == 0  # row 5, delay 2 would source row 3 (cell 1)
+        # Within-cell delays still work
+        assert col_d1[5] == X[4, 0]  # row 5, delay 1 sources row 4 (same cell)
+        assert col_d2[6] == X[4, 0]  # row 6, delay 2 sources row 4 (same cell)
+
+    def test_cell_delayer_single_cell_matches_plain_delay(self):
+        cell_lengths = [6]
+        X = np.arange(1, 7, dtype=float).reshape(-1, 1)
+        delays = [0, 1, 2]
+        out = CellDelayer(delays=delays, cell_lengths=cell_lengths).transform(X)
+
+        expected_blocks = []
+        for d in delays:
+            block = np.zeros_like(X)
+            if d == 0:
+                block[:] = X
+            else:
+                block[d:] = X[:-d]
+            expected_blocks.append(block)
+        np.testing.assert_array_equal(out, np.hstack(expected_blocks))
+
+    def test_cell_delayer_short_cell_all_zero_deep_delay(self):
+        # Cell of 2 rows with a delay of 3 → that delay block is all-zero, no error
+        cell_lengths = [2]
+        X = np.arange(1, 3, dtype=float).reshape(-1, 1)
+        out = CellDelayer(delays=[0, 3], cell_lengths=cell_lengths).transform(X)
+        assert np.all(out[:, 1] == 0)
+
+    def test_cell_delayer_negative_delay_raises(self):
+        with pytest.raises(ValueError, match="delays >= 0"):
+            CellDelayer(delays=[-1], cell_lengths=[3]).transform(np.zeros((3, 1)))
+
+    def test_cell_delayer_row_count_mismatch_raises(self):
+        with pytest.raises(ValueError, match="cell_lengths sum"):
+            CellDelayer(delays=[0], cell_lengths=[3]).transform(np.zeros((4, 1)))
+
+
+class TestBuildPipeline:
+    def test_build_pipeline_fits_on_synthetic_training_data(self):
+        from himalaya.backend import set_backend
+
+        set_backend("torch")
+
+        rng = np.random.RandomState(0)
+        n_rows, n_voxels = 20, 5
+        X = rng.randn(n_rows, 7).astype(np.float32)
+        Y = rng.randn(n_rows, n_voxels).astype(np.float32)
+        data = TrainingData(
+            X=X,
+            Y=Y,
+            row_slices={
+                CellKey(task="a", run="1"): slice(0, 10),
+                CellKey(task="a", run="2"): slice(10, 20),
+            },
+            col_slices={"f1": slice(0, 3), "f2": slice(3, 7)},
+        )
+        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
+        pipeline = _build_pipeline(
+            col_slices=data.col_slices,
+            cell_lengths=cell_lengths,
+            delays=[0, 1, 2],
+            alphas=[1.0, 10.0, 100.0],
+        )
+        pipeline.fit(data.X, data.Y)
+        pred = np.asarray(pipeline.predict(data.X))
+        assert pred.shape == (n_rows, n_voxels)
 
 
 class TestEncodingInit:
@@ -1167,3 +1258,40 @@ class TestValidateCoverage:
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="other coverage gaps"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
+
+
+class TestTrainWiring:
+    def test_train_fits_and_returns_pipeline(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # Exercise the train() wiring (backend, float32 cast, cell_lengths,
+        # fit, return) without _discover_*/BIDS plumbing. A hyphenated feature
+        # name checks it survives ColumnKernelizer's transformer-name handling.
+        n_rows, n_voxels = 20, 5
+        rng = np.random.RandomState(0)
+        data = TrainingData(
+            X=rng.randn(n_rows, 7).astype(np.float64),
+            Y=rng.randn(n_rows, n_voxels).astype(np.float64),
+            row_slices={
+                CellKey(task="a", run="1"): slice(0, 10),
+                CellKey(task="a", run="2"): slice(10, 20),
+            },
+            col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
+        )
+        enc = _make_encoding(tree, ["phonemic-gpt3", "mfcc"])
+        for step in (
+            "_discover_features",
+            "_discover_bold",
+            "_resolve_cell_keys",
+            "_validate_coverage",
+        ):
+            monkeypatch.setattr(enc, step, lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
+        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+
+        from sklearn.pipeline import Pipeline
+
+        pipeline = enc.train(SUB)
+        assert isinstance(pipeline, Pipeline)
+        pred = np.asarray(pipeline.predict(data.X.astype(np.float32)))
+        assert pred.shape == (n_rows, n_voxels)
