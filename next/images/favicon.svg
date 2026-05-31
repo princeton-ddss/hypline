@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Simplified H monogram for 16px tab rendering: filled tile, thick posts, gradient crossbar -->
+  <defs>
+    <linearGradient id="cpl" x1="12" y1="0" x2="36" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00897b"/>
+      <stop offset="1" stop-color="#ffb300"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="10" fill="#000000"/>
+  <rect x="9.5" y="9" width="7" height="30" rx="3.5" fill="#00897b"/>
+  <rect x="31.5" y="9" width="7" height="30" rx="3.5" fill="#ffb300"/>
+  <rect x="13" y="20.5" width="22" height="7" rx="3.5" fill="url(#cpl)"/>
+</svg>
