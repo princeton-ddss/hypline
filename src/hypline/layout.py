@@ -17,7 +17,15 @@ from hypline.bids import (
 )
 from hypline.events import resolve_entities
 
-Area = Literal["stimuli", "features", "confounds", "nuisance", "fmriprep", "hypline"]
+Area = Literal[
+    "stimuli",
+    "features",
+    "confounds",
+    "nuisance",
+    "fmriprep",
+    "hypline",
+    "results",
+]
 
 DERIVATIVE_BIDS_VERSION = "1.9.0"
 
@@ -716,6 +724,34 @@ class _Path:
             ext=".parquet",
             desc=desc,
         )
+
+    def result(
+        self,
+        *,
+        sub: str,
+        kind: str,
+        desc: str,
+        ext: str = ".joblib",
+    ) -> BIDSPath:
+        """Build a results output path, anchored to `sub` only.
+
+        Sets result-<kind> and places the file under
+        results/sub-XX/<kind>-<desc>/ — no source run and no `ses` segment,
+        since one analysis output (an encoding model) consumes many runs across
+        sessions. `(sub, kind, desc)` fully determines the path, so the loader
+        needs only those three. `desc` is required: an untagged result is hard
+        to disambiguate (diverges from features/confounds, where it is optional).
+        """
+        bp = BIDSPath.from_entities(
+            ext=ext,
+            sub=sub,
+            result=kind,
+            desc=desc,
+        )
+        out_dir = kind_subdir(
+            self._layout.root, "results", sub=sub, ses=None, kind=kind, desc=desc
+        )
+        return BIDSPath(out_dir / bp.path.name)
 
 
 class _List:

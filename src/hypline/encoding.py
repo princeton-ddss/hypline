@@ -1,15 +1,18 @@
+import json
 import reprlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, Literal, NamedTuple, get_args
 
 import numpy as np
+from loguru import logger
 from pydantic import BaseModel
 from sklearn.base import BaseEstimator, TransformerMixin
 
 if TYPE_CHECKING:
     from sklearn.pipeline import Pipeline
 
+from hypline._version import __version__
 from hypline.bids import (
     BIDS_ENTITY_VALUE_RE,
     BIDSPath,
@@ -23,9 +26,14 @@ from hypline.bold import (
     parse_bold_space,
 )
 from hypline.downsample import DownsampleMethod, downsample
-from hypline.enums import Device
+from hypline.enums import Device, SurfaceSpace, VolumeSpace
 from hypline.events import merge_filename_and_sidecar, segment_tr_slice
-from hypline.io import read_feature, read_feature_metadata, stack_array_column
+from hypline.io import (
+    read_feature,
+    read_feature_metadata,
+    skip_existing,
+    stack_array_column,
+)
 from hypline.layout import BIDSLayout
 
 FeatureDownsampleMethod = Literal["mean", "sum"]
@@ -132,6 +140,55 @@ class TrainingData:
     Y: np.ndarray
     row_slices: dict[CellKey, slice]
     col_slices: dict[str, slice]
+
+
+@dataclass(frozen=True)
+class XRecipe:
+    """Everything needed to rebuild X identically on another subject.
+
+    One source of truth for X identity so the train-time writer and the
+    predict-time rebuilder cannot drift. `device` is excluded — it is a
+    runtime/hardware choice, not part of X identity, and stays on
+    `EncodingConfig`.
+    """
+
+    features: dict[str, tuple[str, str | None]]
+    tasks: list[str]
+    bold_space: SurfaceSpace | VolumeSpace
+    bold_desc: str
+    downsample: FeatureDownsampleMethod
+    bids_filters: list[str]
+    delays: list[int]
+    alphas: list[float]
+    col_slices: dict[str, slice] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class EncodingModel:
+    """One fitted model and the cell set it was fit on.
+
+    `train_cells` is the post-filter `row_slices` key set — the cells actually
+    fit on.
+    """
+
+    pipeline: "Pipeline"
+    train_cells: set[CellKey]
+
+
+@dataclass(frozen=True)
+class EncodingArtifact:
+    """On-disk encoding result: a shared `recipe` plus one-or-more fitted `models`.
+
+    `group` records the fold axis (keys `fold_by`/`folds`/`bids_filters`;
+    degenerate when unfolded). `universe` bounds the OOS cell set for fold
+    groups; it is `None` for a single model, whose OOS is just the target
+    subject's available cells minus its train set.
+    """
+
+    recipe: XRecipe
+    group: dict
+    models: list[EncodingModel]
+    universe: set[CellKey] | None
 
 
 def _format_loc(**entities: str | None) -> str:
@@ -272,6 +329,124 @@ def _build_pipeline(
     return Pipeline([("kernelizer", column_kernelizer), ("model", model)])
 
 
+def _numpyfy_fitted(obj: object, _seen: set[int] | None = None) -> None:
+    """In-place convert any torch-tensor fitted attr on `obj` to numpy.
+
+    himalaya binds its backend at estimator construction and fitted weights
+    (`MultipleKernelRidgeCV.dual_coef_`/`deltas_`, each band's `Kernelizer.X_fit_`,
+    scaler stats) stay backend-bound — torch tensors when fit on a torch backend.
+    `set_backend("numpy")` does not retroactively convert them, so the blob would
+    carry torch arrays and fail to load without torch/CUDA. This walks the fitted
+    estimator tree and rewrites tensors as numpy arrays, making the artifact
+    portable and loadable on the numpy backend.
+
+    Convert via `.detach().cpu().numpy()` directly, not the active backend's
+    `to_numpy`: the numpy backend's `to_numpy` is a no-op (`return array`), so a
+    CUDA tensor would never leave the GPU and `np.asarray` would raise — the
+    device transfer lives only in the torch backend. Going through torch's own
+    tensor API is device-safe regardless of which backend is active.
+    """
+    import torch
+
+    seen = _seen if _seen is not None else set()
+    if id(obj) in seen:
+        return
+    seen.add(id(obj))
+
+    def _convert(value: object) -> object:
+        if isinstance(value, torch.Tensor):
+            return value.detach().cpu().numpy()
+        if isinstance(value, BaseEstimator):
+            _numpyfy_fitted(value, seen)
+            return value
+        if isinstance(value, list):
+            return [_convert(v) for v in value]
+        if isinstance(value, tuple):
+            return tuple(_convert(v) for v in value)
+        if isinstance(value, dict):
+            return {k: _convert(v) for k, v in value.items()}
+        return value
+
+    for attr, value in vars(obj).items():
+        setattr(obj, attr, _convert(value))
+
+
+def _write_artifact(artifact: EncodingArtifact, path: Path) -> None:
+    """Dump `artifact` to `path` (.joblib) plus a non-pipeline JSON sidecar.
+
+    Forces fitted weights to numpy before the joblib dump (see `_numpyfy_fitted`)
+    so the blob loads without torch. The sidecar mirrors everything except the
+    pipeline — recipe, per-model `train` cell sets, `group`, `universe`, and
+    `hypline_version` — making provenance greppable without unpickling.
+    """
+    import joblib
+    from himalaya.backend import set_backend
+
+    # Switch to numpy so the in-memory pipeline this artifact still references
+    # predicts on the same backend as a reloaded copy (predict reads the active
+    # backend at call time). The weight conversion below is backend-independent.
+    set_backend("numpy")
+    for model in artifact.models:
+        _numpyfy_fitted(model.pipeline)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(artifact, path)
+    path.with_suffix(".json").write_text(json.dumps(_sidecar(artifact), indent=2))
+
+
+def _sidecar(artifact: EncodingArtifact) -> dict:
+    """Build the JSON-serializable mirror of `artifact`, minus the pipeline."""
+    recipe = artifact.recipe
+    return {
+        "hypline_version": __version__,
+        "recipe": {
+            "features": {name: list(spec) for name, spec in recipe.features.items()},
+            "tasks": recipe.tasks,
+            "bold_space": str(recipe.bold_space),
+            "bold_desc": recipe.bold_desc,
+            "downsample": recipe.downsample,
+            "bids_filters": recipe.bids_filters,
+            "delays": recipe.delays,
+            "alphas": recipe.alphas,
+            "col_slices": {
+                name: [s.start, s.stop] for name, s in recipe.col_slices.items()
+            },
+        },
+        "group": artifact.group,
+        "models": [
+            {"train_cells": [dict(cell.items()) for cell in model.train_cells]}
+            for model in artifact.models
+        ],
+        "universe": (
+            None
+            if artifact.universe is None
+            else [dict(cell.items()) for cell in artifact.universe]
+        ),
+    }
+
+
+def load_artifact(path: Path) -> EncodingArtifact:
+    """Load an encoding artifact from its `.joblib` blob.
+
+    Logs a warning (does not fail) on a `hypline_version` mismatch read from the
+    sidecar — a version skew is a provenance signal, not a hard incompatibility here.
+    """
+    import joblib
+
+    sidecar_path = path.with_suffix(".json")
+    if sidecar_path.exists():
+        stamped = json.loads(sidecar_path.read_text()).get("hypline_version")
+        if stamped is not None and stamped != __version__:
+            logger.warning(
+                "Artifact {} was written by hypline {}, loading under {}",
+                path.name,
+                stamped,
+                __version__,
+            )
+
+    return joblib.load(path)
+
+
 class Encoding:
     def __init__(
         self,
@@ -284,6 +459,8 @@ class Encoding:
         bold_desc: str = "clean",
         downsample: FeatureDownsampleMethod = "mean",
         bids_filters: list[str] | None = None,
+        desc: str,
+        force: bool = False,
     ):
         import torch
 
@@ -330,7 +507,35 @@ class Encoding:
             bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
         )
 
-    def train(self, sub_id: str) -> "Pipeline":
+        if not BIDS_ENTITY_VALUE_RE.match(desc):
+            raise ValueError(f"Invalid desc: {desc!r}")
+        self._desc = desc
+        self._force = force
+
+        # col_slices is filled by train from the assembled TrainingData
+        self._recipe = XRecipe(
+            features=self._features,
+            tasks=self.tasks,
+            bold_space=self.bold_space,
+            bold_desc=self._bold_desc,
+            downsample=self.downsample,
+            bids_filters=self.bids_filters,
+            delays=self.config.delays,
+            alphas=self.config.alphas,
+        )
+
+    def train(self, sub_id: str) -> EncodingArtifact:
+        """Fit the encoding model for a subject and persist it as an artifact.
+
+        Writes a `.joblib` blob plus a JSON sidecar to the `desc`-keyed results
+        path and returns the in-memory `EncodingArtifact`. An existing file is
+        left untouched and loaded back unless `force=True` — the fit is skipped
+        entirely, mirroring featuregen/confoundgen's check-before-compute.
+        """
+        out = self._layout.path.result(sub=sub_id, kind="encoding", desc=self._desc)
+        if skip_existing(out.path, force=self._force):
+            return load_artifact(out.path)
+
         feature_bids = self._discover_features(sub_id)
         bold_metas = self._discover_bold(sub_id)
         feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
@@ -359,7 +564,26 @@ class Encoding:
         Y = data.Y.astype(np.float32)
         pipeline.fit(X, Y)
 
-        return pipeline
+        recipe = replace(self._recipe, col_slices=data.col_slices)
+        artifact = EncodingArtifact(
+            recipe=recipe,
+            group={"fold_by": None, "folds": None, "bids_filters": self.bids_filters},
+            models=[EncodingModel(pipeline=pipeline, train_cells=set(data.row_slices))],
+            universe=None,
+        )
+        _write_artifact(artifact, out.path)
+        return artifact
+
+    @classmethod
+    def load(cls, bids_root: str | Path, *, sub: str, desc: str) -> EncodingArtifact:
+        """Load a persisted encoding artifact, resolving it from `(sub, desc)`.
+
+        `(sub, kind="encoding", desc)` fully determines the file, so no
+        `Encoding` instance or recipe is needed to read one back.
+        """
+        layout = BIDSLayout(bids_root)
+        out = layout.path.result(sub=sub, kind="encoding", desc=desc)
+        return load_artifact(out.path)
 
     def _discover_features(self, sub_id: str) -> dict[FeatureKey, BIDSPath]:
         """Discover and validate feature file paths for a subject.

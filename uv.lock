@@ -993,6 +993,7 @@ source = { editable = "." }
 dependencies = [
     { name = "dill" },
     { name = "himalaya" },
+    { name = "joblib" },
     { name = "loguru" },
     { name = "nibabel" },
     { name = "nilearn" },
@@ -1039,6 +1040,7 @@ test = [
 requires-dist = [
     { name = "dill", specifier = ">=0.3.9" },
     { name = "himalaya", specifier = ">=0.4.11" },
+    { name = "joblib", specifier = ">=1.4.2" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "nibabel", specifier = ">=5.3.2" },
     { name = "nilearn", specifier = ">=0.11.1" },

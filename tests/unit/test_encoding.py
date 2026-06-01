@@ -8,6 +8,7 @@ from hypline.encoding import (
     CellDelayer,
     CellKey,
     Encoding,
+    EncodingArtifact,
     EncodingConfig,
     FeatureKey,
     TrainingData,
@@ -29,6 +30,8 @@ def _make_encoding(
     bold_space: str = SPACE,
     bold_desc: str = "clean",
     bids_filters: list[str] | None = None,
+    desc: str = "v1",
+    force: bool = False,
 ) -> Encoding:
     return Encoding(
         EncodingConfig(),
@@ -38,6 +41,8 @@ def _make_encoding(
         bold_space=bold_space,
         bold_desc=bold_desc,
         bids_filters=bids_filters,
+        desc=desc,
+        force=force,
     )
 
 
@@ -1261,7 +1266,7 @@ class TestValidateCoverage:
 
 
 class TestTrainWiring:
-    def test_train_fits_and_returns_pipeline(
+    def test_train_fits_and_returns_artifact(
         self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
     ):
         # Exercise the train() wiring (backend, float32 cast, cell_lengths,
@@ -1291,7 +1296,114 @@ class TestTrainWiring:
 
         from sklearn.pipeline import Pipeline
 
-        pipeline = enc.train(SUB)
+        artifact = enc.train(SUB)
+        assert isinstance(artifact, EncodingArtifact)
+        assert len(artifact.models) == 1
+        pipeline = artifact.models[0].pipeline
         assert isinstance(pipeline, Pipeline)
         pred = np.asarray(pipeline.predict(data.X.astype(np.float32)))
         assert pred.shape == (n_rows, n_voxels)
+        # train records the cells it fit on and leaves universe unbound
+        assert artifact.models[0].train_cells == set(data.row_slices)
+        assert artifact.universe is None
+        assert artifact.recipe.col_slices == data.col_slices
+
+
+class TestArtifactRoundTrip:
+    """Write → load reproduces the recipe, cell set, and predictions exactly."""
+
+    def _trained(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch, *, force: bool = False
+    ) -> tuple[Encoding, TrainingData]:
+        n_rows, n_voxels = 20, 5
+        rng = np.random.RandomState(0)
+        data = TrainingData(
+            X=rng.randn(n_rows, 7).astype(np.float64),
+            Y=rng.randn(n_rows, n_voxels).astype(np.float64),
+            row_slices={
+                CellKey(task="a", run="1"): slice(0, 10),
+                CellKey(task="a", run="2"): slice(10, 20),
+            },
+            col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
+        )
+        enc = _make_encoding(tree, ["phonemic-gpt3", "mfcc"], force=force)
+        for step in (
+            "_discover_features",
+            "_discover_bold",
+            "_resolve_cell_keys",
+            "_validate_coverage",
+        ):
+            monkeypatch.setattr(enc, step, lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
+        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        return enc, data
+
+    def test_round_trip(self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch):
+        from himalaya.backend import set_backend
+
+        enc, data = self._trained(tree, monkeypatch)
+        X = data.X.astype(np.float32)
+
+        artifact = enc.train(SUB)
+
+        # Predictions compare numpy-vs-numpy: train already forced the in-memory
+        # pipeline to the numpy backend during the write, so a plain predict here
+        # is the numpy reference for the reloaded pipeline.
+        set_backend("numpy")
+        ref = np.asarray(artifact.models[0].pipeline.predict(X))
+
+        loaded = Encoding.load(tree.root, sub=SUB, desc="v1")
+        got = np.asarray(loaded.models[0].pipeline.predict(X))
+        np.testing.assert_array_equal(got, ref)
+
+        # Persisted weights are numpy, not torch — guards a regressed converter
+        # (a no-op converter would still round-trip while torch is installed)
+        model = loaded.models[0].pipeline.named_steps["model"]
+        assert isinstance(model.dual_coef_, np.ndarray)
+
+        assert loaded.recipe == artifact.recipe
+        assert loaded.models[0].train_cells == artifact.models[0].train_cells
+        assert loaded.universe is None
+
+    def test_sidecar_mirrors_non_pipeline_fields(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        import json
+
+        enc, _ = self._trained(tree, monkeypatch)
+        enc.train(SUB)
+
+        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        sidecar = json.loads(out.path.with_suffix(".json").read_text())
+        assert sidecar["recipe"]["tasks"] == [TASK]
+        assert sidecar["recipe"]["col_slices"] == {
+            "phonemic-gpt3": [0, 3],
+            "mfcc": [3, 7],
+        }
+        assert sidecar["universe"] is None
+        assert {frozenset(c.items()) for c in sidecar["models"][0]["train_cells"]} == {
+            frozenset({("task", "a"), ("run", "1")}),
+            frozenset({("task", "a"), ("run", "2")}),
+        }
+
+    def test_force_governs_overwrite(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        import os
+
+        enc, _ = self._trained(tree, monkeypatch)
+        enc.train(SUB)
+        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+
+        # Backdate the blob so a rewrite is unambiguous (avoids ns-resolution ties)
+        old = 1_000_000_000
+        os.utime(out.path, ns=(old, old))
+
+        # force=False skips: existing file is loaded, not rewritten
+        enc_skip, _ = self._trained(tree, monkeypatch)
+        enc_skip.train(SUB)
+        assert out.path.stat().st_mtime_ns == old
+
+        enc_force, _ = self._trained(tree, monkeypatch, force=True)
+        enc_force.train(SUB)
+        assert out.path.stat().st_mtime_ns != old
