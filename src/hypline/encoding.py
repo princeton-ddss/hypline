@@ -176,19 +176,114 @@ class EncodingModel:
 
 
 @dataclass(frozen=True)
+class FoldSpec:
+    """One fold configuration: the cell axis to fold over and the fold count.
+
+    Internal carrier for the paired `fold_by`/`n_folds` constructor args; the
+    public surface stays flat. `n` is a count or the `"loo"` sentinel.
+    """
+
+    by: str
+    n: int | Literal["loo"]
+
+
+@dataclass(frozen=True)
 class EncodingArtifact:
     """On-disk encoding result: a shared `recipe` plus one-or-more fitted `models`.
 
-    `group` records the fold axis (keys `fold_by`/`folds`/`bids_filters`;
-    degenerate when unfolded). `universe` bounds the OOS cell set for fold
-    groups; it is `None` for a single model, whose OOS is just the target
+    `fold` records the fold configuration these models were produced under, or
+    `None` when unfolded (a single model). `universe` bounds the OOS cell set for
+    fold groups; it is `None` for a single model, whose OOS is just the target
     subject's available cells minus its train set.
+
+    Filters that shaped the cell set live on `recipe.bids_filters` (X identity),
+    not here.
     """
 
     recipe: XRecipe
-    group: dict
+    fold: FoldSpec | None
     models: list[EncodingModel]
     universe: set[CellKey] | None
+
+
+def _group_cells_by(cells: set[CellKey], entity: str) -> dict[str, set[CellKey]]:
+    """Group cells by their value for `entity`.
+
+    Raises if `entity` is absent from any cell. Because `_resolve_cell_keys`
+    yields a uniform schema (a key is on every cell or none), uniform absence
+    means the dataset has no such axis — a `fold_by` config error, not a
+    data-shape edge case.
+    """
+    groups: dict[str, set[CellKey]] = {}
+    for cell in cells:
+        if entity not in cell.keys():
+            raise ValueError(
+                f"entity {entity!r} not present on cell {cell} — this dataset "
+                f"has no {entity!r} axis to group on"
+            )
+        groups.setdefault(cell[entity], set()).add(cell)
+    return groups
+
+
+def _partition_groups(
+    groups: dict[str, set[CellKey]], n_folds: int | Literal["loo"]
+) -> list[set[CellKey]]:
+    """Map a fold count to per-fold held-out cell sets over whole groups.
+
+    Sorts the group values, then splits them into K held-out buckets — `int`
+    folds into K contiguous chunks, `"loo"` into one group per bucket. Cells are
+    never split across folds (the split unit is the group).
+
+    The sort makes bucketing reproducible within a run (predict never recomputes
+    folds, so no seed is needed).
+    """
+    n_groups = len(groups)
+    ordered = sorted(groups)
+
+    if n_folds == "loo":
+        if n_groups < 2:
+            raise ValueError(f"n_folds='loo' needs >= 2 groups to fold; got {n_groups}")
+        return [groups[value] for value in ordered]
+
+    if n_folds > n_groups:
+        raise ValueError(
+            f"n_folds={n_folds} exceeds the {n_groups} group(s) found for "
+            f"the fold_by entity"
+        )
+    # Contiguous chunks; earlier buckets absorb the remainder
+    base, extra = divmod(n_groups, n_folds)
+    buckets: list[set[CellKey]] = []
+    start = 0
+    for i in range(n_folds):
+        size = base + (1 if i < extra else 0)
+        bucket: set[CellKey] = set()
+        for value in ordered[start : start + size]:
+            bucket |= groups[value]
+        buckets.append(bucket)
+        start += size
+    return buckets
+
+
+def _select_rows(
+    data: TrainingData, cells: set[CellKey]
+) -> tuple[np.ndarray, np.ndarray, list[int]]:
+    """Slice `data` down to `cells`, preserving `_build_xy` row order.
+
+    Iterates `data.row_slices` directly — a dict already built in `_sort_key`
+    order by `_build_xy`, so surviving cells keep that order with no re-sort.
+    Rows and `cell_lengths` both come straight from `row_slices`, which is what
+    keeps `CellDelayer`'s boundary masks aligned for the fresh pipeline.
+    """
+    X_parts: list[np.ndarray] = []
+    Y_parts: list[np.ndarray] = []
+    cell_lengths: list[int] = []
+    for cell, sl in data.row_slices.items():
+        if cell not in cells:
+            continue
+        X_parts.append(data.X[sl])
+        Y_parts.append(data.Y[sl])
+        cell_lengths.append(sl.stop - sl.start)
+    return np.concatenate(X_parts), np.concatenate(Y_parts), cell_lengths
 
 
 def _format_loc(**entities: str | None) -> str:
@@ -376,7 +471,7 @@ def _write_artifact(artifact: EncodingArtifact, path: Path) -> None:
 
     Forces fitted weights to numpy before the joblib dump (see `_numpyfy_fitted`)
     so the blob loads without torch. The sidecar mirrors everything except the
-    pipeline — recipe, per-model `train` cell sets, `group`, `universe`, and
+    pipeline — recipe, per-model `train` cell sets, `fold`, `universe`, and
     `hypline_version` — making provenance greppable without unpickling.
     """
     import joblib
@@ -412,7 +507,11 @@ def _sidecar(artifact: EncodingArtifact) -> dict:
                 name: [s.start, s.stop] for name, s in recipe.col_slices.items()
             },
         },
-        "group": artifact.group,
+        "fold": (
+            None
+            if artifact.fold is None
+            else {"fold_by": artifact.fold.by, "n_folds": artifact.fold.n}
+        ),
         "models": [
             {"train_cells": [dict(cell.items()) for cell in model.train_cells]}
             for model in artifact.models
@@ -459,6 +558,8 @@ class Encoding:
         bold_desc: str = "clean",
         downsample: FeatureDownsampleMethod = "mean",
         bids_filters: list[str] | None = None,
+        fold_by: str | None = None,
+        n_folds: int | Literal["loo"] | None = None,
         desc: str,
         force: bool = False,
     ):
@@ -507,6 +608,29 @@ class Encoding:
             bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
         )
 
+        # fold_by/n_folds are paired: both define one fold group or neither does.
+        # Only subject-independent checks run here; group-count and entity-presence
+        # validation is data-dependent and deferred to train / _partition_groups.
+        if (fold_by is None) != (n_folds is None):
+            raise ValueError(
+                "fold_by and n_folds must be set together or both left unset; "
+                f"got fold_by={fold_by!r}, n_folds={n_folds!r}"
+            )
+        self._fold: FoldSpec | None = None
+        if fold_by is not None:
+            assert n_folds is not None
+            if fold_by in CellKey.EXCLUDE:
+                raise ValueError(
+                    f"fold_by={fold_by!r} is not a cell axis (it never appears on "
+                    f"a cell); valid axes exclude {sorted(CellKey.EXCLUDE)}"
+                )
+            if n_folds != "loo" and n_folds < 2:
+                raise ValueError(
+                    f"n_folds must be >= 2 or 'loo'; got {n_folds!r}. A single fold "
+                    "is no split — pass n_folds=None for a single model"
+                )
+            self._fold = FoldSpec(by=fold_by, n=n_folds)
+
         if not BIDS_ENTITY_VALUE_RE.match(desc):
             raise ValueError(f"Invalid desc: {desc!r}")
         self._desc = desc
@@ -549,28 +673,47 @@ class Encoding:
 
         set_backend("torch_cuda" if self.config.device is Device.CUDA else "torch")
 
-        # Cell order here must match _build_xy's row_slices order so CellDelayer
-        # masks the right boundaries
-        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
-        pipeline = _build_pipeline(
-            col_slices=data.col_slices,
-            cell_lengths=cell_lengths,
-            delays=self.config.delays,
-            alphas=self.config.alphas,
-        )
-
-        # torch backends want float32; float64 doubles memory and can error on CUDA
-        X = data.X.astype(np.float32)
-        Y = data.Y.astype(np.float32)
-        pipeline.fit(X, Y)
+        def _fit_model(X: np.ndarray, Y: np.ndarray, cell_lengths: list[int]):
+            # Each fold needs a fresh pipeline: cell_lengths differ per fold and
+            # CellDelayer's boundary masks are built from them at construction
+            pipeline = _build_pipeline(
+                col_slices=data.col_slices,
+                cell_lengths=cell_lengths,
+                delays=self.config.delays,
+                alphas=self.config.alphas,
+            )
+            # torch backends want float32; float64 doubles memory and can error on CUDA
+            pipeline.fit(X.astype(np.float32), Y.astype(np.float32))
+            return pipeline
 
         recipe = replace(self._recipe, col_slices=data.col_slices)
-        artifact = EncodingArtifact(
-            recipe=recipe,
-            group={"fold_by": None, "folds": None, "bids_filters": self.bids_filters},
-            models=[EncodingModel(pipeline=pipeline, train_cells=set(data.row_slices))],
-            universe=None,
-        )
+
+        if self._fold is None:
+            # cell_lengths order tracks data.row_slices (= _build_xy / _sort_key order)
+            cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
+            pipeline = _fit_model(data.X, data.Y, cell_lengths)
+            artifact = EncodingArtifact(
+                recipe=recipe,
+                fold=None,
+                models=[
+                    EncodingModel(pipeline=pipeline, train_cells=set(data.row_slices))
+                ],
+                universe=None,
+            )
+        else:
+            all_cells = set(data.row_slices)
+            groups = _group_cells_by(all_cells, self._fold.by)
+            held_out = _partition_groups(groups, self._fold.n)
+            models = []
+            for held in held_out:
+                train_cells = all_cells - held
+                X_sub, Y_sub, cell_lengths = _select_rows(data, train_cells)
+                pipeline = _fit_model(X_sub, Y_sub, cell_lengths)
+                models.append(EncodingModel(pipeline=pipeline, train_cells=train_cells))
+            artifact = EncodingArtifact(
+                recipe=recipe, fold=self._fold, models=models, universe=all_cells
+            )
+
         _write_artifact(artifact, out.path)
         return artifact
 

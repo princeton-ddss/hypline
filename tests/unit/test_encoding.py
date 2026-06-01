@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 import polars as pl
 import pyarrow.parquet as pq
@@ -11,8 +13,12 @@ from hypline.encoding import (
     EncodingArtifact,
     EncodingConfig,
     FeatureKey,
+    FoldSpec,
     TrainingData,
     _build_pipeline,
+    _group_cells_by,
+    _partition_groups,
+    _select_rows,
 )
 
 from .conftest import BIDSTree
@@ -30,6 +36,8 @@ def _make_encoding(
     bold_space: str = SPACE,
     bold_desc: str = "clean",
     bids_filters: list[str] | None = None,
+    fold_by: str | None = None,
+    n_folds: int | Literal["loo"] | None = None,
     desc: str = "v1",
     force: bool = False,
 ) -> Encoding:
@@ -41,6 +49,8 @@ def _make_encoding(
         bold_space=bold_space,
         bold_desc=bold_desc,
         bids_filters=bids_filters,
+        fold_by=fold_by,
+        n_folds=n_folds,
         desc=desc,
         force=force,
     )
@@ -172,6 +182,34 @@ class TestEncodingInit:
     def test_invalid_bold_desc_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="Invalid bold_desc"):
             _make_encoding(tree, ["mfcc"], bold_desc="not-valid")
+
+    def test_fold_by_and_n_folds_set_together_succeeds(self, tree: BIDSTree):
+        enc = _make_encoding(tree, ["mfcc"], fold_by="run", n_folds=2)
+        assert enc._fold == FoldSpec(by="run", n=2)
+
+    def test_fold_by_without_n_folds_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="set together"):
+            _make_encoding(tree, ["mfcc"], fold_by="run")
+
+    def test_n_folds_without_fold_by_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="set together"):
+            _make_encoding(tree, ["mfcc"], n_folds=2)
+
+    def test_fold_by_excluded_entity_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="not a cell axis"):
+            _make_encoding(tree, ["mfcc"], fold_by="space", n_folds=2)
+
+    def test_n_folds_one_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match=">= 2 or 'loo'"):
+            _make_encoding(tree, ["mfcc"], fold_by="run", n_folds=1)
+
+    def test_n_folds_loo_accepted(self, tree: BIDSTree):
+        enc = _make_encoding(tree, ["mfcc"], fold_by="run", n_folds="loo")
+        assert enc._fold == FoldSpec(by="run", n="loo")
+
+    def test_fold_by_task_allowed(self, tree: BIDSTree):
+        enc = _make_encoding(tree, ["mfcc"], fold_by="task", n_folds=2)
+        assert enc._fold == FoldSpec(by="task", n=2)
 
 
 class TestCellKey:
@@ -1265,6 +1303,74 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
 
+class TestFoldHelpers:
+    def test_group_cells_by_descriptive_entity(self):
+        # cond spans multiple runs — groups collapse runs into shared cond buckets
+        cells = {
+            CellKey(task="a", run="1", cond="x"),
+            CellKey(task="a", run="2", cond="x"),
+            CellKey(task="a", run="1", cond="y"),
+        }
+        groups = _group_cells_by(cells, "cond")
+        assert set(groups) == {"x", "y"}
+        assert len(groups["x"]) == 2 and len(groups["y"]) == 1
+
+    def test_group_cells_by_missing_key_raises(self):
+        cells = {CellKey(task="a", run="1"), CellKey(task="a")}
+        with pytest.raises(ValueError, match="not present on cell"):
+            _group_cells_by(cells, "run")
+
+    def test_partition_groups_contiguous_chunks(self):
+        groups = {str(i): {CellKey(task="a", run=str(i))} for i in range(4)}
+        held = _partition_groups(groups, 2)
+        all_cells = set().union(*groups.values())
+        assert len(held) == 2
+        assert held[0].isdisjoint(held[1])
+        assert held[0] | held[1] == all_cells
+
+    def test_partition_groups_uneven_remainder_in_earlier_buckets(self):
+        groups = {str(i): {CellKey(task="a", run=str(i))} for i in range(5)}
+        held = _partition_groups(groups, 2)
+        # 5 groups / 2 folds → 3 + 2 (earlier bucket absorbs the remainder)
+        assert sorted(len(b) for b in held) == [2, 3]
+
+    def test_partition_groups_loo_one_group_per_fold(self):
+        groups = {str(i): {CellKey(task="a", run=str(i))} for i in range(3)}
+        held = _partition_groups(groups, "loo")
+        assert len(held) == 3
+        assert all(len(b) == 1 for b in held)
+
+    def test_partition_groups_n_folds_exceed_groups_raises(self):
+        groups = {"1": {CellKey(task="a", run="1")}}
+        with pytest.raises(ValueError, match="exceeds"):
+            _partition_groups(groups, 2)
+
+    def test_partition_groups_loo_one_group_raises(self):
+        groups = {"1": {CellKey(task="a", run="1")}}
+        with pytest.raises(ValueError, match="needs >= 2 groups"):
+            _partition_groups(groups, "loo")
+
+    def test_select_rows_preserves_build_xy_order(self):
+        # row_slices insertion order is _sort_key order; _select_rows must keep it
+        data = TrainingData(
+            X=np.arange(30).reshape(6, 5).astype(np.float64),
+            Y=np.arange(6).reshape(6, 1).astype(np.float64),
+            row_slices={
+                CellKey(task="a", run="1"): slice(0, 2),
+                CellKey(task="a", run="2"): slice(2, 4),
+                CellKey(task="a", run="3"): slice(4, 6),
+            },
+            col_slices={"mfcc": slice(0, 5)},
+        )
+        # subset given out of order; result must follow row_slices order, not arg order
+        subset = {CellKey(task="a", run="3"), CellKey(task="a", run="1")}
+        X_sub, Y_sub, cell_lengths = _select_rows(data, subset)
+        assert cell_lengths == [2, 2]
+        # rows 0,1 (run 1) then 4,5 (run 3) — run 2 dropped, order preserved
+        np.testing.assert_array_equal(Y_sub.ravel(), [0, 1, 4, 5])
+        np.testing.assert_array_equal(X_sub, data.X[[0, 1, 4, 5]])
+
+
 class TestTrainWiring:
     def test_train_fits_and_returns_artifact(
         self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
@@ -1381,6 +1487,7 @@ class TestArtifactRoundTrip:
             "mfcc": [3, 7],
         }
         assert sidecar["universe"] is None
+        assert sidecar["fold"] is None
         assert {frozenset(c.items()) for c in sidecar["models"][0]["train_cells"]} == {
             frozenset({("task", "a"), ("run", "1")}),
             frozenset({("task", "a"), ("run", "2")}),
@@ -1407,3 +1514,179 @@ class TestArtifactRoundTrip:
         enc_force, _ = self._trained(tree, monkeypatch, force=True)
         enc_force.train(SUB)
         assert out.path.stat().st_mtime_ns != old
+
+
+class TestFoldedTrain:
+    """Outer folding fits K models, each on universe minus one held-out group."""
+
+    # Four runs, one cell each; rows are contiguous per cell in _sort_key order
+    CELLS = [CellKey(task="a", run=str(i)) for i in range(1, 5)]
+
+    def _trained(
+        self,
+        tree: BIDSTree,
+        monkeypatch: pytest.MonkeyPatch,
+        *,
+        fold_by: str,
+        n_folds: int | Literal["loo"],
+        cells: list[CellKey] | None = None,
+    ) -> tuple[Encoding, TrainingData]:
+        cells = cells if cells is not None else self.CELLS
+        n_per, n_cols, n_voxels = 5, 7, 3
+        rng = np.random.RandomState(0)
+        n_rows = n_per * len(cells)
+        data = TrainingData(
+            X=rng.randn(n_rows, n_cols).astype(np.float64),
+            Y=rng.randn(n_rows, n_voxels).astype(np.float64),
+            row_slices={
+                cell: slice(i * n_per, (i + 1) * n_per) for i, cell in enumerate(cells)
+            },
+            col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
+        )
+        enc = _make_encoding(
+            tree, ["phonemic-gpt3", "mfcc"], fold_by=fold_by, n_folds=n_folds
+        )
+        for step in (
+            "_discover_features",
+            "_discover_bold",
+            "_resolve_cell_keys",
+            "_validate_coverage",
+        ):
+            monkeypatch.setattr(enc, step, lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
+        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        return enc, data
+
+    def test_partition_correctness(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+        artifact = enc.train(SUB)
+        universe = set(data.row_slices)
+
+        assert len(artifact.models) == 2
+        assert artifact.universe == universe
+        held_out = [universe - m.train_cells for m in artifact.models]
+        assert all(m.train_cells < universe for m in artifact.models)
+        assert held_out[0].isdisjoint(held_out[1])
+        assert held_out[0] | held_out[1] == universe
+
+    def test_loo_one_group_held_out_per_model(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds="loo")
+        artifact = enc.train(SUB)
+        universe = set(data.row_slices)
+
+        assert len(artifact.models) == len(self.CELLS)
+        assert all(len(universe - m.train_cells) == 1 for m in artifact.models)
+
+    def test_fold_records_fold_config(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        enc, _ = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+        artifact = enc.train(SUB)
+        assert artifact.fold is not None
+        assert artifact.fold.by == "run"
+        assert artifact.fold.n == 2
+
+    def test_fold_by_descriptive_spans_runs(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # two conds, each spanning two runs → folds=2 over cond holds out whole conds
+        cells = [
+            CellKey(task="a", run="1", cond="x"),
+            CellKey(task="a", run="2", cond="x"),
+            CellKey(task="a", run="3", cond="y"),
+            CellKey(task="a", run="4", cond="y"),
+        ]
+        enc, data = self._trained(
+            tree, monkeypatch, fold_by="cond", n_folds=2, cells=cells
+        )
+        artifact = enc.train(SUB)
+        universe = set(data.row_slices)
+        held_out = [universe - m.train_cells for m in artifact.models]
+        # each held-out set is one whole cond (two runs)
+        assert all(len(h) == 2 for h in held_out)
+        assert all(len({c["cond"] for c in h}) == 1 for h in held_out)
+
+    def test_missing_fold_by_key_raises_in_train(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # 'cond' is absent from every cell — late, data-dependent failure
+        enc, _ = self._trained(tree, monkeypatch, fold_by="cond", n_folds=2)
+        with pytest.raises(ValueError, match="no 'cond' axis"):
+            enc.train(SUB)
+
+    def test_n_folds_exceed_groups_raises_in_train(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        enc, _ = self._trained(
+            tree, monkeypatch, fold_by="run", n_folds=2, cells=[self.CELLS[0]]
+        )
+        with pytest.raises(ValueError, match="exceeds"):
+            enc.train(SUB)
+
+    def test_loo_single_group_raises_in_train(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        enc, _ = self._trained(
+            tree, monkeypatch, fold_by="run", n_folds="loo", cells=[self.CELLS[0]]
+        )
+        with pytest.raises(ValueError, match="needs >= 2 groups"):
+            enc.train(SUB)
+
+    def test_runless_dataset_raises_in_train(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # run-less: 'run' uniformly absent → clear "no axis" error, not a collapse
+        enc, _ = self._trained(
+            tree,
+            monkeypatch,
+            fold_by="run",
+            n_folds=2,
+            cells=[CellKey(task="a"), CellKey(task="b")],
+        )
+        with pytest.raises(ValueError, match="no 'run' axis"):
+            enc.train(SUB)
+
+    def test_round_trip_preserves_models_and_cells(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        from himalaya.backend import set_backend
+
+        enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+        artifact = enc.train(SUB)
+
+        loaded = Encoding.load(tree.root, sub=SUB, desc="v1")
+        assert len(loaded.models) == len(artifact.models)
+        assert loaded.universe == artifact.universe
+        assert [m.train_cells for m in loaded.models] == [
+            m.train_cells for m in artifact.models
+        ]
+
+        # A reloaded per-fold pipeline predicts — proves the K-model write/read
+        # path end to end, not just metadata survival. Each model's CellDelayer
+        # is sized to its own training rows, so predict on that fold's slice.
+        set_backend("numpy")
+        for orig, got in zip(artifact.models, loaded.models):
+            X_fold, _, _ = _select_rows(data, orig.train_cells)
+            X_fold = X_fold.astype(np.float32)
+            ref = np.asarray(orig.pipeline.predict(X_fold))
+            np.testing.assert_array_equal(np.asarray(got.pipeline.predict(X_fold)), ref)
+
+    def test_per_fold_cell_lengths_follow_sort_order(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # Guards the CellDelayer-boundary bug: _select_rows must return cells in
+        # row_slices (_sort_key) order regardless of train_cells set iteration
+        _, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+        universe = set(data.row_slices)
+        held = _partition_groups(_group_cells_by(universe, "run"), 2)
+        train_cells = universe - held[0]
+        _, _, cell_lengths = _select_rows(data, train_cells)
+        expected_order = [c for c in data.row_slices if c in train_cells]
+        expected_lengths = [
+            data.row_slices[c].stop - data.row_slices[c].start for c in expected_order
+        ]
+        assert cell_lengths == expected_lengths
