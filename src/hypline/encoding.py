@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sklearn.base import BaseEstimator, TransformerMixin
 
 if TYPE_CHECKING:
+    from sklearn.model_selection import BaseCrossValidator
     from sklearn.pipeline import Pipeline
 
 from hypline._version import __version__
@@ -38,8 +39,6 @@ from hypline.layout import BIDSLayout
 
 FeatureDownsampleMethod = Literal["mean", "sum"]
 
-# Stopgap inner-CV seed; proper seed source lands with the structural rule in Phase 4
-_INNER_CV_SEED = 0
 _SOLVER_N_ITER = 100
 _SOLVER_DIAGONALIZE_METHOD = "svd"
 
@@ -266,24 +265,101 @@ def _partition_groups(
 
 def _select_rows(
     data: TrainingData, cells: set[CellKey]
-) -> tuple[np.ndarray, np.ndarray, list[int]]:
+) -> tuple[np.ndarray, np.ndarray, list[CellKey]]:
     """Slice `data` down to `cells`, preserving `_build_xy` row order.
 
     Iterates `data.row_slices` directly — a dict already built in `_sort_key`
     order by `_build_xy`, so surviving cells keep that order with no re-sort.
-    Rows and `cell_lengths` both come straight from `row_slices`, which is what
-    keeps `CellDelayer`'s boundary masks aligned for the fresh pipeline.
+    The ordered surviving cells are returned so the inner-CV selector and
+    `CellDelayer` can recover per-cell row counts from `data.row_slices` in the
+    same row order.
     """
     X_parts: list[np.ndarray] = []
     Y_parts: list[np.ndarray] = []
-    cell_lengths: list[int] = []
+    ordered_cells: list[CellKey] = []
     for cell, sl in data.row_slices.items():
         if cell not in cells:
             continue
         X_parts.append(data.X[sl])
         Y_parts.append(data.Y[sl])
-        cell_lengths.append(sl.stop - sl.start)
-    return np.concatenate(X_parts), np.concatenate(Y_parts), cell_lengths
+        ordered_cells.append(cell)
+    return np.concatenate(X_parts), np.concatenate(Y_parts), ordered_cells
+
+
+def _inner_cv(
+    *,
+    ordered_cells: list[CellKey],
+    cell_lengths: list[int],
+    segment_entity: str | None,
+    fold: "FoldSpec | None",
+) -> "BaseCrossValidator":
+    """Build the hyperparameter-search splitter confined to one model's train set.
+
+    Applies the 3-step inner-unit rule over this model's train cells:
+
+    1. `fold.by` itself, if the train set holds >=2 distinct values — symmetric
+       with outer folding, valid for structural and descriptive `fold_by` alike.
+    2. Descend the structural chain `[ses, task, run, segment_entity]`
+       coarsest-first, skipping only `fold.by` (already failed step 1); first
+       entity with >=2 distinct train values wins. The full chain is walked —
+       entities coarser than a structural `fold_by` are NOT skipped, because BIDS
+       labels are not strictly nested (a `run` value recurs across sessions), so a
+       coarser entity can legitimately vary while `fold.by` is constant.
+       Descriptive keys (e.g. `cond`) are excluded here: a descriptive value can
+       straddle a run boundary and leak. They re-enter only via step 1. When only
+       `segment_entity` varies, this yields leave-one-trial-out, which is leaky
+       under FIR delays — accepted as the honest expression of "this fold only
+       varies at the trial level"; the leak is a property of the data (no coarser
+       structure), not something the CV strategy should mask.
+    3. No eligible entity (train set collapsed to a single cell) → contiguous
+       `KFold(n_splits=2, shuffle=False)`. No seed — contiguous halving keeps
+       FIR-correlated adjacent TRs on the same side except at one boundary.
+
+    Steps 1–2 return a `PredefinedSplit` over whole cells: each cell's chosen
+    entity value (mapped to an int) is repeated by the cell's row count, so a
+    group id is constant within a cell and leave-one-value-out never splits a
+    cell. `segment_entity` is `None` when runs are unsegmented (it drops out of
+    the chain naturally). `fold` is `None` for unfolded models — step 1 is then
+    skipped and the rule starts at step 2.
+    """
+    from sklearn.model_selection import KFold, PredefinedSplit
+
+    def _split_on(entity: str):
+        # absent entity → None; needs >=2 distinct non-None values to split
+        values = [cell.get(entity) for cell in ordered_cells]
+        if len({v for v in values if v is not None}) < 2:
+            return None
+        value_to_id = {v: i for i, v in enumerate(dict.fromkeys(values))}
+        per_row_group_ids = np.repeat([value_to_id[v] for v in values], cell_lengths)
+        return PredefinedSplit(per_row_group_ids)
+
+    fold_by = fold.by if fold is not None else None
+
+    # step 1: fold_by as the inner unit
+    if fold_by is not None:
+        cv = _split_on(fold_by)
+        if cv is not None:
+            return cv
+
+    # step 2: descend the structural chain, skipping only fold_by
+    chain = ["ses", "task", "run"]
+    if segment_entity is not None:
+        chain.append(segment_entity)
+    for entity in chain:
+        if entity == fold_by:
+            continue
+        cv = _split_on(entity)
+        if cv is not None:
+            return cv
+
+    # step 3: single-cell train fold → contiguous 2-way halves
+    if sum(cell_lengths) < 2:
+        raise ValueError(
+            "Inner CV cannot form a 2-way split: a train fold collapsed to a "
+            f"single cell with {sum(cell_lengths)} row(s). Cells: "
+            f"{ordered_cells}"
+        )
+    return KFold(n_splits=2, shuffle=False)
 
 
 def _format_loc(**entities: str | None) -> str:
@@ -371,10 +447,12 @@ class CellDelayer(BaseEstimator, TransformerMixin):
 
 
 def _build_pipeline(
+    *,
     col_slices: dict[str, slice],
     cell_lengths: list[int],
     delays: list[int],
     alphas: list[float],
+    cv: "BaseCrossValidator",
 ) -> "Pipeline":
     """Assemble an unfitted banded-ridge pipeline, one kernel band per feature.
 
@@ -392,7 +470,6 @@ def _build_pipeline(
         Kernelizer,
         MultipleKernelRidgeCV,
     )
-    from sklearn.model_selection import KFold
     from sklearn.pipeline import Pipeline, make_pipeline
     from sklearn.preprocessing import StandardScaler
 
@@ -418,7 +495,7 @@ def _build_pipeline(
             diagonalize_method=_SOLVER_DIAGONALIZE_METHOD,
             progress_bar=False,
         ),
-        cv=KFold(n_splits=2, shuffle=True, random_state=_INNER_CV_SEED),
+        cv=cv,
     )
 
     return Pipeline([("kernelizer", column_kernelizer), ("model", model)])
@@ -673,14 +750,36 @@ class Encoding:
 
         set_backend("torch_cuda" if self.config.device is Device.CUDA else "torch")
 
-        def _fit_model(X: np.ndarray, Y: np.ndarray, cell_lengths: list[int]):
+        # segment entity is invariant across bold_metas (validated in _discover_bold);
+        # None when runs are unsegmented
+        segment_metas = [meta for meta in (bold_metas or {}).values() if meta.segments]
+        segment_entity = segment_metas[0].segments[0].entity if segment_metas else None
+
+        def _fit_model(
+            X: np.ndarray,
+            Y: np.ndarray,
+            ordered_cells: list[CellKey],
+        ):
             # Each fold needs a fresh pipeline: cell_lengths differ per fold and
-            # CellDelayer's boundary masks are built from them at construction
+            # CellDelayer's boundary masks are built from them at construction.
+            # Inner CV is rebuilt per model so its hyperparameter search stays
+            # confined to that model's own train cells.
+            cell_lengths = [
+                data.row_slices[cell].stop - data.row_slices[cell].start
+                for cell in ordered_cells
+            ]
+            cv = _inner_cv(
+                ordered_cells=ordered_cells,
+                cell_lengths=cell_lengths,
+                segment_entity=segment_entity,
+                fold=self._fold,
+            )
             pipeline = _build_pipeline(
                 col_slices=data.col_slices,
                 cell_lengths=cell_lengths,
                 delays=self.config.delays,
                 alphas=self.config.alphas,
+                cv=cv,
             )
             # torch backends want float32; float64 doubles memory and can error on CUDA
             pipeline.fit(X.astype(np.float32), Y.astype(np.float32))
@@ -689,9 +788,9 @@ class Encoding:
         recipe = replace(self._recipe, col_slices=data.col_slices)
 
         if self._fold is None:
-            # cell_lengths order tracks data.row_slices (= _build_xy / _sort_key order)
-            cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
-            pipeline = _fit_model(data.X, data.Y, cell_lengths)
+            # cell order tracks data.row_slices (= _build_xy / _sort_key order)
+            ordered_cells = list(data.row_slices)
+            pipeline = _fit_model(data.X, data.Y, ordered_cells)
             artifact = EncodingArtifact(
                 recipe=recipe,
                 fold=None,
@@ -707,8 +806,8 @@ class Encoding:
             models = []
             for held in held_out:
                 train_cells = all_cells - held
-                X_sub, Y_sub, cell_lengths = _select_rows(data, train_cells)
-                pipeline = _fit_model(X_sub, Y_sub, cell_lengths)
+                X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
+                pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
                 models.append(EncodingModel(pipeline=pipeline, train_cells=train_cells))
             artifact = EncodingArtifact(
                 recipe=recipe, fold=self._fold, models=models, universe=all_cells

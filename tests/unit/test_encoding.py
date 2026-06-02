@@ -17,6 +17,7 @@ from hypline.encoding import (
     TrainingData,
     _build_pipeline,
     _group_cells_by,
+    _inner_cv,
     _partition_groups,
     _select_rows,
 )
@@ -125,12 +126,15 @@ class TestBuildPipeline:
             },
             col_slices={"f1": slice(0, 3), "f2": slice(3, 7)},
         )
+        from sklearn.model_selection import KFold
+
         cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
         pipeline = _build_pipeline(
             col_slices=data.col_slices,
             cell_lengths=cell_lengths,
             delays=[0, 1, 2],
             alphas=[1.0, 10.0, 100.0],
+            cv=KFold(n_splits=2, shuffle=False),
         )
         pipeline.fit(data.X, data.Y)
         pred = np.asarray(pipeline.predict(data.X))
@@ -1364,11 +1368,151 @@ class TestFoldHelpers:
         )
         # subset given out of order; result must follow row_slices order, not arg order
         subset = {CellKey(task="a", run="3"), CellKey(task="a", run="1")}
-        X_sub, Y_sub, cell_lengths = _select_rows(data, subset)
-        assert cell_lengths == [2, 2]
+        X_sub, Y_sub, ordered_cells = _select_rows(data, subset)
+        assert ordered_cells == [CellKey(task="a", run="1"), CellKey(task="a", run="3")]
         # rows 0,1 (run 1) then 4,5 (run 3) — run 2 dropped, order preserved
         np.testing.assert_array_equal(Y_sub.ravel(), [0, 1, 4, 5])
         np.testing.assert_array_equal(X_sub, data.X[[0, 1, 4, 5]])
+
+
+class TestInnerCv:
+    """The 3-step inner-unit rule (`_inner_cv`), exercised per branch.
+
+    The selector is pure (cells in, splitter out), so these tests assert on the
+    returned `PredefinedSplit.test_fold` / `KFold` directly without any fitting.
+    """
+
+    from sklearn.model_selection import KFold, PredefinedSplit
+
+    @staticmethod
+    def _group_ids_per_cell(
+        test_fold: np.ndarray, cell_lengths: list[int]
+    ) -> list[int]:
+        # collapse per-row group ids to one id per cell; a constant id within a cell
+        # proves leave-one-value-out splits whole cells, never straddling a boundary
+        ids = []
+        offset = 0
+        for length in cell_lengths:
+            block = test_fold[offset : offset + length]
+            assert len(set(block)) == 1, "group id must be constant within a cell"
+            ids.append(block[0])
+            offset += length
+        return ids
+
+    def test_inner_cv_uses_fold_by_when_multivalued(self):
+        # step 1: structural fold_by with >=2 train values → leave-one-run-out
+        cells = [CellKey(task="a", run="1"), CellKey(task="a", run="2")]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[3, 3],
+            segment_entity=None,
+            fold=FoldSpec(by="run", n=2),
+        )
+        assert isinstance(cv, self.PredefinedSplit)
+        assert self._group_ids_per_cell(cv.test_fold, [3, 3]) == [0, 1]
+
+    def test_inner_cv_uses_descriptive_fold_by(self):
+        # step 1: fold_by=cond → leave-one-cond-out (descriptive axis is valid)
+        cells = [
+            CellKey(task="a", run="1", cond="x"),
+            CellKey(task="a", run="2", cond="y"),
+        ]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[2, 2],
+            segment_entity=None,
+            fold=FoldSpec(by="cond", n=2),
+        )
+        assert isinstance(cv, self.PredefinedSplit)
+        assert self._group_ids_per_cell(cv.test_fold, [2, 2]) == [0, 1]
+
+    def test_inner_cv_descends_to_coarser_entity_when_fold_by_constant(self):
+        # step 2, BIDS non-nesting: fold_by=run constant but coarser ses varies →
+        # leave-one-ses-out (the chain does not skip entities coarser than fold_by)
+        cells = [
+            CellKey(ses="1", task="a", run="1"),
+            CellKey(ses="2", task="a", run="1"),
+        ]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[2, 2],
+            segment_entity=None,
+            fold=FoldSpec(by="run", n=2),
+        )
+        assert isinstance(cv, self.PredefinedSplit)
+        assert self._group_ids_per_cell(cv.test_fold, [2, 2]) == [0, 1]
+
+    def test_inner_cv_descends_below_structural_fold_by(self):
+        # step 2: fold_by=run single run with trials → leave-one-trial-out
+        cells = [
+            CellKey(task="a", run="1", trial="1"),
+            CellKey(task="a", run="1", trial="2"),
+        ]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[2, 2],
+            segment_entity="trial",
+            fold=FoldSpec(by="run", n=2),
+        )
+        assert isinstance(cv, self.PredefinedSplit)
+        assert self._group_ids_per_cell(cv.test_fold, [2, 2]) == [0, 1]
+
+    def test_inner_cv_excludes_descriptive_from_chain(self):
+        # step 2→3: only descriptive cond varies → no structural unit → step 3 KFold
+        cells = [
+            CellKey(task="a", run="1", cond="x"),
+            CellKey(task="a", run="1", cond="y"),
+        ]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[2, 2],
+            segment_entity=None,
+            fold=None,
+        )
+        assert isinstance(cv, self.KFold)
+        assert cv.n_splits == 2 and cv.shuffle is False
+
+    def test_inner_cv_single_cell_contiguous_split(self):
+        # step 3: single cell → contiguous KFold(2, shuffle=False), no seed
+        cells = [CellKey(task="a", run="1")]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[6],
+            segment_entity=None,
+            fold=None,
+        )
+        assert isinstance(cv, self.KFold)
+        assert cv.n_splits == 2
+        assert cv.shuffle is False
+        assert cv.random_state is None
+
+    def test_inner_cv_single_cell_too_few_rows_raises(self):
+        # tiny-fold guard: single cell with <2 rows cannot form a 2-way split
+        cells = [CellKey(task="a", run="1")]
+        with pytest.raises(ValueError, match="single cell"):
+            _inner_cv(
+                ordered_cells=cells,
+                cell_lengths=[1],
+                segment_entity=None,
+                fold=None,
+            )
+
+    def test_inner_cv_never_straddles_cell_boundary(self):
+        # invariant: every cell's rows carry one group id across uneven lengths
+        cells = [
+            CellKey(task="a", run="1"),
+            CellKey(task="a", run="2"),
+            CellKey(task="a", run="3"),
+        ]
+        cv = _inner_cv(
+            ordered_cells=cells,
+            cell_lengths=[2, 3, 4],
+            segment_entity=None,
+            fold=FoldSpec(by="run", n=2),
+        )
+        assert isinstance(cv, self.PredefinedSplit)
+        assert self._group_ids_per_cell(cv.test_fold, [2, 3, 4]) == [0, 1, 2]
+        assert cv.get_n_splits() == 3
 
 
 class TestTrainWiring:
@@ -1675,18 +1819,34 @@ class TestFoldedTrain:
             ref = np.asarray(orig.pipeline.predict(X_fold))
             np.testing.assert_array_equal(np.asarray(got.pipeline.predict(X_fold)), ref)
 
-    def test_per_fold_cell_lengths_follow_sort_order(
+    def test_per_fold_cells_follow_sort_order(
         self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
     ):
         # Guards the CellDelayer-boundary bug: _select_rows must return cells in
-        # row_slices (_sort_key) order regardless of train_cells set iteration
+        # row_slices (_sort_key) order regardless of train_cells set iteration, so
+        # per-cell row counts derived downstream stay aligned with the row layout
         _, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
         universe = set(data.row_slices)
         held = _partition_groups(_group_cells_by(universe, "run"), 2)
         train_cells = universe - held[0]
-        _, _, cell_lengths = _select_rows(data, train_cells)
+        _, _, ordered_cells = _select_rows(data, train_cells)
         expected_order = [c for c in data.row_slices if c in train_cells]
-        expected_lengths = [
-            data.row_slices[c].stop - data.row_slices[c].start for c in expected_order
-        ]
-        assert cell_lengths == expected_lengths
+        assert ordered_cells == expected_order
+
+    def test_inner_cv_set_per_model(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # Inner CV is rebuilt per model, confined to that model's train cells.
+        from sklearn.model_selection import PredefinedSplit
+
+        # loo over 5 runs → each model holds out one run, trains on 4 → 4 inner splits
+        cells = [CellKey(task="a", run=str(i)) for i in range(1, 6)]
+        enc, _ = self._trained(
+            tree, monkeypatch, fold_by="run", n_folds="loo", cells=cells
+        )
+        artifact = enc.train(SUB)
+        cvs = [m.pipeline.named_steps["model"].cv for m in artifact.models]
+        assert all(isinstance(cv, PredefinedSplit) for cv in cvs)
+        assert all(cv.get_n_splits() == 4 for cv in cvs)
+        # distinct instances → rebuilt per model, not built once and shared
+        assert cvs[0] is not cvs[1]
