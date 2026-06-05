@@ -1,10 +1,10 @@
 import pytest
 
 from hypline.bids import BIDSPath
-from hypline.bold import load_bold_meta
+from hypline.bold import get_repetition_time, load_bold_meta
 from hypline.layout import BIDSLayout
 
-from .conftest import DEFAULT_BOLD_N_TRS, BIDSTree, minimal_nifti_gz
+from .conftest import DEFAULT_BOLD_N_TRS, HEADER_TR, BIDSTree, minimal_nifti_gz
 
 SUB = "001"
 TASK = "conv"
@@ -15,6 +15,81 @@ _SEGMENT_ROWS = [
     {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
     {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
 ]
+
+
+class TestGetRepetitionTime:
+    """TR resolves by priority: raw sidecar -> fmriprep sidecar ->
+    fmriprep header -> sibling fmriprep .nii.gz -> raw header."""
+
+    def test_raw_sidecar_preferred(self, tree: BIDSTree):
+        # Sidecar says 2.0, header says 1.0 -> sidecar wins
+        bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0)
+        tr = get_repetition_time(BIDSLayout(tree.root), BIDSPath(bold_path))
+        assert tr == 2.0
+
+    def test_fmriprep_sidecar_when_raw_absent(self, tree: BIDSTree):
+        bold_path = tree.add_bold(
+            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, write_raw=False
+        )
+        # No raw tree, so the fmriprep sidecar resolves it
+        tr = get_repetition_time(BIDSLayout(tree.root), BIDSPath(bold_path))
+        assert tr == 2.0
+
+    def test_fmriprep_header_when_no_sidecar(self, tree: BIDSTree):
+        bold_path = tree.add_bold(
+            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, write_raw=False
+        )
+        # Drop the fmriprep sidecar too: TR falls back to the header
+        bold_path.with_name(bold_path.name.rsplit(".nii.gz", 1)[0] + ".json").unlink()
+        tr = get_repetition_time(BIDSLayout(tree.root), BIDSPath(bold_path))
+        assert tr == HEADER_TR
+
+    def test_raw_header_last_resort(self, tree: BIDSTree):
+        # Surface bids, raw sidecar and all fmriprep .nii.gz gone, but a raw
+        # volumetric .nii.gz survives: TR resolves from its header
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0)
+        surface_path = tree._add_fmriprep(
+            sub=SUB,
+            ses=None,
+            task=TASK,
+            run="1",
+            suffix="bold",
+            ext=".func.gii",
+            extra_entities={"space": "fsaverage6", "desc": "preproc", "hemi": "L"},
+        )
+        raw_dir = tree.raw_func_dir(sub=SUB)
+        (raw_dir / f"sub-{SUB}_task-{TASK}_run-1_bold.json").unlink()
+        for f in tree.func_dir(sub=SUB).glob("*_bold.nii.gz"):
+            f.unlink()
+            f.with_name(f.name.rsplit(".nii.gz", 1)[0] + ".json").unlink()
+        tr = get_repetition_time(BIDSLayout(tree.root), BIDSPath(surface_path))
+        assert tr == HEADER_TR
+
+    def test_sibling_fmriprep_nii_when_bids_is_surface(self, tree: BIDSTree):
+        # Surface .func.gii has no header TR; falls through to the
+        # sibling volumetric .nii.gz for the same run
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, write_raw=False)
+        surface_path = tree._add_fmriprep(
+            sub=SUB,
+            ses=None,
+            task=TASK,
+            run="1",
+            suffix="bold",
+            ext=".func.gii",
+            extra_entities={"space": "fsaverage6", "desc": "preproc", "hemi": "L"},
+        )
+        tr = get_repetition_time(BIDSLayout(tree.root), BIDSPath(surface_path))
+        assert tr == 2.0
+
+    def test_no_source_raises(self, tree: BIDSTree):
+        bold_path = tree.add_bold(
+            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, write_raw=False
+        )
+        # Remove the fmriprep BOLD and its sidecar: nothing left to resolve from
+        bold_path.with_name(bold_path.name.rsplit(".nii.gz", 1)[0] + ".json").unlink()
+        bold_path.unlink()
+        with pytest.raises(ValueError, match="Cannot resolve TR"):
+            get_repetition_time(BIDSLayout(tree.root), BIDSPath(bold_path))
 
 
 class TestLoadBoldMeta:

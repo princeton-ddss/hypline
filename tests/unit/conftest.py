@@ -10,6 +10,9 @@ from hypline.bids import BOLD_IDENTITY_ENTITIES
 
 DEFAULT_BOLD_N_TRS = 10
 
+# Header TR of minimal_nifti_gz: its identity affine makes zoom[3] (the TR) 1.0
+HEADER_TR = 1.0
+
 
 @cache
 def minimal_nifti_gz(n_trs: int = DEFAULT_BOLD_N_TRS) -> bytes:
@@ -276,6 +279,7 @@ class BIDSTree:
         space: str,
         desc: str = "preproc",
         tr: float = 2.0,
+        write_raw: bool = True,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
         extras = extra_entities or {}
@@ -284,19 +288,20 @@ class BIDSTree:
             raise ValueError(
                 f"add_bold disallows overriding reserved entities: {sorted(reserved)}"
             )
-        self._add_raw(
-            sub=sub,
-            ses=ses,
-            task=task,
-            run=run,
-            suffix="bold",
-            ext=".nii.gz",
-            content=minimal_nifti_gz(),
-            sidecar_json={"RepetitionTime": tr},
-            extra_entities={
-                k: v for k, v in extras.items() if k in BOLD_IDENTITY_ENTITIES
-            },
-        )
+        if write_raw:
+            self._add_raw(
+                sub=sub,
+                ses=ses,
+                task=task,
+                run=run,
+                suffix="bold",
+                ext=".nii.gz",
+                content=minimal_nifti_gz(),
+                sidecar_json={"RepetitionTime": tr},
+                extra_entities={
+                    k: v for k, v in extras.items() if k in BOLD_IDENTITY_ENTITIES
+                },
+            )
         return self._add_fmriprep(
             sub=sub,
             ses=ses,

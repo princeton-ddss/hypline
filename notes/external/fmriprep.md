@@ -7,10 +7,14 @@ depend on:
 
 ## Repetition time (TR)
 
-Stored in a colocated JSON sidecar (`..._bold.json`) under `"RepetitionTime"`.
-The sidecar is the authoritative source — reading it avoids loading the
-NIfTI/GIfTI header. Fall back to the image header only if the sidecar is
-missing.
+Stored in a colocated JSON sidecar (`..._bold.json`) under `"RepetitionTime"`,
+both in raw BIDS and next to each fmriprep `desc-preproc_bold`. The declared
+sidecar value is exact; the image header is a less-trusted fallback. Surface
+`.func.gii` derivatives carry TR unreliably (`TimeStep` is often absent), so
+hypline never reads TR from them. Since TR is acquisition-level, any fmriprep
+`space`/`desc` variant of a run yields the same value. See
+[../modules/bold.md](../modules/bold.md) for the full resolution order and why
+the sidecar is preferred (raw imaging files are not required).
 
 ## Events files
 

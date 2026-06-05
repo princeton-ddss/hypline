@@ -1,7 +1,8 @@
 import json
+from pathlib import Path
 from typing import NamedTuple
 
-from hypline.bids import BIDSPath
+from hypline.bids import BOLD_IDENTITY_ENTITIES, BIDSPath
 from hypline.enums import SurfaceSpace, VolumeSpace
 from hypline.events import Segment, load_segments
 from hypline.layout import BIDSLayout
@@ -18,10 +19,14 @@ BOLD_EXTENSIONS = {
 }
 
 
-def _validate_bold(bids: BIDSPath) -> None:
-    if bids.suffix != "bold" or not bids.path.name.endswith(
+def _is_bold(bids: BIDSPath) -> bool:
+    return bids.suffix == "bold" and bids.path.name.endswith(
         tuple(BOLD_EXTENSIONS.values())
-    ):
+    )
+
+
+def _validate_bold(bids: BIDSPath) -> None:
+    if not _is_bold(bids):
         raise ValueError(
             f"Expected a BOLD file (suffix 'bold' with extension in "
             f"{sorted(BOLD_EXTENSIONS.values())}); got {bids.path.name!r}"
@@ -38,46 +43,120 @@ def parse_bold_space(value: str) -> SurfaceSpace | VolumeSpace:
     return bold_space
 
 
+def _tr_from_image(path: Path) -> float | None:
+    """Read TR (seconds) from a NIfTI BOLD header, or None if unusable.
+
+    Returns None when unusable — `path` absent, not NIfTI, or the header zoom
+    missing/zero — so callers fall through to the next source rather than
+    raising mid-ladder.
+    """
+    if not path.exists():
+        return None
+
+    import nibabel as nib
+
+    img = nib.load(path)
+    if isinstance(img, nib.Nifti1Image):
+        TR = img.header.get_zooms()[3]
+        return float(TR) if TR > 0 else None
+    return None
+
+
+def _tr_from_sidecar(path: Path) -> float | None:
+    """Read RepetitionTime from a `*_bold.json` sidecar, or None if unusable.
+
+    The sidecar's declared value is exact, unlike an image header's float32
+    zoom; callers prefer it over the sibling image header.
+    """
+    if not path.exists():
+        return None
+    with open(path) as f:
+        TR = json.load(f).get("RepetitionTime")
+    return float(TR) if TR is not None else None
+
+
+def _tr_for_bold(bids: BIDSPath) -> float | None:
+    """Resolve TR for one BOLD `.nii.gz`: its sibling `.json` sidecar, then header."""
+    sidecar = bids.path.with_name(bids.path.name.rsplit(".nii.gz", 1)[0] + ".json")
+    TR = _tr_from_sidecar(sidecar)
+    if TR is not None:
+        return TR
+    return _tr_from_image(bids.path)
+
+
+def _tr_from_fmriprep_run(layout: BIDSLayout, bids: BIDSPath) -> float | None:
+    """Resolve TR from any fmriprep BOLD `.nii.gz` for `bids`'s run.
+
+    TR is acquisition-level, so any fmriprep variant (any `space`, `desc`,
+    `res`, ...) carries the same value; `.nii.gz` only, since surface
+    derivatives carry TR unreliably. Returns None if none yields a usable TR.
+
+    Fast path: when `bids` is itself a NIfTI BOLD, read it directly, skip `find`.
+    """
+    if _is_bold(bids) and bids.path.name.endswith(".nii.gz"):
+        TR = _tr_for_bold(bids)
+        if TR is not None:
+            return TR
+
+    sub = bids.entities.get("sub")
+    if sub is None:
+        return None
+    run_filters = [
+        f"{k}-{bids.entities[k]}"
+        for k in BOLD_IDENTITY_ENTITIES - {"sub"}
+        if k in bids.entities
+    ]
+    try:
+        candidates = layout.find.fmriprep(
+            sub=sub, suffix="bold", ext=".nii.gz", bids_filters=run_filters
+        )
+    except FileNotFoundError:
+        return None
+
+    for candidate in candidates:
+        TR = _tr_for_bold(candidate)
+        if TR is not None:
+            return TR
+    return None
+
+
 def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
     """Extract TR in seconds for a BOLD run; never loads voxel data.
 
     Accepts any `bids` carrying the run's identity entities. TR is
     acquisition-level and identical across raw and derivative files, so
-    resolution is anchored on the raw BIDS tree via `layout.path.raw`: tries
-    `*_bold.json` first, then the raw BOLD image header. Raises ValueError if
-    no source yields a usable TR or the format is unsupported.
+    sources are tried by trust, requiring raw imaging files only as a last
+    resort (fMRIPrep derivatives are commonly analyzed without the raw BOLD
+    tree copied alongside):
+
+    1. raw `*_bold.json` sidecar (exact, BIDS-declared, tiny — often retained
+       even when raw BOLD images are not)
+    2. any fmriprep BOLD `.nii.gz` for the run, preferring its sibling
+       `*_bold.json` over the header (derivatives-only; reads `bids` directly
+       when it already is that file, else finds a sibling)
+    3. raw BOLD image header (last resort; the file most often absent)
+
+    Raises ValueError if no source yields a usable TR.
     """
-    sidecar = layout.path.raw(source=bids, suffix="bold", ext=".json")
-    if sidecar.path.exists():
-        with open(sidecar.path) as f:
-            TR = json.load(f).get("RepetitionTime")
-        if TR is not None:
-            return float(TR)
+    raw_sidecar = layout.path.raw(source=bids, suffix="bold", ext=".json")
+    TR = _tr_from_sidecar(raw_sidecar.path)
+    if TR is not None:
+        return TR
 
-    for ext in BOLD_EXTENSIONS.values():
-        raw_bold = layout.path.raw(source=bids, suffix="bold", ext=ext)
-        if raw_bold.path.exists():
-            break
-    else:
-        raise ValueError(
-            f"Cannot resolve TR for {bids.path.name}: "
-            f"no raw sidecar or BOLD image found"
-        )
+    TR = _tr_from_fmriprep_run(layout, bids)
+    if TR is not None:
+        return TR
 
-    import nibabel as nib
+    # Raw BOLD is volumetric .nii.gz by convention (surface is a derivative)
+    raw_bold = layout.path.raw(source=bids, suffix="bold", ext=".nii.gz")
+    TR = _tr_from_image(raw_bold.path)
+    if TR is not None:
+        return TR
 
-    img = nib.load(raw_bold.path)
-    if isinstance(img, nib.Nifti1Image):
-        TR = img.header.get_zooms()[3]
-        if TR > 0:
-            return float(TR)
-        raise ValueError(f"TR is zero or unset in NIfTI header: {raw_bold.path.name}")
-    if isinstance(img, nib.GiftiImage):
-        time_step = img.darrays[0].meta.get("TimeStep")
-        if time_step is not None:
-            return float(time_step) / 1000  # milliseconds to seconds
-        raise ValueError(f"TimeStep missing from GIfTI metadata: {raw_bold.path.name}")
-    raise ValueError(f"Unsupported image format: {type(img).__name__}")
+    raise ValueError(
+        f"Cannot resolve TR for {bids.path.name}: no raw sidecar yielded "
+        f"RepetitionTime, and no BOLD image header carried a usable TR"
+    )
 
 
 def get_n_trs(bids: BIDSPath) -> int:
