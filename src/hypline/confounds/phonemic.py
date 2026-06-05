@@ -5,9 +5,8 @@ import polars as pl
 from loguru import logger
 
 from hypline.bids import normalize_bids_filters
-from hypline.bold import BOLD_EXTENSIONS, load_bold_meta
+from hypline.bold import load_bold_meta, resolve_bold_image
 from hypline.downsample import DownsampleMethod, downsample
-from hypline.enums import VolumeSpace
 from hypline.io import read_feature, skip_existing, write_confound
 from hypline.layout import BIDSLayout
 
@@ -59,12 +58,8 @@ class PhonemicConfound:
             df = read_feature(feat_file.path)
             start_times = df.get_column("start_time").to_numpy()
 
-            raw_bold = self._layout.path.raw(
-                source=feat_file,
-                suffix="bold",
-                ext=BOLD_EXTENSIONS[VolumeSpace],
-            )
-            bold_meta = load_bold_meta(self._layout, raw_bold)
+            bold = resolve_bold_image(self._layout, feat_file)
+            bold_meta = load_bold_meta(self._layout, bold)
             n_trs = segment_n_trs(feat_file, bold_meta)
 
             for out, method in pending:

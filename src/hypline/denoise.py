@@ -13,7 +13,6 @@ from hypline.bids import (
 )
 from hypline.bold import (
     BOLD_EXTENSIONS,
-    get_n_trs,
     get_repetition_time,
     parse_bold_space,
 )
@@ -93,7 +92,7 @@ class Denoiser:
         TR = get_repetition_time(self._layout, bold)
 
         confounds = self._load_confounds(bold).to_numpy()  # (TRs, confounds)
-        if confounds.shape[0] != get_n_trs(bold):
+        if confounds.shape[0] != img.shape[3]:
             raise ValueError(
                 f"Unequal number of TRs between BOLD and confounds: {bold.path.name}"
             )

@@ -1,7 +1,7 @@
 import pytest
 
 from hypline.bids import BIDSPath
-from hypline.bold import get_repetition_time, load_bold_meta
+from hypline.bold import get_repetition_time, load_bold_meta, resolve_bold_image
 from hypline.layout import BIDSLayout
 
 from .conftest import DEFAULT_BOLD_N_TRS, HEADER_TR, BIDSTree, minimal_nifti_gz
@@ -18,8 +18,8 @@ _SEGMENT_ROWS = [
 
 
 class TestGetRepetitionTime:
-    """TR resolves by priority: raw sidecar -> fmriprep sidecar ->
-    fmriprep header -> sibling fmriprep .nii.gz -> raw header."""
+    """TR resolves by priority: raw sidecar -> any fmriprep .nii.gz
+    (sidecar over header) -> raw header."""
 
     def test_raw_sidecar_preferred(self, tree: BIDSTree):
         # Sidecar says 2.0, header says 1.0 -> sidecar wins
@@ -90,6 +90,35 @@ class TestGetRepetitionTime:
         bold_path.unlink()
         with pytest.raises(ValueError, match="Cannot resolve TR"):
             get_repetition_time(BIDSLayout(tree.root), BIDSPath(bold_path))
+
+
+class TestResolveBoldImage:
+    """Resolves an on-disk BOLD `.nii.gz` for a run: fmriprep -> raw -> raise."""
+
+    def test_fmriprep_preferred(self, tree: BIDSTree):
+        # Both present: the fmriprep BOLD wins over the raw image
+        bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
+        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
+        resolved = resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))
+        assert resolved.path == bold_path
+
+    def test_raw_when_fmriprep_absent(self, tree: BIDSTree):
+        # Only the raw image exists: resolution falls back to it
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", write_raw=True)
+        bold_path = tree.func_dir(sub=SUB).glob("*_bold.nii.gz").__next__()
+        bold_path.unlink()
+        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
+        resolved = resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))
+        raw_bold = (
+            tree.raw_func_dir(sub=SUB) / f"sub-{SUB}_task-{TASK}_run-1_bold.nii.gz"
+        )
+        assert resolved.path == raw_bold
+
+    def test_neither_raises(self, tree: BIDSTree):
+        # No BOLD image of any kind: n_trs is unresolvable
+        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
+        with pytest.raises(FileNotFoundError, match="No BOLD image found"):
+            resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))
 
 
 class TestLoadBoldMeta:

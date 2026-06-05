@@ -30,6 +30,14 @@ metadata without loading voxel data.
   shorten the derivative count, but hypline rejects such runs — see the
   invariant below.
 
+Callers that start from a non-BOLD `bids` (e.g. confound/feature generators
+holding a feature file) and need a present BOLD image for `n_trs` resolve it
+with `resolve_bold_image`, not a path constructed via `layout.path.raw`: a
+constructed raw path may not exist on disk — derivative-only trees are the
+common case. n_trs is preserved across variants, so whichever image it returns
+answers. (TR needs no such resolver — `get_repetition_time` prefers a tiny
+sidecar, touching a BOLD image only as a fallback.)
+
 ## Enforced invariant: derivative n_trs must equal raw
 
 `load_bold_meta` raises if a derivative BOLD's `n_trs` differs from the raw

@@ -84,46 +84,56 @@ def _tr_for_bold(bids: BIDSPath) -> float | None:
     return _tr_from_image(bids.path)
 
 
-def _tr_from_fmriprep_run(layout: BIDSLayout, bids: BIDSPath) -> float | None:
-    """Resolve TR from any fmriprep BOLD `.nii.gz` for `bids`'s run.
+def _find_fmriprep_bold(layout: BIDSLayout, source: BIDSPath) -> list[BIDSPath]:
+    """fmriprep BOLD `.nii.gz` files for `source`'s run (any space/desc variant).
 
-    TR is acquisition-level, so any fmriprep variant (any `space`, `desc`,
-    `res`, ...) carries the same value; `.nii.gz` only, since surface
-    derivatives carry TR unreliably. Returns None if none yields a usable TR.
-
-    Fast path: when `bids` is itself a NIfTI BOLD, read it directly, skip `find`.
+    Returns [] if `source` lacks a `sub` entity or no fmriprep BOLD exists.
+    `.nii.gz` only: surface derivatives carry TR unreliably, and n_trs is
+    preserved across variants, so a volumetric file answers both.
     """
-    if _is_bold(bids) and bids.path.name.endswith(".nii.gz"):
-        TR = _tr_for_bold(bids)
-        if TR is not None:
-            return TR
-
-    sub = bids.entities.get("sub")
+    sub = source.entities.get("sub")
     if sub is None:
-        return None
+        return []
     run_filters = [
-        f"{k}-{bids.entities[k]}"
+        f"{k}-{source.entities[k]}"
         for k in BOLD_IDENTITY_ENTITIES - {"sub"}
-        if k in bids.entities
+        if k in source.entities
     ]
     try:
-        candidates = layout.find.fmriprep(
+        return layout.find.fmriprep(
             sub=sub, suffix="bold", ext=".nii.gz", bids_filters=run_filters
         )
     except FileNotFoundError:
-        return None
-
-    for candidate in candidates:
-        TR = _tr_for_bold(candidate)
-        if TR is not None:
-            return TR
-    return None
+        return []
 
 
-def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
+def resolve_bold_image(layout: BIDSLayout, source: BIDSPath) -> BIDSPath:
+    """Resolve an on-disk BOLD `.nii.gz` for `source`'s run, for loading n_trs.
+
+    Unlike TR (resolvable from a tiny sidecar), the volume count requires a real
+    image. Resolves by trust: any fmriprep BOLD for the run, then the raw image.
+    Accepts any `source` carrying the run's identity entities (e.g. a feature).
+
+    Raises FileNotFoundError if neither an fmriprep nor a raw BOLD image exists.
+    """
+    fmriprep = _find_fmriprep_bold(layout, source)
+    if fmriprep:
+        return fmriprep[0]
+
+    raw_bold = layout.path.raw(source=source, suffix="bold", ext=".nii.gz")
+    if raw_bold.path.exists():
+        return raw_bold
+
+    raise FileNotFoundError(
+        f"No BOLD image found for {source.path.name}: neither an fmriprep nor a "
+        f"raw `*_bold.nii.gz` exists for the run"
+    )
+
+
+def get_repetition_time(layout: BIDSLayout, source: BIDSPath) -> float:
     """Extract TR in seconds for a BOLD run; never loads voxel data.
 
-    Accepts any `bids` carrying the run's identity entities. TR is
+    Accepts any `source` carrying the run's identity entities. TR is
     acquisition-level and identical across raw and derivative files, so
     sources are tried by trust, requiring raw imaging files only as a last
     resort (fMRIPrep derivatives are commonly analyzed without the raw BOLD
@@ -132,29 +142,28 @@ def get_repetition_time(layout: BIDSLayout, bids: BIDSPath) -> float:
     1. raw `*_bold.json` sidecar (exact, BIDS-declared, tiny — often retained
        even when raw BOLD images are not)
     2. any fmriprep BOLD `.nii.gz` for the run, preferring its sibling
-       `*_bold.json` over the header (derivatives-only; reads `bids` directly
-       when it already is that file, else finds a sibling)
+       `*_bold.json` over the header
     3. raw BOLD image header (last resort; the file most often absent)
 
     Raises ValueError if no source yields a usable TR.
     """
-    raw_sidecar = layout.path.raw(source=bids, suffix="bold", ext=".json")
+    raw_sidecar = layout.path.raw(source=source, suffix="bold", ext=".json")
     TR = _tr_from_sidecar(raw_sidecar.path)
     if TR is not None:
         return TR
 
-    TR = _tr_from_fmriprep_run(layout, bids)
-    if TR is not None:
-        return TR
+    for candidate in _find_fmriprep_bold(layout, source):
+        TR = _tr_for_bold(candidate)
+        if TR is not None:
+            return TR
 
-    # Raw BOLD is volumetric .nii.gz by convention (surface is a derivative)
-    raw_bold = layout.path.raw(source=bids, suffix="bold", ext=".nii.gz")
+    raw_bold = layout.path.raw(source=source, suffix="bold", ext=".nii.gz")
     TR = _tr_from_image(raw_bold.path)
     if TR is not None:
         return TR
 
     raise ValueError(
-        f"Cannot resolve TR for {bids.path.name}: no raw sidecar yielded "
+        f"Cannot resolve TR for {source.path.name}: no raw sidecar yielded "
         f"RepetitionTime, and no BOLD image header carried a usable TR"
     )
 
@@ -212,9 +221,9 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
 
     # BOLD_EXTENSIONS pins volumetric raw to .nii.gz; surface derivatives
     # (.func.gii) inherit any trim applied during volumetric preprocessing.
-    raw_bold_bids = layout.path.raw(source=bids, suffix="bold", ext=".nii.gz")
-    if raw_bold_bids.path.exists() and raw_bold_bids.path != bids.path:
-        n_trs_raw = get_n_trs(raw_bold_bids)
+    raw_bold = layout.path.raw(source=bids, suffix="bold", ext=".nii.gz")
+    if raw_bold.path.exists() and raw_bold.path != bids.path:
+        n_trs_raw = get_n_trs(raw_bold)
         if n_trs_raw != n_trs:
             raise ValueError(
                 f"Derivative BOLD {bids.path.name!r} has {n_trs} volumes but "
