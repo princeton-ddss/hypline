@@ -4,15 +4,15 @@ import polars as pl
 import pytest
 from pydantic import TypeAdapter
 
-from hypline.confounds.fmriprep import (
+from hypline.confounds.fmriprep import FmriprepConfound
+from hypline.enums import VolumeSpace
+from hypline.fmriprep import (
     CompCorMask,
     CompCorMethod,
     CompCorOptions,
     ConfoundMetadata,
-    FmriprepConfound,
     _select_comps,
 )
-from hypline.enums import VolumeSpace
 from hypline.io import read_confound, read_confound_metadata
 
 from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree

@@ -4,7 +4,6 @@ from typing import Annotated
 import typer
 from loguru import logger
 
-from ._compcor import parse_compcor
 from ._utils import run_per_subject, split_csv
 
 app = typer.Typer()
@@ -81,14 +80,19 @@ def generate_fmriprep_confound(
 ):
     """Extract fmriprep confound columns into a named conf-fmriprep bundle."""
     from hypline.confounds.fmriprep import FmriprepConfound
+    from hypline.fmriprep import parse_compcor
 
     _columns = split_csv(columns, param_hint="--columns") or []
-    _compcor = parse_compcor(compcor)
-    if not _columns and not _compcor:
+    _compcor_tokens = split_csv(compcor, param_hint="--compcor") or []
+    if not _columns and not _compcor_tokens:
         raise typer.BadParameter(
             "at least one of --columns or --compcor must be given",
             param_hint="--columns/--compcor",
         )
+    try:
+        _compcor = parse_compcor(_compcor_tokens)
+    except ValueError as e:
+        raise typer.BadParameter(str(e), param_hint="--compcor") from e
 
     _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")

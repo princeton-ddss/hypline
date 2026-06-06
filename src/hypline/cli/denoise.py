@@ -20,17 +20,30 @@ def denoise(
             show_default=False,
         ),
     ],
-    confounds: Annotated[
-        str,
+    columns: Annotated[
+        str | None,
         typer.Option(
-            "--confounds",
+            "--columns",
             help="""
-            Comma-separated confound refs <kind>[-<desc>] to regress out
-            (e.g., fmriprep-minimal,phonemic)
+            Comma-separated fmriprep confound columns: exact tsv names (e.g.,
+            trans_x,rot_x) plus group prefixes that expand to all matches
+            (cosine, motion_outlier)
             """,
             show_default=False,
         ),
-    ],
+    ] = None,
+    compcor: Annotated[
+        str | None,
+        typer.Option(
+            "--compcor",
+            help="""
+            Comma-separated CompCor selectors type:mask:n (e.g., a:CSF:5 = top-5
+            aCompCor in CSF; t::10 = top-10 tCompCor). type a=anatomical (mask
+            required), t=temporal (no mask); n = top-N int or variance fraction (0-1)
+            """,
+            show_default=False,
+        ),
+    ] = None,
     space: Annotated[
         BoldSpace,
         typer.Option(
@@ -64,13 +77,15 @@ def denoise(
         ),
     ] = False,
 ):
-    """Regress out confounds from preprocessed BOLD, writing desc-clean in place."""
+    """Regress fmriprep confounds out of preprocessed BOLD, writing desc-clean."""
     from hypline.denoise import Denoiser
 
-    _confounds = split_csv(confounds, param_hint="--confounds")
-    if not _confounds:
+    _columns = split_csv(columns, param_hint="--columns") or []
+    _compcor = split_csv(compcor, param_hint="--compcor") or []
+    if not _columns and not _compcor:
         raise typer.BadParameter(
-            "at least one confound ref required", param_hint="--confounds"
+            "at least one of --columns or --compcor must be given",
+            param_hint="--columns/--compcor",
         )
 
     _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
@@ -79,7 +94,8 @@ def denoise(
     denoiser = Denoiser(
         bids_root=bids_root,
         space=space.value,
-        confounds=_confounds,
+        columns=_columns,
+        compcor=_compcor,
         bids_filters=_bids_filters,
         force=force,
     )

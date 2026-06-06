@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import nibabel as nib
-import polars as pl
+import numpy as np
 from loguru import logger
 from nibabel.gifti import GiftiDataArray, GiftiImage
 
@@ -9,7 +9,6 @@ from hypline.bids import (
     BOLD_IDENTITY_ENTITIES,
     BIDSPath,
     normalize_bids_filters,
-    parse_kind_desc,
 )
 from hypline.bold import (
     BOLD_EXTENSIONS,
@@ -17,27 +16,24 @@ from hypline.bold import (
     parse_bold_space,
 )
 from hypline.enums import SurfaceSpace, VolumeSpace
-from hypline.io import read_confound, skip_existing, stack_array_column
+from hypline.fmriprep import (
+    parse_compcor,
+    read_fmriprep_confounds,
+    select_fmriprep_columns,
+)
+from hypline.io import skip_existing
 from hypline.layout import BIDSLayout
-
-
-def _identity_filters(bold: BIDSPath) -> list[str]:
-    """Build `entity-value` filters from a BOLD run's identity entities.
-
-    Includes `sub`; finders take `sub` as a dedicated argument, so callers
-    strip it before passing the rest as `bids_filters`.
-    """
-    return [f"{k}-{v}" for k, v in bold.entities.items() if k in BOLD_IDENTITY_ENTITIES]
 
 
 class Denoiser:
     """Confound regression to remove noise from preprocessed BOLD fMRI data.
 
-    Finds `desc-preproc` BOLD in the fmriprep tree, regresses out the confounds
-    named by `confounds`, and writes the cleaned run in place as `desc-clean`.
-    The input descriptor is fixed as `desc-preproc` so the denoiser never
-    re-cleans its own output. Volume and surface BOLD dispatch on `type(space)`;
-    surface runs are per-hemisphere and cleaned independently.
+    Finds `desc-preproc` BOLD in the fmriprep tree, regresses out the fmriprep
+    confound columns selected by `columns`/`compcor`, and writes the cleaned run
+    in place as `desc-clean`. The input descriptor is fixed as `desc-preproc` so
+    the denoiser never re-cleans its own output. Volume and surface BOLD
+    dispatch on `type(space)`; surface runs are per-hemisphere and cleaned
+    independently.
     """
 
     def __init__(
@@ -45,17 +41,17 @@ class Denoiser:
         *,
         bids_root: str | Path,
         space: str,
-        confounds: list[str],
+        columns: list[str],
+        compcor: list[str],
         bids_filters: list[str] | None = None,
         force: bool = False,
     ):
-        # Each entry is a `<kind>-<desc>` (or bare `<kind>`) ref into `confounds/`;
-        # fmriprep tsv columns arrive as `conf-fmriprep_desc-*` bundles too.
-        if not confounds:
-            raise ValueError("confounds must be non-empty")
+        if not columns and not compcor:
+            raise ValueError("at least one of columns or compcor must be given")
         self._layout = BIDSLayout(bids_root)
         self._space = parse_bold_space(space)
-        self._confounds = [parse_kind_desc(entry) for entry in confounds]
+        self._columns = columns
+        self._compcor = parse_compcor(compcor)
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "desc", "space"}
         )
@@ -91,15 +87,15 @@ class Denoiser:
         img = nimg.load_img(bold.path)  # Shape of (x, y, z, TRs)
         TR = get_repetition_time(self._layout, bold)
 
-        confounds = self._load_confounds(bold).to_numpy()  # (TRs, confounds)
-        if confounds.shape[0] != img.shape[3]:
+        nuisance = self._load_nuisance(bold)  # (TRs, regressors)
+        if nuisance.shape[0] != img.shape[3]:
             raise ValueError(
-                f"Unequal number of TRs between BOLD and confounds: {bold.path.name}"
+                f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
             )
 
         cleaned = nimg.clean_img(
             img,
-            confounds=confounds,
+            confounds=nuisance,
             detrend=True,
             t_r=TR,
             ensure_finite=True,
@@ -116,15 +112,15 @@ class Denoiser:
         data = img.agg_data().T  # Shape of (TRs, voxels)
         TR = get_repetition_time(self._layout, bold)
 
-        confounds = self._load_confounds(bold).to_numpy()  # (TRs, confounds)
-        if confounds.shape[0] != data.shape[0]:
+        nuisance = self._load_nuisance(bold)  # (TRs, regressors)
+        if nuisance.shape[0] != data.shape[0]:
             raise ValueError(
-                f"Unequal number of TRs between BOLD and confounds: {bold.path.name}"
+                f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
             )
 
         cleaned = signal.clean(
             data,
-            confounds=confounds,
+            confounds=nuisance,
             detrend=True,
             t_r=TR,
             ensure_finite=True,
@@ -141,49 +137,32 @@ class Denoiser:
         )
         nib.save(new_img, bold.with_entity("desc", "clean").path)
 
-    def _load_confounds(self, bold: BIDSPath) -> pl.DataFrame:
-        """Load all confounds for the given BOLD run from `confounds/`.
+    def _load_nuisance(self, bold: BIDSPath) -> np.ndarray:
+        """Build the `(TRs, regressors)` matrix from the run's fmriprep tsv.
 
-        Each `confounds` ref resolves to one `conf-<kind>[-<desc>]` parquet file
-        for the run. A file's `confound` column is a fixed-width array; it
-        expands to one scalar column per element so the concatenated frame
-        yields a flat `(TRs, regressors)` matrix for nilearn. Distinct refs that
-        resolve to the same file are loaded once. All bundles must share the
-        same row count (TRs); a mismatch fails fast.
+        Resolves the run's `desc-confounds_timeseries.tsv` (one match or raise)
+        in the fmriprep tree, reads it via `read_fmriprep_confounds`, and selects
+        `columns`/`compcor` into a single flat block for nilearn.
         """
-        run_filters = [f for f in _identity_filters(bold) if not f.startswith("sub-")]
+        run_filters = [
+            f"{k}-{bold.entities[k]}"
+            for k in BOLD_IDENTITY_ENTITIES - {"sub"}
+            if k in bold.entities
+        ]
 
-        columns: dict[str, list[float]] = {}
-        seen: set[Path] = set()
-        n_trs: int | None = None
-        for kind, desc in self._confounds:
-            matches = self._layout.find.confounds(
-                sub=bold.entities["sub"],
-                kind=kind,
-                desc=desc,
-                bids_filters=run_filters,
+        matches = self._layout.find.fmriprep(
+            sub=bold.entities["sub"],
+            suffix="timeseries",
+            ext=".tsv",
+            bids_filters=["desc-confounds", *run_filters],
+        )
+        if len(matches) != 1:
+            raise ValueError(
+                f"Expected one confounds tsv for {bold.path.name}, found {len(matches)}"
             )
-            label = f"{kind}-{desc}" if desc else kind
-            if len(matches) != 1:
-                raise ValueError(
-                    f"Expected one {label!r} confound for {bold.path.name}, "
-                    f"found {len(matches)}"
-                )
-            path = matches[0].path
-            if path in seen:
-                continue
-            seen.add(path)
 
-            block = stack_array_column(read_confound(path).get_column("confound"))
-            if n_trs is None:
-                n_trs = block.shape[0]
-            elif block.shape[0] != n_trs:
-                raise ValueError(
-                    "Unequal number of rows (TRs) between confound bundles: "
-                    f"{label!r} has {block.shape[0]}, expected {n_trs} "
-                    f"({bold.path.name})"
-                )
-            for i in range(block.shape[1]):
-                columns[f"{label}_{i}"] = block[:, i].tolist()
-
-        return pl.DataFrame(columns)
+        df, meta = read_fmriprep_confounds(matches[0].path)
+        names = select_fmriprep_columns(
+            df, meta, columns=self._columns, compcor=self._compcor
+        )
+        return df.select(names).to_numpy()  # (TRs, regressors)
