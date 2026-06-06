@@ -53,6 +53,10 @@ class BIDSTree:
         return self.root / "confounds"
 
     @property
+    def nuisance_dir(self) -> Path:
+        return self.root / "nuisance"
+
+    @property
     def fmriprep_dir(self) -> Path:
         return self.root / "derivatives" / "fmriprep"
 
@@ -267,6 +271,40 @@ class BIDSTree:
                 schema={"start_time": pl.Float64, "confound": pl.Array(pl.Float64, 1)},
             )
         write_confound(df, path, repetition_time=2.0, tr_method=None, metadata=metadata)
+        return path
+
+    def add_nuisance(
+        self,
+        *,
+        sub: str,
+        ses: str | None = None,
+        task: str,
+        run: str | None = None,
+        kind: str,
+        desc: str | None = None,
+        df: pl.DataFrame | None = None,
+        extra_entities: dict[str, str] | None = None,
+    ) -> Path:
+        """Write a wide nuisance TSV under nuisance/sub-XX/[ses-YY/]<kind>[-<desc>]/.
+
+        `df` columns become the regressors (one default scalar column if None).
+        Unlike feature/confound, the file carries the `_timeseries` suffix and a
+        `.tsv` extension, and is plain wide TSV (no metadata footer).
+        """
+        extras = extra_entities or {}
+        if "desc" in extras:
+            raise ValueError("pass desc as an explicit argument, not in extra_entities")
+        entities = self._entities(sub, ses, task, run, **extras)
+        entities["nuis"] = kind
+        if desc is not None:
+            entities["desc"] = desc
+        subdir = f"{kind}-{desc}" if desc else kind
+        kind_dir = self._sub_ses_dir(self.nuisance_dir, sub, ses) / subdir
+        kind_dir.mkdir(parents=True, exist_ok=True)
+        path = kind_dir / f"{self._stem(entities)}_timeseries.tsv"
+        if df is None:
+            df = pl.DataFrame({"reg0": [0.0]})
+        self._write(path, content=df.write_csv(separator="\t"))
         return path
 
     def add_bold(

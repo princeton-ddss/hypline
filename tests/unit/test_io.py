@@ -13,6 +13,7 @@ from hypline.io import (
     read_confound_metadata,
     read_feature,
     read_feature_metadata,
+    read_nuisance,
     save_confound,
     save_feature,
     skip_existing,
@@ -605,6 +606,84 @@ class TestReadConfoundMetadata:
         path = tmp_path / "sub-01.parquet"
         with pytest.raises(ValueError, match="must contain a 'conf' entity"):
             read_confound_metadata(path)
+
+
+# ---------------------------------------------------------------------------
+# Path-based: nuisance
+# ---------------------------------------------------------------------------
+
+
+def _write_nuisance_tsv(df: pl.DataFrame, path: Path) -> None:
+    path.write_text(df.write_csv(separator="\t"))
+
+
+@pytest.fixture()
+def nuisance_path(tmp_path: Path) -> Path:
+    return tmp_path / "sub-01_task-conv_nuis-physio_timeseries.tsv"
+
+
+@pytest.fixture()
+def nuisance_df() -> pl.DataFrame:
+    return pl.DataFrame({"physio123": [0.0, 1.0, 2.0], "physio345": [3.0, 4.0, 5.0]})
+
+
+class TestReadNuisance:
+    def test_roundtrip(self, nuisance_path: Path, nuisance_df: pl.DataFrame):
+        _write_nuisance_tsv(nuisance_df, nuisance_path)
+        loaded = read_nuisance(nuisance_path)
+        assert loaded.equals(nuisance_df)
+
+    def test_desc_variant_path(self, tmp_path: Path, nuisance_df: pl.DataFrame):
+        path = tmp_path / "sub-01_nuis-physio_desc-v1_timeseries.tsv"
+        _write_nuisance_tsv(nuisance_df, path)
+        assert read_nuisance(path).equals(nuisance_df)
+
+    def test_single_row_allowed(self, nuisance_path: Path):
+        _write_nuisance_tsv(pl.DataFrame({"reg0": [1.0]}), nuisance_path)
+        assert read_nuisance(nuisance_path).height == 1
+
+    def test_missing_nuis_entity_raises(
+        self, tmp_path: Path, nuisance_df: pl.DataFrame
+    ):
+        path = tmp_path / "sub-01_conf-physio_timeseries.tsv"
+        _write_nuisance_tsv(nuisance_df, path)
+        with pytest.raises(ValueError, match="nuis"):
+            read_nuisance(path)
+
+    def test_wrong_extension_raises(self, tmp_path: Path, nuisance_df: pl.DataFrame):
+        path = tmp_path / "sub-01_nuis-physio_timeseries.csv"
+        _write_nuisance_tsv(nuisance_df, path)
+        with pytest.raises(ValueError, match=".tsv"):
+            read_nuisance(path)
+
+    def test_missing_suffix_raises(self, tmp_path: Path, nuisance_df: pl.DataFrame):
+        path = tmp_path / "sub-01_nuis-physio.tsv"
+        _write_nuisance_tsv(nuisance_df, path)
+        with pytest.raises(ValueError, match="timeseries"):
+            read_nuisance(path)
+
+    def test_empty_rows_raise(self, nuisance_path: Path):
+        empty = pl.DataFrame({"reg0": pl.Series([], dtype=pl.Float64)})
+        _write_nuisance_tsv(empty, nuisance_path)
+        with pytest.raises(ValueError, match="no rows"):
+            read_nuisance(nuisance_path)
+
+    def test_non_numeric_column_raises(self, nuisance_path: Path):
+        _write_nuisance_tsv(
+            pl.DataFrame({"reg0": [1.0, 2.0], "label": ["a", "b"]}), nuisance_path
+        )
+        with pytest.raises(ValueError, match="numeric"):
+            read_nuisance(nuisance_path)
+
+    def test_nan_value_raises(self, nuisance_path: Path):
+        _write_nuisance_tsv(pl.DataFrame({"reg0": [0.0, float("nan")]}), nuisance_path)
+        with pytest.raises(ValueError, match="non-finite"):
+            read_nuisance(nuisance_path)
+
+    def test_inf_value_raises(self, nuisance_path: Path):
+        _write_nuisance_tsv(pl.DataFrame({"reg0": [0.0, float("inf")]}), nuisance_path)
+        with pytest.raises(ValueError, match="non-finite"):
+            read_nuisance(nuisance_path)
 
 
 # ---------------------------------------------------------------------------

@@ -582,3 +582,68 @@ def save_confound(
         metadata=metadata,
     )
     return path
+
+
+# --------------------------------------------------------------------------- #
+# Nuisance
+# --------------------------------------------------------------------------- #
+
+
+def read_nuisance(path: str | Path) -> pl.DataFrame:
+    """Read a wide nuisance TSV: one scalar column per run-level regressor.
+
+    Validates that the path carries a `nuis` entity, `.tsv` extension, and the
+    `timeseries` suffix; reads the tab-separated frame and enforces it is
+    non-empty and entirely finite. Unlike `read_confound`, there is no metadata
+    footer and no `confound`/`feature` array column — the frame is returned
+    as-is, with the caller selecting columns by name.
+
+    BOLD-agnostic by design: row count is *not* checked against a BOLD run here
+    (the helper has no BOLD to compare against); denoise enforces
+    rows == TRs against the run it is cleaning.
+
+    Raises on any non-finite value. Custom nuisance TSVs carry no `n/a`
+    convention (unlike fmriprep confounds, whose leading NaNs are filled
+    natively in denoise), so a non-finite cell is an error, not a fillable gap.
+
+    Parameters
+    ----------
+    path
+        Path to a hypline nuisance TSV file.
+
+    Returns
+    -------
+    pl.DataFrame
+        The wide nuisance frame, one column per regressor.
+
+    Raises
+    ------
+    ValueError
+        If the path is not a valid nuisance path, the frame has no rows, has a
+        non-numeric column, or any value is non-finite.
+    """
+    bids = BIDSPath(path)
+    if "nuis" not in bids.entities:
+        raise ValueError("BIDS path must contain a 'nuis' entity")
+    if bids.ext != ".tsv":
+        raise ValueError(f"Nuisance path must have .tsv extension, got {bids.ext!r}")
+    if bids.suffix != "timeseries":
+        raise ValueError(
+            f"Nuisance path must carry the 'timeseries' suffix, got {bids.suffix!r}"
+        )
+    df = pl.read_csv(bids.path, separator="\t")
+
+    if df.height == 0:
+        raise ValueError(f"Nuisance file has no rows: {bids.path.name}")
+
+    non_numeric = [c for c, dt in df.schema.items() if not dt.is_numeric()]
+    if non_numeric:
+        raise ValueError(
+            f"Nuisance columns must be numeric, got non-numeric {non_numeric} "
+            f"in {bids.path.name}"
+        )
+    if not np.isfinite(df.to_numpy()).all():
+        raise ValueError(
+            f"Nuisance file contains non-finite values (NaN or inf): {bids.path.name}"
+        )
+    return df

@@ -101,6 +101,17 @@ class TestBIDSPathFromEntities:
             bp.path.name == "sub-01_task-conv_cond-G_trial-3_feat-llm_desc-v1.parquet"
         )
 
+    def test_nuis_and_desc_trail_with_suffix(self):
+        bp = BIDSPath.from_entities(
+            ext=".tsv",
+            suffix="timeseries",
+            desc="v1",
+            nuis="physio",
+            task="conv",
+            sub="01",
+        )
+        assert bp.path.name == "sub-01_task-conv_nuis-physio_desc-v1_timeseries.tsv"
+
     def test_with_suffix(self):
         bp = BIDSPath.from_entities(ext=".nii.gz", suffix="bold", sub="01", task="rest")
         assert bp.path.name == "sub-01_task-rest_bold.nii.gz"

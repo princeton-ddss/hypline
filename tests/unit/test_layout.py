@@ -457,6 +457,101 @@ class TestFindConfounds:
             layout.find.confounds(sub=SUB, kind="phonemic")
 
 
+class TestFindNuisance:
+    def test_translates_kind_to_nuisance_entity(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(sub=SUB, kind="physio")
+        assert len(results) == 1
+        assert results[0].entities.get("nuis") == "physio"
+        assert results[0].suffix == "timeseries"
+        assert results[0].ext == ".tsv"
+
+    def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, ses="1", task=TASK)
+        tree.add_nuisance(kind="physio", sub=SUB, ses="2", task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(sub=SUB, kind="physio", bids_filters=["ses-1"])
+        assert len(results) == 1
+        assert results[0].ses == "1"
+
+    def test_desc_none_excludes_variants(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK, desc="v1")
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(sub=SUB, kind="physio")
+        assert len(results) == 1
+        assert results[0].entities.get("desc") is None
+
+    def test_desc_label_selects_variant(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK, desc="v1")
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK)
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(sub=SUB, kind="physio", desc="v1")
+        assert len(results) == 1
+        assert results[0].entities.get("desc") == "v1"
+
+    def test_desc_star_returns_all_variants(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK, run="1")
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK, run="2", desc="v1")
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(sub=SUB, kind="physio", desc="*")
+        descs = {r.entities.get("desc") for r in results}
+        assert descs == {None, "v1"}
+
+    def test_rejects_reserved_desc_filter(self, tree: BIDSTree):
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="desc"):
+            layout.find.nuisance(sub=SUB, kind="physio", bids_filters=["desc-v1"])
+
+    def test_rejects_reserved_nuis_filter(self, tree: BIDSTree):
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="nuis"):
+            layout.find.nuisance(sub=SUB, kind="physio", bids_filters=["nuis-physio"])
+
+    def test_raises_when_area_absent(self, tmp_path):
+        layout = BIDSLayout(tmp_path)
+        with pytest.raises(FileNotFoundError, match="nuisance"):
+            layout.find.nuisance(sub=SUB, kind="physio")
+
+    def test_raises_when_task_missing(self, tree: BIDSTree):
+        path = (
+            tree.nuisance_dir
+            / f"sub-{SUB}"
+            / "physio"
+            / f"sub-{SUB}_nuis-physio_timeseries.tsv"
+        )
+        path.parent.mkdir(parents=True)
+        path.touch()
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="task"):
+            layout.find.nuisance(sub=SUB, kind="physio")
+
+    def test_skips_non_timeseries_suffix(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK)
+        stray = (
+            tree.nuisance_dir
+            / f"sub-{SUB}"
+            / "physio"
+            / f"sub-{SUB}_task-{TASK}_nuis-physio_bold.tsv"
+        )
+        stray.touch()
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(sub=SUB, kind="physio")
+        assert len(results) == 1
+        assert results[0].suffix == "timeseries"
+
+    def test_run_identity_resolves_to_single_file(self, tree: BIDSTree):
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK, run="1")
+        tree.add_nuisance(kind="physio", sub=SUB, task=TASK, run="2")
+        layout = BIDSLayout(tree.root)
+        results = layout.find.nuisance(
+            sub=SUB, kind="physio", bids_filters=["task-conv", "run-1"]
+        )
+        assert len(results) == 1
+        assert results[0].run == "1"
+
+
 class TestFindFmriprep:
     def test_returns_bold_files(self, tree: BIDSTree):
         tree.add_bold(space=SPACE, sub=SUB, task=TASK)

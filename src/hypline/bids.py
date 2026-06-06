@@ -20,7 +20,7 @@ UNSUPPORTED_ENTITIES = frozenset(("acq", "ce", "rec", "dir", "echo", "part", "ch
 RESERVED_BIDS_ENTITIES = BOLD_IDENTITY_ENTITIES | UNSUPPORTED_ENTITIES
 
 # Hypline derivative-category tags; a derived output carries exactly one
-CATEGORY_ENTITIES = frozenset({"stim", "feat", "conf"})
+CATEGORY_ENTITIES = frozenset({"stim", "feat", "conf", "nuis"})
 
 # Entities distinguishing processing/image variants of the same logical run
 VARIANT_DESCRIPTORS = frozenset({"desc", "space", "res", "den"})
@@ -110,7 +110,7 @@ class BIDSPath:
         """Build a BIDSPath from entity kwargs in canonical order.
 
         Order: identity (`sub`/`ses`/`task`/`run`), then non-fixed keys
-        alphabetically, then category (`stim`/`feat`/`conf`) and `desc`.
+        alphabetically, then category (`stim`/`feat`/`conf`/`nuis`) and `desc`.
         Requires `sub`; rejects unsupported entities and more than one
         category entity.
         """

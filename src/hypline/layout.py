@@ -14,7 +14,7 @@ from hypline.bids import (
 )
 from hypline.events import resolve_entities
 
-Area = Literal["stimuli", "features", "confounds", "fmriprep"]
+Area = Literal["stimuli", "features", "confounds", "nuisance", "fmriprep"]
 
 
 def area_root(root: Path, area: Area) -> Path:
@@ -433,6 +433,46 @@ class _Find:
             candidates,
             filters=descriptive,
             where=f"confounds/sub-{sub}/[ses-*/]{kind}[-*]/",
+        )
+
+    def nuisance(
+        self,
+        *,
+        sub: str,
+        kind: str,
+        desc: str | None = None,
+        bids_filters: list[str] | None = None,
+    ) -> list["BIDSPath"]:
+        """Find nuisance files.
+
+        `kind` maps to the nuis-<kind> entity and the per-session subdirectory
+        name. `desc` selects which variant folder(s) to read: `None` -> bare
+        `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only; `"*"` -> all
+        variant folders gathered together. Files are wide TSVs carrying the
+        `_timeseries` suffix and `.tsv` extension (one scalar column per
+        run-level regressor), unlike the parquet feature/confound tiers.
+        """
+        filters = normalize_bids_filters(bids_filters, reserved={"sub", "nuis", "desc"})
+        ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
+        user_filters = [f for f in filters if not f.startswith("ses-")]
+        structural, descriptive = _split_filters_by_structurality(user_filters)
+        candidates = self._find(
+            area="nuisance",
+            sub=sub,
+            kind=kind,
+            desc=desc,
+            required_entity=("nuis", kind),
+            ext=".tsv",
+            suffix="timeseries",
+            ses_values=ses_values,
+            match_filters=structural + [f"sub-{sub}", f"nuis-{kind}"],
+            user_filters=structural,
+        )
+        _require_task(candidates)
+        return self._apply_metadata_filters(
+            candidates,
+            filters=descriptive,
+            where=f"nuisance/sub-{sub}/[ses-*/]{kind}[-*]/",
         )
 
     def fmriprep(
