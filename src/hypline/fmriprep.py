@@ -27,7 +27,7 @@ class CompCorMask(StrEnum):
 
 
 class CompCorOptions(BaseModel):
-    # Optional default only; `validate_compcor` rejects None.
+    # Optional default only; `parse_compcor` always sets method
     method: CompCorMethod | None = None
     n_comps: PositiveInt | PositiveFloat = 5
     mask: CompCorMask | None = None
@@ -40,21 +40,6 @@ class ConfoundMetadata(BaseModel):
     SingularValue: float | None = None
     VarianceExplained: float | None = None
     CumulativeVarianceExplained: float | None = None
-
-
-def validate_compcor(options: CompCorOptions) -> None:
-    """Enforce the mask-iff-aCompCor invariant on a single selector.
-
-    The rule lives here rather than on `CompCorOptions` because that model
-    intentionally permits `method=None` and any mask (the denoiser relies on
-    that permissiveness).
-    """
-    if options.method is None:
-        raise ValueError("CompCor method must be set (aCompCor or tCompCor)")
-    if options.method == CompCorMethod.ANATOMICAL and options.mask is None:
-        raise ValueError("aCompCor requires a mask")
-    if options.method == CompCorMethod.TEMPORAL and options.mask is not None:
-        raise ValueError(f"tCompCor must not carry a mask, got {options.mask}")
 
 
 def _parse_n_comps(n_str: str, *, token: str) -> int | float:
@@ -240,7 +225,7 @@ def select_fmriprep_columns(
         names.extend(col for col in df.columns if any(g in col for g in groups))
 
     for options in compcor:
-        # method guaranteed set by parse_compcor / validate_compcor
+        # method guaranteed set by parse_compcor
         assert options.method is not None
         names.extend(
             _select_comps(
