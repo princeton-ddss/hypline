@@ -32,11 +32,12 @@ class Denoiser:
     """Confound regression to remove noise from preprocessed BOLD fMRI data.
 
     Finds `desc-preproc` BOLD in the fmriprep tree, regresses out the fmriprep
-    confound columns selected by `columns`/`compcor`, and writes the cleaned run
-    in place as `desc-clean`. The input descriptor is fixed as `desc-preproc` so
-    the denoiser never re-cleans its own output. Volume and surface BOLD
-    dispatch on `type(space)`; surface runs are per-hemisphere and cleaned
-    independently.
+    confound columns selected by `columns`/`compcor`, and writes the denoised
+    run as `desc-denoised` into the hypline derivatives tree, so the output
+    carries its own provenance rather than fmriprep's `GeneratedBy`. Output
+    lands in a separate tree from the `desc-preproc` input, so the denoiser
+    never rediscovers its own runs. Volume and surface BOLD dispatch on
+    `type(space)`; surface runs are per-hemisphere and denoised independently.
     """
 
     def __init__(
@@ -69,9 +70,9 @@ class Denoiser:
         self._force = force
 
     def denoise(self, sub_id: str) -> None:
-        clean = {
-            VolumeSpace: self._clean_volume,
-            SurfaceSpace: self._clean_surface,
+        denoise_func = {
+            VolumeSpace: self._denoise_volume,
+            SurfaceSpace: self._denoise_surface,
         }[type(self._space)]
 
         bolds = self._layout.find.fmriprep(
@@ -86,13 +87,15 @@ class Denoiser:
         )
 
         for bold in bolds:
-            if skip_existing(bold.with_entity("desc", "clean").path, force=self._force):
+            out = self._layout.path.denoised(source=bold)
+            if skip_existing(out.path, force=self._force):
                 continue
-            logger.info("Cleaning starting: {}", bold.path.name)
-            clean(bold)
-            logger.info("Cleaning complete: {}", bold.path.name)
+            out.path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info("Denoising starting: {}", bold.path.name)
+            denoise_func(bold, out)
+            logger.info("Denoising complete: {}", bold.path.name)
 
-    def _clean_volume(self, bold: BIDSPath) -> None:
+    def _denoise_volume(self, bold: BIDSPath, out: BIDSPath) -> None:
         from nilearn import image as nimg
 
         img = nimg.load_img(bold.path)  # Shape of (x, y, z, TRs)
@@ -104,7 +107,7 @@ class Denoiser:
                 f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
             )
 
-        cleaned = nimg.clean_img(
+        denoised = nimg.clean_img(
             img,
             confounds=nuisance,
             detrend=True,
@@ -113,9 +116,9 @@ class Denoiser:
             standardize="zscore_sample",
             standardize_confounds=True,
         )
-        nib.save(cleaned, bold.with_entity("desc", "clean").path)
+        nib.save(denoised, out.path)
 
-    def _clean_surface(self, bold: BIDSPath) -> None:
+    def _denoise_surface(self, bold: BIDSPath, out: BIDSPath) -> None:
         from nilearn import signal
 
         img = nib.load(bold.path)
@@ -129,7 +132,7 @@ class Denoiser:
                 f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
             )
 
-        cleaned = signal.clean(
+        denoised = signal.clean(
             data,
             confounds=nuisance,
             detrend=True,
@@ -141,12 +144,12 @@ class Denoiser:
         new_img = GiftiImage(
             darrays=[
                 GiftiDataArray(data=row, intent="NIFTI_INTENT_TIME_SERIES")
-                for row in cleaned
+                for row in denoised
             ],
             header=img.header,
             extra=img.extra,
         )
-        nib.save(new_img, bold.with_entity("desc", "clean").path)
+        nib.save(new_img, out.path)
 
     def _load_nuisance(self, bold: BIDSPath) -> np.ndarray:
         """Build the `(rows, regressors)` matrix from all nuisance channels.
@@ -162,7 +165,7 @@ class Denoiser:
         count, and the final selected column names are unique (across custom
         sources and against fmriprep). The row count is *not* checked against the
         BOLD here — the caller compares the returned matrix against the run it is
-        cleaning.
+        denoising.
         """
         frames: list[pl.DataFrame] = []
         if self._columns or self._compcor:

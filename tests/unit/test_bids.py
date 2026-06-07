@@ -38,7 +38,7 @@ class TestBIDSPathParsing:
 
     def test_many_entities(self):
         bp = BIDSPath(
-            "sub-004_ses-1_task-Black_space-fsaverage6_hemi-L_desc-clean_bold.func.gii"
+            "sub-004_ses-1_task-Black_space-fsaverage6_hemi-L_desc-alt_bold.func.gii"
         )
         assert bp.entities == {
             "sub": "004",
@@ -46,7 +46,7 @@ class TestBIDSPathParsing:
             "task": "Black",
             "space": "fsaverage6",
             "hemi": "L",
-            "desc": "clean",
+            "desc": "alt",
         }
         assert bp.suffix == "bold"
         assert bp.ext == ".func.gii"
@@ -163,8 +163,8 @@ class TestBIDSPathEntityAccess:
 class TestBIDSPathWithEntity:
     def test_add_new_entity(self):
         bp = BIDSPath("sub-01_bold.nii.gz")
-        bp2 = bp.with_entity("desc", "clean")
-        assert bp2.entities == {"sub": "01", "desc": "clean"}
+        bp2 = bp.with_entity("desc", "alt")
+        assert bp2.entities == {"sub": "01", "desc": "alt"}
         assert bp2.suffix == "bold"
         assert bp2.ext == ".nii.gz"
 
@@ -191,9 +191,9 @@ class TestBIDSPathWithEntity:
 
     def test_new_entity_appended_at_end(self):
         bp = BIDSPath("sub-01_ses-1_bold.nii")
-        bp2 = bp.with_entity("desc", "clean")
+        bp2 = bp.with_entity("desc", "alt")
         assert list(bp2.entities) == ["sub", "ses", "desc"]
-        assert bp2.path.name == "sub-01_ses-1_desc-clean_bold.nii"
+        assert bp2.path.name == "sub-01_ses-1_desc-alt_bold.nii"
 
     def test_replaced_entity_keeps_position(self):
         bp = BIDSPath("sub-01_ses-1_run-1_bold.nii")
@@ -209,7 +209,7 @@ class TestBIDSPathWithEntity:
 
 class TestBIDSPathWithoutEntity:
     def test_remove_existing_entity(self):
-        bp = BIDSPath("sub-01_ses-1_desc-clean_bold.nii")
+        bp = BIDSPath("sub-01_ses-1_desc-alt_bold.nii")
         bp2 = bp.without_entity("desc")
         assert bp2.entities == {"sub": "01", "ses": "1"}
         assert bp2.path.name == "sub-01_ses-1_bold.nii"

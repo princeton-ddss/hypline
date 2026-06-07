@@ -21,7 +21,7 @@ def _denoiser(
 ) -> Denoiser:
     return Denoiser(
         bids_root=tree.root,
-        space=VOLUME_SPACE.value,
+        space=VOLUME_SPACE,
         columns=columns or [],
         compcor=compcor or [],
         custom_sources=custom_sources or [],
@@ -71,7 +71,7 @@ def _add_run(
     meta: dict | None = None,
 ) -> BIDSPath:
     """Lay down a preproc bold plus its matching confounds tsv; return the bold path."""
-    bold_path = tree.add_bold(sub=sub, task=task, run=run, space=VOLUME_SPACE.value)
+    bold_path = tree.add_bold(sub=sub, task=task, run=run, space=VOLUME_SPACE)
     tree.add_confounds_timeseries(
         sub=sub,
         task=task,
@@ -92,7 +92,7 @@ class TestLoadNuisance:
         assert loaded[:, 0].tolist() == [float(i) for i in range(DEFAULT_BOLD_N_TRS)]
 
     def test_no_tsv_raises(self, tree: BIDSTree):
-        bold = tree.add_bold(sub="01", task="A", run="1", space=VOLUME_SPACE.value)
+        bold = tree.add_bold(sub="01", task="A", run="1", space=VOLUME_SPACE)
         with pytest.raises(FileNotFoundError):
             _denoiser(tree, columns=["trans_x"])._load_nuisance(BIDSPath(bold))
 
@@ -280,21 +280,21 @@ class TestConstructor:
 
 
 class TestDenoise:
-    def test_volume_writes_desc_clean(self, tree: BIDSTree):
+    def test_volume_writes_desc_denoised(self, tree: BIDSTree):
         _add_run(tree)
         _denoiser(tree, columns=["trans_x"]).denoise("01")
 
-        func_dir = tree.func_dir(sub="01")
-        clean = (
+        func_dir = tree.denoised_func_dir(sub="01")
+        denoised = (
             func_dir
-            / f"sub-01_task-A_run-1_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
+            / f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-denoised_bold.nii.gz"
         )
-        assert clean.exists()
+        assert denoised.exists()
 
         import nibabel as nib
         from nibabel.nifti1 import Nifti1Image
 
-        img = nib.load(clean)
+        img = nib.load(denoised)
         assert isinstance(img, Nifti1Image)
         assert img.shape[-1] == DEFAULT_BOLD_N_TRS
 
@@ -304,34 +304,38 @@ class TestDenoise:
         with pytest.raises(ValueError, match="Unequal number of TRs"):
             _denoiser(tree, columns=["trans_x"]).denoise("01")
 
-    def test_existing_desc_clean_skipped(self, tree: BIDSTree):
+    def test_existing_desc_denoised_skipped(self, tree: BIDSTree):
         _add_run(tree)
-        clean_path = tree.func_dir(sub="01") / (
-            f"sub-01_task-A_run-1_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
+        denoised_dir = tree.denoised_func_dir(sub="01")
+        denoised_dir.mkdir(parents=True, exist_ok=True)
+        denoised_path = denoised_dir / (
+            f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-denoised_bold.nii.gz"
         )
-        clean_path.write_bytes(b"sentinel")
+        denoised_path.write_bytes(b"sentinel")
 
         _denoiser(tree, columns=["trans_x"]).denoise("01")
 
         # Sentinel survives untouched: the existing output was skipped
-        assert clean_path.read_bytes() == b"sentinel"
+        assert denoised_path.read_bytes() == b"sentinel"
 
-    def test_force_overwrites_desc_clean(self, tree: BIDSTree):
+    def test_force_overwrites_desc_denoised(self, tree: BIDSTree):
         _add_run(tree)
-        clean_path = tree.func_dir(sub="01") / (
-            f"sub-01_task-A_run-1_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
+        denoised_dir = tree.denoised_func_dir(sub="01")
+        denoised_dir.mkdir(parents=True, exist_ok=True)
+        denoised_path = denoised_dir / (
+            f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-denoised_bold.nii.gz"
         )
-        # Sentinel sits at the output path; if denoise treated desc-clean as an
-        # input (re-cleaning), it would choke loading this instead of desc-preproc
-        clean_path.write_bytes(b"sentinel")
+        # Sentinel sits at the output path; if denoise treated desc-denoised as an
+        # input (re-denoising), it would choke loading this instead of desc-preproc
+        denoised_path.write_bytes(b"sentinel")
 
         _denoiser(tree, columns=["trans_x"], force=True).denoise("01")
 
         import nibabel as nib
         from nibabel.nifti1 import Nifti1Image
 
-        # Valid NIfTI means the sentinel was overwritten by real clean output
-        img = nib.load(clean_path)
+        # Valid NIfTI means the sentinel was overwritten by real denoised output
+        img = nib.load(denoised_path)
         assert isinstance(img, Nifti1Image)
         assert img.shape[-1] == DEFAULT_BOLD_N_TRS
 
@@ -342,14 +346,14 @@ class TestDenoise:
             "01"
         )
 
-        func_dir = tree.func_dir(sub="01")
-        clean_run2 = (
+        func_dir = tree.denoised_func_dir(sub="01")
+        denoised_run2 = (
             func_dir
-            / f"sub-01_task-A_run-2_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
+            / f"sub-01_task-A_run-2_space-{VOLUME_SPACE}_desc-denoised_bold.nii.gz"
         )
-        clean_run1 = (
+        denoised_run1 = (
             func_dir
-            / f"sub-01_task-A_run-1_space-{VOLUME_SPACE.value}_desc-clean_bold.nii.gz"
+            / f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-denoised_bold.nii.gz"
         )
-        assert clean_run2.exists()
-        assert not clean_run1.exists()
+        assert denoised_run2.exists()
+        assert not denoised_run1.exists()

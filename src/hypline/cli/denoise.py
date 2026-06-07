@@ -71,7 +71,7 @@ def denoise(
         BoldSpace,
         typer.Option(
             "--space",
-            help="BOLD data space to clean",
+            help="BOLD data space to denoise",
         ),
     ] = BoldSpace.MNI_152_NLIN_2009_C_ASYM,
     sub_ids: Annotated[
@@ -100,7 +100,7 @@ def denoise(
         ),
     ] = False,
 ):
-    """Regress fmriprep confounds out of preprocessed BOLD, writing desc-clean."""
+    """Regress fmriprep confounds out of preprocessed BOLD, writing desc-denoised."""
     from hypline.denoise import Denoiser
 
     _columns = split_csv(columns, param_hint="--columns") or []

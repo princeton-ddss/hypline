@@ -59,7 +59,7 @@ class TestGetRepetitionTime:
         )
         raw_dir = tree.raw_func_dir(sub=SUB)
         (raw_dir / f"sub-{SUB}_task-{TASK}_run-1_bold.json").unlink()
-        for f in tree.func_dir(sub=SUB).glob("*_bold.nii.gz"):
+        for f in tree.fmriprep_func_dir(sub=SUB).glob("*_bold.nii.gz"):
             f.unlink()
             f.with_name(f.name.rsplit(".nii.gz", 1)[0] + ".json").unlink()
         tr = get_repetition_time(BIDSLayout(tree.root), BIDSPath(surface_path))
@@ -105,7 +105,7 @@ class TestResolveBoldImage:
     def test_raw_when_fmriprep_absent(self, tree: BIDSTree):
         # Only the raw image exists: resolution falls back to it
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", write_raw=True)
-        bold_path = tree.func_dir(sub=SUB).glob("*_bold.nii.gz").__next__()
+        bold_path = tree.fmriprep_func_dir(sub=SUB).glob("*_bold.nii.gz").__next__()
         bold_path.unlink()
         feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
         resolved = resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))

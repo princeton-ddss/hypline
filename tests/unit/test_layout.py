@@ -590,14 +590,14 @@ class TestFindFmriprep:
         assert results[0].entities.get("space") == SPACE
 
     def test_desc_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_bold(space=SPACE, desc="clean", sub=SUB, task=TASK)
+        tree.add_bold(space=SPACE, desc="alt", sub=SUB, task=TASK)
         tree.add_bold(space=SPACE, sub=SUB, task="rest")
         layout = BIDSLayout(tree.root)
         results = layout.find.fmriprep(
-            sub=SUB, suffix="bold", ext=".nii.gz", bids_filters=["desc-clean"]
+            sub=SUB, suffix="bold", ext=".nii.gz", bids_filters=["desc-alt"]
         )
         assert len(results) == 1
-        assert results[0].entities.get("desc") == "clean"
+        assert results[0].entities.get("desc") == "alt"
 
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
         tree.add_bold(space=SPACE, sub=SUB, task=TASK, run="1")

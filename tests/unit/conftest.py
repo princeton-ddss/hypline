@@ -32,6 +32,7 @@ class BIDSTree:
         stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/
         features/sub-XX/[ses-YY/]<kind>[-<desc>]/
         derivatives/fmriprep/sub-XX/[ses-YY/]func/
+        derivatives/hypline/sub-XX/[ses-YY/]func/
 
     All helpers require identity entities (`sub`, optional `ses`, `task`, `run`)
     specified explicitly so the data shape stays readable at the callsite.
@@ -61,11 +62,18 @@ class BIDSTree:
         return self.root / "derivatives" / "fmriprep"
 
     @property
+    def hypline_dir(self) -> Path:
+        return self.root / "derivatives" / "hypline"
+
+    @property
     def results_dir(self) -> Path:
         return self.root / "results"
 
-    def func_dir(self, *, sub: str, ses: str | None = None) -> Path:
+    def fmriprep_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
         return self._sub_ses_dir(self.fmriprep_dir, sub, ses) / "func"
+
+    def denoised_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
+        return self._sub_ses_dir(self.hypline_dir, sub, ses) / "func"
 
     def raw_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
         return self._sub_ses_dir(self.root, sub, ses) / "func"
@@ -172,7 +180,7 @@ class BIDSTree:
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
         return self._add(
-            dir=self.func_dir(sub=sub, ses=ses),
+            dir=self.fmriprep_func_dir(sub=sub, ses=ses),
             sub=sub,
             ses=ses,
             task=task,
