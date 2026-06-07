@@ -36,7 +36,7 @@ descriptive attributes alike.
 ### One run
 
 ```bash
-hypline denoise data/ --confounds fmriprep-minimal --data-filters run-1
+hypline denoise data/ --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z --data-filters run-1
 ```
 
 ### Several runs (OR)
@@ -55,7 +55,7 @@ you filter on it the same way:
 
 ```bash
 # only the "R" condition
-hypline denoise data/ --confounds fmriprep-minimal --data-filters cond-R
+hypline denoise data/ --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z --data-filters cond-R
 ```
 
 ### Runs AND a condition
@@ -65,7 +65,7 @@ Mixing *different* entities narrows the match — every named entity must hold:
 ```bash
 # (run 1 or run 2) AND condition R
 hypline denoise data/ \
-  --confounds fmriprep-minimal \
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z \
   --data-filters run-1,run-2,cond-R
 ```
 
@@ -82,7 +82,7 @@ So `run-1,run-2,cond-G` means *(run 1 or run 2) and condition G*. Combine
 ```bash
 # subjects 01–02, run 1 only, condition R
 hypline denoise data/ \
-  --confounds fmriprep-minimal \
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z \
   --sub-ids 01,02 \
   --data-filters run-1,cond-R
 ```

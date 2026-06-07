@@ -20,13 +20,17 @@ a few extra areas. A complete tree looks like this:
 │   └── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
 ├── stimuli/sub-01/audio/                     # stimulus audio, transcripts
 ├── features/sub-01/phonemic/                 # generated features
-└── confounds/sub-01/phonemic/                # generated confounds
+├── confounds/sub-01/phonemic/                # generated confounds
+└── nuisance/sub-01/physio-v1/                # optional, user-supplied nuisance regressors
 ```
 
 - **`sub-01/`, `derivatives/fmriprep/`** are standard BIDS areas. You provide
   these — your raw recordings and your fMRIPrep run.
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands.
+- **`nuisance/`** is optional and *you* fill it — run-level regressors (e.g.
+  physiological recordings) for [`denoise`](../reference/denoise.md) to regress
+  out alongside fMRIPrep's confounds.
 
 !!! info "Sessions are optional"
 
@@ -57,11 +61,12 @@ the source they came from.
 Each hypline-generated file carries exactly one **category entity** naming what
 kind of derivative it is:
 
-| Entity        | Area          | Example                          |
-| ------------- | ------------- | -------------------------------- |
-| `stim-<kind>` | `stimuli/`    | `stim-audio`, `stim-transcript`  |
-| `feat-<kind>` | `features/`   | `feat-phonemic`                  |
-| `conf-<kind>` | `confounds/`  | `conf-phonemic`, `conf-fmriprep` |
+| Entity        | Area          | Example                         |
+| ------------- | ------------- | ------------------------------- |
+| `stim-<kind>` | `stimuli/`    | `stim-audio`, `stim-transcript` |
+| `feat-<kind>` | `features/`   | `feat-phonemic`                 |
+| `conf-<kind>` | `confounds/`  | `conf-phonemic`                 |
+| `nuis-<kind>` | `nuisance/`   | `nuis-physio`                   |
 
 The `<kind>` matches the subdirectory the file lives in. A phonemic feature
 (`feat-phonemic`) lives under `features/sub-01/phonemic/`.
@@ -74,13 +79,12 @@ separate:
 
 ```
 confounds/sub-01/
-├── fmriprep-minimal/    # conf-fmriprep_desc-minimal — e.g. motion only
-└── fmriprep-full/       # conf-fmriprep_desc-full    — e.g. motion + CompCor
+├── phonemic-onset/    # conf-phonemic_desc-onset — speech-onset indicator
+└── phonemic-rate/     # conf-phonemic_desc-rate  — speech rate per TR
 ```
 
 This lets you keep several derivations of the same source side by side and pick
-between them later (for example, when choosing which confounds to regress out in
-[`denoise`](../reference/denoise.md)).
+between them later by name.
 
 ## Selecting subjects and runs
 

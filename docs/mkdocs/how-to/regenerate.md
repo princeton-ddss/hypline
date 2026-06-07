@@ -39,12 +39,12 @@ wrote, so a gap leaves stale output behind.
 
 | You changed… | Rerun, in order (each `--force`) |
 | ------------ | -------------------------------- |
-| **Stimulus audio** | `transcribe` → `featuregen phonemic` → `denoise` |
-| **An `events.tsv`** (segment onsets/durations) | `featuregen phonemic` → `denoise` |
+| **Stimulus audio** | `transcribe` → `featuregen phonemic` |
+| **An `events.tsv`** (segment onsets/durations) | `featuregen phonemic` |
 | **An `events.json`** (metadata only, e.g. `cond`) | nothing to regenerate — metadata is read at filter time, not baked into outputs[^meta] |
-| **fMRIPrep confound columns** (`--columns` / `--desc`) | `confoundgen fmriprep` → `denoise` |
-| **fMRIPrep preprocessed BOLD** | `confoundgen fmriprep` → `denoise` |
-| **Which confounds to regress** (`--confounds` on denoise) | `denoise` only |
+| **fMRIPrep preprocessed BOLD or its confounds table** | `denoise` only |
+| **Custom `nuisance/` files** | `denoise` only |
+| **Which nuisance regressors to regress** (`--columns` / `--compcor` / `--custom-sources` on denoise) | `denoise` only |
 
 [^meta]: `events.json` metadata (like `cond`) is matched by `--data-filters` when
     a command runs; it is never written into a filename or output. Changing it
@@ -63,26 +63,31 @@ wrote, so a gap leaves stale output behind.
     fix; the segmenting that `events.tsv` drives happens when the confounds are
     built.
 
-## Worked example: you fixed run 1's `events.tsv`
+!!! note "Stimulus fixes do not propagate to `denoise`"
 
-You corrected a segment onset in `sub-01_task-conv_run-1_events.tsv`. That run's
-**phonemic confounds** are now wrong — they are sliced to the segment windows
-your `events.tsv` defines — and the cleaned BOLD built on them is stale.
+    `denoise` reads its nuisance regressors from fMRIPrep's confounds table and
+    the `nuisance/` area — never from the stimulus-derived `confounds/`. So
+    re-recording audio or fixing an `events.tsv` changes features and phonemic
+    confounds but leaves `desc-clean` BOLD untouched: there is no stimulus →
+    `denoise` dependency to repair.
+
+## Worked example: you decided to add CompCor regressors
+
+You already cleaned the dataset, then decided the motion model needs CompCor
+components. The `desc-clean` BOLD on disk was built without them and is now stale
+— but a plain rerun skips, because the output already exists.
 
 ```bash
-# 1. refresh phonemic confounds for just that run
-#    (featuregen also re-emits feat-phonemic; harmless, segment-agnostic)
-hypline featuregen phonemic data/ --sub-ids 01 --data-filters run-1 --force
-
-# 2. rebuild the cleaned BOLD that consumed them
 hypline denoise data/ \
   --space fsaverage6 \
-  --confounds fmriprep-minimal,phonemic-onset \
-  --sub-ids 01 --data-filters run-1 --force
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
+  --compcor a:CSF:5,a:WM:5 \
+  --force
 ```
 
-Without step 2's `--force`, `denoise` would see the existing `desc-clean` file
-and skip — leaving cleaned BOLD built from the old, wrongly-segmented confounds.
+Without `--force`, `denoise` would see the existing `desc-clean` file and skip —
+leaving cleaned BOLD built from the old, CompCor-less regressor set. The same
+applies after editing any `nuisance/` file you regress out.
 
 !!! tip "When in doubt, force the whole tail"
 

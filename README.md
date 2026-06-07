@@ -41,15 +41,15 @@ hypline --help
 
 Hypline commands form a pipeline. Each reads from a shared dataset root and
 writes its outputs back into the same tree, along two independent branches — a
-**stimulus branch** and an **fMRIPrep branch** — that converge at `denoise`:
+**stimulus branch** and an **fMRIPrep branch** — that prepare the two sides an
+encoding model later joins:
 
-| Command                | Branch   | Reads                        | Writes                          |
-| ---------------------- | -------- | ---------------------------- | ------------------------------- |
-| `transcribe`           | stimulus | stimulus audio               | word-level transcripts          |
-| `featuregen phonemic`  | stimulus | transcripts                  | phonemic features (+ confounds) |
-| `confoundgen phonemic` | stimulus | phonemic features            | `conf-phonemic` confounds       |
-| `confoundgen fmriprep` | fMRIPrep | fMRIPrep confounds TSV       | `conf-fmriprep` confounds       |
-| `denoise`              | converge | preprocessed BOLD, confounds | cleaned BOLD (`desc-clean`)     |
+| Command                | Branch   | Reads                                 | Writes                          |
+| ---------------------- | -------- | ------------------------------------- | ------------------------------- |
+| `transcribe`           | stimulus | stimulus audio                        | word-level transcripts          |
+| `featuregen phonemic`  | stimulus | transcripts                           | phonemic features (+ confounds) |
+| `confoundgen phonemic` | stimulus | phonemic features                     | `conf-phonemic` confounds       |
+| `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds | cleaned BOLD (`desc-clean`)     |
 
 `featuregen phonemic` also generates the matching phonemic confounds by default,
 so you rarely call `confoundgen phonemic` directly. You do not have to run every
@@ -60,23 +60,21 @@ step — each works on its own as long as its inputs exist.
 Once your files sit where hypline expects (see
 [the dataset layout](https://princeton-ddss.github.io/hypline/latest/concepts/layout/)),
 every command takes the dataset root and discovers its inputs from there — you
-never pass file paths. End to end, the whole pipeline is four commands:
+never pass file paths. End to end, the whole pipeline is three commands:
 
 ```bash
 # stimulus branch: audio → transcripts → features (+ phonemic confounds, auto)
 hypline transcribe data/ --audio-ext .wav
 hypline featuregen phonemic data/
 
-# fMRIPrep branch: pull a motion + drift confound bundle
-hypline confoundgen fmriprep data/ --desc minimal \
-  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
-
-# converge: regress the chosen confounds out of the BOLD
+# fMRIPrep branch: clean the BOLD with a motion + drift model, read straight
+# from fMRIPrep's confounds table
 hypline denoise data/ --space fsaverage6 \
-  --confounds fmriprep-minimal,phonemic-onset
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 ```
 
-After this, `data/` holds `desc-clean` BOLD ready for an encoding model.
+After this, `data/` holds phonemic features plus `desc-clean` BOLD — the two
+sides an encoding model needs.
 
 ## Documentation
 

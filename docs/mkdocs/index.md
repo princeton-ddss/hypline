@@ -56,16 +56,20 @@ hypline --help
 
 Hypline commands form a pipeline. Each one reads from a shared dataset root and
 writes its outputs back into the same tree. The steps fall into two independent
-branches — a **stimulus branch** and an **fMRIPrep branch** — that never touch
-until they converge at `denoise`:
+branches — a **stimulus branch** and an **fMRIPrep branch** — that prepare the
+two sides an encoding model later joins:
 
-| Command               | Branch    | Reads                        | Writes                          |
-| --------------------- | --------- | ---------------------------- | ------------------------------- |
-| `transcribe`          | stimulus  | stimulus audio               | word-level transcripts          |
-| `featuregen phonemic` | stimulus  | transcripts                  | phonemic features (+ confounds) |
-| `confoundgen phonemic`| stimulus  | phonemic features            | `conf-phonemic` confounds       |
-| `confoundgen fmriprep`| fMRIPrep  | fMRIPrep confounds TSV       | `conf-fmriprep` confounds       |
-| `denoise`             | converge  | preprocessed BOLD, confounds | cleaned BOLD (`desc-clean`)     |
+| Command                | Branch   | Reads                                  | Writes                          |
+| ---------------------- | -------- | -------------------------------------- | ------------------------------- |
+| `transcribe`           | stimulus | stimulus audio                         | word-level transcripts          |
+| `featuregen phonemic`  | stimulus | transcripts                            | phonemic features (+ confounds) |
+| `confoundgen phonemic` | stimulus | phonemic features                      | `conf-phonemic` confounds       |
+| `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds  | cleaned BOLD (`desc-clean`)     |
+
+The branches never meet inside hypline: stimulus commands build the encoding
+model's predictors, while `denoise` cleans the BOLD target from fMRIPrep's own
+confounds table (and any custom `nuisance/` regressors). The encoding model joins
+them downstream.
 
 !!! tip "Features and their confounds in one step"
 
@@ -74,15 +78,15 @@ until they converge at `denoise`:
     [featuregen reference](reference/featuregen.md).
 
 You do not have to run every step. Each command works on its own as long as its
-inputs exist — for example, you can run `confoundgen fmriprep` and `denoise`
-without ever transcribing audio.
+inputs exist — for example, you can run `denoise` on fMRIPrep outputs without
+ever transcribing audio.
 
 ## Run the pipeline
 
 Once your files sit where hypline expects (see
 [the dataset layout](concepts/layout.md)), every command takes the dataset root
 and discovers its inputs from there — you never pass file paths. End to end, the
-whole pipeline is four commands. Each reads what the previous ones wrote, so
+whole pipeline is three commands. Each reads what the previous ones wrote, so
 order matters only where one step's output is the next step's input:
 
 ```bash
@@ -90,19 +94,16 @@ order matters only where one step's output is the next step's input:
 hypline transcribe data/ --audio-ext .wav
 hypline featuregen phonemic data/
 
-# fMRIPrep branch: pull a motion + drift confound bundle
-hypline confoundgen fmriprep data/ --desc minimal \
-  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
-
-# converge: regress the chosen confounds out of the BOLD
+# fMRIPrep branch: clean the BOLD with a motion + drift model, read straight
+# from fMRIPrep's confounds table
 hypline denoise data/ --space fsaverage6 \
-  --confounds fmriprep-minimal,phonemic-onset
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 ```
 
-After this, `data/` holds `desc-clean` BOLD ready for an encoding model. You can
-also start with `transcribe` alone and follow the table above step by step.
-Re-run any single step with `--force` to overwrite its outputs; without it,
-hypline skips work it has already done.
+After this, `data/` holds phonemic features plus `desc-clean` BOLD — the two
+sides an encoding model needs. You can also start with `transcribe` alone and
+follow the table above step by step. Re-run any single step with `--force` to
+overwrite its outputs; without it, hypline skips work it has already done.
 
 !!! tip "If a command seems to do nothing"
 
