@@ -43,7 +43,20 @@ Multiple outputs share the same identity entities, distinguished by `desc`:
   trimming), but hypline rejects runs where derivative and raw counts differ —
   see [../modules/bold.md](../modules/bold.md).
 - `desc-brain_mask` — brain mask
-- `desc-confounds_timeseries` — confound regressors
+- `desc-confounds_timeseries` — confound regressors. Denoise reads this tsv
+  (+ its JSON sidecar, needed for CompCor metadata) **directly** via
+  `hypline.fmriprep`, selecting columns by `--columns`/`--compcor`; it is not
+  converted into a hypline file first. Leading `n/a` cells in derivative columns
+  (`*_derivative1`, `framewise_displacement`, `dvars`, `std_dvars`) are parsed as
+  null and backfilled. See [../modules/denoise.md](../modules/denoise.md).
+  - **Variable-count column families.** Most confound columns are a fixed,
+    named set per fmriprep version (`trans_x`, motion derivatives/powers, etc.).
+    The exceptions are `cosine*` (discrete-cosine drift basis; term count scales
+    with run length / TR) and `motion_outlier*` (one column per scrubbed volume;
+    count varies per run). These two cannot be enumerated a priori — their count
+    is a property of the run, not the schema. CompCor (`a_comp_cor*`/`t_comp_cor*`)
+    is the third variable-count family but is selected by its own `--compcor`
+    grammar, not by name.
 - `desc-clean_bold` — hypline-written, not from fMRIPrep; denoise writes the
   cleaned run into this tree beside its `desc-preproc` source. See
   [../modules/denoise.md](../modules/denoise.md).

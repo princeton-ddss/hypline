@@ -3,17 +3,15 @@
 Design record for hypline's confound file format — schema, naming rules, and
 alignment contract with BOLD data.
 
-Hypline's own derivative type — TR-aligned nuisance regressors paired to BOLD
-runs. `confounds/` is the single home for **any** TR-aligned nuisance
-regressor used in hypline, regardless of origin: stimulus-derived (e.g.
-phonemic onsets/rate), motion or physio, CompCor components, or regressors
-imported from external pipelines. Files are TR-aligned at save time so the
-on-disk contract is uniform across origins.
+Hypline's own derivative type — TR-aligned regressors paired to BOLD runs,
+holding **stimulus-derived** confounds (e.g. phonemic onsets/rate). `confounds/`
+is the home for feature-granular confounds; it is **not** denoise's input.
 
-External sources like fmriprep's `desc-confounds_timeseries.tsv` are not
-read in place; they are converted into hypline confound files via
-`confoundgen` so provenance lives in the Parquet footer rather than relying
-on the source pipeline's column conventions at read time.
+Run-level nuisance regressors used for denoising (motion, physio, CompCor,
+fmriprep columns) live elsewhere: fmriprep's `desc-confounds_timeseries.tsv` is
+read natively by denoise, and custom/hypline-generated nuisance lives in the
+`nuisance/` folder. See [nuisance-files.md](nuisance-files.md) for that contract
+and why the two are split by granularity rather than sharing one folder.
 
 Confound I/O lives in `hypline.io` and is re-exported at `hypline.*`:
 entity-based `save_confound`, path-based `read_confound` /
@@ -22,9 +20,8 @@ entity-based `save_confound`, path-based `read_confound` /
 by `hypline.downsample` (shared with feature files).
 
 Standard confounds are produced by `hypline confoundgen <kind>` (e.g.
-`hypline confoundgen phonemic` for stimulus-derived, `hypline confoundgen
-fmriprep` for imports from fmriprep outputs). Users may also write custom
-confounds directly, as long as the conventions below are followed.
+`hypline confoundgen phonemic` for stimulus-derived confounds). Users may also
+write custom confounds directly, as long as the conventions below are followed.
 
 ## Scope: standard generators produce variant-independent confounds only
 
@@ -113,5 +110,5 @@ for genuinely per-file metadata and exempt from cross-file equality checks.
 
 Feature files (see [feature-files.md](feature-files.md)) hold X regressors at
 the generator's natural unit and may be downsampled on the fly at read time.
-Confound files hold nuisance regressors **already** at TR resolution — the
+Confound files hold confound regressors **already** at TR resolution — the
 TR-alignment is part of the on-disk contract, not deferred to read time.

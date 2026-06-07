@@ -37,7 +37,7 @@ across the codebase look identical regardless of kwarg order:
 
 1. Identity: `sub`, `ses`, `task`, `run`
 2. Any other entities, alphabetically
-3. Category (`stim`/`feat`/`conf`), then `desc`
+3. Category (`stim`/`feat`/`conf`/`nuis`), then `desc`
 
 `desc` trails the category so variant tagging stays adjacent to what it
 modifies (e.g. `feat-llm_desc-v1`). At most one category entity is allowed.
@@ -46,9 +46,12 @@ canonical ordering applies only on construction from kwargs.
 
 ## Deliberate relaxations from the BIDS spec
 
-- **Suffix is optional.** Some hypline-internal paths (e.g., feature files
-  identified by `feat-<label>`) have no BIDS suffix. See
-  [feature-files.md](feature-files.md).
+- **Suffix is optional.** Some hypline-internal paths (e.g., feature and confound
+  files identified by `feat-<label>` / `conf-<label>`) have no BIDS suffix. See
+  [feature-files.md](feature-files.md). Nuisance files are the exception: they
+  carry the `_timeseries` suffix by design (a recognized BIDS timeseries form) —
+  see [nuisance-files.md](nuisance-files.md). `BIDSPath` permits both — the
+  suffix requirement lives in each reader, not in path construction.
 - **`task` is not required.** BIDS mandates `task` for `bold`/`events` but not
   for anatomicals. BIDSPath stays general; callers that need `task` (BOLD
   loading, encoding) enforce it themselves — via direct entity access, an

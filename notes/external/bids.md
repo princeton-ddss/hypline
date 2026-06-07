@@ -36,7 +36,9 @@ Some entity names look tempting for custom use but are already reserved:
 - `part` — magnitude/phase image disambiguation
 - `chunk` — segmented acquisitions
 
-Check the BIDS spec before introducing a new custom entity.
+Check the BIDS spec before introducing a new custom entity. Hypline's category
+entities (`stim`/`feat`/`conf`/`nuis`) were each confirmed BIDS-free — no
+reserved short label collides — so they are safe as custom names.
 
 ## Entities hypline does not support
 
@@ -53,8 +55,9 @@ events.tsv (e.g. `block`, `trial`) are inferred as the segment entity at discove
 exactly one entity name is allowed per run. See
 [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 
-Hypline extends the BIDS root with two non-standard areas (`stimuli/`, `features/`) that
-follow the same `sub-XX/ses-YY/<kind>/` nesting. See
+Hypline extends the BIDS root with four non-standard areas (`stimuli/`,
+`features/`, `confounds/`, `nuisance/`) that follow the same
+`sub-XX/ses-YY/<kind>/` nesting. See
 [../decisions/layout.md](../decisions/layout.md).
 
 ## `trial_type.Levels` for segment metadata

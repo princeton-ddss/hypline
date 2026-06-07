@@ -26,8 +26,8 @@ code assume a single coherent acquisition without per-call invariance checks.
 ## Enforcement
 
 Single chokepoint: `BIDSPath.__init__`. Every path hypline handles is wrapped
-in `BIDSPath`, so the rejection catches raw, derivative, feature, and
-confound paths uniformly.
+in `BIDSPath`, so the rejection catches raw, derivative, feature, confound, and
+nuisance paths uniformly.
 
 ## Revisit conditions
 
