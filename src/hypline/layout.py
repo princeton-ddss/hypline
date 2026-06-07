@@ -14,12 +14,12 @@ from hypline.bids import (
 )
 from hypline.events import resolve_entities
 
-Area = Literal["stimuli", "features", "confounds", "nuisance", "fmriprep"]
+Area = Literal["stimuli", "features", "confounds", "nuisance", "fmriprep", "hypline"]
 
 
 def area_root(root: Path, area: Area) -> Path:
-    if area == "fmriprep":
-        return root / "derivatives" / "fmriprep"
+    if area in ("fmriprep", "hypline"):
+        return root / "derivatives" / area
     return root / area
 
 
@@ -580,6 +580,56 @@ class _Path:
         stem = "_".join(f"{k}-{v}" for k, v in entities.items())
 
         return BIDSPath(out_dir / f"{stem}{ext}")
+
+    def _derive_derivative_path(
+        self,
+        *,
+        area: Area,
+        source: BIDSPath,
+        desc: str,
+    ) -> BIDSPath:
+        """Derive a func-datatype BIDS-derivative path from `source`.
+
+        Mirrors fmriprep's tree shape: `derivatives/<area>/sub-XX/[ses-YY/]func/`,
+        preserving the source's full BOLD identity (every entity, including
+        non-identity ones like `space`/`hemi`) and only swapping `desc`. Suffix
+        and extension carry over from `source`, so one helper serves both volume
+        (`.nii.gz`) and per-hemisphere surface (`.func.gii`) runs.
+
+        Unlike `_derive_path` (kind-foldered root areas), there is no category
+        entity and no `<kind>[-<desc>]/` subfolder; preserving all entities is
+        what keeps L/R surface runs on distinct paths. May not exist on disk;
+        callers check.
+        """
+        bp = source.with_entity("desc", desc)
+
+        entities = bp.entities
+        sub = entities.get("sub")
+        ses = entities.get("ses")
+        if sub is None:
+            raise ValueError(f"source has no 'sub' entity: {source!r}")
+
+        sub_dir = area_root(self._layout.root, area) / f"sub-{sub}"
+        out_dir = (
+            sub_dir / f"ses-{ses}" / "func" if ses is not None else sub_dir / "func"
+        )
+
+        stem = "_".join(f"{k}-{v}" for k, v in entities.items())
+        # TODO: drop guard once BIDSPath requires suffix
+        suffix = f"_{source.suffix}" if source.suffix else ""
+
+        return BIDSPath(out_dir / f"{stem}{suffix}{source.ext}")
+
+    def denoised(self, *, source: BIDSPath) -> BIDSPath:
+        """Derive a denoised-BOLD output path from `source`.
+
+        Sets `desc-denoised`. `source` is the fmriprep `desc-preproc` BOLD;
+        relocating to the hypline derivatives tree gives the denoised output
+        honest provenance instead of inheriting fmriprep's `GeneratedBy`.
+        """
+        return self._derive_derivative_path(
+            area="hypline", source=source, desc="denoised"
+        )
 
     def stimulus(
         self,

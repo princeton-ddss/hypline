@@ -738,6 +738,70 @@ class TestPathRaw:
             layout.path.raw(source=source, suffix="events", ext="tsv")
 
 
+class TestPathDenoised:
+    def test_roots_under_hypline_derivatives_func(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_space-{SPACE}_desc-preproc_bold.nii.gz"
+        )
+        out = layout.path.denoised(source=source)
+        assert out.path.parent == (
+            tmp_path / "derivatives" / "hypline" / f"sub-{SUB}" / "func"
+        )
+
+    def test_swaps_preproc_to_denoised(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_space-{SPACE}_desc-preproc_bold.nii.gz"
+        )
+        out = layout.path.denoised(source=source)
+        assert out.entities.get("desc") == "denoised"
+
+    def test_preserves_volume_suffix_and_ext(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_space-{SPACE}_desc-preproc_bold.nii.gz"
+        )
+        out = layout.path.denoised(source=source)
+        assert out.suffix == "bold"
+        assert out.path.name.endswith("_bold.nii.gz")
+
+    def test_preserves_space_and_hemi_for_surface(self, tmp_path: Path):
+        # `hemi` is in neither the identity nor variant-descriptor sets; a
+        # filter-to-known-set deriver would drop it and collide L/R. Preserve-all
+        # keeps them distinct.
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_task-{TASK}_space-fsaverage6_hemi-L_desc-preproc"
+            f"_bold.func.gii"
+        )
+        out = layout.path.denoised(source=source)
+        assert out.entities.get("space") == "fsaverage6"
+        assert out.entities.get("hemi") == "L"
+        assert out.entities.get("desc") == "denoised"
+        assert out.path.name.endswith("_bold.func.gii")
+
+    def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_desc-preproc_bold.nii.gz")
+        out = layout.path.denoised(source=source)
+        assert not any(p.startswith("ses-") for p in out.path.parts)
+
+    def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(
+            f"sub-{SUB}_ses-{SES}_task-{TASK}_desc-preproc_bold.nii.gz"
+        )
+        out = layout.path.denoised(source=source)
+        assert f"ses-{SES}" in out.path.parts
+
+    def test_run_entity_preserved(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_desc-preproc_bold.nii.gz")
+        out = layout.path.denoised(source=source)
+        assert out.entities.get("run") == "1"
+
+
 class TestPathStimulus:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
