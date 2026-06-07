@@ -513,9 +513,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#worked-example-you-fixed-run-1s-eventstsv" class="md-nav__link">
+  <a href="#worked-example-you-decided-to-add-compcor-regressors" class="md-nav__link">
     <span class="md-ellipsis">
-      Worked example: you fixed run 1's events.tsv
+      Worked example: you decided to add CompCor regressors
     </span>
   </a>
   
@@ -843,9 +843,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#worked-example-you-fixed-run-1s-eventstsv" class="md-nav__link">
+  <a href="#worked-example-you-decided-to-add-compcor-regressors" class="md-nav__link">
     <span class="md-ellipsis">
-      Worked example: you fixed run 1's events.tsv
+      Worked example: you decided to add CompCor regressors
     </span>
   </a>
   
@@ -909,26 +909,26 @@ wrote, so a gap leaves stale output behind.</p>
 <tbody>
 <tr>
 <td><strong>Stimulus audio</strong></td>
-<td><code>transcribe</code> → <code>featuregen phonemic</code> → <code>denoise</code></td>
+<td><code>transcribe</code> → <code>featuregen phonemic</code></td>
 </tr>
 <tr>
 <td><strong>An <code>events.tsv</code></strong> (segment onsets/durations)</td>
-<td><code>featuregen phonemic</code> → <code>denoise</code></td>
+<td><code>featuregen phonemic</code></td>
 </tr>
 <tr>
 <td><strong>An <code>events.json</code></strong> (metadata only, e.g. <code>cond</code>)</td>
 <td>nothing to regenerate — metadata is read at filter time, not baked into outputs<sup id="fnref:meta"><a class="footnote-ref" href="#fn:meta">1</a></sup></td>
 </tr>
 <tr>
-<td><strong>fMRIPrep confound columns</strong> (<code>--columns</code> / <code>--desc</code>)</td>
-<td><code>confoundgen fmriprep</code> → <code>denoise</code></td>
+<td><strong>fMRIPrep preprocessed BOLD or its confounds table</strong></td>
+<td><code>denoise</code> only</td>
 </tr>
 <tr>
-<td><strong>fMRIPrep preprocessed BOLD</strong></td>
-<td><code>confoundgen fmriprep</code> → <code>denoise</code></td>
+<td><strong>Custom <code>nuisance/</code> files</strong></td>
+<td><code>denoise</code> only</td>
 </tr>
 <tr>
-<td><strong>Which confounds to regress</strong> (<code>--confounds</code> on denoise)</td>
+<td><strong>Which nuisance regressors to regress</strong> (<code>--columns</code> / <code>--compcor</code> / <code>--custom-sources</code> on denoise)</td>
 <td><code>denoise</code> only</td>
 </tr>
 </tbody>
@@ -944,22 +944,27 @@ segment-agnostic, so re-emitting it is harmless rework, not a correctness
 fix; the segmenting that <code>events.tsv</code> drives happens when the confounds are
 built.</p>
 </div>
-<h2 id="worked-example-you-fixed-run-1s-eventstsv">Worked example: you fixed run 1's <code>events.tsv</code><a class="headerlink" href="#worked-example-you-fixed-run-1s-eventstsv" title="Permanent link">&para;</a></h2>
-<p>You corrected a segment onset in <code>sub-01_task-conv_run-1_events.tsv</code>. That run's
-<strong>phonemic confounds</strong> are now wrong — they are sliced to the segment windows
-your <code>events.tsv</code> defines — and the cleaned BOLD built on them is stale.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># 1. refresh phonemic confounds for just that run</span>
-<span class="c1">#    (featuregen also re-emits feat-phonemic; harmless, segment-agnostic)</span>
-hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">01</span><span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
-
-<span class="c1"># 2. rebuild the cleaned BOLD that consumed them</span>
-hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<div class="admonition note">
+<p class="admonition-title">Stimulus fixes do not propagate to <code>denoise</code></p>
+<p><code>denoise</code> reads its nuisance regressors from fMRIPrep's confounds table and
+the <code>nuisance/</code> area — never from the stimulus-derived <code>confounds/</code>. So
+re-recording audio or fixing an <code>events.tsv</code> changes features and phonemic
+confounds but leaves <code>desc-clean</code> BOLD untouched: there is no stimulus →
+<code>denoise</code> dependency to repair.</p>
+</div>
+<h2 id="worked-example-you-decided-to-add-compcor-regressors">Worked example: you decided to add CompCor regressors<a class="headerlink" href="#worked-example-you-decided-to-add-compcor-regressors" title="Permanent link">&para;</a></h2>
+<p>You already cleaned the dataset, then decided the motion model needs CompCor
+components. The <code>desc-clean</code> BOLD on disk was built without them and is now stale
+— but a plain rerun skips, because the output already exists.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal,phonemic-onset<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span><span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--force
 </code></pre></div>
-<p>Without step 2's <code>--force</code>, <code>denoise</code> would see the existing <code>desc-clean</code> file
-and skip — leaving cleaned BOLD built from the old, wrongly-segmented confounds.</p>
+<p>Without <code>--force</code>, <code>denoise</code> would see the existing <code>desc-clean</code> file and skip —
+leaving cleaned BOLD built from the old, CompCor-less regressor set. The same
+applies after editing any <code>nuisance/</code> file you regress out.</p>
 <div class="admonition tip">
 <p class="admonition-title">When in doubt, force the whole tail</p>
 <p>If you are unsure how far a change propagates, rerun every step from the

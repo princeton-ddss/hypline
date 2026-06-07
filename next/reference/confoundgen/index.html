@@ -710,13 +710,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#confoundgen-fmriprep" class="md-nav__link">
+  <a href="#confoundgen-phonemic" class="md-nav__link">
     <span class="md-ellipsis">
-      confoundgen fmriprep
+      confoundgen phonemic
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="confoundgen fmriprep">
+    <nav class="md-nav" aria-label="confoundgen phonemic">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -748,57 +748,6 @@
         
           <li class="md-nav__item">
   <a href="#outputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      Outputs
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#confoundgen-phonemic" class="md-nav__link">
-    <span class="md-ellipsis">
-      confoundgen phonemic
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="confoundgen phonemic">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#inputs_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Inputs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#options_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Options
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#outputs_1" class="md-nav__link">
     <span class="md-ellipsis">
       Outputs
     </span>
@@ -900,13 +849,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#confoundgen-fmriprep" class="md-nav__link">
+  <a href="#confoundgen-phonemic" class="md-nav__link">
     <span class="md-ellipsis">
-      confoundgen fmriprep
+      confoundgen phonemic
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="confoundgen fmriprep">
+    <nav class="md-nav" aria-label="confoundgen phonemic">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -950,57 +899,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#confoundgen-phonemic" class="md-nav__link">
-    <span class="md-ellipsis">
-      confoundgen phonemic
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="confoundgen phonemic">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#inputs_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Inputs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#options_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Options
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#outputs_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Outputs
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1021,9 +919,8 @@
 
 
 <h1 id="hypline-confoundgen"><code>hypline confoundgen</code><a class="headerlink" href="#hypline-confoundgen" title="Permanent link">&para;</a></h1>
-<p>Generate <strong>confound files</strong> — TR-aligned nuisance regressors that
-<a href="../denoise/"><code>denoise</code></a> regresses out of the BOLD signal. <code>confoundgen</code> is a
-group of subcommands, one per confound source.</p>
+<p>Generate <strong>confound files</strong> — TR-aligned, stimulus-derived regressors keyed to
+BOLD runs. <code>confoundgen</code> is a group of subcommands, one per confound source.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>&lt;source&gt;<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
 <table>
@@ -1035,30 +932,34 @@ group of subcommands, one per confound source.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>fmriprep</code></td>
-<td>columns from fMRIPrep's confounds table</td>
-</tr>
-<tr>
 <td><code>phonemic</code></td>
 <td>timing of phonemic features (onset indicator, rate)</td>
 </tr>
 </tbody>
 </table>
-<p>All confound files share one on-disk format regardless of source, so <code>denoise</code>
-can mix them freely. Each is a Parquet table already aligned to the BOLD TR grid.</p>
+<p>Each confound file is a Parquet table already aligned to the BOLD TR grid.</p>
+<div class="admonition note">
+<p class="admonition-title">fMRIPrep regressors are not generated here</p>
+<p>Motion, drift, and CompCor regressors are <strong>not</strong> confound files. <code>denoise</code>
+reads them straight from fMRIPrep's confounds table — see
+<a href="../denoise/"><code>denoise --columns</code> / <code>--compcor</code></a>. <code>confounds/</code> holds only
+stimulus-derived, feature-granular confounds.</p>
+</div>
 <hr />
-<h2 id="confoundgen-fmriprep"><code>confoundgen fmriprep</code><a class="headerlink" href="#confoundgen-fmriprep" title="Permanent link">&para;</a></h2>
-<p>Import selected columns from fMRIPrep's <code>desc-confounds_timeseries.tsv</code> into a
-named hypline confound bundle (<code>conf-fmriprep</code>). A bundle is a single Parquet
-file per run that stacks all the columns you selected into one regressor table.
-This converts fMRIPrep's regressors into hypline's format so they reach
-<code>denoise</code> through the same path as every other confound. It reads only the
-confounds table — never the BOLD.</p>
+<h2 id="confoundgen-phonemic"><code>confoundgen phonemic</code><a class="headerlink" href="#confoundgen-phonemic" title="Permanent link">&para;</a></h2>
+<p>Generate phonemic confounds from phonemic feature files. These capture <em>when</em>
+speech occurred, not its content — an <strong>onset</strong> indicator and a speech <strong>rate</strong>
+regressor, derived purely from phoneme timing.</p>
+<div class="admonition tip">
+<p class="admonition-title">Usually automatic</p>
+<p><a href="../featuregen/"><code>featuregen phonemic</code></a> runs this step for you by default.
+Call <code>confoundgen phonemic</code> directly only to regenerate confounds without
+regenerating features.</p>
+</div>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
-<p>fMRIPrep's per-run confounds table under <code>derivatives/fmriprep/</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/fmriprep/sub-01/func/
-├── sub-01_task-conv_run-1_desc-confounds_timeseries.tsv
-└── sub-01_task-conv_run-1_desc-confounds_timeseries.json   # needed for CompCor
+<p>Phonemic feature files produced by <a href="../featuregen/"><code>featuregen phonemic</code></a>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/sub-01/phonemic/
+└── sub-01_task-conv_run-1_feat-phonemic.parquet
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -1071,21 +972,6 @@ confounds table — never the BOLD.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--desc</code></td>
-<td>Label naming this bundle (alphanumeric), e.g. <code>--desc minimal</code> → <code>conf-fmriprep_desc-minimal</code> <strong>(required)</strong></td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>--columns</code></td>
-<td>Comma-separated confound columns to pull (see below)</td>
-<td>none</td>
-</tr>
-<tr>
-<td><code>--compcor</code></td>
-<td>Comma-separated CompCor selectors (see below)</td>
-<td>none</td>
-</tr>
-<tr>
 <td><code>--sub-ids</code></td>
 <td>Comma-separated subject IDs to process; omit for all</td>
 <td>all</td>
@@ -1102,106 +988,10 @@ confounds table — never the BOLD.</p>
 </tr>
 </tbody>
 </table>
-<p>At least one of <code>--columns</code> or <code>--compcor</code> is required.</p>
-<p><strong><code>--columns</code></strong> accepts exact column names from the fMRIPrep table
-(<code>trans_x</code>, <code>rot_x</code>, …) plus <em>group prefixes</em> that expand to every matching
-column (<code>cosine</code> → all cosine regressors, <code>motion_outlier</code> → all motion-outlier
-columns).</p>
-<p><strong><code>--compcor</code></strong> selects principal components using <code>type:mask:n</code> tokens:</p>
-<table>
-<thead>
-<tr>
-<th>Token</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>a:CSF:5</code></td>
-<td>top-5 <strong>a</strong>natomical CompCor components in the CSF mask</td>
-</tr>
-<tr>
-<td><code>a:WM:5</code></td>
-<td>top-5 anatomical components in the white-matter mask</td>
-</tr>
-<tr>
-<td><code>t::10</code></td>
-<td>top-10 <strong>t</strong>emporal CompCor components (no mask)</td>
-</tr>
-<tr>
-<td><code>a:CSF:0.5</code></td>
-<td>enough CSF components to explain 50% of variance</td>
-</tr>
-</tbody>
-</table>
-<p><code>type</code> is <code>a</code> (anatomical — mask required) or <code>t</code> (temporal — no mask). <code>n</code> is a
-top-N integer, or a fraction between 0 and 1 for a variance threshold.</p>
 <h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h3>
-<p>A minimal motion model (6 motion parameters + cosine drift):</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>fmriprep<span class="w"> </span>data/<span class="w"> </span>--desc<span class="w"> </span>minimal<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
-</code></pre></div>
-<p>A fuller model adding CompCor components:</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>fmriprep<span class="w"> </span>data/<span class="w"> </span>--desc<span class="w"> </span>full<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5
-</code></pre></div>
-<h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
-<p>One bundle per run, tagged <code>conf-fmriprep</code> and the <code>--desc</code> label. Each bundle
-lives in its own <code>fmriprep-&lt;label&gt;/</code> subdirectory:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/sub-01/
-├── fmriprep-minimal/
-│   └── sub-01_task-conv_run-1_conf-fmriprep_desc-minimal.parquet
-└── fmriprep-full/
-    └── sub-01_task-conv_run-1_conf-fmriprep_desc-full.parquet
-</code></pre></div>
-<hr />
-<h2 id="confoundgen-phonemic"><code>confoundgen phonemic</code><a class="headerlink" href="#confoundgen-phonemic" title="Permanent link">&para;</a></h2>
-<p>Generate phonemic confounds from phonemic feature files. These capture <em>when</em>
-speech occurred, not its content — an <strong>onset</strong> indicator and a speech <strong>rate</strong>
-regressor, derived purely from phoneme timing.</p>
-<div class="admonition tip">
-<p class="admonition-title">Usually automatic</p>
-<p><a href="../featuregen/"><code>featuregen phonemic</code></a> runs this step for you by default.
-Call <code>confoundgen phonemic</code> directly only to regenerate confounds without
-regenerating features.</p>
-</div>
-<h3 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h3>
-<p>Phonemic feature files produced by <a href="../featuregen/"><code>featuregen phonemic</code></a>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/sub-01/phonemic/
-└── sub-01_task-conv_run-1_feat-phonemic.parquet
-</code></pre></div>
-<h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--sub-ids</code></td>
-<td>Comma-separated subject IDs to process; omit for all</td>
-<td>all</td>
-</tr>
-<tr>
-<td><code>--data-filters</code></td>
-<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
-<td>none</td>
-</tr>
-<tr>
-<td><code>--force</code></td>
-<td>Overwrite existing outputs (default skips them)</td>
-<td>off</td>
-</tr>
-</tbody>
-</table>
-<h3 id="example_1">Example<a class="headerlink" href="#example_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>phonemic<span class="w"> </span>data/
 </code></pre></div>
-<h3 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h3>
+<h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
 <p>Two derivations per run, tagged <code>conf-phonemic</code> and distinguished by <code>desc</code>.
 Each <code>desc</code> lands in its own subdirectory:</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/sub-01/
@@ -1210,8 +1000,10 @@ Each <code>desc</code> lands in its own subdirectory:</p>
 └── phonemic-rate/
     └── sub-01_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
 </code></pre></div>
-<p>Refer to a derivation by name when denoising: <code>phonemic-onset</code>, <code>phonemic-rate</code>
-(see <a href="../denoise/"><code>denoise --confounds</code></a>).</p>
+<p>Each derivation is referred to by name (<code>phonemic-onset</code>, <code>phonemic-rate</code>). These
+are feature-granular, encoding-side confounds; they are not read by
+<a href="../denoise/"><code>denoise</code></a>, whose nuisance regressors come from fMRIPrep and the
+<code>nuisance/</code> area instead.</p>
 
 
 

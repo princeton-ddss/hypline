@@ -923,8 +923,8 @@ commands do not need it.</p>
 <h2 id="the-pipeline">The pipeline<a class="headerlink" href="#the-pipeline" title="Permanent link">&para;</a></h2>
 <p>Hypline commands form a pipeline. Each one reads from a shared dataset root and
 writes its outputs back into the same tree. The steps fall into two independent
-branches — a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong> — that never touch
-until they converge at <code>denoise</code>:</p>
+branches — a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong> — that prepare the
+two sides an encoding model later joins:</p>
 <table>
 <thead>
 <tr>
@@ -954,19 +954,17 @@ until they converge at <code>denoise</code>:</p>
 <td><code>conf-phonemic</code> confounds</td>
 </tr>
 <tr>
-<td><code>confoundgen fmriprep</code></td>
-<td>fMRIPrep</td>
-<td>fMRIPrep confounds TSV</td>
-<td><code>conf-fmriprep</code> confounds</td>
-</tr>
-<tr>
 <td><code>denoise</code></td>
-<td>converge</td>
-<td>preprocessed BOLD, confounds</td>
+<td>fMRIPrep</td>
+<td>preprocessed BOLD, fMRIPrep confounds</td>
 <td>cleaned BOLD (<code>desc-clean</code>)</td>
 </tr>
 </tbody>
 </table>
+<p>The branches never meet inside hypline: stimulus commands build the encoding
+model's predictors, while <code>denoise</code> cleans the BOLD target from fMRIPrep's own
+confounds table (and any custom <code>nuisance/</code> regressors). The encoding model joins
+them downstream.</p>
 <div class="admonition tip">
 <p class="admonition-title">Features and their confounds in one step</p>
 <p><code>featuregen phonemic</code> also generates the matching phonemic confounds by
@@ -974,30 +972,27 @@ default, so you rarely call <code>confoundgen phonemic</code> directly. See the
 <a href="reference/featuregen/">featuregen reference</a>.</p>
 </div>
 <p>You do not have to run every step. Each command works on its own as long as its
-inputs exist — for example, you can run <code>confoundgen fmriprep</code> and <code>denoise</code>
-without ever transcribing audio.</p>
+inputs exist — for example, you can run <code>denoise</code> on fMRIPrep outputs without
+ever transcribing audio.</p>
 <h2 id="run-the-pipeline">Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permanent link">&para;</a></h2>
 <p>Once your files sit where hypline expects (see
 <a href="concepts/layout/">the dataset layout</a>), every command takes the dataset root
 and discovers its inputs from there — you never pass file paths. End to end, the
-whole pipeline is four commands. Each reads what the previous ones wrote, so
+whole pipeline is three commands. Each reads what the previous ones wrote, so
 order matters only where one step's output is the next step's input:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># stimulus branch: audio → transcripts → features (+ phonemic confounds, auto)</span>
 hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav
 hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/
 
-<span class="c1"># fMRIPrep branch: pull a motion + drift confound bundle</span>
-hypline<span class="w"> </span>confoundgen<span class="w"> </span>fmriprep<span class="w"> </span>data/<span class="w"> </span>--desc<span class="w"> </span>minimal<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
-
-<span class="c1"># converge: regress the chosen confounds out of the BOLD</span>
+<span class="c1"># fMRIPrep branch: clean the BOLD with a motion + drift model, read straight</span>
+<span class="c1"># from fMRIPrep&#39;s confounds table</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal,phonemic-onset
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 </code></pre></div>
-<p>After this, <code>data/</code> holds <code>desc-clean</code> BOLD ready for an encoding model. You can
-also start with <code>transcribe</code> alone and follow the table above step by step.
-Re-run any single step with <code>--force</code> to overwrite its outputs; without it,
-hypline skips work it has already done.</p>
+<p>After this, <code>data/</code> holds phonemic features plus <code>desc-clean</code> BOLD — the two
+sides an encoding model needs. You can also start with <code>transcribe</code> alone and
+follow the table above step by step. Re-run any single step with <code>--force</code> to
+overwrite its outputs; without it, hypline skips work it has already done.</p>
 <div class="admonition tip">
 <p class="admonition-title">If a command seems to do nothing</p>
 <p>Two harmless cases look like failures. <strong><code>No subjects found</code></strong> means the area

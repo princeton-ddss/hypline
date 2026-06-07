@@ -952,13 +952,17 @@ a few extra areas. A complete tree looks like this:</p>
 │   └── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
 ├── stimuli/sub-01/audio/                     # stimulus audio, transcripts
 ├── features/sub-01/phonemic/                 # generated features
-└── confounds/sub-01/phonemic/                # generated confounds
+├── confounds/sub-01/phonemic/                # generated confounds
+└── nuisance/sub-01/physio-v1/                # optional, user-supplied nuisance regressors
 </code></pre></div>
 <ul>
 <li><strong><code>sub-01/</code>, <code>derivatives/fmriprep/</code></strong> are standard BIDS areas. You provide
   these — your raw recordings and your fMRIPrep run.</li>
 <li><strong><code>stimuli/</code>, <code>features/</code>, <code>confounds/</code></strong> are hypline additions. Hypline
   creates and fills these as you run commands.</li>
+<li><strong><code>nuisance/</code></strong> is optional and <em>you</em> fill it — run-level regressors (e.g.
+  physiological recordings) for <a href="../../reference/denoise/"><code>denoise</code></a> to regress
+  out alongside fMRIPrep's confounds.</li>
 </ul>
 <div class="admonition info">
 <p class="admonition-title">Sessions are optional</p>
@@ -1004,7 +1008,12 @@ kind of derivative it is:</p>
 <tr>
 <td><code>conf-&lt;kind&gt;</code></td>
 <td><code>confounds/</code></td>
-<td><code>conf-phonemic</code>, <code>conf-fmriprep</code></td>
+<td><code>conf-phonemic</code></td>
+</tr>
+<tr>
+<td><code>nuis-&lt;kind&gt;</code></td>
+<td><code>nuisance/</code></td>
+<td><code>nuis-physio</code></td>
 </tr>
 </tbody>
 </table>
@@ -1015,12 +1024,11 @@ kind of derivative it is:</p>
 several. Variants live in their own subdirectory so they stay physically
 separate:</p>
 <div class="highlight"><pre><span></span><code>confounds/sub-01/
-├── fmriprep-minimal/    # conf-fmriprep_desc-minimal — e.g. motion only
-└── fmriprep-full/       # conf-fmriprep_desc-full    — e.g. motion + CompCor
+├── phonemic-onset/    # conf-phonemic_desc-onset — speech-onset indicator
+└── phonemic-rate/     # conf-phonemic_desc-rate  — speech rate per TR
 </code></pre></div>
 <p>This lets you keep several derivations of the same source side by side and pick
-between them later (for example, when choosing which confounds to regress out in
-<a href="../../reference/denoise/"><code>denoise</code></a>).</p>
+between them later by name.</p>
 <h2 id="selecting-subjects-and-runs">Selecting subjects and runs<a class="headerlink" href="#selecting-subjects-and-runs" title="Permanent link">&para;</a></h2>
 <p>Because commands discover files by convention, you select <em>what to process</em> with
 options rather than paths — <code>--sub-ids</code> for subjects, <code>--data-filters</code> for runs

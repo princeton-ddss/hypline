@@ -907,25 +907,39 @@
 
 
 <h1 id="hypline-denoise"><code>hypline denoise</code><a class="headerlink" href="#hypline-denoise" title="Permanent link">&para;</a></h1>
-<p>Regress nuisance confounds out of preprocessed BOLD, writing a cleaned
+<p>Regress nuisance regressors out of preprocessed BOLD, writing a cleaned
 derivative. This is where the two pipeline branches meet: <code>denoise</code> reads
-fMRIPrep's preprocessed BOLD and the <a href="../confoundgen/">confound files</a> you
-generated, and produces a <code>desc-clean</code> BOLD ready for an encoding model.</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span>--confounds<span class="w"> </span>&lt;refs&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+fMRIPrep's preprocessed BOLD together with the nuisance regressors you select,
+and produces a <code>desc-clean</code> BOLD ready for an encoding model.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">(</span>--columns<span class="w"> </span>…<span class="w"> </span><span class="p">|</span><span class="w"> </span>--compcor<span class="w"> </span>…<span class="w"> </span><span class="p">|</span><span class="w"> </span>--custom-sources<span class="w"> </span>…<span class="o">)</span><span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
+<p>Nuisance regressors come from two channels, stacked into one regressor matrix:</p>
+<ol>
+<li><strong>fMRIPrep's confounds table</strong>, read natively — <code>--columns</code> / <code>--compcor</code>
+   select columns directly from each run's <code>desc-confounds_timeseries.tsv</code>. No
+   intermediate hypline file is generated.</li>
+<li><strong>Custom nuisance files</strong> under <code>nuisance/</code> — <code>--custom-sources</code> /
+   <code>--custom-columns</code> select run-level regressors you supply yourself (e.g.
+   physiological recordings).</li>
+</ol>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
-<p>Two things, both already in your dataset:</p>
 <ul>
 <li><strong>Preprocessed BOLD</strong> (<code>desc-preproc</code>) under <code>derivatives/fmriprep/</code>.</li>
-<li><strong>Confound files</strong> under <code>confounds/</code>, named by <code>--confounds</code>.</li>
+<li><strong>fMRIPrep confounds table</strong> (<code>desc-confounds_timeseries.tsv</code>, with its <code>.json</code>
+  sidecar) beside the BOLD — read directly when you pass <code>--columns</code> /
+  <code>--compcor</code>. The sidecar is always read (it carries the CompCor metadata), so
+  it must be present even for a <code>--columns</code>-only run.</li>
+<li><strong>Custom nuisance files</strong> under <code>nuisance/</code> — read only when you pass
+  <code>--custom-sources</code>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
 ├── derivatives/fmriprep/sub-01/func/
 │   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
-│   └── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
-└── confounds/sub-01/
-    ├── fmriprep-minimal/...conf-fmriprep_desc-minimal.parquet
-    └── phonemic-onset/...conf-phonemic_desc-onset.parquet
+│   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
+│   ├── sub-01_task-conv_run-1_desc-confounds_timeseries.tsv
+│   └── sub-01_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
+└── nuisance/sub-01/physio-v1/                                  # optional, user-supplied
+    └── sub-01_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
 </code></pre></div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <table>
@@ -938,9 +952,24 @@ generated, and produces a <code>desc-clean</code> BOLD ready for an encoding mod
 </thead>
 <tbody>
 <tr>
-<td><code>--confounds</code></td>
-<td>Comma-separated confound refs to regress out (see below) <strong>(required)</strong></td>
-<td>—</td>
+<td><code>--columns</code></td>
+<td>Comma-separated fMRIPrep confound columns to regress out (see below)</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--compcor</code></td>
+<td>Comma-separated CompCor selectors (see below)</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--custom-sources</code></td>
+<td>Comma-separated <code>nuisance/</code> sources as <code>&lt;kind&gt;[-&lt;desc&gt;]</code>; requires <code>--custom-columns</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--custom-columns</code></td>
+<td>Column names to select from the <code>--custom-sources</code> files; requires <code>--custom-sources</code></td>
+<td>none</td>
 </tr>
 <tr>
 <td><code>--space</code></td>
@@ -964,53 +993,84 @@ generated, and produces a <code>desc-clean</code> BOLD ready for an encoding mod
 </tr>
 </tbody>
 </table>
-<p><strong><code>--confounds</code></strong> selects which confound files to load, by reference. Each
-reference is a <code>&lt;kind&gt;</code> or <code>&lt;kind&gt;-&lt;desc&gt;</code> token matching the files
-<a href="../confoundgen/"><code>confoundgen</code></a> wrote:</p>
+<p>At least one of <code>--columns</code>, <code>--compcor</code>, or <code>--custom-sources</code> is required — an
+all-empty invocation raises rather than silently doing nothing.</p>
+<p><strong><code>--columns</code></strong> accepts exact column names from the fMRIPrep table (<code>trans_x</code>,
+<code>rot_x</code>, …) plus <em>group prefixes</em> that expand to every matching column
+(<code>cosine</code> → all cosine regressors, <code>motion_outlier</code> → all motion-outlier
+columns).</p>
+<p><strong><code>--compcor</code></strong> selects principal components using <code>type:mask:n</code> tokens:</p>
 <table>
 <thead>
 <tr>
-<th>Ref</th>
-<th>Resolves to</th>
+<th>Token</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>fmriprep-minimal</code></td>
-<td><code>conf-fmriprep_desc-minimal</code></td>
+<td><code>a:CSF:5</code></td>
+<td>top-5 <strong>a</strong>natomical CompCor components in the CSF mask</td>
 </tr>
 <tr>
-<td><code>phonemic-onset</code></td>
-<td><code>conf-phonemic_desc-onset</code></td>
+<td><code>a:WM:5</code></td>
+<td>top-5 anatomical components in the white-matter mask</td>
 </tr>
 <tr>
-<td><code>phonemic</code></td>
-<td>the bare <code>conf-phonemic</code> (no <code>desc</code>)</td>
+<td><code>t::10</code></td>
+<td>top-10 <strong>t</strong>emporal CompCor components (no mask)</td>
+</tr>
+<tr>
+<td><code>a:CSF:0.5</code></td>
+<td>enough CSF components to explain 50% of variance</td>
 </tr>
 </tbody>
 </table>
-<p>All referenced confounds are stacked into one regressor matrix. A bare <code>&lt;kind&gt;</code>
-resolves only to the <code>desc</code>-less file, so name each derivation explicitly.</p>
+<p><code>type</code> is <code>a</code> (anatomical — mask required) or <code>t</code> (temporal — no mask). <code>n</code> is a
+top-N integer, or a fraction between 0 and 1 for a variance threshold.</p>
+<p><strong><code>--custom-sources</code> / <code>--custom-columns</code></strong> pull run-level regressors from the
+<code>nuisance/</code> area. Each source is a <code>&lt;kind&gt;</code> or <code>&lt;kind&gt;-&lt;desc&gt;</code> token naming a
+<code>nuisance/&lt;kind&gt;[-&lt;desc&gt;]/</code> directory; <code>--custom-columns</code> then selects columns
+from the horizontal concat of all named sources. The two must be given together.</p>
+<div class="admonition note">
+<p class="admonition-title">Authoring a <code>nuisance/</code> file</p>
+<p>Custom nuisance files are yours to create — hypline never writes them. Each
+must be a <strong>tab-separated <code>.tsv</code></strong> with the <code>_timeseries</code> suffix and a
+<code>nuis-&lt;kind&gt;</code> entity, e.g.
+<code>sub-01_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv</code>, placed in
+<code>nuisance/sub-01/&lt;kind&gt;[-&lt;desc&gt;]/</code>. It is a <strong>wide</strong> table: one named column
+per regressor, one row per TR (row count must match the BOLD run). Every
+value must be <strong>finite</strong> — unlike the fMRIPrep table, there is no <code>n/a</code>
+convention, so a blank or non-numeric cell raises rather than being filled.</p>
+</div>
 <div class="admonition warning">
-<p class="admonition-title">Two things must line up</p>
+<p class="admonition-title">Things that must line up</p>
 <ul>
 <li><strong>Space must exist.</strong> <code>--space</code> must name a space present in your fMRIPrep
   outputs. Surface spaces (<code>fsaverage*</code>) are cleaned per hemisphere
   automatically.</li>
-<li><strong>TR counts must match.</strong> Every referenced confound file and the BOLD must
-  have the same number of TRs, or <code>denoise</code> raises.</li>
+<li><strong>Column names must be unique</strong> across all channels (fMRIPrep and custom);
+  a collision raises rather than silently dropping one.</li>
+<li><strong>TR counts must match.</strong> Every selected regressor channel and the BOLD
+  must have the same number of TRs, or <code>denoise</code> raises.</li>
 </ul>
 </div>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<p>Clean surface BOLD for all subjects, regressing out a motion bundle plus the
-phonemic onset confound:</p>
+<p>Clean surface BOLD for all subjects, regressing out a motion + drift model:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal,phonemic-onset
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
+</code></pre></div>
+<p>Add CompCor components, and a custom physiological regressor from <code>nuisance/</code>:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--custom-sources<span class="w"> </span>physio-v1<span class="w"> </span>--custom-columns<span class="w"> </span>resp,cardiac
 </code></pre></div>
 <p>Clean only run 1 of subjects 01 and 02:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-full<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1
 </code></pre></div>
@@ -1039,14 +1099,24 @@ default.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>Expected one '&lt;ref&gt;' confound for ..., found 0</code></td>
-<td>A <code>--confounds</code> ref names a file <code>confoundgen</code> never wrote (wrong <code>desc</code>, or that step was skipped).</td>
-<td>Check the ref spelling against the <a href="../confoundgen/"><code>confoundgen</code> outputs</a>; a bare <code>phonemic</code> matches only the <code>desc</code>-less file, so use <code>phonemic-onset</code> / <code>phonemic-rate</code>.</td>
+<td><code>at least one of --columns, --compcor, or --custom-sources must be given</code></td>
+<td>The command was called with no regressor channel selected.</td>
+<td>Pass at least one of <code>--columns</code>, <code>--compcor</code>, or <code>--custom-sources</code>.</td>
 </tr>
 <tr>
-<td><code>Unequal number of TRs between BOLD and confounds</code></td>
-<td>A confound table has a different row count than the BOLD it is paired with.</td>
-<td>Regenerate that confound against the same run; fMRIPrep and phonemic confounds must both span every TR.</td>
+<td><code>--custom-sources and --custom-columns must be given together</code></td>
+<td>One of the custom-nuisance options was passed without the other.</td>
+<td>Supply both, or neither.</td>
+</tr>
+<tr>
+<td>A <code>--custom-sources</code> source resolves to 0 (or multiple) files</td>
+<td>A source names a <code>nuisance/&lt;kind&gt;[-&lt;desc&gt;]/</code> directory that does not exist (or matches more than one file per run).</td>
+<td>Check the source spelling against your <code>nuisance/</code> directories.</td>
+</tr>
+<tr>
+<td><code>Unequal number of TRs between BOLD and nuisance</code></td>
+<td>A regressor channel has a different row count than the BOLD it is paired with.</td>
+<td>Confirm the fMRIPrep confounds table and any custom nuisance files span every TR of the run.</td>
 </tr>
 <tr>
 <td>Command finishes, but no <code>desc-clean</code> files appear</td>

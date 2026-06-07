@@ -1017,7 +1017,7 @@ against <strong>both</strong> filename entities (like <code>run</code>) and the 
 <code>events.json</code> (like <code>cond</code>), so the same option filters structural and
 descriptive attributes alike.</p>
 <h3 id="one-run">One run<a class="headerlink" href="#one-run" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--confounds<span class="w"> </span>fmriprep-minimal<span class="w"> </span>--data-filters<span class="w"> </span>run-1
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span>--data-filters<span class="w"> </span>run-1
 </code></pre></div>
 <h3 id="several-runs-or">Several runs (OR)<a class="headerlink" href="#several-runs-or" title="Permanent link">&para;</a></h3>
 <p>Repeating the same entity widens the match — any of the listed values qualifies:</p>
@@ -1028,13 +1028,13 @@ hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span c
 <p><code>cond</code> never appears in a filename — it lives in the <code>events.json</code> sidecar — but
 you filter on it the same way:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># only the &quot;R&quot; condition</span>
-hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--confounds<span class="w"> </span>fmriprep-minimal<span class="w"> </span>--data-filters<span class="w"> </span>cond-R
+hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span>--data-filters<span class="w"> </span>cond-R
 </code></pre></div>
 <h3 id="runs-and-a-condition">Runs AND a condition<a class="headerlink" href="#runs-and-a-condition" title="Permanent link">&para;</a></h3>
 <p>Mixing <em>different</em> entities narrows the match — every named entity must hold:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># (run 1 or run 2) AND condition R</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1,run-2,cond-R
 </code></pre></div>
 <h2 id="the-matching-rule-in-one-line">The matching rule, in one line<a class="headerlink" href="#the-matching-rule-in-one-line" title="Permanent link">&para;</a></h2>
@@ -1060,7 +1060,7 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 <code>--sub-ids</code> with <code>--data-filters</code> to slice on both axes at once:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># subjects 01–02, run 1 only, condition R</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--confounds<span class="w"> </span>fmriprep-minimal<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1,cond-R
 </code></pre></div>
