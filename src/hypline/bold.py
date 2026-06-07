@@ -84,6 +84,19 @@ def _tr_for_bold(bids: BIDSPath) -> float | None:
     return _tr_from_image(bids.path)
 
 
+def run_identity_filters(source: BIDSPath) -> list[str]:
+    """BIDS `key-value` filters pinning `source`'s run identity, excluding `sub`.
+
+    `sub` is omitted because callers pass it as a separate `layout.find`
+    argument; re-adding it here would duplicate the filter.
+    """
+    return [
+        f"{k}-{source.entities[k]}"
+        for k in BOLD_IDENTITY_ENTITIES - {"sub"}
+        if k in source.entities
+    ]
+
+
 def _find_fmriprep_bold(layout: BIDSLayout, source: BIDSPath) -> list[BIDSPath]:
     """fmriprep BOLD `.nii.gz` files for `source`'s run (any space/desc variant).
 
@@ -94,14 +107,12 @@ def _find_fmriprep_bold(layout: BIDSLayout, source: BIDSPath) -> list[BIDSPath]:
     sub = source.entities.get("sub")
     if sub is None:
         return []
-    run_filters = [
-        f"{k}-{source.entities[k]}"
-        for k in BOLD_IDENTITY_ENTITIES - {"sub"}
-        if k in source.entities
-    ]
     try:
         return layout.find.fmriprep(
-            sub=sub, suffix="bold", ext=".nii.gz", bids_filters=run_filters
+            sub=sub,
+            suffix="bold",
+            ext=".nii.gz",
+            bids_filters=run_identity_filters(source),
         )
     except FileNotFoundError:
         return []

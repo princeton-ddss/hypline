@@ -1,19 +1,22 @@
+from collections import Counter
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+import polars as pl
 from loguru import logger
 from nibabel.gifti import GiftiDataArray, GiftiImage
 
 from hypline.bids import (
-    BOLD_IDENTITY_ENTITIES,
     BIDSPath,
     normalize_bids_filters,
+    parse_kind_desc,
 )
 from hypline.bold import (
     BOLD_EXTENSIONS,
     get_repetition_time,
     parse_bold_space,
+    run_identity_filters,
 )
 from hypline.enums import SurfaceSpace, VolumeSpace
 from hypline.fmriprep import (
@@ -21,7 +24,7 @@ from hypline.fmriprep import (
     read_fmriprep_confounds,
     select_fmriprep_columns,
 )
-from hypline.io import skip_existing
+from hypline.io import read_nuisance, skip_existing
 from hypline.layout import BIDSLayout
 
 
@@ -43,15 +46,23 @@ class Denoiser:
         space: str,
         columns: list[str],
         compcor: list[str],
+        custom_sources: list[str],
+        custom_columns: list[str],
         bids_filters: list[str] | None = None,
         force: bool = False,
     ):
-        if not columns and not compcor:
-            raise ValueError("at least one of columns or compcor must be given")
+        if not columns and not compcor and not custom_sources:
+            raise ValueError(
+                "at least one of columns, compcor, or custom_sources must be given"
+            )
+        if bool(custom_sources) != bool(custom_columns):
+            raise ValueError("custom_sources and custom_columns must be given together")
         self._layout = BIDSLayout(bids_root)
         self._space = parse_bold_space(space)
         self._columns = columns
         self._compcor = parse_compcor(compcor)
+        self._custom_sources = [parse_kind_desc(ref) for ref in custom_sources]
+        self._custom_columns = custom_columns
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "desc", "space"}
         )
@@ -138,23 +149,50 @@ class Denoiser:
         nib.save(new_img, bold.with_entity("desc", "clean").path)
 
     def _load_nuisance(self, bold: BIDSPath) -> np.ndarray:
-        """Build the `(TRs, regressors)` matrix from the run's fmriprep tsv.
+        """Build the `(rows, regressors)` matrix from all nuisance channels.
 
-        Resolves the run's `desc-confounds_timeseries.tsv` (one match or raise)
-        in the fmriprep tree, reads it via `read_fmriprep_confounds`, and selects
-        `columns`/`compcor` into a single flat block for nilearn.
+        Concatenates two channels into one block: (1) fmriprep confound columns
+        selected by `columns`/`compcor` from the run's native
+        `desc-confounds_timeseries.tsv`, and (2) custom nuisance columns selected
+        by `custom_columns` from the `nuisance/` sources named in
+        `custom_sources`. Each fmriprep/custom source is resolved one-match-or-
+        raise against the run.
+
+        Validates only *internal* consistency: every channel shares the same row
+        count, and the final selected column names are unique (across custom
+        sources and against fmriprep). The row count is *not* checked against the
+        BOLD here — the caller compares the returned matrix against the run it is
+        cleaning.
         """
-        run_filters = [
-            f"{k}-{bold.entities[k]}"
-            for k in BOLD_IDENTITY_ENTITIES - {"sub"}
-            if k in bold.entities
-        ]
+        frames: list[pl.DataFrame] = []
+        if self._columns or self._compcor:
+            frames.append(self._load_fmriprep_block(bold))
+        if self._custom_sources:
+            frames.append(self._load_custom_block(bold))
 
+        heights = {f.height for f in frames}
+        if len(heights) > 1:
+            raise ValueError(
+                f"Nuisance channels disagree on row count for {bold.path.name}: "
+                f"{sorted(heights)}"
+            )
+
+        dupes = sorted(
+            n for n, c in Counter(c for f in frames for c in f.columns).items() if c > 1
+        )
+        if dupes:
+            raise ValueError(f"Nuisance column name collision across channels: {dupes}")
+
+        combined = pl.concat(frames, how="horizontal")
+        return combined.to_numpy()  # (rows, regressors)
+
+    def _load_fmriprep_block(self, bold: BIDSPath) -> pl.DataFrame:
+        """Select `columns`/`compcor` from the run's fmriprep confounds tsv."""
         matches = self._layout.find.fmriprep(
             sub=bold.entities["sub"],
             suffix="timeseries",
             ext=".tsv",
-            bids_filters=["desc-confounds", *run_filters],
+            bids_filters=["desc-confounds", *run_identity_filters(bold)],
         )
         if len(matches) != 1:
             raise ValueError(
@@ -165,4 +203,52 @@ class Denoiser:
         names = select_fmriprep_columns(
             df, meta, columns=self._columns, compcor=self._compcor
         )
-        return df.select(names).to_numpy()  # (TRs, regressors)
+        return df.select(names)
+
+    def _load_custom_block(self, bold: BIDSPath) -> pl.DataFrame:
+        """Concat custom nuisance sources and select `custom_columns`.
+
+        Each `(kind, desc)` ref resolves one-match-or-raise against the run. The
+        h-concat namespace must be collision-free (selection is post-concat, so
+        any duplicate column name across sources is ambiguous), and the selected
+        names are validated to exist.
+        """
+        sources: list[pl.DataFrame] = []
+        height: int | None = None
+        for kind, desc in self._custom_sources:
+            matches = self._layout.find.nuisance(
+                sub=bold.entities["sub"],
+                kind=kind,
+                desc=desc,
+                bids_filters=run_identity_filters(bold),
+            )
+            if len(matches) != 1:
+                ref = kind if desc is None else f"{kind}-{desc}"
+                raise ValueError(
+                    f"Expected one nuisance file for {bold.path.name} ({ref}), "
+                    f"found {len(matches)}"
+                )
+            df = read_nuisance(matches[0].path)
+            # h-concat silently null-pads unequal heights, defeating read_nuisance's
+            # finiteness guarantee; check per-file to fail loud first
+            if height is not None and df.height != height:
+                raise ValueError(
+                    f"Custom nuisance row count mismatch for {bold.path.name}: "
+                    f"{matches[0].path.name} has {df.height}, expected {height}"
+                )
+            height = df.height
+            sources.append(df)
+
+        dupes = sorted(
+            n
+            for n, c in Counter(c for f in sources for c in f.columns).items()
+            if c > 1
+        )
+        if dupes:
+            raise ValueError(f"Duplicate custom nuisance column(s): {dupes}")
+
+        concat = pl.concat(sources, how="horizontal")
+        missing = [c for c in self._custom_columns if c not in concat.columns]
+        if missing:
+            raise ValueError(f"Custom nuisance columns missing from sources: {missing}")
+        return concat.select(self._custom_columns)

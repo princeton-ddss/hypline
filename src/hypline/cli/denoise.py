@@ -44,6 +44,29 @@ def denoise(
             show_default=False,
         ),
     ] = None,
+    custom_sources: Annotated[
+        str | None,
+        typer.Option(
+            "--custom-sources",
+            help="""
+            Comma-separated nuisance/ sources as <kind>[-<desc>] (e.g.,
+            physio-v1,resp); selects run-level regressor files from nuisance/.
+            Requires --custom-columns
+            """,
+            show_default=False,
+        ),
+    ] = None,
+    custom_columns: Annotated[
+        str | None,
+        typer.Option(
+            "--custom-columns",
+            help="""
+            Comma-separated column names to select from the --custom-sources
+            sources (selected from the horizontal concat of all sources)
+            """,
+            show_default=False,
+        ),
+    ] = None,
     space: Annotated[
         BoldSpace,
         typer.Option(
@@ -82,10 +105,17 @@ def denoise(
 
     _columns = split_csv(columns, param_hint="--columns") or []
     _compcor = split_csv(compcor, param_hint="--compcor") or []
-    if not _columns and not _compcor:
+    _custom_sources = split_csv(custom_sources, param_hint="--custom-sources") or []
+    _custom_columns = split_csv(custom_columns, param_hint="--custom-columns") or []
+    if not _columns and not _compcor and not _custom_sources:
         raise typer.BadParameter(
-            "at least one of --columns or --compcor must be given",
-            param_hint="--columns/--compcor",
+            "at least one of --columns, --compcor, or --custom-sources must be given",
+            param_hint="--columns/--compcor/--custom-sources",
+        )
+    if bool(_custom_sources) != bool(_custom_columns):
+        raise typer.BadParameter(
+            "--custom-sources and --custom-columns must be given together",
+            param_hint="--custom-sources/--custom-columns",
         )
 
     _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
@@ -96,6 +126,8 @@ def denoise(
         space=space.value,
         columns=_columns,
         compcor=_compcor,
+        custom_sources=_custom_sources,
+        custom_columns=_custom_columns,
         bids_filters=_bids_filters,
         force=force,
     )
