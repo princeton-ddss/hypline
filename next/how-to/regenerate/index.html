@@ -949,12 +949,12 @@ built.</p>
 <p><code>denoise</code> reads its nuisance regressors from fMRIPrep's confounds table and
 the <code>nuisance/</code> area — never from the stimulus-derived <code>confounds/</code>. So
 re-recording audio or fixing an <code>events.tsv</code> changes features and phonemic
-confounds but leaves <code>desc-clean</code> BOLD untouched: there is no stimulus →
+confounds but leaves <code>desc-denoised</code> BOLD untouched: there is no stimulus →
 <code>denoise</code> dependency to repair.</p>
 </div>
 <h2 id="worked-example-you-decided-to-add-compcor-regressors">Worked example: you decided to add CompCor regressors<a class="headerlink" href="#worked-example-you-decided-to-add-compcor-regressors" title="Permanent link">&para;</a></h2>
 <p>You already cleaned the dataset, then decided the motion model needs CompCor
-components. The <code>desc-clean</code> BOLD on disk was built without them and is now stale
+components. The <code>desc-denoised</code> BOLD on disk was built without them and is now stale
 — but a plain rerun skips, because the output already exists.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
@@ -962,8 +962,8 @@ components. The <code>desc-clean</code> BOLD on disk was built without them and 
 <span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--force
 </code></pre></div>
-<p>Without <code>--force</code>, <code>denoise</code> would see the existing <code>desc-clean</code> file and skip —
-leaving cleaned BOLD built from the old, CompCor-less regressor set. The same
+<p>Without <code>--force</code>, <code>denoise</code> would see the existing <code>desc-denoised</code> file and skip —
+leaving denoised BOLD built from the old, CompCor-less regressor set. The same
 applies after editing any <code>nuisance/</code> file you regress out.</p>
 <div class="admonition tip">
 <p class="admonition-title">When in doubt, force the whole tail</p>

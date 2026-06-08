@@ -949,7 +949,8 @@ a few extra areas. A complete tree looks like this:</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
 ├── sub-01/func/                              # raw BIDS (events files live here)
 ├── derivatives/
-│   └── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
+│   ├── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
+│   └── hypline/sub-01/func/                  # hypline imaging derivatives (denoised BOLD)
 ├── stimuli/sub-01/audio/                     # stimulus audio, transcripts
 ├── features/sub-01/phonemic/                 # generated features
 ├── confounds/sub-01/phonemic/                # generated confounds
@@ -958,6 +959,10 @@ a few extra areas. A complete tree looks like this:</p>
 <ul>
 <li><strong><code>sub-01/</code>, <code>derivatives/fmriprep/</code></strong> are standard BIDS areas. You provide
   these — your raw recordings and your fMRIPrep run.</li>
+<li><strong><code>derivatives/hypline/</code></strong> is a BIDS derivatives tree hypline fills with its
+  imaging derivatives — currently the <a href="../../reference/denoise/"><code>denoise</code></a>
+  output. It mirrors fMRIPrep's <code>sub-XX/[ses-YY/]func/</code> shape and carries its own
+  <code>dataset_description.json</code>.</li>
 <li><strong><code>stimuli/</code>, <code>features/</code>, <code>confounds/</code></strong> are hypline additions. Hypline
   creates and fills these as you run commands.</li>
 <li><strong><code>nuisance/</code></strong> is optional and <em>you</em> fill it — run-level regressors (e.g.
