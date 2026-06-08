@@ -1,6 +1,9 @@
+import json
+import os
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
+from hypline._version import __version__
 from hypline.bids import (
     BOLD_IDENTITY_ENTITIES,
     CATEGORY_ENTITIES,
@@ -15,6 +18,8 @@ from hypline.bids import (
 from hypline.events import resolve_entities
 
 Area = Literal["stimuli", "features", "confounds", "nuisance", "fmriprep", "hypline"]
+
+DERIVATIVE_BIDS_VERSION = "1.9.0"
 
 
 def area_root(root: Path, area: Area) -> Path:
@@ -762,3 +767,44 @@ class BIDSLayout:
     @property
     def root(self) -> Path:
         return self._root
+
+    def bids_uri(self, bold: BIDSPath, *, area: Area) -> str:
+        """Render `bold` (living under `area`) as a `bids:<area>:<rel path>` URI.
+
+        The cross-dataset BIDS URI a derivative's `Sources` uses to reference an
+        input in a sibling dataset; resolved by the consumer via the matching
+        `DatasetLinks.<area>` entry. Path is relative to the area root.
+        """
+        rel = bold.path.relative_to(area_root(self._root, area))
+        return f"bids:{area}:{rel.as_posix()}"
+
+    def stamp_dataset_description(self, *, area: Area, sources: list[Area]) -> None:
+        """Write `<area>/dataset_description.json` if absent; leave it if present.
+
+        Stamps the minimal compliant derivative header. `sources` are sibling
+        areas this derivative draws from; each lands in `DatasetLinks` as a path
+        relative to `area`'s root, resolving the `bids:<source>:` URIs that
+        per-file `Sources` use (see `bids_uri`).
+
+        Write-if-absent, not re-stamp: the file describes the pipeline, not a run,
+        and re-stamping races under parallel `--sub-ids`. Per-run version truth
+        lives in each sidecar.
+        """
+        area_dir = area_root(self._root, area)
+        path = area_dir / "dataset_description.json"
+        if path.exists():
+            return
+        description: dict[str, Any] = {
+            "Name": area,
+            "BIDSVersion": DERIVATIVE_BIDS_VERSION,
+            "DatasetType": "derivative",
+            "GeneratedBy": [{"Name": "hypline", "Version": __version__}],
+        }
+        if sources:
+            description["DatasetLinks"] = {
+                src: os.path.relpath(area_root(self._root, src), area_dir)
+                for src in sources
+            }
+        area_dir.mkdir(parents=True, exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(description, f, indent=2)

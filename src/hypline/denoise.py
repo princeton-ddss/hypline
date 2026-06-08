@@ -1,4 +1,5 @@
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 import nibabel as nib
@@ -9,6 +10,7 @@ from nibabel.gifti import GiftiDataArray, GiftiImage
 
 from hypline.bids import (
     BIDSPath,
+    format_kind_desc,
     normalize_bids_filters,
     parse_kind_desc,
 )
@@ -24,8 +26,93 @@ from hypline.fmriprep import (
     read_fmriprep_confounds,
     select_fmriprep_columns,
 )
-from hypline.io import read_nuisance, skip_existing
+from hypline.io import (
+    read_nuisance,
+    skip_existing,
+    write_bold_sidecar,
+)
 from hypline.layout import BIDSLayout
+
+# nilearn clean params shared by volume and surface paths; single-sourced so the
+# sidecar records exactly what ran, never a hand-typed copy that can drift
+CLEAN_PARAMS = {
+    "detrend": True,
+    "ensure_finite": True,
+    "standardize": "zscore_sample",
+    "standardize_confounds": True,
+}
+
+
+@dataclass
+class _Nuisance:
+    """The regressor matrix plus the resolved column names that built it.
+
+    `fmriprep_columns`/`custom_columns` are post-expansion (group prefixes and
+    compcor selectors resolved against *this run's* confounds), so they are
+    per-run and recorded in the sidecar. `matrix` is `(rows, regressors)`.
+    """
+
+    matrix: np.ndarray
+    fmriprep_columns: list[str]
+    custom_columns: list[str]
+
+
+def _denoise_volume(
+    *,
+    bold: BIDSPath,
+    out: BIDSPath,
+    confounds: np.ndarray,
+    repetition_time: float,
+) -> None:
+    from nilearn import image as nimg
+
+    img = nimg.load_img(bold.path)  # Shape of (x, y, z, TRs)
+    if confounds.shape[0] != img.shape[3]:
+        raise ValueError(
+            f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
+        )
+
+    denoised = nimg.clean_img(
+        img,
+        confounds=confounds,
+        t_r=repetition_time,
+        **CLEAN_PARAMS,
+    )
+    nib.save(denoised, out.path)
+
+
+def _denoise_surface(
+    *,
+    bold: BIDSPath,
+    out: BIDSPath,
+    confounds: np.ndarray,
+    repetition_time: float,
+) -> None:
+    from nilearn import signal
+
+    img = nib.load(bold.path)
+    assert isinstance(img, GiftiImage)
+    data = img.agg_data().T  # Shape of (TRs, voxels)
+    if confounds.shape[0] != data.shape[0]:
+        raise ValueError(
+            f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
+        )
+
+    denoised = signal.clean(
+        data,
+        confounds=confounds,
+        t_r=repetition_time,
+        **CLEAN_PARAMS,
+    )
+    new_img = GiftiImage(
+        darrays=[
+            GiftiDataArray(data=row, intent="NIFTI_INTENT_TIME_SERIES")
+            for row in denoised
+        ],
+        header=img.header,
+        extra=img.extra,
+    )
+    nib.save(new_img, out.path)
 
 
 class Denoiser:
@@ -71,8 +158,8 @@ class Denoiser:
 
     def denoise(self, sub_id: str) -> None:
         denoise_func = {
-            VolumeSpace: self._denoise_volume,
-            SurfaceSpace: self._denoise_surface,
+            VolumeSpace: _denoise_volume,
+            SurfaceSpace: _denoise_surface,
         }[type(self._space)]
 
         bolds = self._layout.find.fmriprep(
@@ -92,66 +179,41 @@ class Denoiser:
                 continue
             out.path.parent.mkdir(parents=True, exist_ok=True)
             logger.info("Denoising starting: {}", bold.path.name)
-            denoise_func(bold, out)
+            nuisance = self._load_nuisance(bold)
+            repetition_time = get_repetition_time(self._layout, bold)
+            denoise_func(
+                bold=bold,
+                out=out,
+                confounds=nuisance.matrix,
+                repetition_time=repetition_time,
+            )
+            # write-if-absent: lands lazily on first output, never on empty match
+            self._layout.stamp_dataset_description(area="hypline", sources=["fmriprep"])
+            write_bold_sidecar(
+                out,
+                sources=[self._layout.bids_uri(bold, area="fmriprep")],
+                settings=self._sidecar_settings(bold, nuisance, repetition_time),
+            )
             logger.info("Denoising complete: {}", bold.path.name)
 
-    def _denoise_volume(self, bold: BIDSPath, out: BIDSPath) -> None:
-        from nilearn import image as nimg
+    def _sidecar_settings(
+        self, bold: BIDSPath, nuisance: _Nuisance, repetition_time: float
+    ) -> dict:
+        """Resolved per-run cleaning settings recorded in the sidecar."""
+        return {
+            "RepetitionTime": repetition_time,
+            "TaskName": bold.entities["task"],
+            # fmriprep desc-preproc source is skull-stripped; BIDS requires this key
+            "SkullStripped": True,
+            "fmriprep_columns": nuisance.fmriprep_columns,
+            "compcor": [o.model_dump(mode="json") for o in self._compcor],
+            "custom_sources": [format_kind_desc(k, d) for k, d in self._custom_sources],
+            "custom_columns": nuisance.custom_columns,
+            "n_regressors": int(nuisance.matrix.shape[1]),
+            "clean_params": CLEAN_PARAMS,
+        }
 
-        img = nimg.load_img(bold.path)  # Shape of (x, y, z, TRs)
-        TR = get_repetition_time(self._layout, bold)
-
-        nuisance = self._load_nuisance(bold)  # (TRs, regressors)
-        if nuisance.shape[0] != img.shape[3]:
-            raise ValueError(
-                f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
-            )
-
-        denoised = nimg.clean_img(
-            img,
-            confounds=nuisance,
-            detrend=True,
-            t_r=TR,
-            ensure_finite=True,
-            standardize="zscore_sample",
-            standardize_confounds=True,
-        )
-        nib.save(denoised, out.path)
-
-    def _denoise_surface(self, bold: BIDSPath, out: BIDSPath) -> None:
-        from nilearn import signal
-
-        img = nib.load(bold.path)
-        assert isinstance(img, GiftiImage)
-        data = img.agg_data().T  # Shape of (TRs, voxels)
-        TR = get_repetition_time(self._layout, bold)
-
-        nuisance = self._load_nuisance(bold)  # (TRs, regressors)
-        if nuisance.shape[0] != data.shape[0]:
-            raise ValueError(
-                f"Unequal number of TRs between BOLD and nuisance: {bold.path.name}"
-            )
-
-        denoised = signal.clean(
-            data,
-            confounds=nuisance,
-            detrend=True,
-            t_r=TR,
-            ensure_finite=True,
-            standardize="zscore_sample",
-            standardize_confounds=True,
-        )
-        new_img = GiftiImage(
-            darrays=[
-                GiftiDataArray(data=row, intent="NIFTI_INTENT_TIME_SERIES")
-                for row in denoised
-            ],
-            header=img.header,
-            extra=img.extra,
-        )
-        nib.save(new_img, out.path)
-
-    def _load_nuisance(self, bold: BIDSPath) -> np.ndarray:
+    def _load_nuisance(self, bold: BIDSPath) -> _Nuisance:
         """Build the `(rows, regressors)` matrix from all nuisance channels.
 
         Concatenates two channels into one block: (1) fmriprep confound columns
@@ -167,11 +229,17 @@ class Denoiser:
         BOLD here — the caller compares the returned matrix against the run it is
         denoising.
         """
+        fmriprep_cols: list[str] = []
+        custom_cols: list[str] = []
         frames: list[pl.DataFrame] = []
         if self._columns or self._compcor:
-            frames.append(self._load_fmriprep_block(bold))
+            df = self._load_fmriprep_block(bold)
+            fmriprep_cols = df.columns
+            frames.append(df)
         if self._custom_sources:
-            frames.append(self._load_custom_block(bold))
+            df = self._load_custom_block(bold)
+            custom_cols = df.columns
+            frames.append(df)
 
         heights = {f.height for f in frames}
         if len(heights) > 1:
@@ -186,8 +254,11 @@ class Denoiser:
         if dupes:
             raise ValueError(f"Nuisance column name collision across channels: {dupes}")
 
-        combined = pl.concat(frames, how="horizontal")
-        return combined.to_numpy()  # (rows, regressors)
+        return _Nuisance(
+            matrix=pl.concat(frames, how="horizontal").to_numpy(),  # (rows, regressors)
+            fmriprep_columns=fmriprep_cols,
+            custom_columns=custom_cols,
+        )
 
     def _load_fmriprep_block(self, bold: BIDSPath) -> pl.DataFrame:
         """Select `columns`/`compcor` from the run's fmriprep confounds tsv."""
@@ -226,10 +297,9 @@ class Denoiser:
                 bids_filters=run_identity_filters(bold),
             )
             if len(matches) != 1:
-                ref = kind if desc is None else f"{kind}-{desc}"
                 raise ValueError(
-                    f"Expected one nuisance file for {bold.path.name} ({ref}), "
-                    f"found {len(matches)}"
+                    f"Expected one nuisance file for {bold.path.name} "
+                    f"({format_kind_desc(kind, desc)}), found {len(matches)}"
                 )
             df = read_nuisance(matches[0].path)
             # h-concat silently null-pads unequal heights, defeating read_nuisance's

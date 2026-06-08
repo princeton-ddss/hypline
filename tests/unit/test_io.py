@@ -7,6 +7,7 @@ import pyarrow.parquet as pq
 import pytest
 from loguru import logger
 
+from hypline._version import __version__
 from hypline.bids import BIDSPath
 from hypline.io import (
     read_confound,
@@ -17,6 +18,7 @@ from hypline.io import (
     save_confound,
     save_feature,
     skip_existing,
+    write_bold_sidecar,
     write_confound,
     write_feature,
 )
@@ -871,3 +873,33 @@ class TestSaveConfound:
         assert meta["repetition_time"] == 2.0
         assert meta["tr_method"] == "any"
         assert meta["n_trs"] == 3
+
+
+class TestWriteBoldSidecar:
+    def test_volume_sidecar_path_and_content(self, tmp_path: Path):
+        bold = BIDSPath(tmp_path / "sub-01_task-A_desc-denoised_bold.nii.gz")
+        write_bold_sidecar(
+            bold, sources=["bids:fmriprep:sub-01/func/x.nii.gz"], settings={"k": 1}
+        )
+        sidecar = tmp_path / "sub-01_task-A_desc-denoised_bold.json"
+        content = json.loads(sidecar.read_text())
+        assert content["Sources"] == ["bids:fmriprep:sub-01/func/x.nii.gz"]
+        assert content["k"] == 1
+        assert content["hypline_version"] == __version__
+
+    def test_surface_multipart_ext_stripped(self, tmp_path: Path):
+        # .func.gii must strip whole, not leave a stray ".func"
+        bold = BIDSPath(tmp_path / "sub-01_task-A_hemi-L_desc-denoised_bold.func.gii")
+        write_bold_sidecar(bold, sources=["s"], settings={})
+        assert (tmp_path / "sub-01_task-A_hemi-L_desc-denoised_bold.json").exists()
+
+    def test_reserved_version_key_rejected(self, tmp_path: Path):
+        bold = BIDSPath(tmp_path / "sub-01_task-A_desc-denoised_bold.nii.gz")
+        with pytest.raises(ValueError, match="hypline_version"):
+            write_bold_sidecar(bold, sources=["s"], settings={"hypline_version": "x"})
+
+    def test_reserved_sources_key_rejected(self, tmp_path: Path):
+        # Sources is auto-injected; settings must not silently override it
+        bold = BIDSPath(tmp_path / "sub-01_task-A_desc-denoised_bold.nii.gz")
+        with pytest.raises(ValueError, match="Sources"):
+            write_bold_sidecar(bold, sources=["s"], settings={"Sources": ["x"]})

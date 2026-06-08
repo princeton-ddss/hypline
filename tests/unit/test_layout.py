@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
 
 import pytest
 
+from hypline._version import __version__
 from hypline.bids import BIDSPath
 from hypline.layout import BIDSLayout
 
@@ -800,6 +802,61 @@ class TestPathDenoised:
         source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_desc-preproc_bold.nii.gz")
         out = layout.path.denoised(source=source)
         assert out.entities.get("run") == "1"
+
+
+class TestBidsUri:
+    def test_renders_area_relative_uri(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        fmriprep = tmp_path / "derivatives" / "fmriprep" / f"sub-{SUB}" / "func"
+        bold = BIDSPath(fmriprep / f"sub-{SUB}_task-{TASK}_desc-preproc_bold.nii.gz")
+        assert layout.bids_uri(bold, area="fmriprep") == (
+            f"bids:fmriprep:sub-{SUB}/func/"
+            f"sub-{SUB}_task-{TASK}_desc-preproc_bold.nii.gz"
+        )
+
+    def test_raises_when_bold_outside_area(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        bold = BIDSPath(tmp_path / "elsewhere" / f"sub-{SUB}_bold.nii.gz")
+        with pytest.raises(ValueError):
+            layout.bids_uri(bold, area="fmriprep")
+
+
+class TestStampDatasetDescription:
+    def _read(self, tmp_path: Path) -> dict:
+        path = tmp_path / "derivatives" / "hypline" / "dataset_description.json"
+        return json.loads(path.read_text())
+
+    def test_writes_minimal_compliant_header_with_derived_links(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        layout.stamp_dataset_description(area="hypline", sources=["fmriprep"])
+        # link is derived from the area roots, not hand-typed
+        assert self._read(tmp_path) == {
+            "Name": "hypline",
+            "BIDSVersion": "1.9.0",
+            "DatasetType": "derivative",
+            "GeneratedBy": [{"Name": "hypline", "Version": __version__}],
+            "DatasetLinks": {"fmriprep": "../fmriprep"},
+        }
+
+    def test_omits_dataset_links_when_no_sources(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        layout.stamp_dataset_description(area="hypline", sources=[])
+        assert "DatasetLinks" not in self._read(tmp_path)
+
+    def test_creates_parent_dirs(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        layout.stamp_dataset_description(area="hypline", sources=["fmriprep"])
+        assert (
+            tmp_path / "derivatives" / "hypline" / "dataset_description.json"
+        ).exists()
+
+    def test_leaves_existing_untouched(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        path = tmp_path / "derivatives" / "hypline" / "dataset_description.json"
+        path.parent.mkdir(parents=True)
+        path.write_text('{"Name": "preexisting"}')
+        layout.stamp_dataset_description(area="hypline", sources=["fmriprep"])
+        assert json.loads(path.read_text()) == {"Name": "preexisting"}
 
 
 class TestPathStimulus:

@@ -195,6 +195,16 @@ class BIDSPath:
         entities = {k: v for k, v in self._entities.items() if k != key}
         return self._rebuild(entities)
 
+    def with_ext(self, ext: str) -> Path:
+        """Return the sibling path with the data extension swapped for `ext`.
+
+        Strips the full (possibly multi-part, e.g. `.func.gii`) extension and
+        appends `ext`. Returns a plain `Path`: the result need not be a valid
+        BIDSPath (a `.json` sidecar carries no recognized suffix).
+        """
+        stem = self._path.name[: -len(self._ext)] if self._ext else self._path.name
+        return self._path.with_name(f"{stem}{ext}")
+
     def _rebuild(self, entities: dict[str, str]) -> "BIDSPath":
         parts = [f"{k}-{v}" for k, v in entities.items()]
         if self._suffix:
@@ -274,6 +284,14 @@ def parse_kind_desc(entry: str) -> tuple[str, str | None]:
     if "-" in entry and not BIDS_ENTITY_VALUE_RE.match(desc):
         raise ValueError(f"Invalid desc in {entry!r}")
     return kind, (desc or None)
+
+
+def format_kind_desc(kind: str, desc: str | None) -> str:
+    """Render `(kind, desc)` back to `<kind>` or `<kind>-<desc>`.
+
+    Inverse of `parse_kind_desc`; round-trips a parsed source ref to its string.
+    """
+    return kind if desc is None else f"{kind}-{desc}"
 
 
 def find_bids_files(

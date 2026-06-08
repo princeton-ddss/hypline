@@ -5,6 +5,7 @@ import pytest
 from hypline.bids import (
     BIDSPath,
     find_bids_files,
+    format_kind_desc,
     normalize_bids_filters,
     parse_kind_desc,
     validate_bids_entities,
@@ -223,6 +224,21 @@ class TestBIDSPathWithoutEntity:
         bp = BIDSPath("sub-01_bold.nii")
         with pytest.raises(ValueError, match="Cannot remove required 'sub'"):
             bp.without_entity("sub")
+
+
+class TestBIDSPathWithExt:
+    def test_swaps_single_part_ext(self):
+        bp = BIDSPath("sub-01_desc-denoised_bold.nii.gz")
+        assert bp.with_ext(".json").name == "sub-01_desc-denoised_bold.json"
+
+    def test_strips_multipart_ext_whole(self):
+        # .func.gii must strip whole, not leave a stray ".func"
+        bp = BIDSPath("sub-01_hemi-L_desc-denoised_bold.func.gii")
+        assert bp.with_ext(".json").name == "sub-01_hemi-L_desc-denoised_bold.json"
+
+    def test_returns_sibling_path(self):
+        bp = BIDSPath("/data/sub-01_bold.nii.gz")
+        assert bp.with_ext(".json") == Path("/data/sub-01_bold.json")
 
 
 class TestBIDSPathValidation:
@@ -463,3 +479,15 @@ class TestParseKindDesc:
     def test_invalid_desc_raises(self, entry: str):
         with pytest.raises(ValueError, match="Invalid desc"):
             parse_kind_desc(entry)
+
+
+class TestFormatKindDesc:
+    def test_kind_only(self):
+        assert format_kind_desc("mfcc", None) == "mfcc"
+
+    def test_kind_and_desc(self):
+        assert format_kind_desc("semantic", "gpt3") == "semantic-gpt3"
+
+    @pytest.mark.parametrize("entry", ["mfcc", "semantic-gpt3"])
+    def test_round_trips_parse(self, entry: str):
+        assert format_kind_desc(*parse_kind_desc(entry)) == entry

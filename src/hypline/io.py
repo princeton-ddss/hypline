@@ -1,13 +1,14 @@
-"""I/O for hypline feature and confound files.
+"""I/O for hypline derived files (features, confounds, nuisance, bold sidecars).
 
-Public API (re-exported at `hypline.*`): saves are entity-based
-(`save_feature(df, bids_root, *, sub, feat, ...)`) because the canonical
-output path is layout-derived; reads are path-based (`read_feature(path)`)
-because users typically already have a file in hand.
+Two conventions govern the public, re-exported surface:
 
-Internal: `write_feature` / `write_confound` take an explicit path and back
-the `save_*` wrappers. Used by in-package generators driven by
-`BIDSLayout.path.*` (which already know the target path). Not re-exported.
+- Saves are entity-based (`sub`, `feat`, ...) because the canonical output
+  path is layout-derived, not yet in hand.
+- Reads are path-based because users typically already hold a file.
+
+Path-based writers are internal and not re-exported: they take an explicit
+target path and back the entity-based saves or are driven directly by
+in-package generators that already know the path (via `BIDSLayout.path.*`).
 """
 
 import json
@@ -647,3 +648,30 @@ def read_nuisance(path: str | Path) -> pl.DataFrame:
             f"Nuisance file contains non-finite values (NaN or inf): {bids.path.name}"
         )
     return df
+
+
+# --------------------------------------------------------------------------- #
+# BOLD sidecar
+# --------------------------------------------------------------------------- #
+
+
+def write_bold_sidecar(
+    bold: BIDSPath,
+    *,
+    sources: list[str],
+    settings: dict[str, Any],
+) -> None:
+    """Write the `..._bold.json` sidecar beside a BOLD derivative at `bold`.
+
+    The sidecar path is derived by swapping `bold`'s multi-part data extension
+    (e.g. `.nii.gz`, `.func.gii`) for `.json`. `sources` are BIDS URIs to the
+    inputs; `Sources` and `hypline_version` are auto-injected (and thus reserved
+    in `settings`).
+    Assumes the BOLD file's directory already exists (the caller wrote the image
+    there first).
+    """
+    _check_reserved(settings, {"hypline_version", "Sources"})
+    sidecar = bold.with_ext(".json")
+    content = {"Sources": sources, **settings, "hypline_version": __version__}
+    with open(sidecar, "w") as f:
+        json.dump(content, f, indent=2)

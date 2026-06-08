@@ -1,8 +1,11 @@
+import json
+
 import polars as pl
 import pytest
 
+from hypline._version import __version__
 from hypline.bids import BIDSPath
-from hypline.denoise import Denoiser
+from hypline.denoise import CLEAN_PARAMS, Denoiser
 from hypline.enums import VolumeSpace
 
 from .conftest import DEFAULT_BOLD_N_TRS, BIDSTree
@@ -88,8 +91,10 @@ class TestLoadNuisance:
     def test_resolves_and_delegates(self, tree: BIDSTree):
         bold = _add_run(tree)
         loaded = _denoiser(tree, columns=["trans_x"])._load_nuisance(bold)
-        assert loaded.shape == (DEFAULT_BOLD_N_TRS, 1)
-        assert loaded[:, 0].tolist() == [float(i) for i in range(DEFAULT_BOLD_N_TRS)]
+        assert loaded.matrix.shape == (DEFAULT_BOLD_N_TRS, 1)
+        assert loaded.matrix[:, 0].tolist() == [
+            float(i) for i in range(DEFAULT_BOLD_N_TRS)
+        ]
 
     def test_no_tsv_raises(self, tree: BIDSTree):
         bold = tree.add_bold(sub="01", task="A", run="1", space=VOLUME_SPACE)
@@ -130,8 +135,8 @@ class TestCustomNuisance:
         loaded = _denoiser(
             tree, custom_sources=["physio"], custom_columns=["physio1"]
         )._load_nuisance(bold)
-        assert loaded.shape == (DEFAULT_BOLD_N_TRS, 1)
-        assert loaded[:, 0].tolist() == [
+        assert loaded.matrix.shape == (DEFAULT_BOLD_N_TRS, 1)
+        assert loaded.matrix[:, 0].tolist() == [
             float(i) * 2 for i in range(DEFAULT_BOLD_N_TRS)
         ]
 
@@ -146,7 +151,7 @@ class TestCustomNuisance:
             custom_sources=["physio"],
             custom_columns=["physio0"],
         )._load_nuisance(bold)
-        assert loaded.shape == (DEFAULT_BOLD_N_TRS, 2)
+        assert loaded.matrix.shape == (DEFAULT_BOLD_N_TRS, 2)
 
     def test_selects_across_concat(self, tree: BIDSTree):
         bold = _add_run(tree)
@@ -161,9 +166,9 @@ class TestCustomNuisance:
             custom_sources=["physio", "resp"],
             custom_columns=["resp0", "physio0"],
         )._load_nuisance(bold)
-        assert loaded.shape == (DEFAULT_BOLD_N_TRS, 2)
+        assert loaded.matrix.shape == (DEFAULT_BOLD_N_TRS, 2)
         # selection order follows --custom-columns, not source order
-        assert loaded[:, 0].tolist() == [
+        assert loaded.matrix[:, 0].tolist() == [
             float(i) * 3 for i in range(DEFAULT_BOLD_N_TRS)
         ]
 
@@ -180,8 +185,10 @@ class TestCustomNuisance:
         loaded = _denoiser(
             tree, custom_sources=["physio-v1"], custom_columns=["physio0"]
         )._load_nuisance(bold)
-        assert loaded.shape == (DEFAULT_BOLD_N_TRS, 1)
-        assert loaded[:, 0].tolist() == [float(i) for i in range(DEFAULT_BOLD_N_TRS)]
+        assert loaded.matrix.shape == (DEFAULT_BOLD_N_TRS, 1)
+        assert loaded.matrix[:, 0].tolist() == [
+            float(i) for i in range(DEFAULT_BOLD_N_TRS)
+        ]
 
     def test_collision_across_sources_raises(self, tree: BIDSTree):
         bold = _add_run(tree)
@@ -357,3 +364,80 @@ class TestDenoise:
         )
         assert denoised_run2.exists()
         assert not denoised_run1.exists()
+
+
+def _sidecar_for(tree: BIDSTree, sub: str = "01") -> dict:
+    func_dir = tree.denoised_func_dir(sub=sub)
+    sidecar = (
+        func_dir
+        / f"sub-{sub}_task-A_run-1_space-{VOLUME_SPACE}_desc-denoised_bold.json"
+    )
+    return json.loads(sidecar.read_text())
+
+
+class TestSidecar:
+    def test_records_resolved_settings(self, tree: BIDSTree):
+        _add_run(tree)
+        tree.add_nuisance(
+            sub="01", task="A", run="1", kind="physio", df=_nuis_df(physio0=1.0)
+        )
+        _denoiser(
+            tree,
+            columns=["cosine"],  # group prefix: expands to cosine00, cosine01
+            compcor=["a:CSF:2"],
+            custom_sources=["physio"],
+            custom_columns=["physio0"],
+        ).denoise("01")
+
+        sidecar = _sidecar_for(tree)
+        # BIDS reserved keys: a self-contained derivative carries its own metadata
+        assert sidecar["RepetitionTime"] == 2.0
+        assert sidecar["TaskName"] == "A"
+        assert sidecar["SkullStripped"] is True
+        # group prefix and compcor resolved post-expansion against this run's tsv
+        assert sidecar["fmriprep_columns"] == [
+            "cosine00",
+            "cosine01",
+            "a_comp_cor_00",
+            "a_comp_cor_01",
+        ]
+        assert sidecar["compcor"] == [
+            {"method": "aCompCor", "n_comps": 2, "mask": "CSF"}
+        ]
+        assert sidecar["custom_sources"] == ["physio"]
+        assert sidecar["custom_columns"] == ["physio0"]
+        assert sidecar["n_regressors"] == 5
+        assert sidecar["clean_params"] == CLEAN_PARAMS
+        assert sidecar["hypline_version"] == __version__
+
+    def test_sources_is_cross_dataset_bids_uri(self, tree: BIDSTree):
+        _add_run(tree)
+        _denoiser(tree, columns=["trans_x"]).denoise("01")
+
+        sidecar = _sidecar_for(tree)
+        assert sidecar["Sources"] == [
+            f"bids:fmriprep:sub-01/func/"
+            f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-preproc_bold.nii.gz"
+        ]
+
+    def test_dataset_description_written_once(self, tree: BIDSTree):
+        _add_run(tree, run="1")
+        _add_run(tree, run="2")
+        _denoiser(tree, columns=["trans_x"]).denoise("01")
+
+        desc_path = tree.hypline_dir / "dataset_description.json"
+        desc = json.loads(desc_path.read_text())
+        assert desc["DatasetType"] == "derivative"
+        assert desc["GeneratedBy"] == [{"Name": "hypline", "Version": __version__}]
+        assert desc["DatasetLinks"] == {"fmriprep": "../fmriprep"}
+
+    def test_dataset_description_not_restamped(self, tree: BIDSTree):
+        _add_run(tree)
+        desc_path = tree.hypline_dir / "dataset_description.json"
+        desc_path.parent.mkdir(parents=True, exist_ok=True)
+        desc_path.write_text('{"Name": "preexisting"}')
+
+        _denoiser(tree, columns=["trans_x"]).denoise("01")
+
+        # write-if-absent: a present file is left exactly as-is
+        assert json.loads(desc_path.read_text()) == {"Name": "preexisting"}
