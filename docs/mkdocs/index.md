@@ -64,7 +64,7 @@ two sides an encoding model later joins:
 | `transcribe`           | stimulus | stimulus audio                         | word-level transcripts          |
 | `featuregen phonemic`  | stimulus | transcripts                            | phonemic features (+ confounds) |
 | `confoundgen phonemic` | stimulus | phonemic features                      | `conf-phonemic` confounds       |
-| `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds  | cleaned BOLD (`desc-clean`)     |
+| `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds  | denoised BOLD (`desc-denoised`) |
 
 The branches never meet inside hypline: stimulus commands build the encoding
 model's predictors, while `denoise` cleans the BOLD target from fMRIPrep's own
@@ -100,7 +100,7 @@ hypline denoise data/ --space fsaverage6 \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 ```
 
-After this, `data/` holds phonemic features plus `desc-clean` BOLD — the two
+After this, `data/` holds phonemic features plus `desc-denoised` BOLD — the two
 sides an encoding model needs. You can also start with `transcribe` alone and
 follow the table above step by step. Re-run any single step with `--force` to
 overwrite its outputs; without it, hypline skips work it has already done.

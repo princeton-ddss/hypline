@@ -1,9 +1,9 @@
 # `hypline denoise`
 
-Regress nuisance regressors out of preprocessed BOLD, writing a cleaned
-derivative. This is where the two pipeline branches meet: `denoise` reads
-fMRIPrep's preprocessed BOLD together with the nuisance regressors you select,
-and produces a `desc-clean` BOLD ready for an encoding model.
+Regress nuisance regressors out of preprocessed BOLD, writing a denoised
+derivative. `denoise` reads fMRIPrep's preprocessed BOLD together with the
+nuisance regressors you select, and produces a `desc-denoised` BOLD under the
+`derivatives/hypline/` tree.
 
 ```bash
 hypline denoise <dataset-root> (--columns … | --compcor … | --custom-sources …) [OPTIONS]
@@ -129,22 +129,29 @@ hypline denoise data/ \
 
 ## Outputs
 
-The cleaned BOLD is written **in place**, in the same fMRIPrep `func/` directory
-as its `desc-preproc` source, differing only in the `desc` entity
-(`desc-clean`):
+The denoised BOLD is written to its own **`derivatives/hypline/`** tree, mirroring
+fMRIPrep's `sub-XX/[ses-YY/]func/` shape and preserving the source's full BOLD
+identity — only the `desc` entity (`desc-denoised`) and the root differ from the
+`desc-preproc` source:
 
 ```
-<dataset-root>/derivatives/fmriprep/sub-01/func/
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii   # input
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-clean_bold.func.gii     # output
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii   # input
-└── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-clean_bold.func.gii     # output
+<dataset-root>/derivatives/hypline/sub-01/func/
+├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.func.gii    # output
+├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.json        # sidecar
+├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.func.gii    # output
+└── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.json        # sidecar
 ```
 
-The output keeps the input's dimensions and metadata — only the signal values
-change. Cleaned BOLD lives beside its source because it continues the fMRIPrep
-pipeline and shares the run's identity. An encoding model reads `desc-clean` by
-default.
+The output keeps the input's dimensions — only the signal values change. Each run
+gets a per-file `.json` sidecar recording its `Sources` (a `bids:` URI to the
+`desc-preproc` input), the resolved cleaning settings, and the hypline version.
+On first output, hypline stamps a `derivatives/hypline/dataset_description.json`
+(written once, left alone thereafter).
+
+Denoised BOLD lives in its own tree rather than beside its fMRIPrep source
+because denoising is hypline's own pipeline, not a continuation of fMRIPrep — a
+separate tree carries an honest `GeneratedBy: hypline` provenance instead of
+inheriting fMRIPrep's.
 
 ## Common errors
 
@@ -154,5 +161,5 @@ default.
 | `--custom-sources and --custom-columns must be given together` | One of the custom-nuisance options was passed without the other. | Supply both, or neither. |
 | A `--custom-sources` source resolves to 0 (or multiple) files | A source names a `nuisance/<kind>[-<desc>]/` directory that does not exist (or matches more than one file per run). | Check the source spelling against your `nuisance/` directories. |
 | `Unequal number of TRs between BOLD and nuisance` | A regressor channel has a different row count than the BOLD it is paired with. | Confirm the fMRIPrep confounds table and any custom nuisance files span every TR of the run. |
-| Command finishes, but no `desc-clean` files appear | `--space` names a valid space that is **absent** from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your `desc-preproc` files). |
+| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is **absent** from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your `desc-preproc` files). |
 | `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` / `--data-filters` excluded them all. | Confirm fMRIPrep outputs exist and that your filters are not too narrow. |

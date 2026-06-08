@@ -17,7 +17,8 @@ a few extra areas. A complete tree looks like this:
 <dataset-root>/
 ├── sub-01/func/                              # raw BIDS (events files live here)
 ├── derivatives/
-│   └── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
+│   ├── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
+│   └── hypline/sub-01/func/                  # hypline imaging derivatives (denoised BOLD)
 ├── stimuli/sub-01/audio/                     # stimulus audio, transcripts
 ├── features/sub-01/phonemic/                 # generated features
 ├── confounds/sub-01/phonemic/                # generated confounds
@@ -26,6 +27,10 @@ a few extra areas. A complete tree looks like this:
 
 - **`sub-01/`, `derivatives/fmriprep/`** are standard BIDS areas. You provide
   these — your raw recordings and your fMRIPrep run.
+- **`derivatives/hypline/`** is a BIDS derivatives tree hypline fills with its
+  imaging derivatives — currently the [`denoise`](../reference/denoise.md)
+  output. It mirrors fMRIPrep's `sub-XX/[ses-YY/]func/` shape and carries its own
+  `dataset_description.json`.
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands.
 - **`nuisance/`** is optional and *you* fill it — run-level regressors (e.g.

@@ -9,7 +9,7 @@ Hypline is a command-line toolbox for cleaning and analyzing data from
 hyperscanning studies involving dyadic conversations. It turns stimulus audio
 and [fMRIPrep](https://fmriprep.org/en/stable/index.html) outputs into the
 inputs an **encoding model** needs — transcripts, features, confounds, and
-cleaned BOLD — all organized in one [BIDS](https://bids.neuroimaging.io/)-style
+denoised BOLD — all organized in one [BIDS](https://bids.neuroimaging.io/)-style
 dataset.
 
 Hypline implements the encoding-model approach of Zada et al. (2026), *Neuron*
@@ -49,7 +49,7 @@ encoding model later joins:
 | `transcribe`           | stimulus | stimulus audio                        | word-level transcripts          |
 | `featuregen phonemic`  | stimulus | transcripts                           | phonemic features (+ confounds) |
 | `confoundgen phonemic` | stimulus | phonemic features                     | `conf-phonemic` confounds       |
-| `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds | cleaned BOLD (`desc-clean`)     |
+| `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds | denoised BOLD (`desc-denoised`) |
 
 `featuregen phonemic` also generates the matching phonemic confounds by default,
 so you rarely call `confoundgen phonemic` directly. You do not have to run every
@@ -73,7 +73,7 @@ hypline denoise data/ --space fsaverage6 \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 ```
 
-After this, `data/` holds phonemic features plus `desc-clean` BOLD — the two
+After this, `data/` holds phonemic features plus `desc-denoised` BOLD — the two
 sides an encoding model needs.
 
 ## Documentation

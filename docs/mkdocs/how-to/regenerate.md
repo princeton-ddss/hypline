@@ -68,13 +68,13 @@ wrote, so a gap leaves stale output behind.
     `denoise` reads its nuisance regressors from fMRIPrep's confounds table and
     the `nuisance/` area — never from the stimulus-derived `confounds/`. So
     re-recording audio or fixing an `events.tsv` changes features and phonemic
-    confounds but leaves `desc-clean` BOLD untouched: there is no stimulus →
+    confounds but leaves `desc-denoised` BOLD untouched: there is no stimulus →
     `denoise` dependency to repair.
 
 ## Worked example: you decided to add CompCor regressors
 
 You already cleaned the dataset, then decided the motion model needs CompCor
-components. The `desc-clean` BOLD on disk was built without them and is now stale
+components. The `desc-denoised` BOLD on disk was built without them and is now stale
 — but a plain rerun skips, because the output already exists.
 
 ```bash
@@ -85,8 +85,8 @@ hypline denoise data/ \
   --force
 ```
 
-Without `--force`, `denoise` would see the existing `desc-clean` file and skip —
-leaving cleaned BOLD built from the old, CompCor-less regressor set. The same
+Without `--force`, `denoise` would see the existing `desc-denoised` file and skip —
+leaving denoised BOLD built from the old, CompCor-less regressor set. The same
 applies after editing any `nuisance/` file you regress out.
 
 !!! tip "When in doubt, force the whole tail"
