@@ -48,6 +48,7 @@ AI agents alike. Agent-agnostic by design.
 | Changing the nuisance file schema      | `decisions/nuisance-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
 | Editing denoise / nuisance regression logic | `modules/denoise.md`, `decisions/nuisance-files.md` |
+| Placing a hypline imaging derivative (denoised BOLD) | `decisions/layout.md`, `external/fmriprep.md` |
 | Selecting confound columns (`--columns`/`--custom-columns`) | `modules/denoise.md`, `external/fmriprep.md` |
 | Handling null / un-timed transcript tokens | `modules/transcriber.md`, `modules/phonemic.md` |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |

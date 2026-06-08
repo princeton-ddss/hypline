@@ -57,9 +57,11 @@ Multiple outputs share the same identity entities, distinguished by `desc`:
     is a property of the run, not the schema. CompCor (`a_comp_cor*`/`t_comp_cor*`)
     is the third variable-count family but is selected by its own `--compcor`
     grammar, not by name.
-- `desc-clean_bold` — hypline-written, not from fMRIPrep; denoise writes the
-  cleaned run into this tree beside its `desc-preproc` source. See
-  [../modules/denoise.md](../modules/denoise.md).
+Denoise does **not** write into the fmriprep tree. Its denoised output
+(`desc-denoised_bold`) lands in the separate `derivatives/hypline/` area to keep
+fmriprep's `GeneratedBy` provenance honest — see
+[../modules/denoise.md](../modules/denoise.md) and
+[../decisions/layout.md](../decisions/layout.md).
 
 ## Surface vs volume
 

@@ -8,6 +8,7 @@ Directory contract for the hypline-flavored BIDS root tree.
 <root>/
 ├── sub-XX/[ses-YY/]<datatype>/                        # raw BIDS
 ├── derivatives/fmriprep/sub-XX/[ses-YY/]<datatype>/   # fmriprep outputs
+├── derivatives/hypline/sub-XX/[ses-YY/]func/          # hypline imaging derivatives (denoised BOLD)
 ├── stimuli/sub-XX/[ses-YY/]<kind>/                    # audio, transcript, ...
 ├── features/sub-XX/[ses-YY/]<kind>[-<desc>]/          # phonemic, semantic, ...
 ├── confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/         # phonemic, semantic, ...
@@ -45,18 +46,42 @@ A derived output carries exactly one of `stim-*`, `feat-*`, `conf-*`, `nuis-*`.
 A confound derived from a `feat-phonemic` file is named `conf-phonemic`,
 not `feat-phonemic_conf-phonemic`.
 
-## Post-processed BOLD placement
+## Denoised BOLD placement — `derivatives/hypline/`
 
-Post-processed BOLD (e.g. cleaned) lives in-tree alongside fmriprep outputs:
+Denoised BOLD lives in its own `derivatives/hypline/` tree, not in-tree under
+fmriprep:
 
 ```
-<root>/derivatives/fmriprep/sub-XX/ses-YY/func/
-    sub-XX_ses-YY_..._desc-<label>_bold.nii.gz
+<root>/derivatives/hypline/sub-XX/[ses-YY/]func/
+    sub-XX_..._desc-denoised_bold.nii.gz        # (or .func.gii for surface)
+    sub-XX_..._desc-denoised_bold.json          # per-file sidecar
 ```
 
-Post-processing is a continuation of the fmriprep pipeline and shares its
-identity entities, so outputs belong in the same derivatives tree rather than
-a parallel one.
+`hypline` is a layout area rooting at `derivatives/hypline/`; `area_root`
+special-cases it the same way as `fmriprep`. The tree mirrors fmriprep's shape
+(`sub-XX/[ses-YY/]func/`, full BOLD identity entities, `_bold` suffix) — only
+`desc=denoised` and the root differ from the `desc-preproc` source. A
+write-if-absent `dataset_description.json` (`GeneratedBy: hypline`) gives the
+tree honest provenance: hypline's denoising is its own pipeline, not a
+continuation of fmriprep, so claiming fmriprep's `GeneratedBy` would be false
+metadata. A per-file sidecar can't override the tree-level `GeneratedBy`, which
+is why the area is separate rather than in-tree.
+
+### The split is by BIDS-conformance, not by generator
+
+Both `derivatives/hypline/` and the root-level areas are hypline-generated, so
+"who made it" is not the sorting rule:
+
+- **`derivatives/hypline/`** — imaging derivatives that genuinely obey the BIDS
+  derivative contract (full identity entities, recognized `_bold` suffix +
+  nifti/gifti ext, `func` datatype). They earn a place under `derivatives/`.
+- **Root-level `stimuli/`, `features/`, `confounds/`, `nuisance/`** —
+  intentionally non-conformant (parquet vector payloads, non-reserved
+  `feat-`/`conf-`/`nuis-` entities, kind-foldered, or wide TSV). They stay at
+  root rather than masquerade as compliant derivatives.
+
+Do not "fix the inconsistency" by forcing every hypline output under
+`derivatives/`.
 
 See [../external/bids.md](../external/bids.md) for BIDS entity conventions.
 See [feature-files.md](feature-files.md) for feature file naming and path conventions.

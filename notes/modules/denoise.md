@@ -1,19 +1,34 @@
 # Denoise — scope and assumptions
 
 What nuisance regression reads and what assumptions could break it. The
-pipeline regresses nuisance signals out of preprocessed BOLD into a cleaned
+pipeline regresses nuisance signals out of preprocessed BOLD into a denoised
 derivative; one `denoise(sub_id)` call cleans every matching run for a subject.
-
-The cleaned output (`desc-clean`) is what encoding reads by default
-(`bold_desc="clean"`).
 
 ## Output
 
-Cleaned BOLD (`desc-clean`) is written **in place** in the fmriprep `func/`
-dir beside its `desc-preproc` source, differing only in the `desc` entity.
-Input is fixed to `desc-preproc` so denoise never re-cleans its own output.
-Surface BOLD is per-hemisphere (`hemi-L`/`hemi-R`); each hemi file is cleaned
-independently — no L/R coupling.
+Denoised BOLD (`desc-denoised`) is written to the **`derivatives/hypline/`**
+tree (see [../decisions/layout.md](../decisions/layout.md)), mirroring fmriprep's
+`sub-XX/[ses-YY/]func/` shape with full BOLD identity preserved — only
+`desc=denoised` and the root differ from the `desc-preproc` source. Input is
+fixed to `desc-preproc` so denoise never re-cleans its own output. Surface BOLD
+is per-hemisphere (`hemi-L`/`hemi-R`); each hemi file is cleaned independently —
+no L/R coupling.
+
+Each output gets a per-file `..._desc-denoised_bold.json` sidecar: `Sources`
+(a `bids:fmriprep:` URI to the source BOLD), resolved cleaning settings
+(post-expansion fmriprep/custom columns, compcor specs, `clean_params`,
+`n_regressors`, `RepetitionTime`/`TaskName`/`SkullStripped`), and
+`hypline_version`. On first output, a write-if-absent
+`derivatives/hypline/dataset_description.json` (`GeneratedBy: hypline`,
+`DatasetType: derivative`, `DatasetLinks`) stamps the tree.
+
+**Denoise output and encoding's default input must agree — and currently do
+not.** Encoding reads its input BOLD via `find.fmriprep` defaulting to
+`bold_desc="clean"`, so it looks for `desc-clean` in the fmriprep tree. Denoise
+now writes `desc-denoised` under `derivatives/hypline/`, so neither the area nor
+the descriptor matches: the denoise→encoding default chain finds nothing. Closing
+the gap means pointing encoding's read path at the hypline area with a `denoised`
+default. Until then this block documents a live break, not a settled contract.
 
 ## Nuisance source
 
