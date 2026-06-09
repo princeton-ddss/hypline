@@ -592,7 +592,7 @@ class TestFindFmriprep:
         assert results[0].entities.get("space") == SPACE
 
     def test_desc_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_bold(space=SPACE, desc="alt", sub=SUB, task=TASK)
+        tree.add_bold(space=SPACE, desc="alt", area="fmriprep", sub=SUB, task=TASK)
         tree.add_bold(space=SPACE, sub=SUB, task="rest")
         layout = BIDSLayout(tree.root)
         results = layout.find.fmriprep(

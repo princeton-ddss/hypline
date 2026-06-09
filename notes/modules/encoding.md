@@ -96,6 +96,19 @@ Feature and BOLD discovery uses `BIDSLayout` (see `hypline.layout`), which walks
 derivatives tree recursively. This handles fMRIPrep's per-subject subdirectories
 (`sub-01/func/`) without flat-directory blind spots.
 
+`_discover_bold` reads from `derivatives/hypline` (`find.hypline`), the home of
+hypline's BOLD postprocessing outputs. `bold_desc` selects the variant flavor:
+`denoised` (the default, see `layout.path.denoised`) today, and any future
+postprocessing variant (e.g. hyperalignment) keyed by `desc-<flavor>`.
+
+Encoding never consumes fMRIPrep's raw `desc-preproc` BOLD; it reads BOLD that
+the upstream denoise step has already cleaned of nuisance signal. Nuisance
+denoising and encoding are disjoint concerns over different regressor sets:
+denoise removes signals of no interest (motion, aCompCor/tCompCor, WM/CSF, drift),
+while encoding predicts BOLD from stimulus features of interest (phonemic onsets,
+MFCC, etc.). The two never mix — cleaning BOLD is a prior, separate stage, not
+something the encoding fit does.
+
 ## `bids_filters` routing
 
 All user-supplied `bids_filters` are applied post-resolution in `_apply_filters` against
@@ -112,7 +125,7 @@ behaviour whether the filter targets a structural entity (`ses-1`) or a descript
 **Reserved entities** (`sub`, `task`, `space`, `feat`, `desc`) are rejected at construction —
 use the dedicated arguments instead. `desc` is reserved because it is overloaded:
 feature-file variant selector (`features=[...]`) vs. BOLD derivative flavor (`bold_desc`,
-default `"clean"`); neither routes through `bids_filters`.
+default `"denoised"`); neither routes through `bids_filters`.
 
 **Match semantics:** multiple filters sharing the same entity key OR-match within that group;
 different entity keys AND-match across groups (e.g. `["run-1", "run-2", "ses-1"]` selects

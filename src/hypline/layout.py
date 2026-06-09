@@ -496,12 +496,45 @@ class _Find:
         ext: str,
         bids_filters: list[str] | None = None,
     ) -> list["BIDSPath"]:
+        return self._find_func(
+            area="fmriprep",
+            sub=sub,
+            suffix=suffix,
+            ext=ext,
+            bids_filters=bids_filters,
+        )
+
+    def hypline(
+        self,
+        *,
+        sub: str,
+        suffix: str,
+        ext: str,
+        bids_filters: list[str] | None = None,
+    ) -> list["BIDSPath"]:
+        return self._find_func(
+            area="hypline",
+            sub=sub,
+            suffix=suffix,
+            ext=ext,
+            bids_filters=bids_filters,
+        )
+
+    def _find_func(
+        self,
+        *,
+        area: Area,
+        sub: str,
+        suffix: str,
+        ext: str,
+        bids_filters: list[str] | None,
+    ) -> list["BIDSPath"]:
         filters = normalize_bids_filters(bids_filters, reserved={"sub"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
-            area="fmriprep",
+            area=area,
             sub=sub,
             kind="func",
             desc=None,
@@ -515,7 +548,7 @@ class _Find:
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
-            where=f"derivatives/fmriprep/sub-{sub}/[ses-*/]func/",
+            where=f"derivatives/{area}/sub-{sub}/[ses-*/]func/",
         )
 
 

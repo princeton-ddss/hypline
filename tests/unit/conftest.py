@@ -1,7 +1,7 @@
 import json
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
 import pytest
@@ -192,6 +192,32 @@ class BIDSTree:
             extra_entities=extra_entities,
         )
 
+    def _add_hypline(
+        self,
+        *,
+        sub: str,
+        ses: str | None,
+        task: str | None,
+        run: str | None,
+        suffix: str,
+        ext: str,
+        content: str | bytes | None = None,
+        sidecar_json: dict | None = None,
+        extra_entities: dict[str, str] | None = None,
+    ) -> Path:
+        return self._add(
+            dir=self.denoised_func_dir(sub=sub, ses=ses),
+            sub=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            suffix=suffix,
+            ext=ext,
+            content=content,
+            sidecar_json=sidecar_json,
+            extra_entities=extra_entities,
+        )
+
     def add_stimulus(
         self,
         *,
@@ -326,6 +352,7 @@ class BIDSTree:
         desc: str = "preproc",
         tr: float = 2.0,
         write_raw: bool = True,
+        area: Literal["fmriprep", "hypline"] | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
         extras = extra_entities or {}
@@ -348,7 +375,11 @@ class BIDSTree:
                     k: v for k, v in extras.items() if k in BOLD_IDENTITY_ENTITIES
                 },
             )
-        return self._add_fmriprep(
+        # Mirror Encoding._discover_bold: preproc in fmriprep, else hypline;
+        # `area` overrides for off-convention descs
+        _area = area or ("fmriprep" if desc == "preproc" else "hypline")
+        _add_func = self._add_fmriprep if _area == "fmriprep" else self._add_hypline
+        return _add_func(
             sub=sub,
             ses=ses,
             task=task,

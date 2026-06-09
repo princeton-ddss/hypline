@@ -35,7 +35,7 @@ def _make_encoding(
     *,
     tasks: list[str] | None = None,
     bold_space: str = SPACE,
-    bold_desc: str = "clean",
+    bold_desc: str = "denoised",
     bids_filters: list[str] | None = None,
     fold_by: str | None = None,
     n_folds: int | Literal["loo"] | None = None,
@@ -447,26 +447,26 @@ class TestDiscoverFeatures:
 
 class TestDiscoverBold:
     def test_returns_expected_keys(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
         assert BoldKey(ses=None, task=TASK, run="1") in bold_metas
 
     def test_no_files_raises(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(FileNotFoundError, match="fmriprep"):
+        with pytest.raises(FileNotFoundError, match="hypline"):
             enc._discover_bold(SUB)
 
     def test_duplicate_bold_raises(self, tree: BIDSTree):
         # Two BOLDs sharing identity entities but distinguished by a variant
         # entity (`res`) collide on BoldKey.
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_bold(
             sub=SUB,
             task=TASK,
             space=SPACE,
             run="1",
-            desc="clean",
+            desc="denoised",
             extra_entities={"res": "2"},
         )
         enc = _make_encoding(tree, ["mfcc"])
@@ -474,15 +474,19 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_cross_session_runs_distinguished(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, ses="1", run="1", desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, ses="2", run="1", desc="clean")
+        tree.add_bold(
+            sub=SUB, task=TASK, space=SPACE, ses="1", run="1", desc="denoised"
+        )
+        tree.add_bold(
+            sub=SUB, task=TASK, space=SPACE, ses="2", run="1", desc="denoised"
+        )
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
         assert BoldKey(ses="1", task=TASK, run="1") in bold_metas
         assert BoldKey(ses="2", task=TASK, run="1") in bold_metas
 
     def test_bold_siblings_excluded(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_bold_siblings(sub=SUB, task=TASK, space=SPACE, run="1")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
@@ -490,38 +494,38 @@ class TestDiscoverBold:
 
     def test_wrong_space_bold_excluded(self, tree: BIDSTree):
         tree.add_bold(
-            sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", desc="clean"
+            sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", desc="denoised"
         )
-        tree.add_bold(sub=SUB, task=TASK, run="1", space="T1w", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, run="1", space="T1w", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"], bold_space="MNI152NLin6Asym")
         bold_metas = enc._discover_bold(SUB)
         assert list(bold_metas.keys()) == [BoldKey(ses=None, task=TASK, run="1")]
 
     def test_bold_desc_selects_matching_derivative(self, tree: BIDSTree):
         # bold_desc picks one derivative flavor; sibling flavors are not discovered
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="smooth")
         enc = _make_encoding(tree, ["mfcc"], bold_desc="smooth")
         bold_metas = enc._discover_bold(SUB)
         assert set(bold_metas) == {BoldKey(ses=None, task=TASK, run="2")}
 
     def test_inconsistent_tr_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=1.5, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=1.5, desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Inconsistent repetition times"):
             enc._discover_bold(SUB)
 
     def test_unrequested_task_bold_filtered_out(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="clean")
-        tree.add_bold(sub=SUB, space=SPACE, task="conv", run="2", desc="clean")
+        tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="denoised")
+        tree.add_bold(sub=SUB, space=SPACE, task="conv", run="2", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"], tasks=["conv"])
         bold_metas = enc._discover_bold(SUB)
         assert list(bold_metas.keys()) == [BoldKey(ses=None, task="conv", run="2")]
 
     def test_multi_task_bold_distinct(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="clean")
-        tree.add_bold(sub=SUB, space=SPACE, task="conv", run="1", desc="clean")
+        tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="denoised")
+        tree.add_bold(sub=SUB, space=SPACE, task="conv", run="1", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"], tasks=["rest", "conv"])
         bold_metas = enc._discover_bold(SUB)
         assert set(bold_metas.keys()) == {
@@ -530,14 +534,14 @@ class TestDiscoverBold:
         }
 
     def test_no_events_gives_no_segments(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
         bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert bold_meta.segments == []
 
     def test_structural_entity_slices_parsed(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -560,7 +564,7 @@ class TestDiscoverBold:
         assert bold_meta.segments[1].duration == 100.0
 
     def test_multiple_kv_entities_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -575,7 +579,7 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_segment_entity_as_flat_label_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -590,7 +594,7 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_duplicate_segment_values_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -605,7 +609,7 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_overlapping_slices_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -620,7 +624,7 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_leading_break_allowed(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -638,7 +642,7 @@ class TestDiscoverBold:
         assert bold_meta.segments[0].duration == 90.0
 
     def test_hyphen_free_trial_type_ignored(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -651,7 +655,7 @@ class TestDiscoverBold:
         assert bold_meta.segments == []
 
     def test_kv_entity_with_gap_passes(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -667,7 +671,7 @@ class TestDiscoverBold:
         assert len(bold_meta.segments) == 2
 
     def test_flat_labels_alongside_segments_ignored(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -685,8 +689,8 @@ class TestDiscoverBold:
         assert bold_meta.segments[0].entity == "block"
 
     def test_runs_disagree_on_segment_entity_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -710,9 +714,9 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_mixed_segmented_and_unsegmented_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_bold(
-            sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="clean"
+            sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised"
         )  # no events → unsegmented
         tree.add_events(
             sub=SUB,
@@ -732,8 +736,8 @@ class TestDiscoverBold:
             {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
             {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
         ]
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
 
         # run-1 has metadata key "cond"; run-2 has metadata key "item"
         tree.add_events(
@@ -770,15 +774,15 @@ class TestDiscoverBold:
             enc._discover_bold(SUB)
 
     def test_all_unsegmented_passes(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         bold_metas = enc._discover_bold(SUB)
         assert all(bold_meta.segments == [] for bold_meta in bold_metas.values())
 
     def test_bids_filters_not_applied_at_discovery(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         bold_metas = enc._discover_bold(SUB)
         assert len(bold_metas) == 2
@@ -790,7 +794,7 @@ class TestResolveCellKeys:
     def test_features_without_bold_raises(self, tree: BIDSTree):
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -800,7 +804,7 @@ class TestResolveCellKeys:
     def test_multiple_features_without_bold_reports_count(self, tree: BIDSTree):
         for run in ("1", "2", "3"):
             tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run=run)
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -810,7 +814,7 @@ class TestResolveCellKeys:
     # Unsegmented run cases
 
     def test_unsegmented_run_single_cell_passes(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -820,7 +824,7 @@ class TestResolveCellKeys:
 
     def test_unsegmented_run_multiple_cells_raises(self, tree: BIDSTree):
         tree.add_bold(
-            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean"
+            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised"
         )  # no events → unsegmented
         tree.add_feature(
             sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
@@ -836,7 +840,7 @@ class TestResolveCellKeys:
 
     def test_extra_entity_on_unsegmented_run_raises(self, tree: BIDSTree):
         tree.add_bold(
-            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean"
+            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised"
         )  # no events → unsegmented
         tree.add_feature(
             sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
@@ -850,7 +854,7 @@ class TestResolveCellKeys:
     # Segmented run cases
 
     def test_valid_segmented_cells_pass(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -873,7 +877,7 @@ class TestResolveCellKeys:
         assert len(feature_paths) == 2
 
     def test_cell_missing_segment_entity_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -893,7 +897,7 @@ class TestResolveCellKeys:
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_cell_value_not_in_events_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -913,7 +917,7 @@ class TestResolveCellKeys:
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_segmented_run_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -938,7 +942,7 @@ class TestResolveCellKeys:
     # Metadata merge cases (filename × sidecar)
 
     def test_sidecar_only_metadata_merged_onto_cell_key(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -972,7 +976,7 @@ class TestResolveCellKeys:
         assert cell_cond_values == {"R", "L"}
 
     def test_filename_value_agrees_with_sidecar_passes(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -1002,7 +1006,7 @@ class TestResolveCellKeys:
         assert next(iter(feature_paths)).cell.get("cond") == "R"
 
     def test_filename_value_disagrees_with_sidecar_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -1034,7 +1038,7 @@ class TestResolveCellKeys:
 
 class TestApplyFilters:
     def test_no_filters_returns_unchanged(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -1063,7 +1067,7 @@ class TestApplyFilters:
     def test_filter_narrows_features(self, tree: BIDSTree):
         for run in ("1", "2"):
             tree.add_bold(
-                sub=SUB, task=TASK, space=SPACE, run=run, tr=2.0, desc="clean"
+                sub=SUB, task=TASK, space=SPACE, run=run, tr=2.0, desc="denoised"
             )
             tree.add_events(
                 sub=SUB,
@@ -1097,7 +1101,13 @@ class TestApplyFilters:
     def test_or_within_entity_and_across_entities(self, tree: BIDSTree):
         for ses, run in (("1", "1"), ("1", "2"), ("2", "1")):
             tree.add_bold(
-                sub=SUB, task=TASK, space=SPACE, ses=ses, run=run, tr=2.0, desc="clean"
+                sub=SUB,
+                task=TASK,
+                space=SPACE,
+                ses=ses,
+                run=run,
+                tr=2.0,
+                desc="denoised",
             )
             tree.add_events(
                 sub=SUB,
@@ -1130,7 +1140,7 @@ class TestApplyFilters:
         assert BoldKey(ses="2", task=TASK, run="1") not in bold_metas
 
     def test_filter_on_cell_only_entity_skipped_on_bold(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -1167,7 +1177,7 @@ class TestApplyFilters:
         assert len(bold_metas) == 1
 
     def test_typo_filter_entity_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -1193,7 +1203,7 @@ class TestApplyFilters:
     def test_valid_entity_wrong_value_passes_filter_raises_at_coverage(
         self, tree: BIDSTree
     ):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -1220,7 +1230,7 @@ class TestApplyFilters:
 
 class TestValidateCoverage:
     def test_valid_alignment_passes(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -1230,7 +1240,7 @@ class TestValidateCoverage:
         enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_empty_features_after_filter_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -1241,7 +1251,7 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, {}, bold_metas)
 
     def test_empty_bold_after_filter_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -1252,8 +1262,8 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, feature_paths, {})
 
     def test_bold_without_features_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", desc="denoised")
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -1271,7 +1281,7 @@ class TestValidateCoverage:
             task=TASK,
             space=SPACE,
             run="1",
-            desc="clean",
+            desc="denoised",
             extra_entities={"res": "2"},
         )
         tree.add_bold(
@@ -1279,7 +1289,7 @@ class TestValidateCoverage:
             task=TASK,
             space=SPACE,
             run="2",
-            desc="clean",
+            desc="denoised",
             extra_entities={"res": "3"},
         )
         tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
@@ -1294,10 +1304,10 @@ class TestValidateCoverage:
 
     def test_multiple_bold_gaps_reports_count(self, tree: BIDSTree):
         for run in ("1", "2", "3"):
-            tree.add_bold(sub=SUB, task=TASK, space=SPACE, run=run, desc="clean")
+            tree.add_bold(sub=SUB, task=TASK, space=SPACE, run=run, desc="denoised")
             tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run=run)
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="4", desc="clean")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="5", desc="clean")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="4", desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="5", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)

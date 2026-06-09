@@ -632,7 +632,7 @@ class Encoding:
         features: list[str],
         tasks: list[str],
         bold_space: str,
-        bold_desc: str = "clean",
+        bold_desc: str = "denoised",
         downsample: FeatureDownsampleMethod = "mean",
         bids_filters: list[str] | None = None,
         fold_by: str | None = None,
@@ -923,7 +923,8 @@ class Encoding:
         unsegmented).
         """
         bold_ext = BOLD_EXTENSIONS[type(self.bold_space)]
-        bold_files = self._layout.find.fmriprep(
+        # Encoding consumes hypline postprocessing outputs, not fmriprep's raw preproc
+        bold_files = self._layout.find.hypline(
             sub=sub_id,
             suffix="bold",
             ext=bold_ext,
