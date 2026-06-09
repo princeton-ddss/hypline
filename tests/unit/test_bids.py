@@ -61,6 +61,17 @@ class TestBIDSPathParsing:
         bp = BIDSPath(p)
         assert bp.path == p
 
+    def test_dyad_keyed_path(self):
+        bp = BIDSPath("dyad-007_task-conv_cond-G_feat-llm.parquet")
+        assert bp.entities == {
+            "dyad": "007",
+            "task": "conv",
+            "cond": "G",
+            "feat": "llm",
+        }
+        assert bp.suffix is None
+        assert bp.ext == ".parquet"
+
     def test_entity_order_does_not_affect_parsed_entities(self):
         a = BIDSPath("sub-01_task-rest_run-1_bold.nii.gz")
         b = BIDSPath("sub-01_run-1_task-rest_bold.nii.gz")
@@ -123,9 +134,19 @@ class TestBIDSPathFromEntities:
         )
         assert bp.path == Path("/tmp/data/sub-01_feat-llm.parquet")
 
-    def test_requires_sub(self):
-        with pytest.raises(ValueError, match="`sub` is required"):
+    def test_dyad_leads_stem(self):
+        bp = BIDSPath.from_entities(
+            ext=".parquet", feat="llm", cond="G", task="conv", dyad="007"
+        )
+        assert bp.path.name == "dyad-007_task-conv_cond-G_feat-llm.parquet"
+
+    def test_requires_identity(self):
+        with pytest.raises(ValueError, match="Exactly one of"):
             BIDSPath.from_entities(ext=".parquet", task="rest")
+
+    def test_rejects_both_identities(self):
+        with pytest.raises(ValueError, match="Exactly one of"):
+            BIDSPath.from_entities(ext=".parquet", sub="01", dyad="007")
 
     def test_rejects_unsupported_entity(self):
         with pytest.raises(ValueError, match="not supported"):
@@ -207,6 +228,12 @@ class TestBIDSPathWithEntity:
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             bp.with_entity("desc", "has spaces")
 
+    @pytest.mark.parametrize("key", ["sub", "dyad"])
+    def test_with_entity_rejects_identity_key(self, key: str):
+        bp = BIDSPath("sub-01_bold.nii")
+        with pytest.raises(ValueError, match="use with_identity"):
+            bp.with_entity(key, "x")
+
 
 class TestBIDSPathWithoutEntity:
     def test_remove_existing_entity(self):
@@ -222,8 +249,44 @@ class TestBIDSPathWithoutEntity:
 
     def test_remove_sub_raises(self):
         bp = BIDSPath("sub-01_bold.nii")
-        with pytest.raises(ValueError, match="Cannot remove required 'sub'"):
+        with pytest.raises(ValueError, match="Cannot remove required identity"):
             bp.without_entity("sub")
+
+    def test_remove_present_dyad_raises(self):
+        bp = BIDSPath("dyad-007_task-conv_feat-llm.parquet")
+        with pytest.raises(ValueError, match="Cannot remove required identity"):
+            bp.without_entity("dyad")
+
+
+class TestBIDSPathWithIdentity:
+    def test_sub_to_dyad(self):
+        bp = BIDSPath("sub-01_task-conv_feat-llm.parquet")
+        bp2 = bp.with_identity("dyad", "007")
+        assert bp2.path.name == "dyad-007_task-conv_feat-llm.parquet"
+
+    def test_dyad_to_sub_preserves_other_entities(self):
+        bp = BIDSPath("dyad-007_task-conv_cond-G_item-101_feat-llm.parquet")
+        bp2 = bp.with_identity("sub", "003")
+        assert bp2.path.name == "sub-003_task-conv_cond-G_item-101_feat-llm.parquet"
+
+    def test_preserves_suffix_and_parent(self):
+        bp = BIDSPath("/data/dyad-007_task-conv_conf-x_timeseries.tsv")
+        bp2 = bp.with_identity("sub", "003")
+        assert bp2.path == Path("/data/sub-003_task-conv_conf-x_timeseries.tsv")
+
+    def test_rejects_non_identity_key(self):
+        bp = BIDSPath("sub-01_bold.nii")
+        with pytest.raises(ValueError, match="not an identity entity"):
+            bp.with_identity("ses", "2")
+
+    def test_rekey_leaves_parent_dir_untouched(self):
+        # Rekey is a filename operation; the parent dir is the layout's job, so
+        # the rekeyed filename and its dyad-keyed parent intentionally disagree
+        bp = BIDSPath("features/dyad-007/dyad-007_task-conv_feat-llm.parquet")
+        bp2 = bp.with_identity("sub", "003")
+        assert bp2.path == Path(
+            "features/dyad-007/sub-003_task-conv_feat-llm.parquet"
+        )
 
 
 class TestBIDSPathWithExt:
@@ -262,9 +325,17 @@ class TestBIDSPathValidation:
         with pytest.raises(ValueError, match="must be the last segment"):
             BIDSPath("sub-01_notentity_ses-1_bold.nii")
 
-    def test_must_start_with_sub(self):
-        with pytest.raises(ValueError, match="must start with 'sub-'"):
+    def test_identity_must_lead(self):
+        with pytest.raises(ValueError, match="must lead the stem"):
             BIDSPath("task-rest_sub-01_bold.nii")
+
+    def test_no_identity_entity(self):
+        with pytest.raises(ValueError, match="exactly one of"):
+            BIDSPath("task-rest_run-1_bold.nii")
+
+    def test_both_identity_entities(self):
+        with pytest.raises(ValueError, match="exactly one of"):
+            BIDSPath("sub-01_dyad-007_bold.nii")
 
     def test_invalid_suffix(self):
         with pytest.raises(ValueError, match="Invalid BIDS suffix"):

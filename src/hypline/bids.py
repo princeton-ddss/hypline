@@ -8,6 +8,11 @@ BIDS_ENTITY_RE = re.compile(r"^[a-z]+-[a-zA-Z0-9]+$")
 BIDS_SUFFIX_RE = re.compile(r"^[a-zA-Z0-9]+$")
 EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
 
+# Leading identity entities; a filename carries exactly one and it leads the
+# stem. `sub` keys per-brain areas (BOLD and its derivatives); `dyad` keys the
+# shared-conversation areas (stimuli/features/confounds).
+IDENTITY_ENTITIES = frozenset(("sub", "dyad"))
+
 # Entities identifying a single BOLD run
 BOLD_IDENTITY_ENTITIES = frozenset(("sub", "ses", "task", "run"))
 
@@ -15,7 +20,7 @@ BOLD_IDENTITY_ENTITIES = frozenset(("sub", "ses", "task", "run"))
 # acquisition protocol, so methodological-variation entities are disallowed.
 UNSUPPORTED_ENTITIES = frozenset(("acq", "ce", "rec", "dir", "echo", "part", "chunk"))
 
-# Identity entities plus unsupported ones. Used to bar `events.tsv` segment
+# BOLD identity entities plus unsupported ones. Used to bar `events.tsv` segment
 # rows from colliding with BIDS-reserved entity names.
 RESERVED_BIDS_ENTITIES = BOLD_IDENTITY_ENTITIES | UNSUPPORTED_ENTITIES
 
@@ -33,8 +38,10 @@ VARIANT_DESCRIPTORS = frozenset({"desc", "space", "res", "den"})
 STRUCTURAL_ENTITIES = BOLD_IDENTITY_ENTITIES | CATEGORY_ENTITIES | VARIANT_DESCRIPTORS
 
 # Fixed slots for `BIDSPath.from_entities`; non-fixed keys fill the middle
-# alphabetically, keeping `desc` adjacent to the category it modifies
-_LEADING_ENTITY_ORDER = ("sub", "ses", "task", "run")
+# alphabetically, keeping `desc` adjacent to the category it modifies. `dyad`
+# and `sub` are mutually exclusive (xor identity), so both leading the tuple is
+# safe — at most one is ever present.
+_LEADING_ENTITY_ORDER = ("dyad", "sub", "ses", "task", "run")
 _TRAILING_ENTITY_ORDER = (*sorted(CATEGORY_ENTITIES), "desc")
 _FIXED_ENTITIES = frozenset(_LEADING_ENTITY_ORDER) | frozenset(_TRAILING_ENTITY_ORDER)
 
@@ -96,8 +103,16 @@ class BIDSPath:
 
         if not self._entities:
             raise ValueError(f"No BIDS entities found in: {name!r}")
-        if next(iter(self._entities)) != "sub":
-            raise ValueError(f"BIDS filename must start with 'sub-': {name!r}")
+        identities = [k for k in self._entities if k in IDENTITY_ENTITIES]
+        if len(identities) != 1:
+            raise ValueError(
+                f"BIDS filename must carry exactly one of "
+                f"{sorted(IDENTITY_ENTITIES)} (got {identities or 'none'}): {name!r}"
+            )
+        if identities[0] != next(iter(self._entities)):
+            raise ValueError(
+                f"Identity entity {identities[0]!r} must lead the stem: {name!r}"
+            )
         validate_extension(self._ext)
 
     @classmethod
@@ -111,13 +126,18 @@ class BIDSPath:
     ) -> "BIDSPath":
         """Build a BIDSPath from entity kwargs in canonical order.
 
-        Order: identity (`sub`/`ses`/`task`/`run`), then non-fixed keys
-        alphabetically, then category (`stim`/`feat`/`conf`/`nuis`/`result`)
-        and `desc`. Requires `sub`; rejects unsupported entities and
-        more than one category entity.
+        Order: identity (`dyad` xor `sub`, then `ses`/`task`/`run`), then
+        non-fixed keys alphabetically, then category
+        (`stim`/`feat`/`conf`/`nuis`/`result`) and `desc`. Requires exactly one
+        of `sub`/`dyad`; rejects unsupported entities and more than one category
+        entity.
         """
-        if "sub" not in entities:
-            raise ValueError("`sub` is required")
+        identities = IDENTITY_ENTITIES & entities.keys()
+        if len(identities) != 1:
+            raise ValueError(
+                f"Exactly one of {sorted(IDENTITY_ENTITIES)} is required, "
+                f"got {sorted(identities) or 'none'}"
+            )
 
         categories = CATEGORY_ENTITIES & entities.keys()
         if len(categories) > 1:
@@ -178,8 +198,14 @@ class BIDSPath:
         """Return a new BIDSPath with `key` set to `value`.
 
         Existing keys keep their position; new keys are appended. Order is
-        preserved in the filename stem of derived paths.
+        preserved in the filename stem of derived paths. Rejects identity keys
+        (`sub`/`dyad`): appending an identity breaks the leading-identity rule —
+        use `with_identity` instead.
         """
+        if key in IDENTITY_ENTITIES:
+            raise ValueError(
+                f"Cannot set identity entity {key!r} via with_entity; use with_identity"
+            )
         validate_bids_entities(f"{key}-{value}")
         entities = dict(self._entities)
         entities[key] = value
@@ -188,14 +214,38 @@ class BIDSPath:
     def without_entity(self, key: str) -> "BIDSPath":
         """Return a new BIDSPath with `key` removed.
 
-        No-op if `key` is absent. Refuses to remove `sub`, which is required.
+        No-op if `key` is absent. Refuses to remove the leading identity
+        (`sub` or `dyad`, whichever is present), which is required.
         """
-        if key == "sub":
-            raise ValueError("Cannot remove required 'sub' entity")
+        if key in IDENTITY_ENTITIES and key in self._entities:
+            raise ValueError(f"Cannot remove required identity entity {key!r}")
         if key not in self._entities:
             return self
         entities = {k: v for k, v in self._entities.items() if k != key}
         return self._rebuild(entities)
+
+    def with_identity(self, key: str, value: str) -> "BIDSPath":
+        """Return a new BIDSPath re-keyed to identity `key` (`sub` xor `dyad`).
+
+        Drops the current leading identity, sets `key=value`, and rebuilds in
+        canonical order via `from_entities` — so the new identity leads the stem
+        rather than landing last (as `with_entity` would append it). All other
+        entities are preserved.
+        """
+        if key not in IDENTITY_ENTITIES:
+            raise ValueError(
+                f"{key!r} is not an identity entity {sorted(IDENTITY_ENTITIES)}"
+            )
+        entities = {
+            k: v for k, v in self._entities.items() if k not in IDENTITY_ENTITIES
+        }
+        entities[key] = value
+        return BIDSPath.from_entities(
+            ext=self._ext,
+            suffix=self._suffix,
+            parent=self._path.parent,
+            **entities,
+        )
 
     def with_ext(self, ext: str) -> Path:
         """Return the sibling path with the data extension swapped for `ext`.
