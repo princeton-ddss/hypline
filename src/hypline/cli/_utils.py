@@ -1,6 +1,5 @@
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
-from multiprocessing import Process
 from pathlib import Path
 
 import typer
@@ -60,28 +59,3 @@ def run_per_subject(
             "{}/{} subjects failed: {}", len(failed), len(sub_ids), ",".join(failed)
         )
         raise typer.Exit(code=1)
-
-
-class DillProcess(Process):
-    """
-    Extend the `Process` class to support serialization
-    of closures and local functions.
-
-    Notes
-    -----
-    Adapted from https://stackoverflow.com/a/72776044.
-    """
-
-    def __init__(self, *args, **kwargs):
-        import dill
-
-        super().__init__(*args, **kwargs)
-        self._target = dill.dumps(self._target)
-        self._args, self._kwargs = self._args, self._kwargs  # For type checker
-
-    def run(self):
-        import dill
-
-        if self._target:
-            self._target = dill.loads(self._target)
-            self._target(*self._args, **self._kwargs)
