@@ -20,7 +20,7 @@ dependencies = [
     "pydantic>=2.10.6",
     "scikit-learn>=1.6.1",
     "typer>=0.15.2",
-    "whisperx>=3.8.2",
+    "whisperx>=3.8.4",
 ]
 
 [project.urls]
