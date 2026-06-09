@@ -218,6 +218,18 @@ class BIDSTree:
             extra_entities=extra_entities,
         )
 
+    def add_participants(self, mapping: dict[str, str]) -> Path:
+        """Write `participants.tsv` from a bare `sub -> dyad` mapping.
+
+        Stores `participant_id` with the BIDS `sub-` prefix and `dyad_id` with a
+        `dyad-` prefix, matching what `read_participants` strips back off.
+        """
+        rows = ["participant_id\tdyad_id"]
+        rows += [f"sub-{sub}\tdyad-{dyad}" for sub, dyad in mapping.items()]
+        path = self.root / "participants.tsv"
+        self._write(path, content="\n".join(rows) + "\n")
+        return path
+
     def add_stimulus(
         self,
         *,

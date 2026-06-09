@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 from typing import Any, Literal
 
+import polars as pl
+
 from hypline._version import __version__
 from hypline.bids import (
     BOLD_IDENTITY_ENTITIES,
@@ -30,10 +32,42 @@ Area = Literal[
 DERIVATIVE_BIDS_VERSION = "1.9.0"
 
 
+PARTICIPANTS_TSV = "participants.tsv"
+
+
 def area_root(root: Path, area: Area) -> Path:
     if area in ("fmriprep", "hypline"):
         return root / "derivatives" / area
     return root / area
+
+
+def read_participants(root: Path) -> dict[str, str]:
+    """Read `participants.tsv` into a bare `sub -> dyad` mapping.
+
+    `participant_id` carries the BIDS-required `sub-` prefix; the custom
+    `dyad_id` column carries a `dyad-` prefix. Both are stripped to bare IDs so
+    the mapping composes with `BIDSPath.with_identity` and matches `list.*`.
+
+    Raises FileNotFoundError if the file is absent (the mapping is required infra
+    for dyad-keyed areas), and ValueError on a missing column or a duplicate
+    `participant_id` (a subject paired into two dyads is a mis-keyed mapping, not
+    a last-write-wins).
+    """
+    path = root / PARTICIPANTS_TSV
+    if not path.exists():
+        raise FileNotFoundError(f"{PARTICIPANTS_TSV} not found at bids_root: {path}")
+
+    df = pl.read_csv(path, separator="\t")
+    for column in ("participant_id", "dyad_id"):
+        if column not in df.columns:
+            raise ValueError(f"{PARTICIPANTS_TSV} missing {column!r} column: {path}")
+
+    subs = [s.removeprefix("sub-") for s in df["participant_id"]]
+    if len(set(subs)) != len(subs):
+        raise ValueError(f"Duplicate participant_id in {PARTICIPANTS_TSV}: {path}")
+    dyads = [d.removeprefix("dyad-") for d in df["dyad_id"]]
+
+    return dict(zip(subs, dyads))
 
 
 def kind_subdir(
@@ -793,14 +827,26 @@ class _List:
 
     def subjects(self, *, area: Area) -> list[str]:
         """Return sorted unique subject IDs present in the given area."""
+        return self._identity_dirs(area, "sub-")
+
+    def dyads(self, *, area: Area) -> list[str]:
+        """Return sorted unique dyad IDs present in the given area.
+
+        Mirrors `subjects` for the dyad-keyed areas (stimuli/features/confounds).
+        Scans on-disk subdirs, so it answers "which dyads have artifacts here" —
+        distinct from the `participants.tsv` dyad<->sub mapping.
+        """
+        return self._identity_dirs(area, "dyad-")
+
+    def _identity_dirs(self, area: Area, prefix: str) -> list[str]:
         area_dir = area_root(self._layout.root, area)
         if not area_dir.exists():
             return []
 
         ids: set[str] = set()
         for p in area_dir.iterdir():
-            if p.is_dir() and p.name.startswith("sub-"):
-                ids.add(p.name[4:])
+            if p.is_dir() and p.name.startswith(prefix):
+                ids.add(p.name[len(prefix) :])
 
         return sorted(ids)
 
@@ -832,10 +878,38 @@ class BIDSLayout:
         self.find = _Find(self)
         self.path = _Path(self)
         self.list = _List(self)
+        self._sub_to_dyad: dict[str, str] | None = None
 
     @property
     def root(self) -> Path:
         return self._root
+
+    def _participants(self) -> dict[str, str]:
+        """Read-once bare `sub -> dyad` mapping from `participants.tsv`."""
+        if self._sub_to_dyad is None:
+            self._sub_to_dyad = read_participants(self._root)
+        return self._sub_to_dyad
+
+    def dyad_of(self, sub: str) -> str:
+        """Return the dyad a subject belongs to, via `participants.tsv`.
+
+        Raises KeyError if the subject has no row (a missing entry is a
+        mis-keyed mapping).
+        """
+        mapping = self._participants()
+        if sub not in mapping:
+            raise KeyError(f"sub-{sub} not in {PARTICIPANTS_TSV}")
+        return mapping[sub]
+
+    def subjects_of(self, dyad: str) -> list[str]:
+        """Return the sorted subjects making up a dyad, via `participants.tsv`.
+
+        Raises KeyError if no subject maps to the dyad.
+        """
+        subs = sorted(s for s, d in self._participants().items() if d == dyad)
+        if not subs:
+            raise KeyError(f"dyad-{dyad} not in {PARTICIPANTS_TSV}")
+        return subs
 
     def bids_uri(self, bold: BIDSPath, *, area: Area) -> str:
         """Render `bold` (living under `area`) as a `bids:<area>:<rel path>` URI.

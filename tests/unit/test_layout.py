@@ -1054,3 +1054,74 @@ class TestListSessions:
         tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
         layout = BIDSLayout(tree.root)
         assert layout.list.sessions(sub=SUB, area="stimuli") == []
+
+
+class TestListDyads:
+    def test_dyads_stimuli(self, tree: BIDSTree):
+        (tree.stimuli_dir / "dyad-001").mkdir(parents=True)
+        (tree.stimuli_dir / "dyad-002").mkdir(parents=True)
+        layout = BIDSLayout(tree.root)
+        assert layout.list.dyads(area="stimuli") == ["001", "002"]
+
+    def test_dyads_skips_non_dyad_dirs(self, tree: BIDSTree):
+        (tree.stimuli_dir / "dyad-001").mkdir(parents=True)
+        (tree.stimuli_dir / "sub-001").mkdir(parents=True)
+        layout = BIDSLayout(tree.root)
+        assert layout.list.dyads(area="stimuli") == ["001"]
+
+    def test_dyads_empty_if_area_absent(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        assert layout.list.dyads(area="stimuli") == []
+
+
+class TestParticipants:
+    def test_dyad_of(self, tree: BIDSTree):
+        tree.add_participants({"001": "001", "002": "001", "003": "002"})
+        layout = BIDSLayout(tree.root)
+        assert layout.dyad_of("001") == "001"
+        assert layout.dyad_of("003") == "002"
+
+    def test_subjects_of_sorted(self, tree: BIDSTree):
+        tree.add_participants({"002": "001", "001": "001"})
+        layout = BIDSLayout(tree.root)
+        assert layout.subjects_of("001") == ["001", "002"]
+
+    def test_dyad_of_unknown_sub_raises(self, tree: BIDSTree):
+        tree.add_participants({"001": "001"})
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(KeyError, match="sub-999"):
+            layout.dyad_of("999")
+
+    def test_subjects_of_unknown_dyad_raises(self, tree: BIDSTree):
+        tree.add_participants({"001": "001"})
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(KeyError, match="dyad-999"):
+            layout.subjects_of("999")
+
+    def test_missing_file_raises(self, tmp_path: Path):
+        layout = BIDSLayout(tmp_path)
+        with pytest.raises(FileNotFoundError, match="participants.tsv"):
+            layout.dyad_of("001")
+
+    def test_duplicate_participant_id_raises(self, tree: BIDSTree):
+        path = tree.root / "participants.tsv"
+        path.write_text(
+            "participant_id\tdyad_id\nsub-001\tdyad-001\nsub-001\tdyad-002\n"
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="Duplicate participant_id"):
+            layout.dyad_of("001")
+
+    def test_missing_column_raises(self, tree: BIDSTree):
+        path = tree.root / "participants.tsv"
+        path.write_text("participant_id\nsub-001\n")
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="dyad_id"):
+            layout.dyad_of("001")
+
+    def test_mapping_read_once(self, tree: BIDSTree):
+        tree.add_participants({"001": "001"})
+        layout = BIDSLayout(tree.root)
+        assert layout.dyad_of("001") == "001"
+        (tree.root / "participants.tsv").unlink()
+        assert layout.dyad_of("001") == "001"
