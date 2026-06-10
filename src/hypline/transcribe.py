@@ -61,9 +61,7 @@ class Transcriber:
         validate_extension(audio_ext)
         self._audio_ext = audio_ext
 
-        self._bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"dyad", "stim"}
-        )
+        self._bids_filters = normalize_bids_filters(bids_filters, reserved={"dyad"})
 
         self._force = force
 

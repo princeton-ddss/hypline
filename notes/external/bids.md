@@ -38,8 +38,9 @@ Some entity names look tempting for custom use but are already reserved:
 - `chunk` — segmented acquisitions
 
 Check the BIDS spec before introducing a new custom entity. Hypline's category
-entities (`stim`/`feat`/`conf`/`nuis`) were each confirmed BIDS-free — no
-reserved short label collides — so they are safe as custom names.
+entities (`feat`/`conf`/`nuis`) were each confirmed BIDS-free — no
+reserved short label collides — so they are safe as custom names. Stimuli use
+trailing `_audio`/`_transcript` suffixes rather than an entity.
 
 ## Entities hypline does not support
 

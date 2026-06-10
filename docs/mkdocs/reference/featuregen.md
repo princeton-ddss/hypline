@@ -27,7 +27,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
 ```
 <dataset-root>/stimuli/dyad-101/transcript/
-└── dyad-101_task-conv_run-1_stim-transcript.csv
+└── dyad-101_task-conv_run-1_transcript.csv
 ```
 
 ### Options

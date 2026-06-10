@@ -62,8 +62,8 @@ class TestPhonemicInit:
             PhonemicFeature(bids_root=tree.root, desc="not-valid")
 
     def test_reserved_entity_in_filters_raises(self, tree: BIDSTree, fake_cmudict):
-        with pytest.raises(ValueError, match="stim"):
-            PhonemicFeature(bids_root=tree.root, bids_filters=["stim-foo"])
+        with pytest.raises(ValueError, match="dyad"):
+            PhonemicFeature(bids_root=tree.root, bids_filters=["dyad-foo"])
 
 
 class TestPhonemicGenerateArpabet:

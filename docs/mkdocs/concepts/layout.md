@@ -110,18 +110,21 @@ dyad's features.
 
 ### Category entities
 
-Each hypline-generated file carries exactly one **category entity** naming what
-kind of derivative it is:
+Each hypline-generated derivative carries exactly one **category entity** naming
+what kind of derivative it is:
 
 | Entity        | Area          | Example                         |
 | ------------- | ------------- | ------------------------------- |
-| `stim-<kind>` | `stimuli/`    | `stim-audio`, `stim-transcript` |
 | `feat-<kind>` | `features/`   | `feat-phonemic`                 |
 | `conf-<kind>` | `confounds/`  | `conf-phonemic`                 |
 | `nuis-<kind>` | `nuisance/`   | `nuis-physio`                   |
 
 The `<kind>` matches the subdirectory the file lives in. A phonemic feature
 (`feat-phonemic`) lives under `features/dyad-101/phonemic/`.
+
+Stimuli carry no category entity. Their kind is a trailing filename suffix
+(`_audio`, `_transcript`) instead — e.g. `dyad-101_task-conv_run-1_audio.wav`
+under `stimuli/dyad-101/audio/`.
 
 ### Variants with `desc`
 

@@ -154,7 +154,7 @@ class TestBIDSPathFromEntities:
 
     def test_rejects_multiple_categories(self):
         with pytest.raises(ValueError, match="At most one category"):
-            BIDSPath.from_entities(ext=".parquet", sub="01", feat="a", stim="b")
+            BIDSPath.from_entities(ext=".parquet", sub="01", feat="a", conf="b")
 
     def test_rejects_invalid_entity_value(self):
         with pytest.raises(ValueError, match="Invalid BIDS entity"):

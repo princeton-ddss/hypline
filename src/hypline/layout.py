@@ -312,7 +312,7 @@ class _Find:
         family-aware diagnostic message.
 
         `match_filters` is the full set passed to `find_bids_files`, including
-        structural entities (`sub-*`/`dyad-*`, `stim-*`, etc.) appended by the
+        structural entities (`sub-*`/`dyad-*`, `feat-*`, etc.) appended by the
         caller. `user_filters` is the caller-supplied subset, used only for
         error attribution.
         """
@@ -401,9 +401,9 @@ class _Find:
         """Find stimulus files for a dyad.
 
         Stimuli describe the shared conversation, so they are dyad-keyed. `kind`
-        maps to the stim-<kind> entity and the per-session subdirectory name.
+        is the `_<kind>` filename suffix and the per-session subdirectory name.
         """
-        filters = normalize_bids_filters(bids_filters, reserved={"dyad", "stim"})
+        filters = normalize_bids_filters(bids_filters, reserved={"dyad"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         structural, descriptive = _split_filters_by_structurality(user_filters)
@@ -412,11 +412,11 @@ class _Find:
             identity=("dyad", dyad),
             kind=kind,
             desc=None,
-            required_entity=("stim", kind),
+            required_entity=None,
             ext=ext,
-            suffix=None,
+            suffix=kind,
             ses_values=ses_values,
-            match_filters=structural + [f"dyad-{dyad}", f"stim-{kind}"],
+            match_filters=structural + [f"dyad-{dyad}"],
             user_filters=structural,
         )
         _require_task(candidates)
@@ -659,16 +659,34 @@ class _Path:
         self,
         *,
         area: Area,
-        entity_key: str,
         source: BIDSPath,
         kind: str,
-        ext: str,
         desc: str | None,
+        ext: str,
+        entity_key: str | None = None,
+        suffix: str | None = None,
     ) -> BIDSPath:
+        """Derive a kind-foldered output path from `source`.
+
+        `kind` always names the `<kind>[-<desc>]/` subdirectory. The kind is
+        recorded in the filename one of two ways, exactly one required:
+        `entity_key` sets a category entity (`feat-<kind>`, etc.) for
+        derivatives; `suffix` appends a trailing `_<kind>` suffix for stimuli,
+        whose kind is a suffix slot (`_audio`, `_transcript`) not an entity.
+        """
+        if (entity_key is None) == (suffix is None):
+            raise ValueError("exactly one of entity_key/suffix is required")
         validate_extension(ext)
-        bp = source.with_entity(entity_key, kind)
-        for key in CATEGORY_ENTITIES - {entity_key}:
+        bp = source
+        to_drop = (
+            CATEGORY_ENTITIES
+            if entity_key is None
+            else CATEGORY_ENTITIES - {entity_key}
+        )
+        for key in to_drop:
             bp = bp.without_entity(key)
+        if entity_key is not None:
+            bp = bp.with_entity(entity_key, kind)
         if desc is not None:
             bp = bp.with_entity("desc", desc)
 
@@ -689,6 +707,9 @@ class _Path:
         )
 
         stem = "_".join(f"{k}-{v}" for k, v in entities.items())
+        if suffix is not None:
+            validate_suffix(suffix)
+            stem = f"{stem}_{suffix}"
 
         return BIDSPath(out_dir / f"{stem}{ext}")
 
@@ -751,7 +772,7 @@ class _Path:
     ) -> BIDSPath:
         """Derive a stimulus output path from `source`.
 
-        Sets stim-<kind> and places the result under
+        Appends the `_<kind>` suffix and places the result under
         stimuli/dyad-XX/[ses-YY/]<kind>/. Stimuli have no `desc` variants: a
         stimulus is the experimental record (the audio, transcript, movie),
         with one ground truth. An artifact that needs variants is a feature,
@@ -765,11 +786,11 @@ class _Path:
             )
         return self._derive_path(
             area="stimuli",
-            entity_key="stim",
             source=source,
             kind=kind,
-            ext=ext,
             desc=None,
+            ext=ext,
+            suffix=kind,
         )
 
     def feature(
@@ -791,11 +812,11 @@ class _Path:
         """
         return self._derive_path(
             area="features",
-            entity_key="feat",
             source=source,
             kind=kind,
-            ext=".parquet",
             desc=desc,
+            ext=".parquet",
+            entity_key="feat",
         )
 
     def confound(
@@ -816,11 +837,11 @@ class _Path:
         """
         return self._derive_path(
             area="confounds",
-            entity_key="conf",
             source=source,
             kind=kind,
-            ext=".parquet",
             desc=desc,
+            ext=".parquet",
+            entity_key="conf",
         )
 
     def result(

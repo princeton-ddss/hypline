@@ -31,8 +31,9 @@ RESERVED_BIDS_ENTITIES = (
 
 # Hypline derivative-category tags; a derived output carries exactly one.
 # `result` tags analysis outputs (encoding models, correlations) under results/;
-# unlike the others it anchors to `sub` only, not a source run.
-CATEGORY_ENTITIES = frozenset({"stim", "feat", "conf", "nuis", "result"})
+# unlike the others it anchors to `sub` only, not a source run. Stimuli carry no
+# category entity: their kind is a trailing suffix (`_audio`, `_transcript`).
+CATEGORY_ENTITIES = frozenset({"feat", "conf", "nuis", "result"})
 
 # Entities distinguishing processing/image variants of the same logical run
 VARIANT_DESCRIPTORS = frozenset({"desc", "space", "res", "den"})
@@ -136,7 +137,7 @@ class BIDSPath:
 
         Order: identity (`dyad` xor `sub`, then `ses`/`task`/`run`), then
         non-fixed keys alphabetically, then category
-        (`stim`/`feat`/`conf`/`nuis`/`result`) and `desc`. Requires exactly one
+        (`feat`/`conf`/`nuis`/`result`) and `desc`. Requires exactly one
         of `sub`/`dyad`; rejects unsupported entities and more than one category
         entity.
         """

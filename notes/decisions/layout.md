@@ -46,13 +46,21 @@ Two terms name directory levels below `<identity>/[ses-YY/]` (`<identity>` is
 `sub-XX` or `dyad-XX`) and must not be conflated:
 
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
-- **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames; no `desc` variants — see above). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; different derivations of a kind's source are differentiated by an optional `desc-<name>` entity). For `nuisance/`: user-named, e.g. `physio` (matches the `nuis-<kind>` entity on run-level nuisance filenames; optional `desc-<name>` derivation). Unlike the others, nuisance files carry a `_timeseries` suffix and are TSV — see [nuisance-files.md](nuisance-files.md).
+- **`kind`** — hypline category, naming both the `<kind>/` subdirectory and how
+  the kind is recorded in the filename (see [Category entities are mutually
+  exclusive](#category-entities-are-mutually-exclusive)):
+    - `stimuli/`: `audio`, `transcript` — trailing `_<kind>` filename suffix; no `desc` variants (see above).
+    - `features/`: `phonemic`, `semantic` — `feat-<kind>` entity.
+    - `confounds/`: `phonemic`, `semantic` — `conf-<kind>` entity; source derivations differ by optional `desc-<name>`.
+    - `nuisance/`: user-named, e.g. `physio` — `nuis-<kind>` entity; optional `desc-<name>`. Carries a `_timeseries` suffix and is TSV — see [nuisance-files.md](nuisance-files.md).
 
 ## Category entities are mutually exclusive
 
-A derived output carries exactly one of `stim-*`, `feat-*`, `conf-*`, `nuis-*`.
+A derivative carries exactly one of `feat-*`, `conf-*`, `nuis-*`.
 A confound derived from a `feat-phonemic` file is named `conf-phonemic`,
-not `feat-phonemic_conf-phonemic`.
+not `feat-phonemic_conf-phonemic`. Stimuli are not derivatives and carry no
+category entity; their kind is a trailing `_<kind>` suffix (`_audio`,
+`_transcript`).
 
 ## Denoised BOLD placement — `derivatives/hypline/`
 

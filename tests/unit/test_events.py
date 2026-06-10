@@ -231,7 +231,7 @@ class TestResolveEntities:
             dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
         )
         merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
-        assert merged == {"dyad": DYAD, "task": TASK, "run": "1", "stim": "audio"}
+        assert merged == {"dyad": DYAD, "task": TASK, "run": "1"}
 
     def test_task_escape_hatch_merges_run_level_metadata(self, tree: BIDSTree):
         # Escape hatch: `task-<value>` row reuses filename's `task` as segment entity
@@ -253,7 +253,6 @@ class TestResolveEntities:
             "dyad": DYAD,
             "task": TASK,
             "run": "1",
-            "stim": "audio",
             "cond": "R",
         }
 
@@ -280,7 +279,6 @@ class TestResolveEntities:
             "dyad": DYAD,
             "task": TASK,
             "run": "1",
-            "stim": "audio",
             "block": "1",
             "cond": "R",
             "item": "101",

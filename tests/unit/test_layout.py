@@ -60,13 +60,6 @@ class TestFindStimuli:
                 dyad=DYAD, kind="audio", ext=".wav", bids_filters=["dyad-101"]
             )
 
-    def test_rejects_reserved_stim_filter(self, tree: BIDSTree):
-        layout = BIDSLayout(tree.root)
-        with pytest.raises(ValueError, match="stim"):
-            layout.find.stimuli(
-                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["stim-audio"]
-            )
-
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="1")
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="2")
@@ -137,7 +130,7 @@ class TestFindStimuli:
 
     def test_raises_when_task_missing(self, tree: BIDSTree):
         path = (
-            tree.stimuli_dir / f"dyad-{DYAD}" / "audio" / f"dyad-{DYAD}_stim-audio.wav"
+            tree.stimuli_dir / f"dyad-{DYAD}" / "audio" / f"dyad-{DYAD}_audio.wav"
         )
         path.parent.mkdir(parents=True)
         path.touch()
@@ -869,17 +862,17 @@ class TestStampDatasetDescription:
 class TestPathStimulus:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_audio.wav")
         out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
-        assert out.entities.get("stim") == "transcript"
-        assert out.path.name.endswith(".csv")
+        assert out.suffix == "transcript"
+        assert out.path.name.endswith("_transcript.csv")
         assert "stimuli" in out.path.parts
         assert f"dyad-{DYAD}" in out.path.parts
         assert "transcript" in out.path.parts
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_audio.wav")
         out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert "stimuli" in out.path.parts
         assert f"dyad-{DYAD}" in out.path.parts
@@ -888,7 +881,7 @@ class TestPathStimulus:
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_ses-{SES}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_ses-{SES}_task-{TASK}_audio.wav")
         out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert "stimuli" in out.path.parts
         assert f"dyad-{DYAD}" in out.path.parts
@@ -897,13 +890,13 @@ class TestPathStimulus:
 
     def test_invalid_extension_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_audio.wav")
         with pytest.raises(ValueError, match="extension"):
             layout.path.stimulus(kind="transcript", source=source, ext="csv")
 
     def test_source_with_desc_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio_desc-v2.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_desc-v2_audio.wav")
         with pytest.raises(ValueError, match="no variants"):
             layout.path.stimulus(kind="transcript", source=source, ext=".csv")
 
@@ -911,7 +904,7 @@ class TestPathStimulus:
 class TestPathFeature:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic")
         assert out.entities.get("feat") == "phonemic"
         assert out.path.suffix == ".parquet"
@@ -921,7 +914,7 @@ class TestPathFeature:
 
     def test_applies_entity_override(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic", desc="gpt3")
         assert out.entities.get("desc") == "gpt3"
         assert out.path.name.endswith("_feat-phonemic_desc-gpt3.parquet")
@@ -930,7 +923,7 @@ class TestPathFeature:
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic")
         assert "features" in out.path.parts
         assert f"dyad-{DYAD}" in out.path.parts
@@ -939,7 +932,7 @@ class TestPathFeature:
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_ses-{SES}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_ses-{SES}_task-{TASK}_transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic")
         assert "features" in out.path.parts
         assert f"dyad-{DYAD}" in out.path.parts
@@ -948,7 +941,7 @@ class TestPathFeature:
 
     def test_invalid_override_value_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_transcript.csv")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             layout.path.feature(source=source, kind="phonemic", desc="BAD!")
 

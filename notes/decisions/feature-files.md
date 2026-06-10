@@ -148,7 +148,7 @@ train = [s for k, s in data.row_slices.items() if k["trial"] == "1"]
 - Filename-only descriptive (key absent from `trial_type.Levels` metadata): raise, pointing user to events.json.
 
 For unsegmented runs (no events.tsv key-value rows), only entities in `STRUCTURAL_ENTITIES`
-(BOLD identity, hypline category tags `stim`/`feat`/`conf`, and image-variant descriptors
+(BOLD identity, hypline category tags `feat`/`conf`/`nuis`/`result`, and image-variant descriptors
 `desc`/`space`/`res`/`den`) are valid on filenames — any other entity raises, since
 descriptive attributes belong in `events.json` `Levels` metadata. For segmented runs the
 segment entity is additionally permitted.

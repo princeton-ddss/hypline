@@ -73,9 +73,7 @@ class PhonemicFeature:
 
         self._layout = BIDSLayout(bids_root)
         self._use_articulatory = use_articulatory
-        self._bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"dyad", "stim"}
-        )
+        self._bids_filters = normalize_bids_filters(bids_filters, reserved={"dyad"})
 
         if desc is not None and not BIDS_ENTITY_VALUE_RE.match(desc):
             raise ValueError(f"Invalid desc: {desc!r}")

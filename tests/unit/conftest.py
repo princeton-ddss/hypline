@@ -289,7 +289,6 @@ class BIDSTree:
             run=run,
             **extras,
         )
-        entities["stim"] = kind
         id_dir = self._identity_ses_dir(
             area_root=self.stimuli_dir,
             id_key="dyad",
@@ -297,7 +296,7 @@ class BIDSTree:
             ses=ses,
         )
         kind_dir = id_dir / kind
-        path = kind_dir / f"{self._stem(entities)}{ext}"
+        path = kind_dir / f"{self._stem(entities)}_{kind}{ext}"
         self._write(path)
         return path
 

@@ -42,10 +42,13 @@ across the codebase look identical regardless of kwarg order:
 
 1. Identity: the leading identity (`sub` xor `dyad`), then `ses`, `task`, `run`
 2. Any other entities, alphabetically
-3. Category (`stim`/`feat`/`conf`/`nuis`), then `desc`
+3. Category (`feat`/`conf`/`nuis`/`result`), then `desc`
+4. A trailing `_<suffix>` (e.g. `_audio`/`_transcript` on stimuli,
+   `_timeseries` on nuisance), after all entities
 
 `desc` trails the category so variant tagging stays adjacent to what it
 modifies (e.g. `feat-llm_desc-v1`). At most one category entity is allowed.
+Stimuli carry no category entity — their kind is the trailing suffix instead.
 Parsing (`BIDSPath(path)`) preserves whatever order the filename already has;
 canonical ordering applies only on construction from kwargs.
 

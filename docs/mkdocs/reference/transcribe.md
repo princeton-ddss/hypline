@@ -17,11 +17,11 @@ hypline transcribe <dataset-root> --audio-ext <ext> [OPTIONS]
 
 ## Inputs
 
-Stimulus audio files under the `stimuli/` area, tagged `stim-audio`:
+Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 
 ```
 <dataset-root>/stimuli/dyad-101/audio/
-└── dyad-101_task-conv_run-1_stim-audio.wav
+└── dyad-101_task-conv_run-1_audio.wav
 ```
 
 See [The hypline dataset layout](../concepts/layout.md) for how files are
@@ -61,15 +61,15 @@ hypline transcribe data/ --audio-ext .wav --dyad-ids 101,102 --device cuda
 
 ## Outputs
 
-A word-level transcript per audio file, tagged `stim-transcript`, written beside
-the audio under `stimuli/`:
+A word-level transcript per audio file, with the `_transcript` suffix, written
+beside the audio under `stimuli/`:
 
 ```
 <dataset-root>/stimuli/dyad-101/
 ├── audio/
-│   └── dyad-101_task-conv_run-1_stim-audio.wav
+│   └── dyad-101_task-conv_run-1_audio.wav
 └── transcript/
-    └── dyad-101_task-conv_run-1_stim-transcript.csv
+    └── dyad-101_task-conv_run-1_transcript.csv
 ```
 
 Each transcript row is one word with its onset time. These onsets are what
