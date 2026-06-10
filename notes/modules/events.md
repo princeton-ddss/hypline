@@ -40,6 +40,18 @@ explicit at the call site.
 Callers always go through `load_segments`, which returns `[]` for
 unsegmented runs.
 
+## Speaking turns
+
+`hypline.events` also owns speaking-turn parsing (`load_turns`,
+`stamp_turns`), consumed only by `transcribe`. Turns use the flat
+`turn_speaker` `trial_type` label, which stays outside `BIDS_ENTITY_RE` and so
+never enters the Segment/encoding path. Unlike segment loading — which picks
+the dyad's first partner — `load_turns` reads *every* partner and unions their
+windows, because turn info is complementary across partners rather than
+identical. The cross-partner-overlap-as-cross-talk rule and the timeline
+invariant that licenses the union live in
+[../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
+
 ## Filename ↔ sidecar merge
 
 The four-case merge contract between filename entities and `events.json`

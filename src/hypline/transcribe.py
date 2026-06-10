@@ -7,6 +7,7 @@ from pydantic import BaseModel, field_validator
 
 from hypline.bids import normalize_bids_filters, validate_extension
 from hypline.enums import Device, WhisperModel
+from hypline.events import load_turns, stamp_turns
 from hypline.io import skip_existing
 from hypline.layout import BIDSLayout
 
@@ -125,6 +126,18 @@ class Transcriber:
                     "score": "confidence_score",
                 }
             )
+
+            turns = load_turns(self._layout, audio_file)
+            if turns:
+                df, n_silent = stamp_turns(df, turns)
+                if n_silent:
+                    logger.warning(
+                        "{}: {} timed word(s) fell outside any turn window "
+                        "(possible timing/annotation mismatch)",
+                        audio_file.path.name,
+                        n_silent,
+                    )
+
             out.path.parent.mkdir(parents=True, exist_ok=True)
             df.write_csv(out.path)
             logger.debug("Wrote transcript to {}", out.path)

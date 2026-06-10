@@ -58,6 +58,14 @@ code does not assert invariance (a second BOLD resolution per file guarding a
 condition that cannot occur). If hyperscanning ever allows partners on separate
 sequences or timelines, pick-first breaks here.
 
+**Exception — speaking turns are complementary, not identical.** `turn_speaker`
+rows in each partner's events.tsv mark *that subject's own* turn windows, so the
+partners' turn info differs by design. `load_turns` (events.py) therefore reads
+*every* partner (`subjects_of(dyad)`) and unions the windows — pick-first does
+not apply. The same simultaneous-timeline invariant still underwrites it: turn
+windows from the two files share one clock, so cross-file overlap is genuine
+cross-talk (raised) rather than a timeline-misalignment artifact.
+
 ## Encoding seam is a stopgap
 
 `Encoding._discover_features` routes `sub → dyad` via `dyad_of` so dyad features

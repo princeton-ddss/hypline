@@ -48,7 +48,7 @@ def _parse_segments(events: pl.DataFrame | None) -> list[Segment]:
     and only with a single row; matching its value against the filename's
     task is the caller's responsibility. Returns [] for unsegmented runs.
     """
-    if events is None:
+    if events is None or events.is_empty():
         return []
 
     segment_rows = events.filter(
@@ -341,3 +341,133 @@ def resolve_entities(layout: "BIDSLayout", source: BIDSPath) -> dict[str, str]:
         sidecar_metadata=matching[0].metadata,
         structural_keys=STRUCTURAL_ENTITIES | {segment_entity},
     )
+
+
+# Flat `trial_type` label marking a window where one subject holds the speaking
+# turn. Underscore form (no hyphen) keeps it out of `BIDS_ENTITY_RE`, so it
+# bypasses segment parsing entirely. Records assigned turn from study structure,
+# not observed speech — a turn window may contain words uttered by either partner.
+TURN_SPEAKER_LABEL = "turn_speaker"
+
+
+@dataclass(frozen=True)
+class Turn:
+    sub: str
+    onset: float
+    offset: float
+
+
+def _parse_turns(events: pl.DataFrame | None, sub: str) -> list[Turn]:
+    """Parse a subject's `turn_speaker` rows into speaking-turn windows.
+
+    Each row is a `[onset, onset + duration)` window during which `sub` holds
+    the floor. Returns [] when events is None or carries no such rows. Within a
+    single subject's file the windows must not overlap (a word cannot fall in
+    two of that subject's turns); cross-partner overlap is checked later by the
+    union-level caller, where it signals cross-talk.
+    """
+    if events is None or events.is_empty():
+        return []
+
+    turn_rows = events.filter(
+        (pl.col("trial_type") == TURN_SPEAKER_LABEL) & (pl.col("duration") > 0.0)
+    )
+    if turn_rows.is_empty():
+        return []
+
+    turns = []
+    for row in turn_rows.iter_rows(named=True):
+        onset = float(row["onset"])
+        turns.append(Turn(sub=sub, onset=onset, offset=onset + float(row["duration"])))
+    turns.sort(key=lambda t: t.onset)
+
+    for prev, curr in zip(turns, turns[1:]):
+        if prev.offset > curr.onset:
+            raise ValueError(
+                f"sub-{sub} {TURN_SPEAKER_LABEL} windows overlap: "
+                f"[{prev.onset}, {prev.offset}) and [{curr.onset}, {curr.offset})"
+            )
+
+    return turns
+
+
+def load_turns(layout: "BIDSLayout", source: BIDSPath) -> list[Turn]:
+    """Load and merge speaking turns across all partners of `source`'s dyad.
+
+    `source` is a dyad-keyed run path (e.g. a stimulus audio file). Reads each
+    partner's sub-keyed events.tsv, parses its `turn_speaker` windows, and
+    returns the union sorted by onset. Unlike segment loading, partner turn
+    info is *complementary*, not identical — every partner's file is read.
+
+    Raises ValueError if `source` lacks `task`, if any partner's events.tsv is
+    malformed, or if turn windows overlap across partners (cross-talk: a word
+    could fall in two subjects' turns).
+    """
+    if "task" not in source.entities:
+        raise ValueError(
+            f"Source path {source.path.name!r} missing required 'task' entity "
+            f"(events sidecars are resolved by task)"
+        )
+
+    dyad = source.entities.get("dyad")
+    if dyad is None:
+        raise ValueError(
+            f"load_turns requires a dyad-keyed source; got {source.path.name!r}"
+        )
+
+    turns: list[Turn] = []
+    for sub in layout.subjects_of(dyad):
+        sub_source = source.with_identity("sub", sub)
+        events_bids = layout.path.raw(source=sub_source, suffix="events", ext=".tsv")
+        events = (
+            pl.read_csv(events_bids.path, separator="\t")
+            if events_bids.path.exists()
+            else None
+        )
+        turns.extend(_parse_turns(events, sub))
+
+    turns.sort(key=lambda t: t.onset)
+    for prev, curr in zip(turns, turns[1:]):
+        if prev.offset > curr.onset:
+            raise ValueError(
+                f"{TURN_SPEAKER_LABEL} windows overlap across partners "
+                f"(cross-talk): sub-{prev.sub} [{prev.onset}, {prev.offset}) and "
+                f"sub-{curr.sub} [{curr.onset}, {curr.offset})"
+            )
+
+    return turns
+
+
+def _assign_turn(turns: list[Turn], start_time: float | None) -> str | None:
+    """Return the bare sub label whose turn window contains `start_time`.
+
+    A word is assigned to the subject holding the floor when it began. Returns
+    None when `start_time` is None (untimed word) or falls in a gap (silence) —
+    callers should treat a silence hit as a possible timing/annotation mismatch.
+    `turns` is assumed sorted and non-overlapping (as `load_turns` returns it).
+    """
+    if start_time is None:
+        return None
+    for turn in turns:
+        if turn.onset <= start_time < turn.offset:
+            return turn.sub
+    return None
+
+
+def stamp_turns(
+    transcript: pl.DataFrame, turns: list[Turn]
+) -> tuple[pl.DataFrame, int]:
+    """Add a `turn_sub` column to a word-level transcript from speaking turns.
+
+    Each word's `turn_sub` is the bare sub label whose turn window contains its
+    `start_time` (see `_assign_turn`). Returns the augmented frame and the count
+    of *timed* words that landed in no window (silence) — a non-zero count flags
+    a possible timing/annotation mismatch the caller should surface. Untimed
+    words (null `start_time`) get a null `turn_sub` and are not counted.
+    """
+    start_times = transcript.get_column("start_time").to_list()
+    turn_subs = [_assign_turn(turns, t) for t in start_times]
+    n_silent = sum(
+        sub is None and t is not None for sub, t in zip(turn_subs, start_times)
+    )
+    return transcript.with_columns(pl.Series("turn_sub", turn_subs)), n_silent

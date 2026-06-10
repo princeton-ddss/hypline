@@ -51,6 +51,7 @@ AI agents alike. Agent-agnostic by design.
 | Placing a hypline imaging derivative (denoised BOLD) | `decisions/layout.md`, `external/fmriprep.md` |
 | Selecting confound columns (`--columns`/`--custom-columns`) | `modules/denoise.md`, `external/fmriprep.md` |
 | Handling null / un-timed transcript tokens | `modules/transcriber.md`, `modules/phonemic.md` |
+| Handling speaker turns (`turn_sub` column)  | `modules/events.md`, `modules/transcriber.md`, `decisions/dyad-keyed.md` |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`, `modules/events.md` |
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/events.md`, `modules/encoding.md` |
