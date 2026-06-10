@@ -583,7 +583,16 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="How files are named">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subject-vs-dyad" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subject vs. dyad
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subject vs. dyad">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -873,7 +882,16 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="How files are named">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subject-vs-dyad" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subject vs. dyad
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subject vs. dyad">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -947,47 +965,88 @@ assume it.</p>
 <p>A hypline dataset extends the <a href="https://bids.neuroimaging.io/">BIDS</a> standard with
 a few extra areas. A complete tree looks like this:</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
-├── sub-01/func/                              # raw BIDS (events files live here)
+├── participants.tsv                         # required: dyad ↔ subject mapping
+├── sub-001/func/                            # raw BIDS (events files live here)
 ├── derivatives/
-│   ├── fmriprep/sub-01/func/                 # fMRIPrep outputs (preprocessed BOLD)
-│   └── hypline/sub-01/func/                  # hypline imaging derivatives (denoised BOLD)
-├── stimuli/sub-01/audio/                     # stimulus audio, transcripts
-├── features/sub-01/phonemic/                 # generated features
-├── confounds/sub-01/phonemic/                # generated confounds
-└── nuisance/sub-01/physio-v1/                # optional, user-supplied nuisance regressors
+│   ├── fmriprep/sub-001/func/               # fMRIPrep outputs (preprocessed BOLD)
+│   └── hypline/sub-001/func/                # hypline imaging derivatives (denoised BOLD)
+├── stimuli/dyad-101/audio/                  # stimulus audio, transcripts
+├── features/dyad-101/phonemic/              # generated features
+├── confounds/dyad-101/phonemic/             # generated confounds
+└── nuisance/sub-001/physio-v1/              # optional, user-supplied nuisance regressors
 </code></pre></div>
 <ul>
-<li><strong><code>sub-01/</code>, <code>derivatives/fmriprep/</code></strong> are standard BIDS areas. You provide
+<li><strong><code>sub-001/</code>, <code>derivatives/fmriprep/</code></strong> are standard BIDS areas. You provide
   these — your raw recordings and your fMRIPrep run.</li>
 <li><strong><code>derivatives/hypline/</code></strong> is a BIDS derivatives tree hypline fills with its
   imaging derivatives — currently the <a href="../../reference/denoise/"><code>denoise</code></a>
   output. It mirrors fMRIPrep's <code>sub-XX/[ses-YY/]func/</code> shape and carries its own
   <code>dataset_description.json</code>.</li>
 <li><strong><code>stimuli/</code>, <code>features/</code>, <code>confounds/</code></strong> are hypline additions. Hypline
-  creates and fills these as you run commands.</li>
+  creates and fills these as you run commands. They are keyed by <strong>dyad</strong>
+  (<code>dyad-101/</code>), not subject — see <a href="#subject-vs-dyad">Subject vs. dyad</a> below.</li>
 <li><strong><code>nuisance/</code></strong> is optional and <em>you</em> fill it — run-level regressors (e.g.
   physiological recordings) for <a href="../../reference/denoise/"><code>denoise</code></a> to regress
   out alongside fMRIPrep's confounds.</li>
+<li><strong><code>participants.tsv</code></strong> is a standard BIDS table at the dataset root, required
+  to map subjects to dyads — see <a href="#subject-vs-dyad">Subject vs. dyad</a>.</li>
 </ul>
 <div class="admonition info">
 <p class="admonition-title">Sessions are optional</p>
 <p>Datasets with multiple sessions add a <code>ses-YY/</code> level under each subject
-(<code>sub-01/ses-1/func/</code>). Datasets without sessions omit it entirely
-(<code>sub-01/func/</code>). Hypline handles both — examples here are sessionless for
+(<code>sub-001/ses-1/func/</code>). Datasets without sessions omit it entirely
+(<code>sub-001/func/</code>). Hypline handles both — examples here are sessionless for
 brevity.</p>
 </div>
 <h2 id="how-files-are-named">How files are named<a class="headerlink" href="#how-files-are-named" title="Permanent link">&para;</a></h2>
 <p>Hypline follows BIDS filename conventions: a filename is a chain of
 <code>entity-value</code> pairs joined by <code>_</code>, ending in a suffix and extension.</p>
-<div class="highlight"><pre><span></span><code>sub-01_task-conv_run-1_space-fsaverage6_hemi-L_bold.func.gii
+<div class="highlight"><pre><span></span><code>sub-001_task-conv_run-1_space-fsaverage6_hemi-L_bold.func.gii
 \____________________________________________/ \__/  \_______/
                    entities                   suffix extension
 </code></pre></div>
-<p>The <strong>identity entities</strong> at the front — <code>sub</code>, <code>ses</code>, <code>task</code>, <code>run</code> — name
-<em>which recording</em> a file belongs to. They are how hypline matches files across areas: a feature
-file with <code>sub-01_task-conv_run-1</code> corresponds to the BOLD file with the same
-<code>sub-01_task-conv_run-1</code>. Generated files always mirror the identity entities of
-the source they came from.</p>
+<p>The <strong>identity entities</strong> at the front name <em>which recording</em> a file belongs to.
+A file leads with exactly one of <code>sub</code> <strong>or</strong> <code>dyad</code> (never both), followed by
+the BOLD-identity entities <code>ses</code>, <code>task</code>, <code>run</code>. A <code>sub</code>-keyed file belongs to
+one brain; a <code>dyad</code>-keyed file belongs to one shared conversation. Generated
+files mirror the identity entities of the source they came from.</p>
+<h2 id="subject-vs-dyad">Subject vs. dyad<a class="headerlink" href="#subject-vs-dyad" title="Permanent link">&para;</a></h2>
+<p>Hypline is a hyperscanning pipeline: two partners hold one conversation while
+both are scanned. An artifact is keyed by <strong>what it is derived from</strong>:</p>
+<ul>
+<li><strong><code>sub</code>-keyed</strong> — derived from one <em>brain</em>: raw BOLD, <code>derivatives/fmriprep/</code>,
+  <code>derivatives/hypline/</code> (denoised), <code>nuisance/</code>.</li>
+<li><strong><code>dyad</code>-keyed</strong> — derived from the <em>shared conversation</em> between two partners:
+  <code>stimuli/</code>, <code>features/</code>, <code>confounds/</code>. One conversation → one dyad → one set of
+  stimuli/features/confounds, later consumed by <em>each</em> partner's per-subject
+  encoding model. A <code>dyad-101</code> audio file is the dyad's shared recording, not
+  either partner's.</li>
+</ul>
+<p>Because the two worlds use different identity entities, hypline bridges them
+through <strong><code>participants.tsv</code></strong> — a standard BIDS table at the dataset root with
+the required <code>participant_id</code> column plus a custom <strong><code>dyad_id</code></strong> column:</p>
+<div class="highlight"><pre><span></span><code>participant_id   dyad_id
+sub-001          dyad-101
+sub-101          dyad-101
+sub-002          dyad-102
+sub-102          dyad-102
+</code></pre></div>
+<p>This is the single source of truth for which subjects make up which dyad — here
+subjects <code>001</code> and <code>101</code> are partners in <code>dyad-101</code>, <code>002</code> and <code>102</code> in
+<code>dyad-102</code>. It is read lazily: a purely <code>sub</code>-keyed workflow (e.g. <code>denoise</code>
+alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
+a sub-keyed BOLD requires it and errors if it is missing.</p>
+<div class="admonition warning">
+<p class="admonition-title">Use real tabs</p>
+<p><code>participants.tsv</code> — and every <code>.tsv</code> hypline reads (<code>events.tsv</code>, custom
+<code>nuisance/</code> tables) — must be separated by <strong>actual tab characters</strong>, not
+spaces. Hypline splits on tabs, so a space-separated row collapses into one
+column and fails with a misleading "missing column" error.</p>
+</div>
+<p>So a <code>dyad-101</code> feature file does <strong>not</strong> match a BOLD file by sharing <code>sub</code> —
+the two carry different identity entities. The join goes through
+<code>participants.tsv</code>: a subject's encoding model looks up its dyad, then reads that
+dyad's features.</p>
 <h3 id="category-entities">Category entities<a class="headerlink" href="#category-entities" title="Permanent link">&para;</a></h3>
 <p>Each hypline-generated file carries exactly one <strong>category entity</strong> naming what
 kind of derivative it is:</p>
@@ -1023,12 +1082,12 @@ kind of derivative it is:</p>
 </tbody>
 </table>
 <p>The <code>&lt;kind&gt;</code> matches the subdirectory the file lives in. A phonemic feature
-(<code>feat-phonemic</code>) lives under <code>features/sub-01/phonemic/</code>.</p>
+(<code>feat-phonemic</code>) lives under <code>features/dyad-101/phonemic/</code>.</p>
 <h3 id="variants-with-desc">Variants with <code>desc</code><a class="headerlink" href="#variants-with-desc" title="Permanent link">&para;</a></h3>
 <p>Some commands accept a <code>--desc</code> label that tags an output as one <em>variant</em> among
 several. Variants live in their own subdirectory so they stay physically
 separate:</p>
-<div class="highlight"><pre><span></span><code>confounds/sub-01/
+<div class="highlight"><pre><span></span><code>confounds/dyad-101/
 ├── phonemic-onset/    # conf-phonemic_desc-onset — speech-onset indicator
 └── phonemic-rate/     # conf-phonemic_desc-rate  — speech rate per TR
 </code></pre></div>
@@ -1036,10 +1095,13 @@ separate:</p>
 between them later by name.</p>
 <h2 id="selecting-subjects-and-runs">Selecting subjects and runs<a class="headerlink" href="#selecting-subjects-and-runs" title="Permanent link">&para;</a></h2>
 <p>Because commands discover files by convention, you select <em>what to process</em> with
-options rather than paths — <code>--sub-ids</code> for subjects, <code>--data-filters</code> for runs
-and conditions, both interpreted against the entities described above. A third
-shared option, <code>--force</code>, overwrites existing outputs (by default hypline skips
-files it has already generated, so reruns are cheap).</p>
+options rather than paths — an identity option plus <code>--data-filters</code> for runs and
+conditions, both interpreted against the entities described above. The identity
+option follows the area the command writes: dyad-keyed stimulus commands
+(<code>transcribe</code>, <code>featuregen</code>, <code>confoundgen</code>) take <strong><code>--dyad-ids</code></strong>, while the
+sub-keyed <code>denoise</code> takes <strong><code>--sub-ids</code></strong>. A third shared option, <code>--force</code>,
+overwrites existing outputs (by default hypline skips files it has already
+generated, so reruns are cheap).</p>
 <p>For how to combine these, see <a href="../../how-to/filter/">Filter to specific runs or
 conditions</a>; for what <code>--data-filters</code> can match, see
 <a href="../segments/">Segments and metadata</a>.</p>

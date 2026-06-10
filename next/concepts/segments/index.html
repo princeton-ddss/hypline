@@ -929,8 +929,11 @@ skip it.</p>
 <h2 id="where-segments-come-from-eventstsv">Where segments come from: <code>events.tsv</code><a class="headerlink" href="#where-segments-come-from-eventstsv" title="Permanent link">&para;</a></h2>
 <p>Hypline reads run structure from the standard BIDS <code>events.tsv</code> file that sits
 beside each run in the raw tree:</p>
-<div class="highlight"><pre><span></span><code>sub-01/func/sub-01_task-conv_run-1_events.tsv
+<div class="highlight"><pre><span></span><code>sub-001/func/sub-001_task-conv_run-1_events.tsv
 </code></pre></div>
+<p>Events files are sub-keyed. A dyad-keyed command (<code>featuregen</code>, <code>confoundgen</code>)
+resolves them through <a href="../layout/#subject-vs-dyad"><code>participants.tsv</code></a> and reads
+either partner's events — segments are shared across a dyad by construction.</p>
 <p>Hypline infers segments from the <code>trial_type</code> column. A row whose <code>trial_type</code>
 is an <code>entity-value</code> pair (like <code>trial-1</code>) <strong>declares a segment</strong> — a named time
 window within the run:</p>
@@ -983,7 +986,7 @@ single row whose <code>trial_type</code> repeats the run's task name (e.g. <code
 <p>Segment names like <code>trial-1</code> carry no meaning on their own. Descriptive
 attributes — condition, stimulus item, counterbalance group — live in the
 companion <code>events.json</code> sidecar, under the BIDS <code>trial_type.Levels</code> field:</p>
-<div class="highlight"><span class="filename">sub-01_task-conv_run-1_events.json</span><pre><span></span><code><span class="p">{</span>
+<div class="highlight"><span class="filename">sub-001_task-conv_run-1_events.json</span><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;trial_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;Levels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;trial-1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;cond&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;R&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;item&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;101&quot;</span><span class="p">}},</span>

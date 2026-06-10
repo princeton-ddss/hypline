@@ -995,8 +995,9 @@ follow the table above step by step. Re-run any single step with <code>--force</
 overwrite its outputs; without it, hypline skips work it has already done.</p>
 <div class="admonition tip">
 <p class="admonition-title">If a command seems to do nothing</p>
-<p>Two harmless cases look like failures. <strong><code>No subjects found</code></strong> means the area
-that command reads is empty or your <code>--sub-ids</code> / <code>--data-filters</code> excluded
+<p>Two harmless cases look like failures. <strong><code>No dyads found</code></strong> (stimulus
+commands) or <strong><code>No subjects found</code></strong> (<code>denoise</code>) means the area that command
+reads is empty or your <code>--dyad-ids</code> / <code>--sub-ids</code> / <code>--data-filters</code> excluded
 everything — widen the filter or check the files are in place. A command that
 exits instantly with no log means its outputs already exist and were skipped;
 re-run with <code>--force</code> to regenerate. Per-command failure modes are listed

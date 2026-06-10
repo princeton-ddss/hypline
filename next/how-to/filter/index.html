@@ -472,9 +472,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#select-subjects-with-sub-ids" class="md-nav__link">
+  <a href="#select-dyads-or-subjects" class="md-nav__link">
     <span class="md-ellipsis">
-      Select subjects with --sub-ids
+      Select dyads or subjects
     </span>
   </a>
   
@@ -885,9 +885,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#select-subjects-with-sub-ids" class="md-nav__link">
+  <a href="#select-dyads-or-subjects" class="md-nav__link">
     <span class="md-ellipsis">
-      Select subjects with --sub-ids
+      Select dyads or subjects
     </span>
   </a>
   
@@ -991,26 +991,33 @@
 
 
 <h1 id="filter-to-specific-runs-or-conditions">Filter to specific runs or conditions<a class="headerlink" href="#filter-to-specific-runs-or-conditions" title="Permanent link">&para;</a></h1>
-<p>Most hypline commands run over <em>every</em> subject, run, and segment they discover by
-convention. When you want a command to touch only part of your dataset — one
-subject, two runs, a single condition — you narrow it with two options that
-appear on nearly every command:</p>
+<p>Most hypline commands run over <em>everything</em> they discover by convention — every
+run and segment, and every dyad or subject. When you want a command to touch only
+part of your dataset — one dyad, two runs, a single condition — you narrow it with
+two options that appear on nearly every command:</p>
 <ul>
-<li><strong><code>--sub-ids</code></strong> — pick which subjects to process.</li>
+<li><strong><code>--dyad-ids</code></strong> / <strong><code>--sub-ids</code></strong> — pick which dyads or subjects to process.
+  Which one a command takes follows the area it writes: the dyad-keyed stimulus
+  commands (<code>transcribe</code>, <code>featuregen</code>, <code>confoundgen</code>) take <code>--dyad-ids</code>, while
+  the sub-keyed <code>denoise</code> takes <code>--sub-ids</code>. See <a href="../../concepts/layout/#subject-vs-dyad">Subject vs.
+  dyad</a>.</li>
 <li><strong><code>--data-filters</code></strong> — pick which runs and conditions within them.</li>
 </ul>
 <p>This guide shows the common selections. For <em>why</em> segments and conditions work
 the way they do, see <a href="../../concepts/segments/">Segments and metadata</a>; for the
 full option list of any single command, see its <a href="../../reference/transcribe/">Reference</a>
 page.</p>
-<h2 id="select-subjects-with-sub-ids">Select subjects with <code>--sub-ids</code><a class="headerlink" href="#select-subjects-with-sub-ids" title="Permanent link">&para;</a></h2>
-<p>Pass comma-separated subject IDs (the value of the <code>sub-</code> entity, without the
-prefix):</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># only subjects 01 and 02</span>
-hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02
+<h2 id="select-dyads-or-subjects">Select dyads or subjects<a class="headerlink" href="#select-dyads-or-subjects" title="Permanent link">&para;</a></h2>
+<p>Pass comma-separated IDs (the value of the identity entity, without the prefix).
+Use <code>--dyad-ids</code> on the stimulus commands and <code>--sub-ids</code> on <code>denoise</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># stimulus command: only dyads 101 and 102</span>
+hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">101</span>,102
+
+<span class="c1"># denoise: only subjects 001 and 101 (the two partners of dyad-101)</span>
+hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">001</span>,101
 </code></pre></div>
-<p>Omit <code>--sub-ids</code> entirely to process every subject found wherever that command
-looks for its inputs.</p>
+<p>Omit the option entirely to process every dyad (or subject) found wherever that
+command looks for its inputs.</p>
 <h2 id="select-runs-and-conditions-with-data-filters">Select runs and conditions with <code>--data-filters</code><a class="headerlink" href="#select-runs-and-conditions-with-data-filters" title="Permanent link">&para;</a></h2>
 <p><code>--data-filters</code> accepts comma-separated <code>entity-value</code> tokens. A token matches
 against <strong>both</strong> filename entities (like <code>run</code>) and the metadata you defined in
@@ -1056,27 +1063,29 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 </tr>
 </tbody>
 </table>
-<p>So <code>run-1,run-2,cond-G</code> means <em>(run 1 or run 2) and condition G</em>. Combine
-<code>--sub-ids</code> with <code>--data-filters</code> to slice on both axes at once:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># subjects 01–02, run 1 only, condition R</span>
+<p>So <code>run-1,run-2,cond-G</code> means <em>(run 1 or run 2) and condition G</em>. Combine the
+identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) with <code>--data-filters</code> to slice on
+both axes at once:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># subjects 001 and 101, run 1 only, condition R</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">001</span>,101<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1,cond-R
 </code></pre></div>
 <h2 id="combining-with-force">Combining with <code>--force</code><a class="headerlink" href="#combining-with-force" title="Permanent link">&para;</a></h2>
-<p><code>--sub-ids</code> and <code>--data-filters</code> decide <em>what is considered</em>; <code>--force</code> decides
-whether already-generated outputs are overwritten. They compose — scope a rerun
-to one run and force just that one:</p>
+<p>The identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) and <code>--data-filters</code> decide
+<em>what is considered</em>; <code>--force</code> decides whether already-generated outputs are
+overwritten. They compose — scope a rerun to one run and force just that one:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
 </code></pre></div>
 <p>See <a href="../regenerate/">Regenerate outputs after a fix</a> for the rerun workflow.</p>
 <h2 id="when-a-filter-matches-nothing">When a filter matches nothing<a class="headerlink" href="#when-a-filter-matches-nothing" title="Permanent link">&para;</a></h2>
 <p>Two outcomes look similar but mean different things:</p>
 <ul>
-<li><strong><code>No subjects found</code></strong> — the input location is empty, or your <code>--sub-ids</code> /
-  <code>--data-filters</code> excluded everything. Widen the filter, or confirm the files
-  are in place.</li>
+<li><strong><code>No dyads found</code></strong> / <strong><code>No subjects found</code></strong> — the input location is empty, or
+  your <code>--dyad-ids</code> / <code>--sub-ids</code> / <code>--data-filters</code> excluded everything. Widen the
+  filter, or confirm the files are in place. (Stimulus commands report dyads;
+  <code>denoise</code> reports subjects.)</li>
 <li><strong>An error naming an unknown entity</strong> — a filter token names an entity that
   exists <em>nowhere</em>, neither on filenames nor in <code>events.json</code> metadata. Hypline
   treats this as a typo and raises, rather than silently matching nothing. Check

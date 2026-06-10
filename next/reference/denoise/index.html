@@ -933,13 +933,13 @@ nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD u
   <code>--custom-sources</code>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
-├── derivatives/fmriprep/sub-01/func/
-│   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
-│   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
-│   ├── sub-01_task-conv_run-1_desc-confounds_timeseries.tsv
-│   └── sub-01_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
-└── nuisance/sub-01/physio-v1/                                  # optional, user-supplied
-    └── sub-01_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
+├── derivatives/fmriprep/sub-001/func/
+│   ├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
+│   ├── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
+│   ├── sub-001_task-conv_run-1_desc-confounds_timeseries.tsv
+│   └── sub-001_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
+└── nuisance/sub-001/physio-v1/                                  # optional, user-supplied
+    └── sub-001_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
 </code></pre></div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <table>
@@ -1037,8 +1037,8 @@ from the horizontal concat of all named sources. The two must be given together.
 <p>Custom nuisance files are yours to create — hypline never writes them. Each
 must be a <strong>tab-separated <code>.tsv</code></strong> with the <code>_timeseries</code> suffix and a
 <code>nuis-&lt;kind&gt;</code> entity, e.g.
-<code>sub-01_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv</code>, placed in
-<code>nuisance/sub-01/&lt;kind&gt;[-&lt;desc&gt;]/</code>. It is a <strong>wide</strong> table: one named column
+<code>sub-001_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv</code>, placed in
+<code>nuisance/sub-001/&lt;kind&gt;[-&lt;desc&gt;]/</code>. It is a <strong>wide</strong> table: one named column
 per regressor, one row per TR (row count must match the BOLD run). Every
 value must be <strong>finite</strong> — unlike the fMRIPrep table, there is no <code>n/a</code>
 convention, so a blank or non-numeric cell raises rather than being filled.</p>
@@ -1068,10 +1068,10 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 <span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--custom-sources<span class="w"> </span>physio-v1<span class="w"> </span>--custom-columns<span class="w"> </span>resp,cardiac
 </code></pre></div>
-<p>Clean only run 1 of subjects 01 and 02:</p>
+<p>Clean only run 1 of subjects 001 and 101:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">001</span>,101<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1
 </code></pre></div>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
@@ -1079,11 +1079,11 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 fMRIPrep's <code>sub-XX/[ses-YY/]func/</code> shape and preserving the source's full BOLD
 identity — only the <code>desc</code> entity (<code>desc-denoised</code>) and the root differ from the
 <code>desc-preproc</code> source:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/hypline/sub-01/func/
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.func.gii    # output
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.json        # sidecar
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.func.gii    # output
-└── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.json        # sidecar
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/hypline/sub-001/func/
+├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.func.gii    # output
+├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.json        # sidecar
+├── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.func.gii    # output
+└── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.json        # sidecar
 </code></pre></div>
 <p>The output keeps the input's dimensions — only the signal values change. Each run
 gets a per-file <code>.json</code> sidecar recording its <code>Sources</code> (a <code>bids:</code> URI to the

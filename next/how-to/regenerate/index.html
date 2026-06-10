@@ -880,8 +880,9 @@ and — importantly — which <strong>downstream</strong> steps you must also re
 cheap, but it means a second run after a fix appears to do nothing: the outputs
 are still there, so every step is skipped.</p>
 <p>To overwrite, pass <strong><code>--force</code></strong>. Skipping is decided per output file, so
-<code>--force</code> combined with <a href="../filter/"><code>--sub-ids</code> / <code>--data-filters</code></a> regenerates
-<strong>only</strong> the subset you select — everything else is left untouched.</p>
+<code>--force</code> combined with <a href="../filter/">the identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) /
+<code>--data-filters</code></a> regenerates <strong>only</strong> the subset you select —
+everything else is left untouched.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># regenerate features for run 1 only; all other runs stay as they were</span>
 hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
 </code></pre></div>
@@ -970,7 +971,7 @@ applies after editing any <code>nuisance/</code> file you regress out.</p>
 <p>If you are unsure how far a change propagates, rerun every step from the
 fix onward with <code>--force</code>. Hypline recomputes from scratch each time, so a
 broader <code>--force</code> is never <em>wrong</em> — only more expensive. Scope it with
-<code>--sub-ids</code> / <code>--data-filters</code> to keep the cost down.</p>
+<code>--dyad-ids</code> / <code>--sub-ids</code> / <code>--data-filters</code> to keep the cost down.</p>
 </div>
 <div class="footnote">
 <hr />

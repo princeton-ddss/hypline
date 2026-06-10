@@ -946,8 +946,8 @@ phonemes, and each phoneme is represented by its articulatory features (place,
 manner, voicing, …).</p>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <p>Transcripts produced by <a href="../transcribe/"><code>transcribe</code></a>, under <code>stimuli/</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/sub-01/transcript/
-└── sub-01_task-conv_run-1_stim-transcript.csv
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-101/transcript/
+└── dyad-101_task-conv_run-1_stim-transcript.csv
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -975,8 +975,8 @@ manner, voicing, …).</p>
 <td>off</td>
 </tr>
 <tr>
-<td><code>--sub-ids</code></td>
-<td>Comma-separated subject IDs to process; omit for all</td>
+<td><code>--dyad-ids</code></td>
+<td>Comma-separated dyad IDs to process; omit for all</td>
 <td>all</td>
 </tr>
 <tr>
@@ -999,7 +999,7 @@ confounds in the same pass. This is the common path; pass
 <code>--skip-confoundgen</code> if you want features without confounds.</p>
 </div>
 <h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h3>
-<p>Generate phonemic features (and their confounds) for all subjects:</p>
+<p>Generate phonemic features (and their confounds) for all dyads:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/
 </code></pre></div>
 <p>Generate a second variant, features only — <code>--no-articulatory</code> swaps the
@@ -1012,13 +1012,13 @@ names the variant after it so it sits beside the default features:</p>
 <code>features/</code>. With <code>--skip-confoundgen</code> omitted, the matching <code>conf-phonemic</code>
 confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>):</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
-├── features/sub-01/phonemic/
-│   └── sub-01_task-conv_run-1_feat-phonemic.parquet
-└── confounds/sub-01/                                    # from the chained confoundgen
+├── features/dyad-101/phonemic/
+│   └── dyad-101_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-101/                                  # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── sub-01_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── sub-01_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet
 </code></pre></div>
 <p>A <code>--desc</code> label lands as <code>desc-&lt;label&gt;</code> and lives in its own subdirectory
 (<code>phonemic-&lt;label&gt;/</code>), keeping variants separate. See

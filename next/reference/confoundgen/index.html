@@ -958,8 +958,8 @@ regenerating features.</p>
 </div>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <p>Phonemic feature files produced by <a href="../featuregen/"><code>featuregen phonemic</code></a>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/sub-01/phonemic/
-└── sub-01_task-conv_run-1_feat-phonemic.parquet
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-101/phonemic/
+└── dyad-101_task-conv_run-1_feat-phonemic.parquet
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -972,8 +972,8 @@ regenerating features.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--sub-ids</code></td>
-<td>Comma-separated subject IDs to process; omit for all</td>
+<td><code>--dyad-ids</code></td>
+<td>Comma-separated dyad IDs to process; omit for all</td>
 <td>all</td>
 </tr>
 <tr>
@@ -994,11 +994,11 @@ regenerating features.</p>
 <h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
 <p>Two derivations per run, tagged <code>conf-phonemic</code> and distinguished by <code>desc</code>.
 Each <code>desc</code> lands in its own subdirectory:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/sub-01/
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/dyad-101/
 ├── phonemic-onset/
-│   └── sub-01_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
+│   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
 └── phonemic-rate/
-    └── sub-01_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
+    └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
 </code></pre></div>
 <p>Each derivation is referred to by name (<code>phonemic-onset</code>, <code>phonemic-rate</code>). These
 are feature-granular, encoding-side confounds; they are not read by

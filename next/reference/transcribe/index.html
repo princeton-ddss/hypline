@@ -903,8 +903,8 @@ containers, …) — pass its extension to <code>--audio-ext</code>.</p>
 </div>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <p>Stimulus audio files under the <code>stimuli/</code> area, tagged <code>stim-audio</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/sub-01/audio/
-└── sub-01_task-conv_run-1_stim-audio.wav
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-101/audio/
+└── dyad-101_task-conv_run-1_stim-audio.wav
 </code></pre></div>
 <p>See <a href="../../concepts/layout/">The hypline dataset layout</a> for how files are
 named and discovered.</p>
@@ -939,8 +939,8 @@ named and discovered.</p>
 <td><code>cpu</code></td>
 </tr>
 <tr>
-<td><code>--sub-ids</code></td>
-<td>Comma-separated subject IDs to process; omit for all</td>
+<td><code>--dyad-ids</code></td>
+<td>Comma-separated dyad IDs to process; omit for all</td>
 <td>all</td>
 </tr>
 <tr>
@@ -962,20 +962,20 @@ The first run downloads the chosen model to <code>--model-dir</code> (or the sys
 cache); later runs reuse it.</p>
 </div>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<p>Transcribe every subject's WAV audio with the default model:</p>
+<p>Transcribe every dyad's WAV audio with the default model:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav
 </code></pre></div>
-<p>Transcribe only subjects 01 and 02 on a GPU:</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">01</span>,02<span class="w"> </span>--device<span class="w"> </span>cuda
+<p>Transcribe only dyads 101 and 102 on a GPU:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">101</span>,102<span class="w"> </span>--device<span class="w"> </span>cuda
 </code></pre></div>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
 <p>A word-level transcript per audio file, tagged <code>stim-transcript</code>, written beside
 the audio under <code>stimuli/</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/sub-01/
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-101/
 ├── audio/
-│   └── sub-01_task-conv_run-1_stim-audio.wav
+│   └── dyad-101_task-conv_run-1_stim-audio.wav
 └── transcript/
-    └── sub-01_task-conv_run-1_stim-transcript.csv
+    └── dyad-101_task-conv_run-1_stim-transcript.csv
 </code></pre></div>
 <p>Each transcript row is one word with its onset time. These onsets are what
 <code>featuregen phonemic</code> reads to place features on the timeline.</p>

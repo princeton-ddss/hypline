@@ -1092,12 +1092,14 @@ directly:</p>
 <span class="p">)</span>
 </code></pre></div>
 <p>The two halves are deliberately asymmetric. <strong>Saves are entity-based</strong> —
-you pass <code>bids_root</code> plus BIDS entities (<code>sub</code>, <code>feat</code>/<code>conf</code>, <code>run</code>, …) and
+you pass <code>bids_root</code> plus BIDS entities (<code>dyad</code>, <code>feat</code>/<code>conf</code>, <code>run</code>, …) and
 hypline derives the canonical output path for you, so writes always land where
-the pipeline expects. <strong>Reads are path-based</strong> — you usually already have a file
-in hand. Both enforce the <a href="../../concepts/layout/">dataset layout</a> and the file
-formats; a malformed DataFrame or path raises rather than writing something the
-CLI can't later consume.</p>
+the pipeline expects. Features and confounds describe the shared conversation, so
+they are keyed by <code>dyad</code>, not <code>sub</code> — see <a href="../../concepts/layout/#subject-vs-dyad">Subject vs.
+dyad</a>. <strong>Reads are path-based</strong> — you
+usually already have a file in hand. Both enforce the <a href="../../concepts/layout/">dataset
+layout</a> and the file formats; a malformed DataFrame or
+path raises rather than writing something the CLI can't later consume.</p>
 <h2 id="plugging-in-a-custom-feature">Plugging in a custom feature<a class="headerlink" href="#plugging-in-a-custom-feature" title="Permanent link">&para;</a></h2>
 <p>The CLI only generates <code>feat-phonemic</code> features. To drive an encoding model on
 a feature hypline doesn't compute — word embeddings, prosody, anything you can
@@ -1122,13 +1124,13 @@ the stimulus) and <code>feature</code> (one equal-width vector per row). Match t
 <span class="n">path</span> <span class="o">=</span> <span class="n">save_feature</span><span class="p">(</span>
     <span class="n">df</span><span class="p">,</span>
     <span class="n">bids_root</span><span class="o">=</span><span class="s2">&quot;data/&quot;</span><span class="p">,</span>
-    <span class="n">sub</span><span class="o">=</span><span class="s2">&quot;01&quot;</span><span class="p">,</span>
+    <span class="n">dyad</span><span class="o">=</span><span class="s2">&quot;101&quot;</span><span class="p">,</span>
     <span class="n">feat</span><span class="o">=</span><span class="s2">&quot;embed&quot;</span><span class="p">,</span>
     <span class="n">task</span><span class="o">=</span><span class="s2">&quot;conv&quot;</span><span class="p">,</span>
     <span class="n">run</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>This writes <code>data/features/sub-01/embed/sub-01_task-conv_run-1_feat-embed.parquet</code>.
+<p>This writes <code>data/features/dyad-101/embed/dyad-101_task-conv_run-1_feat-embed.parquet</code>.
 Pass <code>desc="..."</code> to tag a variant into its own
 <a href="../../concepts/layout/#variants-with-desc"><code>embed-&lt;desc&gt;/</code> subdirectory</a>, and
 <code>metadata={...}</code> to stash extra keys in the Parquet footer.</p>
@@ -1164,7 +1166,7 @@ will accept.</p>
 
 
 <a href="#hypline.save_feature" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_feature</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">bids_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">sub</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">feat</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">entities</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_feature</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">bids_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">dyad</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">feat</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">entities</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -1212,7 +1214,7 @@ other columns are preserved.</p>
             <td>
               <div class="doc-md-description">
                 <p>Project root; the file lands under
-<code>&lt;bids_root&gt;/features/sub-&lt;sub&gt;/[ses-&lt;ses&gt;/]&lt;feat&gt;[-&lt;desc&gt;]/</code>.</p>
+<code>&lt;bids_root&gt;/features/dyad-&lt;dyad&gt;/[ses-&lt;ses&gt;/]&lt;feat&gt;[-&lt;desc&gt;]/</code>.</p>
               </div>
             </td>
             <td>
@@ -1221,14 +1223,15 @@ other columns are preserved.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>sub</code>
+                <code>dyad</code>
             </td>
             <td>
                   <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Required subject and feature-kind labels.</p>
+                <p>Required dyad and feature-kind labels. Features describe the shared
+conversation, so they are keyed by dyad, not subject.</p>
               </div>
             </td>
             <td>
@@ -1244,7 +1247,8 @@ other columns are preserved.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Required subject and feature-kind labels.</p>
+                <p>Required dyad and feature-kind labels. Features describe the shared
+conversation, so they are keyed by dyad, not subject.</p>
               </div>
             </td>
             <td>
@@ -1369,7 +1373,7 @@ descriptors). Entity ordering and validation are handled by
 
 
 <a href="#hypline.save_confound" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_confound</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">bids_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">sub</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">conf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">repetition_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tr_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">entities</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_confound</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">bids_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">dyad</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">conf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">repetition_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tr_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">entities</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -1417,7 +1421,7 @@ to fixed-width <code>Array(Float64)</code> on write.</p>
             <td>
               <div class="doc-md-description">
                 <p>Project root; the file lands under
-<code>&lt;bids_root&gt;/confounds/sub-&lt;sub&gt;/[ses-&lt;ses&gt;/]&lt;conf&gt;[-&lt;desc&gt;]/</code>.</p>
+<code>&lt;bids_root&gt;/confounds/dyad-&lt;dyad&gt;/[ses-&lt;ses&gt;/]&lt;conf&gt;[-&lt;desc&gt;]/</code>.</p>
               </div>
             </td>
             <td>
@@ -1426,14 +1430,15 @@ to fixed-width <code>Array(Float64)</code> on write.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>sub</code>
+                <code>dyad</code>
             </td>
             <td>
                   <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Required subject and confound-kind labels.</p>
+                <p>Required dyad and confound-kind labels. Confounds describe the shared
+conversation, so they are keyed by dyad, not subject.</p>
               </div>
             </td>
             <td>
@@ -1449,7 +1454,8 @@ to fixed-width <code>Array(Float64)</code> on write.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Required subject and confound-kind labels.</p>
+                <p>Required dyad and confound-kind labels. Confounds describe the shared
+conversation, so they are keyed by dyad, not subject.</p>
               </div>
             </td>
             <td>
