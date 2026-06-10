@@ -51,8 +51,8 @@ class TestSplitCsv:
 
     def test_param_hint_propagates(self):
         with pytest.raises(typer.BadParameter) as exc_info:
-            split_csv("01, 02", param_hint="--sub-ids")
-        assert exc_info.value.param_hint == "--sub-ids"
+            split_csv("01, 02", param_hint="--dyad-ids")
+        assert exc_info.value.param_hint == "--dyad-ids"
 
     def test_param_hint_none_by_default(self):
         with pytest.raises(typer.BadParameter) as exc_info:

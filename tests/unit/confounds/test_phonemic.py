@@ -10,6 +10,7 @@ from hypline.layout import BIDSLayout
 from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree
 
 SUB = "001"
+DYAD = "101"
 TASK = "story"
 TR = 2.0
 
@@ -19,7 +20,7 @@ def _add_phonemic(
     *,
     start_times: list[float],
     phonemes: list[str | None],
-    sub: str = SUB,
+    dyad: str = DYAD,
     ses: str | None = None,
     task: str = TASK,
     run: str = "1",
@@ -45,7 +46,7 @@ def _add_phonemic(
     )
 
     return tree.add_feature(
-        sub=sub,
+        dyad=dyad,
         ses=ses,
         task=task,
         run=run,
@@ -66,17 +67,18 @@ class TestPhonemicConfoundGenerate:
     def test_writes_onset_and_rate_files(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0, 0.0, 0.0], phonemes=["K", "AE", "T"])
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
         onset = layout.path.confound(
-            source=layout.find.features(sub=SUB, kind="phonemic")[0],
+            source=layout.find.features(dyad=DYAD, kind="phonemic")[0],
             kind="phonemic",
             desc="onset",
         )
         rate = layout.path.confound(
-            source=layout.find.features(sub=SUB, kind="phonemic")[0],
+            source=layout.find.features(dyad=DYAD, kind="phonemic")[0],
             kind="phonemic",
             desc="rate",
         )
@@ -91,12 +93,13 @@ class TestPhonemicConfoundGenerate:
             phonemes=["K", "AE", "T", "D", "AO", "G"],
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
         onset_path = layout.path.confound(
-            source=layout.find.features(sub=SUB, kind="phonemic")[0],
+            source=layout.find.features(dyad=DYAD, kind="phonemic")[0],
             kind="phonemic",
             desc="onset",
         )
@@ -114,12 +117,13 @@ class TestPhonemicConfoundGenerate:
             phonemes=["K", "AE", "T", "D", "AO", "G"],
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
         rate_path = layout.path.confound(
-            source=layout.find.features(sub=SUB, kind="phonemic")[0],
+            source=layout.find.features(dyad=DYAD, kind="phonemic")[0],
             kind="phonemic",
             desc="rate",
         )
@@ -133,11 +137,12 @@ class TestPhonemicConfoundGenerate:
     def test_records_tr_method_in_metadata(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
-        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        feat = layout.find.features(dyad=DYAD, kind="phonemic")[0]
         onset_meta = read_confound_metadata(
             layout.path.confound(source=feat, kind="phonemic", desc="onset").path
         )
@@ -152,11 +157,12 @@ class TestPhonemicConfoundGenerate:
     def test_start_time_grid_starts_at_zero_and_uses_tr_spacing(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
-        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        feat = layout.find.features(dyad=DYAD, kind="phonemic")[0]
         df = read_confound(
             layout.path.confound(source=feat, kind="phonemic", desc="onset").path
         )
@@ -178,6 +184,7 @@ class TestPhonemicConfoundGenerate:
             extra_entities={"trial": "2"},
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -189,12 +196,12 @@ class TestPhonemicConfoundGenerate:
         )
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
         for trial in ("1", "2"):
             feat = next(
                 f
-                for f in layout.find.features(sub=SUB, kind="phonemic")
+                for f in layout.find.features(dyad=DYAD, kind="phonemic")
                 if f.entities.get("trial") == trial
             )
             meta = read_confound_metadata(
@@ -205,11 +212,12 @@ class TestPhonemicConfoundGenerate:
     def test_unsegmented_run_uses_bold_n_trs(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
-        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        feat = layout.find.features(dyad=DYAD, kind="phonemic")[0]
         meta = read_confound_metadata(
             layout.path.confound(source=feat, kind="phonemic", desc="onset").path
         )
@@ -230,10 +238,11 @@ class TestPhonemicConfoundGenerate:
             desc="v2",
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
-        sub_dir = tree.root / "confounds" / f"sub-{SUB}"
+        sub_dir = tree.root / "confounds" / f"dyad-{DYAD}"
         onset_files = sorted((sub_dir / "phonemic-onset").glob("*desc-onset*.parquet"))
         rate_files = sorted((sub_dir / "phonemic-rate").glob("*desc-rate*.parquet"))
         assert len(onset_files) == 1
@@ -244,7 +253,7 @@ class TestPhonemicConfoundGenerate:
         _add_phonemic(tree, start_times=[0.5], phonemes=["K"], desc="gpt3")
         _add_phonemic(tree, start_times=[0.5], phonemes=["K"], desc=None)
         layout = BIDSLayout(tree.root)
-        files = layout.find.features(sub=SUB, kind="phonemic", desc="*")
+        files = layout.find.features(dyad=DYAD, kind="phonemic", desc="*")
         kept = pick_timing_source(files)
         assert len(kept) == 1
         assert kept[0].entities.get("desc") is None
@@ -256,17 +265,18 @@ class TestPhonemicConfoundGenerate:
             phonemes=["K", "AE", "T"],
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
-        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        feat = layout.find.features(dyad=DYAD, kind="phonemic")[0]
         onset = layout.path.confound(source=feat, kind="phonemic", desc="onset").path
         rate = layout.path.confound(source=feat, kind="phonemic", desc="rate").path
 
         # Pre-place a valid onset (skipped) and leave rate missing
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
         onset.write_bytes(b"sentinel")
         rate.unlink()
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
         assert onset.read_bytes() == b"sentinel"  # existing variant left untouched
         assert read_confound(rate).height == DEFAULT_BOLD_N_TRS  # missing one rebuilt
@@ -274,16 +284,17 @@ class TestPhonemicConfoundGenerate:
     def test_all_variants_skipped(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
-        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        feat = layout.find.features(dyad=DYAD, kind="phonemic")[0]
         onset = layout.path.confound(source=feat, kind="phonemic", desc="onset").path
         rate = layout.path.confound(source=feat, kind="phonemic", desc="rate").path
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
         onset.write_bytes(b"sent-onset")
         rate.write_bytes(b"sent-rate")
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
 
         assert onset.read_bytes() == b"sent-onset"
         assert rate.read_bytes() == b"sent-rate"
@@ -291,14 +302,15 @@ class TestPhonemicConfoundGenerate:
     def test_force_regenerates_all_variants(self, tree: BIDSTree):
         _add_phonemic(tree, start_times=[0.0], phonemes=["K"])
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         layout = BIDSLayout(tree.root)
-        feat = layout.find.features(sub=SUB, kind="phonemic")[0]
+        feat = layout.find.features(dyad=DYAD, kind="phonemic")[0]
         onset = layout.path.confound(source=feat, kind="phonemic", desc="onset").path
 
-        PhonemicConfound(bids_root=tree.root).generate(SUB)
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
         onset.write_bytes(b"sentinel")
 
-        PhonemicConfound(bids_root=tree.root, force=True).generate(SUB)
+        PhonemicConfound(bids_root=tree.root, force=True).generate(DYAD)
 
         assert onset.read_bytes() != b"sentinel"
         assert read_confound(onset).height == DEFAULT_BOLD_N_TRS
@@ -311,6 +323,7 @@ class TestPhonemicConfoundGenerate:
             extra_entities={"trial": "9"},
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -321,4 +334,4 @@ class TestPhonemicConfoundGenerate:
         )
 
         with pytest.raises(ValueError, match="trial-9"):
-            PhonemicConfound(bids_root=tree.root).generate(SUB)
+            PhonemicConfound(bids_root=tree.root).generate(DYAD)

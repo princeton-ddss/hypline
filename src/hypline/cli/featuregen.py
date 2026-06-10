@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from loguru import logger
 
-from ._utils import run_per_subject, split_csv
+from ._utils import run_per_id, split_csv
 
 app = typer.Typer()
 
@@ -25,10 +25,10 @@ def generate_phonemic_feature(
             help="Do not use articulatory features",
         ),
     ] = False,
-    sub_ids: Annotated[
+    dyad_ids: Annotated[
         str | None,
         typer.Option(
-            help="Comma-separated subject IDs to process (e.g., 01,02); omit for all",
+            help="Comma-separated dyad IDs to process (e.g., 01,02); omit for all",
             show_default=False,
         ),
     ] = None,
@@ -73,7 +73,7 @@ def generate_phonemic_feature(
     from hypline.confounds.phonemic import PhonemicConfound
     from hypline.features.phonemic import PhonemicFeature
 
-    _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     feature = PhonemicFeature(
@@ -84,10 +84,10 @@ def generate_phonemic_feature(
         force=force,
     )
 
-    _sub_ids = _sub_ids or feature._layout.list.subjects(area="stimuli")
+    _dyad_ids = _dyad_ids or feature._layout.list.dyads(area="stimuli")
 
-    if not _sub_ids:
-        logger.warning("No subjects found — nothing to generate")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to generate")
         return
 
     if skip_confoundgen:
@@ -99,14 +99,15 @@ def generate_phonemic_feature(
             force=force,
         )
 
-        def task(sub_id: str):
-            feature.generate(sub_id)
-            confound.generate(sub_id)
+        def task(dyad_id: str):
+            feature.generate(dyad_id)
+            confound.generate(dyad_id)
 
-    run_per_subject(
+    run_per_id(
         bids_root,
         "featuregen",
         "phonemic",
-        sub_ids=_sub_ids,
+        id_key="dyad",
+        id_values=_dyad_ids,
         task=task,
     )

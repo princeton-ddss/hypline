@@ -13,6 +13,7 @@ from hypline.layout import BIDSLayout
 from .conftest import BIDSTree
 
 SUB = "001"
+DYAD = "101"
 TASK = "conv"
 SPACE = "MNI152NLin6Asym"
 
@@ -52,27 +53,34 @@ class TestSegmentTrSlice:
 
 class TestLoadSegments:
     def test_missing_task_entity_raises(self, tree: BIDSTree):
-        stim = tree.add_stimulus(sub=SUB, task=TASK, kind="audio", ext=".wav")
+        stim = tree.add_stimulus(dyad=DYAD, task=TASK, kind="audio", ext=".wav")
         source_no_task = BIDSPath(stim).without_entity("task")
         with pytest.raises(ValueError, match="missing required 'task' entity"):
             load_segments(BIDSLayout(tree.root), source_no_task)
 
     def test_no_events_returns_empty(self, tree: BIDSTree):
-        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
         segments = load_segments(BIDSLayout(tree.root), BIDSPath(stim))
         assert segments == []
 
     def test_source_is_stimulus_path(self, tree: BIDSTree):
         # No BOLD file on disk — must still resolve events from stimulus path
-        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
         tree.add_events(sub=SUB, task=TASK, run="1", rows=_SEGMENT_ROWS)
         segments = load_segments(BIDSLayout(tree.root), BIDSPath(stim))
         assert [seg.value for seg in segments] == ["1", "2"]
         assert [seg.onset for seg in segments] == [0.0, 100.0]
 
     def test_source_is_feature_path_matches_bold(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
-        feat_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="mfcc")
+        feat_path = tree.add_feature(dyad=DYAD, task=TASK, run="1", kind="mfcc")
         tree.add_events(sub=SUB, task=TASK, run="1", rows=_SEGMENT_ROWS)
         layout = BIDSLayout(tree.root)
         from_feat = load_segments(layout, BIDSPath(feat_path))
@@ -185,13 +193,19 @@ class TestMergeFilenameAndSidecar:
 
 class TestResolveEntities:
     def test_unsegmented_run_returns_filename_entities(self, tree: BIDSTree):
-        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
         merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
-        assert merged == {"sub": SUB, "task": TASK, "run": "1", "stim": "audio"}
+        assert merged == {"dyad": DYAD, "task": TASK, "run": "1", "stim": "audio"}
 
     def test_task_escape_hatch_merges_run_level_metadata(self, tree: BIDSTree):
         # Escape hatch: `task-<value>` row reuses filename's `task` as segment entity
-        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -203,7 +217,7 @@ class TestResolveEntities:
         )
         merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
         assert merged == {
-            "sub": SUB,
+            "dyad": DYAD,
             "task": TASK,
             "run": "1",
             "stim": "audio",
@@ -212,8 +226,9 @@ class TestResolveEntities:
 
     def test_segmented_stimulus_merges_sidecar_metadata(self, tree: BIDSTree):
         # No BOLD file — proves stimulus discovery works without it
+        tree.add_participants({SUB: DYAD})
         stim = tree.add_stimulus(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             kind="audio",
@@ -229,7 +244,7 @@ class TestResolveEntities:
         )
         merged = resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
         assert merged == {
-            "sub": SUB,
+            "dyad": DYAD,
             "task": TASK,
             "run": "1",
             "stim": "audio",
@@ -239,9 +254,10 @@ class TestResolveEntities:
         }
 
     def test_segmented_feature_path_matches_stimulus(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
         feat = tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             kind="mfcc",
@@ -259,7 +275,10 @@ class TestResolveEntities:
         assert merged["item"] == "102"
 
     def test_missing_segment_entity_on_filename_raises(self, tree: BIDSTree):
-        stim = tree.add_stimulus(sub=SUB, task=TASK, run="1", kind="audio", ext=".wav")
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
         tree.add_events(
             sub=SUB,
             task=TASK,
@@ -271,8 +290,9 @@ class TestResolveEntities:
             resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
 
     def test_unknown_segment_value_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         stim = tree.add_stimulus(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             kind="audio",
@@ -292,8 +312,9 @@ class TestResolveEntities:
     def test_filename_descriptive_entity_absent_from_sidecar_raises(
         self, tree: BIDSTree
     ):
+        tree.add_participants({SUB: DYAD})
         stim = tree.add_stimulus(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             kind="audio",
@@ -318,8 +339,9 @@ class TestResolveEntities:
             resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
 
     def test_filename_sidecar_disagreement_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         stim = tree.add_stimulus(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             kind="audio",

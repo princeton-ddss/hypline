@@ -76,7 +76,7 @@ def _derive_parquet_path(
 
     Builds the BIDS filename via `BIDSPath.from_entities` (which enforces
     entity ordering and validation), then places it under the canonical
-    `<area>/sub-XX/[ses-YY/]<kind>[-<desc>]/` subdirectory.
+    `<area>/dyad-XX/[ses-YY/]<kind>[-<desc>]/` subdirectory.
     """
     bp = BIDSPath.from_entities(
         ext=".parquet",
@@ -86,7 +86,7 @@ def _derive_parquet_path(
     out_dir = kind_subdir(
         Path(bids_root),
         area,
-        sub=bp.entities["sub"],
+        identity=("dyad", bp.entities["dyad"]),
         ses=bp.entities.get("ses"),
         kind=kind,
         desc=bp.entities.get("desc"),
@@ -275,7 +275,7 @@ def save_feature(
     df: pl.DataFrame,
     *,
     bids_root: str | Path,
-    sub: str,
+    dyad: str,
     feat: str,
     desc: str | None = None,
     metadata: dict[str, Any] | None = None,
@@ -292,9 +292,10 @@ def save_feature(
         other columns are preserved.
     bids_root
         Project root; the file lands under
-        `<bids_root>/features/sub-<sub>/[ses-<ses>/]<feat>[-<desc>]/`.
-    sub, feat
-        Required subject and feature-kind labels.
+        `<bids_root>/features/dyad-<dyad>/[ses-<ses>/]<feat>[-<desc>]/`.
+    dyad, feat
+        Required dyad and feature-kind labels. Features describe the shared
+        conversation, so they are keyed by dyad, not subject.
     desc
         Optional variant tag landing as a `desc-<desc>` entity, placing the
         file under a `<feat>-<desc>/` subdirectory. Omit for the canonical
@@ -320,7 +321,7 @@ def save_feature(
         If required columns are missing, `feature` widths are ragged, or
         `metadata` supplies a reserved key.
     """
-    entities = {"sub": sub, **entities}
+    entities = {"dyad": dyad, **entities}
     if desc is not None:
         entities["desc"] = desc
     path = _derive_parquet_path(
@@ -506,7 +507,7 @@ def save_confound(
     df: pl.DataFrame,
     *,
     bids_root: str | Path,
-    sub: str,
+    dyad: str,
     conf: str,
     repetition_time: float,
     tr_method: str | None,
@@ -525,9 +526,10 @@ def save_confound(
         to fixed-width `Array(Float64)` on write.
     bids_root
         Project root; the file lands under
-        `<bids_root>/confounds/sub-<sub>/[ses-<ses>/]<conf>[-<desc>]/`.
-    sub, conf
-        Required subject and confound-kind labels.
+        `<bids_root>/confounds/dyad-<dyad>/[ses-<ses>/]<conf>[-<desc>]/`.
+    dyad, conf
+        Required dyad and confound-kind labels. Confounds describe the shared
+        conversation, so they are keyed by dyad, not subject.
     repetition_time
         TR of the target BOLD acquisition, in seconds. Must be passed
         explicitly: a single-row DataFrame carries no spacing, and
@@ -565,7 +567,7 @@ def save_confound(
         `confound` widths are ragged, or `metadata` supplies a reserved
         key.
     """
-    entities = {"sub": sub, **entities}
+    entities = {"dyad": dyad, **entities}
     if desc is not None:
         entities["desc"] = desc
     path = _derive_parquet_path(

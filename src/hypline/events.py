@@ -201,14 +201,25 @@ def load_segments(layout: "BIDSLayout", source: BIDSPath) -> list[Segment]:
             f"(events sidecars are resolved by task)"
         )
 
-    events_bids = layout.path.raw(source=source, suffix="events", ext=".tsv")
+    # Events sidecars are sub-keyed, but a dyad-keyed artifact carries no `sub`.
+    # Partners share segment info (slice timing + metadata) by construction; the
+    # rest of each events file may differ, but we read only the segment pieces,
+    # so any partner stands in. Raises KeyError if the dyad is unmapped.
+    dyad = source.entities.get("dyad")
+    sub_source = (
+        source.with_identity("sub", layout.subjects_of(dyad)[0])
+        if dyad is not None
+        else source
+    )
+
+    events_bids = layout.path.raw(source=sub_source, suffix="events", ext=".tsv")
     events = (
         pl.read_csv(events_bids.path, separator="\t")
         if events_bids.path.exists()
         else None
     )
 
-    events_meta_bids = layout.path.raw(source=source, suffix="events", ext=".json")
+    events_meta_bids = layout.path.raw(source=sub_source, suffix="events", ext=".json")
     if events_meta_bids.path.exists():
         with open(events_meta_bids.path) as f:
             events_meta = json.load(f)

@@ -19,12 +19,12 @@ def _patch_generators(monkeypatch):
 
 
 class TestFeaturegenPhonemicChain:
-    def test_confounds_generated_per_subject_in_order(self, tree, monkeypatch):
+    def test_confounds_generated_per_dyad_in_order(self, tree, monkeypatch):
         manager = _patch_generators(monkeypatch)
 
         result = runner.invoke(
             app,
-            ["featuregen", "phonemic", str(tree.root), "--sub-ids", "01,02"],
+            ["featuregen", "phonemic", str(tree.root), "--dyad-ids", "01,02"],
         )
 
         assert result.exit_code == 0
@@ -33,7 +33,7 @@ class TestFeaturegenPhonemicChain:
             call.confound("01"),
             call.feature("02"),
             call.confound("02"),
-        ]  # per-subject chain, NOT both features then both confounds
+        ]  # per-dyad chain, NOT both features then both confounds
 
     def test_skip_confoundgen_runs_feature_only(self, tree, monkeypatch):
         manager = _patch_generators(monkeypatch)
@@ -44,7 +44,7 @@ class TestFeaturegenPhonemicChain:
                 "featuregen",
                 "phonemic",
                 str(tree.root),
-                "--sub-ids",
+                "--dyad-ids",
                 "01,02",
                 "--skip-confoundgen",
             ],
@@ -57,15 +57,15 @@ class TestFeaturegenPhonemicChain:
     def test_feature_failure_skips_own_confound_others_proceed(self, tree, monkeypatch):
         manager = _patch_generators(monkeypatch)
 
-        def feature_generate(sub_id):
-            if sub_id == "01":
+        def feature_generate(dyad_id):
+            if dyad_id == "01":
                 raise RuntimeError("boom")
 
         manager.feature.side_effect = feature_generate
 
         result = runner.invoke(
             app,
-            ["featuregen", "phonemic", str(tree.root), "--sub-ids", "01,02"],
+            ["featuregen", "phonemic", str(tree.root), "--dyad-ids", "01,02"],
         )
 
         assert result.exit_code == 1
@@ -73,4 +73,4 @@ class TestFeaturegenPhonemicChain:
             call.feature("01"),
             call.feature("02"),
             call.confound("02"),
-        ]  # sub-01 feature raised → its confound skipped; sub-02 ran both
+        ]  # dyad-01 feature raised → its confound skipped; dyad-02 ran both

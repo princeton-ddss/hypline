@@ -6,7 +6,7 @@ from typing import Any, Literal
 import polars as pl
 import pytest
 
-from hypline.bids import BOLD_IDENTITY_ENTITIES
+from hypline.bids import BOLD_IDENTITY_ENTITIES, Identity
 
 DEFAULT_BOLD_N_TRS = 10
 
@@ -29,13 +29,16 @@ class BIDSTree:
     """Minimal on-disk fixture mirroring the hypline BIDS tree.
 
     Layout (`ses` is optional everywhere):
-        stimuli/sub-XX/[ses-YY/]<kind>[-<desc>]/
-        features/sub-XX/[ses-YY/]<kind>[-<desc>]/
+        stimuli/dyad-XX/[ses-YY/]<kind>[-<desc>]/
+        features/dyad-XX/[ses-YY/]<kind>[-<desc>]/
+        confounds/dyad-XX/[ses-YY/]<kind>[-<desc>]/
         derivatives/fmriprep/sub-XX/[ses-YY/]func/
         derivatives/hypline/sub-XX/[ses-YY/]func/
 
-    All helpers require identity entities (`sub`, optional `ses`, `task`, `run`)
-    specified explicitly so the data shape stays readable at the callsite.
+    The shared-conversation areas (stimuli/features/confounds) are dyad-keyed;
+    BOLD-derived areas are sub-keyed. All helpers require identity entities (`sub`
+    or `dyad`, optional `ses`, `task`, `run`) specified explicitly so the data
+    shape stays readable at the callsite.
     """
 
     def __init__(self, root: Path):
@@ -70,23 +73,43 @@ class BIDSTree:
         return self.root / "results"
 
     def fmriprep_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
-        return self._sub_ses_dir(self.fmriprep_dir, sub, ses) / "func"
+        id_dir = self._identity_ses_dir(
+            area_root=self.fmriprep_dir,
+            id_key="sub",
+            id_value=sub,
+            ses=ses,
+        )
+        return id_dir / "func"
 
     def denoised_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
-        return self._sub_ses_dir(self.hypline_dir, sub, ses) / "func"
+        id_dir = self._identity_ses_dir(
+            area_root=self.hypline_dir,
+            id_key="sub",
+            id_value=sub,
+            ses=ses,
+        )
+        return id_dir / "func"
 
     def raw_func_dir(self, *, sub: str, ses: str | None = None) -> Path:
-        return self._sub_ses_dir(self.root, sub, ses) / "func"
+        id_dir = self._identity_ses_dir(
+            area_root=self.root,
+            id_key="sub",
+            id_value=sub,
+            ses=ses,
+        )
+        return id_dir / "func"
 
-    def _entities(
+    def _identity_entities(
         self,
-        sub: str,
+        *,
+        id_key: Identity,
+        id_value: str,
         ses: str | None,
         task: str | None,
         run: str | None,
         **extra_entities: str,
     ) -> dict[str, str]:
-        entities: dict[str, str] = {"sub": sub}
+        entities: dict[str, str] = {id_key: id_value}
         if ses is not None:
             entities["ses"] = ses
         if task is not None:
@@ -99,9 +122,16 @@ class BIDSTree:
     def _stem(self, entities: dict[str, str]) -> str:
         return "_".join(f"{k}-{v}" for k, v in entities.items())
 
-    def _sub_ses_dir(self, area_root: Path, sub: str, ses: str | None) -> Path:
-        sub_dir = area_root / f"sub-{sub}"
-        return sub_dir / f"ses-{ses}" if ses is not None else sub_dir
+    def _identity_ses_dir(
+        self,
+        *,
+        area_root: Path,
+        id_key: Identity,
+        id_value: str,
+        ses: str | None,
+    ) -> Path:
+        id_dir = area_root / f"{id_key}-{id_value}"
+        return id_dir / f"ses-{ses}" if ses is not None else id_dir
 
     def _write(self, path: Path, *, content: str | bytes | None = None) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -126,7 +156,14 @@ class BIDSTree:
         sidecar_json: dict | None = None,
         extra_entities: dict[str, str] | None = None,
     ) -> Path:
-        entities = self._entities(sub, ses, task, run, **(extra_entities or {}))
+        entities = self._identity_entities(
+            id_key="sub",
+            id_value=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            **(extra_entities or {}),
+        )
         path = dir / f"{self._stem(entities)}_{suffix}{ext}"
         self._write(path, content=content)
         if sidecar_json is not None:
@@ -233,7 +270,7 @@ class BIDSTree:
     def add_stimulus(
         self,
         *,
-        sub: str,
+        dyad: str,
         ses: str | None = None,
         task: str,
         run: str | None = None,
@@ -244,9 +281,22 @@ class BIDSTree:
         extras = extra_entities or {}
         if "desc" in extras:
             raise ValueError("stimuli have no desc variants")
-        entities = self._entities(sub, ses, task, run, **extras)
+        entities = self._identity_entities(
+            id_key="dyad",
+            id_value=dyad,
+            ses=ses,
+            task=task,
+            run=run,
+            **extras,
+        )
         entities["stim"] = kind
-        kind_dir = self._sub_ses_dir(self.stimuli_dir, sub, ses) / kind
+        id_dir = self._identity_ses_dir(
+            area_root=self.stimuli_dir,
+            id_key="dyad",
+            id_value=dyad,
+            ses=ses,
+        )
+        kind_dir = id_dir / kind
         path = kind_dir / f"{self._stem(entities)}{ext}"
         self._write(path)
         return path
@@ -254,7 +304,7 @@ class BIDSTree:
     def add_feature(
         self,
         *,
-        sub: str,
+        dyad: str,
         ses: str | None = None,
         task: str,
         run: str | None = None,
@@ -269,12 +319,25 @@ class BIDSTree:
         extras = extra_entities or {}
         if "desc" in extras:
             raise ValueError("pass desc as an explicit argument, not in extra_entities")
-        entities = self._entities(sub, ses, task, run, **extras)
+        entities = self._identity_entities(
+            id_key="dyad",
+            id_value=dyad,
+            ses=ses,
+            task=task,
+            run=run,
+            **extras,
+        )
         entities["feat"] = kind
         if desc is not None:
             entities["desc"] = desc
         subdir = f"{kind}-{desc}" if desc else kind
-        kind_dir = self._sub_ses_dir(self.features_dir, sub, ses) / subdir
+        id_dir = self._identity_ses_dir(
+            area_root=self.features_dir,
+            id_key="dyad",
+            id_value=dyad,
+            ses=ses,
+        )
+        kind_dir = id_dir / subdir
         kind_dir.mkdir(parents=True, exist_ok=True)
         path = kind_dir / f"{self._stem(entities)}.parquet"
         if df is None:
@@ -288,7 +351,7 @@ class BIDSTree:
     def add_confound(
         self,
         *,
-        sub: str,
+        dyad: str,
         ses: str | None = None,
         task: str,
         run: str | None = None,
@@ -303,12 +366,25 @@ class BIDSTree:
         extras = extra_entities or {}
         if "desc" in extras:
             raise ValueError("pass desc as an explicit argument, not in extra_entities")
-        entities = self._entities(sub, ses, task, run, **extras)
+        entities = self._identity_entities(
+            id_key="dyad",
+            id_value=dyad,
+            ses=ses,
+            task=task,
+            run=run,
+            **extras,
+        )
         entities["conf"] = kind
         if desc is not None:
             entities["desc"] = desc
         subdir = f"{kind}-{desc}" if desc else kind
-        kind_dir = self._sub_ses_dir(self.confounds_dir, sub, ses) / subdir
+        id_dir = self._identity_ses_dir(
+            area_root=self.confounds_dir,
+            id_key="dyad",
+            id_value=dyad,
+            ses=ses,
+        )
+        kind_dir = id_dir / subdir
         kind_dir.mkdir(parents=True, exist_ok=True)
         path = kind_dir / f"{self._stem(entities)}.parquet"
         if df is None:
@@ -340,12 +416,25 @@ class BIDSTree:
         extras = extra_entities or {}
         if "desc" in extras:
             raise ValueError("pass desc as an explicit argument, not in extra_entities")
-        entities = self._entities(sub, ses, task, run, **extras)
+        entities = self._identity_entities(
+            id_key="sub",
+            id_value=sub,
+            ses=ses,
+            task=task,
+            run=run,
+            **extras,
+        )
         entities["nuis"] = kind
         if desc is not None:
             entities["desc"] = desc
         subdir = f"{kind}-{desc}" if desc else kind
-        kind_dir = self._sub_ses_dir(self.nuisance_dir, sub, ses) / subdir
+        id_dir = self._identity_ses_dir(
+            area_root=self.nuisance_dir,
+            id_key="sub",
+            id_value=sub,
+            ses=ses,
+        )
+        kind_dir = id_dir / subdir
         kind_dir.mkdir(parents=True, exist_ok=True)
         path = kind_dir / f"{self._stem(entities)}_timeseries.tsv"
         if df is None:

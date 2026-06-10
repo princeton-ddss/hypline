@@ -57,7 +57,8 @@ class CellKey:
     """Open-schema key identifying a single feature time window.
 
     EXCLUDE defines which entities must never appear on a cell key:
-    - sub: invariant across a training call
+    - sub, dyad: invariant identities across a training call (features are
+      dyad-keyed, BOLD is sub-keyed; neither is a cell axis)
     - desc, res, den: image-variant entities (BOLD derivatives only)
     - space, feat: orthogonal axes — handled by dedicated arguments
 
@@ -71,6 +72,7 @@ class CellKey:
     EXCLUDE: frozenset[str] = frozenset(
         (
             "sub",
+            "dyad",
             "desc",
             "res",
             "den",
@@ -831,7 +833,8 @@ class Encoding:
         """Discover and validate feature file paths for a subject.
 
         Scans the features directory by BIDS filename alone — no feature data is read.
-        Only sub and feature are used as structural filters; bids_filters are applied
+        Features are dyad-keyed, so `sub_id` is resolved to its dyad via `dyad_of`;
+        only dyad and feature are used as structural filters; bids_filters are applied
         post-enrichment in _apply_filters. Duplicate files for the same (cell, feature)
         pair raise immediately.
 
@@ -840,10 +843,12 @@ class Encoding:
         at any cell raises rather than silently producing an incomplete matrix.
         All files are guaranteed to share the same cell schema (entity key set).
         """
+        # Features are dyad-keyed; resolve this subject's dyad via participants.tsv
+        dyad_id = self._layout.dyad_of(sub_id)
         feature_bids: dict[FeatureKey, BIDSPath] = {}
         for feature_name, (kind, desc) in self._features.items():
             feature_files = self._layout.find.features(
-                sub=sub_id, kind=kind, desc=desc, bids_filters=self._task_filters
+                dyad=dyad_id, kind=kind, desc=desc, bids_filters=self._task_filters
             )
 
             for bids in feature_files:

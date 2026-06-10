@@ -1,6 +1,7 @@
 import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
+from typing import Literal
 
 BIDS_ENTITY_KEY_RE = re.compile(r"^[a-z]+$")
 BIDS_ENTITY_VALUE_RE = re.compile(r"^[a-zA-Z0-9]+$")
@@ -12,6 +13,7 @@ EXTENSION_RE = re.compile(r"^\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$")
 # stem. `sub` keys per-brain areas (BOLD and its derivatives); `dyad` keys the
 # shared-conversation areas (stimuli/features/confounds).
 IDENTITY_ENTITIES = frozenset(("sub", "dyad"))
+Identity = Literal["sub", "dyad"]
 
 # Entities identifying a single BOLD run
 BOLD_IDENTITY_ENTITIES = frozenset(("sub", "ses", "task", "run"))
@@ -20,9 +22,12 @@ BOLD_IDENTITY_ENTITIES = frozenset(("sub", "ses", "task", "run"))
 # acquisition protocol, so methodological-variation entities are disallowed.
 UNSUPPORTED_ENTITIES = frozenset(("acq", "ce", "rec", "dir", "echo", "part", "chunk"))
 
-# BOLD identity entities plus unsupported ones. Used to bar `events.tsv` segment
-# rows from colliding with BIDS-reserved entity names.
-RESERVED_BIDS_ENTITIES = BOLD_IDENTITY_ENTITIES | UNSUPPORTED_ENTITIES
+# Leading identity, BOLD identity, and unsupported entities. Used to bar
+# `events.tsv` segment rows from colliding with BIDS-reserved entity names;
+# includes `dyad` so a dyad-keyed segment row is rejected like any identity.
+RESERVED_BIDS_ENTITIES = (
+    IDENTITY_ENTITIES | BOLD_IDENTITY_ENTITIES | UNSUPPORTED_ENTITIES
+)
 
 # Hypline derivative-category tags; a derived output carries exactly one.
 # `result` tags analysis outputs (encoding models, correlations) under results/;
@@ -34,8 +39,11 @@ VARIANT_DESCRIPTORS = frozenset({"desc", "space", "res", "den"})
 
 # Filename entities allowed without an events.json sidecar counterpart.
 # Anything outside this set is descriptive metadata and must be declared
-# in events.json `Levels`.
-STRUCTURAL_ENTITIES = BOLD_IDENTITY_ENTITIES | CATEGORY_ENTITIES | VARIANT_DESCRIPTORS
+# in events.json `Levels`. Includes `dyad` so a dyad-keyed path's leading
+# identity is not mistaken for undeclared metadata during sidecar resolution.
+STRUCTURAL_ENTITIES = (
+    IDENTITY_ENTITIES | BOLD_IDENTITY_ENTITIES | CATEGORY_ENTITIES | VARIANT_DESCRIPTORS
+)
 
 # Fixed slots for `BIDSPath.from_entities`; non-fixed keys fill the middle
 # alphabetically, keeping `desc` adjacent to the category it modifies. `dyad`

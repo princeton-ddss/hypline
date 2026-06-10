@@ -6,7 +6,7 @@ from loguru import logger
 
 from hypline.enums import Device, WhisperModel
 
-from ._utils import run_per_subject, split_csv
+from ._utils import run_per_id, split_csv
 
 
 def transcribe(
@@ -46,10 +46,10 @@ def transcribe(
             help="Hardware target for running the model",
         ),
     ] = Device.CPU,
-    sub_ids: Annotated[
+    dyad_ids: Annotated[
         str | None,
         typer.Option(
-            help="Comma-separated subject IDs to process (e.g., 01,02); omit for all",
+            help="Comma-separated dyad IDs to process (e.g., 01,02); omit for all",
             show_default=False,
         ),
     ] = None,
@@ -77,7 +77,7 @@ def transcribe(
     """
     from hypline.transcribe import Transcriber, WhisperConfig
 
-    _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     config = WhisperConfig(
@@ -94,15 +94,16 @@ def transcribe(
         force=force,
     )
 
-    _sub_ids = _sub_ids or transcriber._layout.list.subjects(area="stimuli")
+    _dyad_ids = _dyad_ids or transcriber._layout.list.dyads(area="stimuli")
 
-    if not _sub_ids:
-        logger.warning("No subjects found — nothing to transcribe")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to transcribe")
         return
 
-    run_per_subject(
+    run_per_id(
         bids_root,
         "transcribe",
-        sub_ids=_sub_ids,
+        id_key="dyad",
+        id_values=_dyad_ids,
         task=transcriber.transcribe,
     )

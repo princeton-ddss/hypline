@@ -61,7 +61,7 @@ class Transcriber:
         self._audio_ext = audio_ext
 
         self._bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "stim"}
+            bids_filters, reserved={"dyad", "stim"}
         )
 
         self._force = force
@@ -81,12 +81,12 @@ class Transcriber:
             model_dir=str(config.model_dir),
         )
 
-    def transcribe(self, sub_id: str):
+    def transcribe(self, dyad_id: str):
         import polars as pl
         import whisperx
 
         audio_files = self._layout.find.stimuli(
-            sub=sub_id,
+            dyad=dyad_id,
             kind="audio",
             ext=self._audio_ext,
             bids_filters=self._bids_filters,

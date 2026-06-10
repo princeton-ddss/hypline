@@ -5,6 +5,8 @@ from pathlib import Path
 import typer
 from loguru import logger
 
+from hypline.bids import Identity
+
 
 def split_csv(value: str | None, param_hint: str | None = None) -> list[str] | None:
     if value is None:
@@ -22,8 +24,8 @@ def split_csv(value: str | None, param_hint: str | None = None) -> list[str] | N
 
 
 @contextmanager
-def subject_log(bids_root: Path, *command_parts: str, sub_id: str):
-    log_path = bids_root / "logs" / Path(*command_parts) / f"sub-{sub_id}.log"
+def id_log(bids_root: Path, *command_parts: str, id_key: Identity, id_value: str):
+    log_path = bids_root / "logs" / Path(*command_parts) / f"{id_key}-{id_value}.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     sink_id = logger.add(
         log_path,
@@ -38,24 +40,35 @@ def subject_log(bids_root: Path, *command_parts: str, sub_id: str):
         logger.remove(sink_id)
 
 
-def run_per_subject(
+def run_per_id(
     bids_root: Path,
     *command_parts: str,
-    sub_ids: Iterable[str],
+    id_key: Identity,
+    id_values: Iterable[str],
     task: Callable[[str], None],
 ):
-    sub_ids = list(sub_ids)
+    """Run `task` per identity, logging and collecting failures.
+
+    `id_key` is the identity prefix (`sub` or `dyad`) — it labels both the
+    per-id log file and the failure summary, so dyad-keyed generators report
+    `dyad-XX` rather than `sub-XX`.
+    """
+    id_values = list(id_values)
     failed = []
-    for sub_id in sub_ids:
-        with subject_log(bids_root, *command_parts, sub_id=sub_id):
+    for id_val in id_values:
+        with id_log(bids_root, *command_parts, id_key=id_key, id_value=id_val):
             try:
-                task(sub_id)
+                task(id_val)
             except Exception:
-                logger.exception("sub-{} failed", sub_id)
-                failed.append(sub_id)
+                logger.exception("{}-{} failed", id_key, id_val)
+                failed.append(id_val)
 
     if failed:
         logger.error(
-            "{}/{} subjects failed: {}", len(failed), len(sub_ids), ",".join(failed)
+            "{}/{} {}s failed: {}",
+            len(failed),
+            len(id_values),
+            id_key,
+            ",".join(failed),
         )
         raise typer.Exit(code=1)

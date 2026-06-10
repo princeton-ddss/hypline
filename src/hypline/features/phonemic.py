@@ -74,7 +74,7 @@ class PhonemicFeature:
         self._layout = BIDSLayout(bids_root)
         self._use_articulatory = use_articulatory
         self._bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "stim"}
+            bids_filters, reserved={"dyad", "stim"}
         )
 
         if desc is not None and not BIDS_ENTITY_VALUE_RE.match(desc):
@@ -110,7 +110,7 @@ class PhonemicFeature:
                     vec[feature_index[row[col]]] = 1
             cls._articulatory_vectors[row["phoneme"]] = vec
 
-    def generate(self, sub_id: str):
+    def generate(self, dyad_id: str):
         dim = (
             len(self._articulatory_feature_names)
             if self._use_articulatory
@@ -118,7 +118,7 @@ class PhonemicFeature:
         )
 
         transcripts = self._layout.find.stimuli(
-            sub=sub_id,
+            dyad=dyad_id,
             kind="transcript",
             ext=".csv",
             bids_filters=self._bids_filters,

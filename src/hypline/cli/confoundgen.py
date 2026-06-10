@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 from loguru import logger
 
-from ._utils import run_per_subject, split_csv
+from ._utils import run_per_id, split_csv
 
 app = typer.Typer()
 
@@ -18,10 +18,10 @@ def generate_phonemic_confound(
             show_default=False,
         ),
     ],
-    sub_ids: Annotated[
+    dyad_ids: Annotated[
         str | None,
         typer.Option(
-            help="Comma-separated subject IDs to process (e.g., 01,02); omit for all",
+            help="Comma-separated dyad IDs to process (e.g., 01,02); omit for all",
             show_default=False,
         ),
     ] = None,
@@ -47,7 +47,7 @@ def generate_phonemic_confound(
     """Generate phonemic confounds (onset, rate) from phonemic feature files."""
     from hypline.confounds.phonemic import PhonemicConfound
 
-    _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
+    _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
     confound = PhonemicConfound(
@@ -56,16 +56,17 @@ def generate_phonemic_confound(
         force=force,
     )
 
-    _sub_ids = _sub_ids or confound._layout.list.subjects(area="stimuli")
+    _dyad_ids = _dyad_ids or confound._layout.list.dyads(area="features")
 
-    if not _sub_ids:
-        logger.warning("No subjects found — nothing to generate")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to generate")
         return
 
-    run_per_subject(
+    run_per_id(
         bids_root,
         "confoundgen",
         "phonemic",
-        sub_ids=_sub_ids,
+        id_key="dyad",
+        id_values=_dyad_ids,
         task=confound.generate,
     )

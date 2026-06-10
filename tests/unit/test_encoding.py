@@ -25,6 +25,7 @@ from hypline.encoding import (
 from .conftest import BIDSTree
 
 SUB = "001"
+DYAD = "101"
 TASK = "conv"
 SPACE = "MNI152NLin6Asym"
 
@@ -239,47 +240,53 @@ class TestCellKey:
 
 class TestDiscoverFeatures:
     def test_returns_expected_keys(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         expected = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="mfcc")
         assert expected in feature_paths
 
     def test_no_files_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(FileNotFoundError, match="features"):
             enc._discover_features(SUB)
 
     def test_duplicate_feature_file_raises(self, tree: BIDSTree):
         # Two filenames with identical BIDS entities (reordered) collide on FeatureKey
-        original = tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
-        dup = original.parent / f"sub-{SUB}_run-1_task-{TASK}_feat-mfcc.parquet"
+        tree.add_participants({SUB: DYAD})
+        original = tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        dup = original.parent / f"dyad-{DYAD}_run-1_task-{TASK}_feat-mfcc.parquet"
         dup.write_bytes(original.read_bytes())
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Multiple feature files"):
             enc._discover_features(SUB)
 
     def test_missing_feature_at_one_cell_raises(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
-        tree.add_feature(sub=SUB, task=TASK, kind="clip", run="1")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="clip", run="1")
         enc = _make_encoding(tree, ["mfcc", "clip"])
         with pytest.raises(FileNotFoundError, match="Missing feat=clip"):
             enc._discover_features(SUB)
 
     def test_canonical_reads_bare_folder_not_variants(self, tree: BIDSTree):
         # The user-visible bug fix: variants on disk no longer collide
-        bare = tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1", desc="gpt3")
+        tree.add_participants({SUB: DYAD})
+        bare = tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1", desc="gpt3")
         enc = _make_encoding(tree, ["phonemic"])
         feature_paths = enc._discover_features(SUB)
         key = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="phonemic")
         assert feature_paths[key].path == bare
 
     def test_variant_reads_variant_folder_only(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1")
         variant = tree.add_feature(
-            sub=SUB, task=TASK, kind="phonemic", run="1", desc="gpt3"
+            dyad=DYAD, task=TASK, kind="phonemic", run="1", desc="gpt3"
         )
         enc = _make_encoding(tree, ["phonemic-gpt3"])
         feature_paths = enc._discover_features(SUB)
@@ -287,31 +294,34 @@ class TestDiscoverFeatures:
         assert feature_paths[key].path == variant
 
     def test_missing_variant_raises(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1")
         enc = _make_encoding(tree, ["phonemic-gpt3"])
         with pytest.raises(FileNotFoundError):
             enc._discover_features(SUB)
 
     def test_distinct_variants_form_separate_feature_groups(self, tree: BIDSTree):
         # Distinct kinds, each a variant — verbatim strings key the groups
-        tree.add_feature(sub=SUB, task=TASK, kind="phonemic", run="1", desc="gpt3")
-        tree.add_feature(sub=SUB, task=TASK, kind="semantic", run="1", desc="bert")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1", desc="gpt3")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="semantic", run="1", desc="bert")
         enc = _make_encoding(tree, ["phonemic-gpt3", "semantic-bert"])
         feature_paths = enc._discover_features(SUB)
         features = {fk.feature for fk in feature_paths}
         assert features == {"phonemic-gpt3", "semantic-bert"}
 
     def test_unrequested_task_files_filtered_out(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task="rest", kind="mfcc", run="1")
-        tree.add_feature(sub=SUB, task="conv", kind="mfcc", run="2")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task="rest", kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task="conv", kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"], tasks=["conv"])
         feature_paths = enc._discover_features(SUB)
         cell_keys = {fk.cell for fk in feature_paths}
         assert cell_keys == {CellKey(task="conv", run="2")}
 
     def test_multi_task_cells_distinct(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task="rest", kind="mfcc", run="1")
-        tree.add_feature(sub=SUB, task="conv", kind="mfcc", run="1")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task="rest", kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task="conv", kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"], tasks=["rest", "conv"])
         feature_paths = enc._discover_features(SUB)
         cell_keys = {fk.cell for fk in feature_paths}
@@ -321,31 +331,34 @@ class TestDiscoverFeatures:
         }
 
     def test_mixed_segmented_unsegmented_runs_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
             enc._discover_features(SUB)
 
     def test_schema_error_fires_before_coverage_error(self, tree: BIDSTree):
         # clip missing at run-2, but schema mismatch should raise first
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         tree.add_feature(
-            sub=SUB, task=TASK, kind="clip", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="clip", run="1", extra_entities={"block": "1"}
         )
         enc = _make_encoding(tree, ["mfcc", "clip"])
         with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
             enc._discover_features(SUB)
 
     def test_file_without_hypline_metadata_raises(self, tree: BIDSTree, tmp_path):
-        kind_dir = tree.features_dir / f"sub-{SUB}" / "mfcc"
+        tree.add_participants({SUB: DYAD})
+        kind_dir = tree.features_dir / f"dyad-{DYAD}" / "mfcc"
         kind_dir.mkdir(parents=True)
-        path = kind_dir / f"sub-{SUB}_task-{TASK}_run-1_feat-mfcc.parquet"
+        path = kind_dir / f"dyad-{DYAD}_task-{TASK}_run-1_feat-mfcc.parquet"
         df = pl.DataFrame({"start_time": [0.0], "feature": [[0.0]]})
         pq.write_table(df.to_arrow(), path)
         enc = _make_encoding(tree, ["mfcc"])
@@ -353,40 +366,44 @@ class TestDiscoverFeatures:
             enc._discover_features(SUB)
 
     def test_bids_filters_not_applied_at_discovery(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         feature_paths = enc._discover_features(SUB)
         assert len(feature_paths) == 2
 
     def test_inconsistent_metadata_across_files_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
             enc._discover_features(SUB)
 
     def test_inconsistent_metadata_diff_in_error_message(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="model:"):
             enc._discover_features(SUB)
 
     def test_missing_key_shows_as_missing_in_diff(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             kind="mfcc",
             run="2",
@@ -397,29 +414,31 @@ class TestDiscoverFeatures:
             enc._discover_features(SUB)
 
     def test_third_file_diverges_from_first(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="2", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="3", metadata={"model": "v2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="3", metadata={"model": "v2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
             enc._discover_features(SUB)
 
     def test_underscore_prefixed_keys_exempt_from_metadata_check(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             kind="mfcc",
             run="1",
             metadata={"model": "v1", "_run_id": "abc"},
         )
         tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             kind="mfcc",
             run="2",
@@ -429,17 +448,18 @@ class TestDiscoverFeatures:
         enc._discover_features(SUB)
 
     def test_metadata_check_independent_across_features(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="2", metadata={"model": "v1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="clip", run="1", metadata={"model": "v2"}
+            dyad=DYAD, task=TASK, kind="clip", run="1", metadata={"model": "v2"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="clip", run="2", metadata={"model": "v2"}
+            dyad=DYAD, task=TASK, kind="clip", run="2", metadata={"model": "v2"}
         )
         enc = _make_encoding(tree, ["mfcc", "clip"])
         enc._discover_features(SUB)
@@ -781,6 +801,7 @@ class TestDiscoverBold:
         assert all(bold_meta.segments == [] for bold_meta in bold_metas.values())
 
     def test_bids_filters_not_applied_at_discovery(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
@@ -792,8 +813,9 @@ class TestResolveCellKeys:
     # Orphan check (feature cell has no matching BOLD run)
 
     def test_features_without_bold_raises(self, tree: BIDSTree):
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -802,8 +824,9 @@ class TestResolveCellKeys:
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_multiple_features_without_bold_reports_count(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         for run in ("1", "2", "3"):
-            tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run=run)
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -814,8 +837,9 @@ class TestResolveCellKeys:
     # Unsegmented run cases
 
     def test_unsegmented_run_single_cell_passes(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -823,14 +847,15 @@ class TestResolveCellKeys:
         assert len(feature_paths) == 1
 
     def test_unsegmented_run_multiple_cells_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(
             sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised"
         )  # no events → unsegmented
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -839,11 +864,12 @@ class TestResolveCellKeys:
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_unsegmented_run_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(
             sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised"
         )  # no events → unsegmented
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -854,6 +880,7 @@ class TestResolveCellKeys:
     # Segmented run cases
 
     def test_valid_segmented_cells_pass(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -865,10 +892,10 @@ class TestResolveCellKeys:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -877,6 +904,7 @@ class TestResolveCellKeys:
         assert len(feature_paths) == 2
 
     def test_cell_missing_segment_entity_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -888,7 +916,7 @@ class TestResolveCellKeys:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1"
+            dyad=DYAD, task=TASK, kind="mfcc", run="1"
         )  # no block entity on the filename
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -897,6 +925,7 @@ class TestResolveCellKeys:
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_cell_value_not_in_events_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -908,7 +937,7 @@ class TestResolveCellKeys:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "3"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "3"}
         )  # block-3 not in events
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -917,6 +946,7 @@ class TestResolveCellKeys:
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_segmented_run_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -927,7 +957,7 @@ class TestResolveCellKeys:
             ],
         )
         tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             kind="mfcc",
             run="1",
@@ -942,6 +972,7 @@ class TestResolveCellKeys:
     # Metadata merge cases (filename × sidecar)
 
     def test_sidecar_only_metadata_merged_onto_cell_key(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -961,10 +992,10 @@ class TestResolveCellKeys:
             },
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -976,6 +1007,7 @@ class TestResolveCellKeys:
         assert cell_cond_values == {"R", "L"}
 
     def test_filename_value_agrees_with_sidecar_passes(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -993,7 +1025,7 @@ class TestResolveCellKeys:
             },
         )
         tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             kind="mfcc",
             run="1",
@@ -1006,6 +1038,7 @@ class TestResolveCellKeys:
         assert next(iter(feature_paths)).cell.get("cond") == "R"
 
     def test_filename_value_disagrees_with_sidecar_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -1023,7 +1056,7 @@ class TestResolveCellKeys:
             },
         )
         tree.add_feature(
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             kind="mfcc",
             run="1",
@@ -1038,6 +1071,7 @@ class TestResolveCellKeys:
 
 class TestApplyFilters:
     def test_no_filters_returns_unchanged(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -1049,10 +1083,10 @@ class TestApplyFilters:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
@@ -1065,6 +1099,7 @@ class TestApplyFilters:
         assert filtered_bold == bold_metas
 
     def test_filter_narrows_features(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         for run in ("1", "2"):
             tree.add_bold(
                 sub=SUB, task=TASK, space=SPACE, run=run, tr=2.0, desc="denoised"
@@ -1079,16 +1114,16 @@ class TestApplyFilters:
                 ],
             )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="2", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="2", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", extra_entities={"block": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         feature_paths = enc._discover_features(SUB)
@@ -1099,6 +1134,7 @@ class TestApplyFilters:
         assert all(bold_key.run == "1" for bold_key in bold_metas)
 
     def test_or_within_entity_and_across_entities(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         for ses, run in (("1", "1"), ("1", "2"), ("2", "1")):
             tree.add_bold(
                 sub=SUB,
@@ -1119,7 +1155,7 @@ class TestApplyFilters:
                 ],
             )
             tree.add_feature(
-                sub=SUB,
+                dyad=DYAD,
                 task=TASK,
                 kind="mfcc",
                 ses=ses,
@@ -1140,6 +1176,7 @@ class TestApplyFilters:
         assert BoldKey(ses="2", task=TASK, run="1") not in bold_metas
 
     def test_filter_on_cell_only_entity_skipped_on_bold(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -1159,10 +1196,10 @@ class TestApplyFilters:
             },
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         enc = _make_encoding(
             tree,
@@ -1177,6 +1214,7 @@ class TestApplyFilters:
         assert len(bold_metas) == 1
 
     def test_typo_filter_entity_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -1188,10 +1226,10 @@ class TestApplyFilters:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["typo-foo"])
         feature_paths = enc._discover_features(SUB)
@@ -1203,6 +1241,7 @@ class TestApplyFilters:
     def test_valid_entity_wrong_value_passes_filter_raises_at_coverage(
         self, tree: BIDSTree
     ):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_events(
             sub=SUB,
@@ -1214,10 +1253,10 @@ class TestApplyFilters:
             ],
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(
-            sub=SUB, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "2"}
         )
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["block-99"])
         feature_paths = enc._discover_features(SUB)
@@ -1230,8 +1269,9 @@ class TestApplyFilters:
 
 class TestValidateCoverage:
     def test_valid_alignment_passes(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -1240,8 +1280,9 @@ class TestValidateCoverage:
         enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_empty_features_after_filter_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -1251,8 +1292,9 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, {}, bold_metas)
 
     def test_empty_bold_after_filter_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -1262,9 +1304,10 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, feature_paths, {})
 
     def test_bold_without_features_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", desc="denoised")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -1276,6 +1319,7 @@ class TestValidateCoverage:
     def test_features_without_bold_after_filter_raises(self, tree: BIDSTree):
         # `res` is a BOLD-only entity (features carry no res), so filtering on it
         # narrows BOLDs but not features, leaving run-2 features without a match
+        tree.add_participants({SUB: DYAD})
         tree.add_bold(
             sub=SUB,
             task=TASK,
@@ -1292,8 +1336,8 @@ class TestValidateCoverage:
             desc="denoised",
             extra_entities={"res": "3"},
         )
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="1")
-        tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run="2")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["res-2"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
@@ -1303,9 +1347,10 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_multiple_bold_gaps_reports_count(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         for run in ("1", "2", "3"):
             tree.add_bold(sub=SUB, task=TASK, space=SPACE, run=run, desc="denoised")
-            tree.add_feature(sub=SUB, task=TASK, kind="mfcc", run=run)
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="4", desc="denoised")
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="5", desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])

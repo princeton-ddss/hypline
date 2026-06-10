@@ -11,6 +11,7 @@ from hypline.bids import (
     CATEGORY_ENTITIES,
     STRUCTURAL_ENTITIES,
     BIDSPath,
+    Identity,
     find_bids_files,
     normalize_bids_filters,
     parse_filter_groups,
@@ -74,15 +75,21 @@ def kind_subdir(
     root: Path,
     area: Area,
     *,
-    sub: str,
+    identity: tuple[Identity, str],
     ses: str | None,
     kind: str,
     desc: str | None,
 ) -> Path:
-    """Resolve `<root>/<area>/sub-XX/[ses-YY/]<kind>[-<desc>]/`."""
-    sub_dir = area_root(root, area) / f"sub-{sub}"
+    """Resolve `<root>/<area>/<key>-XX/[ses-YY/]<kind>[-<desc>]/`.
+
+    `identity` is the leading `(key, value)` pair — `("dyad", …)` for the
+    shared-conversation areas (stimuli/features/confounds), `("sub", …)` for
+    `results`.
+    """
+    key, value = identity
+    id_dir = area_root(root, area) / f"{key}-{value}"
     subdir = f"{kind}-{desc}" if desc else kind
-    return sub_dir / f"ses-{ses}" / subdir if ses is not None else sub_dir / subdir
+    return id_dir / f"ses-{ses}" / subdir if ses is not None else id_dir / subdir
 
 
 def _split_filters_by_structurality(
@@ -141,7 +148,7 @@ def _diagnose_lookup(
     *,
     area_root: Path,
     area: Area,
-    sub: str,
+    identity: tuple[Identity, str],
     kind: str,
     ses_values: list[str] | None,
     ext: str,
@@ -152,58 +159,64 @@ def _diagnose_lookup(
     """Return a tier-specific message explaining why a lookup returned no files.
 
     Called only after a `_Find` query yielded zero results; walks the directory
-    hierarchy top-down (area → subject → session → kind subdir → files →
+    hierarchy top-down (area → identity → session → kind subdir → files →
     extension → required entity → user filters) and stops at the first failing
     tier. The user-filter tier is a fallback: it reports that filters were
     present without pinpointing which one failed.
+
+    `identity` is the leading `(key, value)` pair the area is keyed by (`sub`
+    or `dyad`); it shapes both the directory walk and the message text.
     """
+    id_key, id_value = identity
+    id_prefix = f"{id_key}-"
+    id_label = f"{id_key}-{id_value}"
     if not area_root.exists():
         return f"BIDS area {area!r} not found at {area_root}"
 
-    sub_dir = area_root / f"sub-{sub}"
-    if not sub_dir.exists():
+    id_dir = area_root / id_label
+    if not id_dir.exists():
         present = sorted(
-            p.name[4:]
+            p.name[len(id_prefix) :]
             for p in area_root.iterdir()
-            if p.is_dir() and p.name.startswith("sub-")
+            if p.is_dir() and p.name.startswith(id_prefix)
         )
         hint = f" (available: {present})" if present else ""
-        return f"Subject 'sub-{sub}' not found under {area}/{hint}"
+        return f"{id_key} {id_label!r} not found under {area}/{hint}"
 
     if ses_values is not None:
         existing_ses = sorted(
             p.name[4:]
-            for p in sub_dir.iterdir()
+            for p in id_dir.iterdir()
             if p.is_dir() and p.name.startswith("ses-")
         )
         missing = [s for s in ses_values if s not in existing_ses]
         if missing and existing_ses:
             return (
-                f"Sessions {missing} not found for sub-{sub} under {area}/ "
+                f"Sessions {missing} not found for {id_label} under {area}/ "
                 f"(available: {existing_ses})"
             )
 
     prefix = f"{kind}-"
     kind_dirs = [
         d
-        for parent in _kind_parents(sub_dir, ses_values)
+        for parent in _kind_parents(id_dir, ses_values)
         if parent.is_dir()
         for d in sorted(parent.iterdir())
         if d.is_dir() and (d.name == kind or d.name.startswith(prefix))
     ]
     if not kind_dirs:
-        ses_dirs = [sub_dir, *(p for p in sub_dir.glob("ses-*") if p.is_dir())]
+        ses_dirs = [id_dir, *(p for p in id_dir.glob("ses-*") if p.is_dir())]
         siblings = {c.name for d in ses_dirs for c in d.iterdir() if c.is_dir()}
         variant_prefix = f"{kind}-"
         siblings = {
             s for s in siblings if s != kind and not s.startswith(variant_prefix)
         }
         hint = f" (found instead: {sorted(siblings)})" if siblings else ""
-        return f"No {kind!r} subdirectory found under {area}/sub-{sub}/[ses-*/]{hint}"
+        return f"No {kind!r} subdirectory found under {area}/{id_label}/[ses-*/]{hint}"
 
     all_files = [f for d in kind_dirs for f in d.iterdir() if f.is_file()]
     if not all_files:
-        return f"Directory {kind!r} is empty for sub-{sub} under {area}/"
+        return f"Directory {kind!r} is empty for {id_label} under {area}/"
 
     ends_with = f"_{suffix}{ext}" if suffix is not None else ext
     ext_matches = [f for f in all_files if f.name.endswith(ends_with)]
@@ -211,7 +224,7 @@ def _diagnose_lookup(
         present_exts = sorted({"".join(f.suffixes) for f in all_files if f.suffixes})
         return (
             f"No files matching suffix={suffix!r}, ext={ext!r} found under "
-            f"{area}/sub-{sub}/[ses-*/]{kind}[-*]/ "
+            f"{area}/{id_label}/[ses-*/]{kind}[-*]/ "
             f"(present extensions: {present_exts})"
         )
 
@@ -223,7 +236,7 @@ def _diagnose_lookup(
             continue
     if not parsed:
         return (
-            f"Files found under {area}/sub-{sub}/[ses-*/]{kind}[-*]/ "
+            f"Files found under {area}/{id_label}/[ses-*/]{kind}[-*]/ "
             f"but none parsed as valid BIDS (example: {ext_matches[0].name!r})"
         )
 
@@ -238,11 +251,11 @@ def _diagnose_lookup(
     if user_filters:
         return (
             f"Files found but none matched user filters {user_filters} "
-            f"under {area}/sub-{sub}/[ses-*/]{kind}[-*]/ "
+            f"under {area}/{id_label}/[ses-*/]{kind}[-*]/ "
             f"(check for typos in filter keys/values)"
         )
 
-    return f"No files found under {area}/sub-{sub}/[ses-*/]{kind}[-*]/ (unknown cause)"
+    return f"No files found under {area}/{id_label}/[ses-*/]{kind}[-*]/ (unknown cause)"
 
 
 def _require_task(results: list[BIDSPath]) -> None:
@@ -277,7 +290,7 @@ class _Find:
         self,
         *,
         area: Area,
-        sub: str,
+        identity: tuple[Identity, str],
         kind: str,
         desc: str | None,
         required_entity: tuple[str, str] | None,
@@ -289,27 +302,33 @@ class _Find:
     ) -> list[BIDSPath]:
         """Core file lookup with tiered diagnostics on empty results.
 
+        `identity` is the leading `(key, value)` pair the area is keyed by —
+        `("dyad", …)` for stimuli/features/confounds, `("sub", …)` for the
+        per-brain areas — and selects the `<key>-<value>/` directory to scan.
+
         `desc` selects which subdirectory variant(s) to read: `None` -> bare
         `<kind>/`; `"<label>"` -> `<kind>-<label>/`; `"*"` -> all variant folders
         gathered together under one aggregate empty-check. `kind` also feeds the
         family-aware diagnostic message.
 
         `match_filters` is the full set passed to `find_bids_files`, including
-        structural entities (`sub-*`, `stim-*`, etc.) appended by the caller.
-        `user_filters` is the caller-supplied subset, used only for error attribution.
+        structural entities (`sub-*`/`dyad-*`, `stim-*`, etc.) appended by the
+        caller. `user_filters` is the caller-supplied subset, used only for
+        error attribution.
         """
         root = area_root(self._layout.root, area)
-        sub_dir = root / f"sub-{sub}"
+        id_key, id_value = identity
+        id_dir = root / f"{id_key}-{id_value}"
 
         if desc is None:
             kind_dir_names = [kind]
         elif desc == "*":
-            kind_dir_names = _list_variant_subdirs(sub_dir, kind, ses_values)
+            kind_dir_names = _list_variant_subdirs(id_dir, kind, ses_values)
         else:
             kind_dir_names = [f"{kind}-{desc}"]
 
         results: list[BIDSPath] = []
-        for parent in _kind_parents(sub_dir, ses_values):
+        for parent in _kind_parents(id_dir, ses_values):
             for name in kind_dir_names:
                 d = parent / name
                 if not d.is_dir():
@@ -323,7 +342,7 @@ class _Find:
                 _diagnose_lookup(
                     area_root=root,
                     area=area,
-                    sub=sub,
+                    identity=identity,
                     kind=kind,
                     ses_values=ses_values,
                     ext=ext,
@@ -374,112 +393,119 @@ class _Find:
     def stimuli(
         self,
         *,
-        sub: str,
+        dyad: str,
         kind: str,
         ext: str,
         bids_filters: list[str] | None = None,
     ) -> list["BIDSPath"]:
-        """Find stimulus files.
+        """Find stimulus files for a dyad.
 
-        `kind` maps to the stim-<kind> entity and the per-session subdirectory name.
+        Stimuli describe the shared conversation, so they are dyad-keyed. `kind`
+        maps to the stim-<kind> entity and the per-session subdirectory name.
         """
-        filters = normalize_bids_filters(bids_filters, reserved={"sub", "stim"})
+        filters = normalize_bids_filters(bids_filters, reserved={"dyad", "stim"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
             area="stimuli",
-            sub=sub,
+            identity=("dyad", dyad),
             kind=kind,
             desc=None,
             required_entity=("stim", kind),
             ext=ext,
             suffix=None,
             ses_values=ses_values,
-            match_filters=structural + [f"sub-{sub}", f"stim-{kind}"],
+            match_filters=structural + [f"dyad-{dyad}", f"stim-{kind}"],
             user_filters=structural,
         )
         _require_task(candidates)
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
-            where=f"stimuli/sub-{sub}/[ses-*/]{kind}[-*]/",
+            where=f"stimuli/dyad-{dyad}/[ses-*/]{kind}[-*]/",
         )
 
     def features(
         self,
         *,
-        sub: str,
+        dyad: str,
         kind: str,
         desc: str | None = None,
         bids_filters: list[str] | None = None,
     ) -> list["BIDSPath"]:
-        """Find feature files.
+        """Find feature files for a dyad.
 
-        `kind` maps to the feat-<kind> entity and the per-session subdirectory
-        name. `desc` selects which variant folder(s) to read: `None` -> bare
-        `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only; `"*"` -> all
-        variant folders gathered together. Extension is `.parquet`.
+        Features are derived from the shared conversation, so they are
+        dyad-keyed. `kind` maps to the feat-<kind> entity and the per-session
+        subdirectory name. `desc` selects which variant folder(s) to read:
+        `None` -> bare `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only;
+        `"*"` -> all variant folders gathered together. Extension is `.parquet`.
         """
-        filters = normalize_bids_filters(bids_filters, reserved={"sub", "feat", "desc"})
+        filters = normalize_bids_filters(
+            bids_filters, reserved={"dyad", "feat", "desc"}
+        )
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
             area="features",
-            sub=sub,
+            identity=("dyad", dyad),
             kind=kind,
             desc=desc,
             required_entity=("feat", kind),
             ext=".parquet",
             suffix=None,
             ses_values=ses_values,
-            match_filters=structural + [f"sub-{sub}", f"feat-{kind}"],
+            match_filters=structural + [f"dyad-{dyad}", f"feat-{kind}"],
             user_filters=structural,
         )
         _require_task(candidates)
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
-            where=f"features/sub-{sub}/[ses-*/]{kind}[-*]/",
+            where=f"features/dyad-{dyad}/[ses-*/]{kind}[-*]/",
         )
 
     def confounds(
         self,
         *,
-        sub: str,
+        dyad: str,
         kind: str,
         desc: str | None = None,
         bids_filters: list[str] | None = None,
     ) -> list["BIDSPath"]:
-        """Find confound files.
+        """Find confound files for a dyad.
 
-        `kind` maps to the conf-<kind> entity and the per-session subdirectory
-        name. `desc` selects which variant folder(s) to read: `None` -> bare
-        `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only; `"*"` -> all
-        variant folders gathered together. Extension is `.parquet`.
+        Confounds are derived from the shared conversation, so they are
+        dyad-keyed. `kind` maps to the conf-<kind> entity and the per-session
+        subdirectory name. `desc` selects which variant folder(s) to read:
+        `None` -> bare `<kind>/` only; `"<label>"` -> `<kind>-<label>/` only;
+        `"*"` -> all variant folders gathered together. Extension is `.parquet`.
         """
-        filters = normalize_bids_filters(bids_filters, reserved={"sub", "conf", "desc"})
+        filters = normalize_bids_filters(
+            bids_filters, reserved={"dyad", "conf", "desc"}
+        )
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
             area="confounds",
-            sub=sub,
+            identity=("dyad", dyad),
             kind=kind,
             desc=desc,
             required_entity=("conf", kind),
             ext=".parquet",
             suffix=None,
             ses_values=ses_values,
-            match_filters=structural + [f"sub-{sub}", f"conf-{kind}"],
+            match_filters=structural + [f"dyad-{dyad}", f"conf-{kind}"],
             user_filters=structural,
         )
         _require_task(candidates)
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
-            where=f"confounds/sub-{sub}/[ses-*/]{kind}[-*]/",
+            where=f"confounds/dyad-{dyad}/[ses-*/]{kind}[-*]/",
         )
 
     def nuisance(
@@ -505,7 +531,7 @@ class _Find:
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
             area="nuisance",
-            sub=sub,
+            identity=("sub", sub),
             kind=kind,
             desc=desc,
             required_entity=("nuis", kind),
@@ -569,7 +595,7 @@ class _Find:
         structural, descriptive = _split_filters_by_structurality(user_filters)
         candidates = self._find(
             area=area,
-            sub=sub,
+            identity=("sub", sub),
             kind="func",
             desc=None,
             required_entity=None,
@@ -647,14 +673,19 @@ class _Path:
             bp = bp.with_entity("desc", desc)
 
         entities = bp.entities
-        sub = entities.get("sub")
+        dyad = entities.get("dyad")
         ses = entities.get("ses")
-        if sub is None:
-            raise ValueError(f"source has no 'sub' entity: {source!r}")
+        if dyad is None:
+            raise ValueError(f"source has no 'dyad' entity: {source!r}")
 
         desc = entities.get("desc")
         out_dir = kind_subdir(
-            self._layout.root, area, sub=sub, ses=ses, kind=kind, desc=desc
+            self._layout.root,
+            area,
+            identity=("dyad", dyad),
+            ses=ses,
+            kind=kind,
+            desc=desc,
         )
 
         stem = "_".join(f"{k}-{v}" for k, v in entities.items())
@@ -721,7 +752,7 @@ class _Path:
         """Derive a stimulus output path from `source`.
 
         Sets stim-<kind> and places the result under
-        stimuli/sub-XX/[ses-YY/]<kind>/. Stimuli have no `desc` variants: a
+        stimuli/dyad-XX/[ses-YY/]<kind>/. Stimuli have no `desc` variants: a
         stimulus is the experimental record (the audio, transcript, movie),
         with one ground truth. An artifact that needs variants is a feature,
         not a stimulus.
@@ -751,7 +782,7 @@ class _Path:
         """Derive a feature output path from `source`.
 
         Sets feat-<kind> and places the result under
-        features/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
+        features/dyad-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
 
         Pass `desc=<label>` as a variant tag to distinguish features generated
         from the same source under different settings (e.g. model version);
@@ -777,7 +808,7 @@ class _Path:
         """Derive a confound output path from `source`.
 
         Sets conf-<kind> and places the result under
-        confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
+        confounds/dyad-XX/[ses-YY/]<kind>[-<desc>]/ with `.parquet` extension.
 
         Pass `desc=<label>` to name which derivation of the kind's source this
         is (e.g. `onset` vs `rate` for phonemic); the subdirectory becomes
@@ -816,7 +847,12 @@ class _Path:
             desc=desc,
         )
         out_dir = kind_subdir(
-            self._layout.root, "results", sub=sub, ses=None, kind=kind, desc=desc
+            self._layout.root,
+            "results",
+            identity=("sub", sub),
+            ses=None,
+            kind=kind,
+            desc=desc,
         )
         return BIDSPath(out_dir / bp.path.name)
 
@@ -847,19 +883,6 @@ class _List:
         for p in area_dir.iterdir():
             if p.is_dir() and p.name.startswith(prefix):
                 ids.add(p.name[len(prefix) :])
-
-        return sorted(ids)
-
-    def sessions(self, *, sub: str, area: Area) -> list[str]:
-        """Return sorted unique session IDs for a subject in the given area."""
-        sub_dir = area_root(self._layout.root, area) / f"sub-{sub}"
-        if not sub_dir.exists():
-            return []
-
-        ids: set[str] = set()
-        for p in sub_dir.iterdir():
-            if p.is_dir() and p.name.startswith("ses-"):
-                ids.add(p.name[4:])
 
         return sorted(ids)
 

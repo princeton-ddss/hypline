@@ -10,6 +10,7 @@ from hypline.layout import BIDSLayout
 from .conftest import BIDSTree
 
 SUB = "001"
+DYAD = "101"
 SES = "1"
 TASK = "conv"
 SPACE = "MNI152NLin6Asym"
@@ -27,70 +28,70 @@ class TestBIDSLayoutConstruction:
 
 class TestFindStimuli:
     def test_returns_matching_files(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+        results = layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
         assert len(results) == 1
-        assert results[0].sub == SUB
+        assert results[0].dyad == DYAD
 
     def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="2", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="2", task=TASK)
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(
-            sub=SUB, kind="audio", ext=".wav", bids_filters=["ses-1"]
+            dyad=DYAD, kind="audio", ext=".wav", bids_filters=["ses-1"]
         )
         assert len(results) == 1
         assert results[0].ses == "1"
 
     def test_arbitrary_bids_filter(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task="conv")
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task="rest")
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task="conv")
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task="rest")
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(
-            sub=SUB, kind="audio", ext=".wav", bids_filters=["task-conv"]
+            dyad=DYAD, kind="audio", ext=".wav", bids_filters=["task-conv"]
         )
         assert len(results) == 1
 
-    def test_rejects_reserved_sub_filter(self, tree: BIDSTree):
+    def test_rejects_reserved_dyad_filter(self, tree: BIDSTree):
         layout = BIDSLayout(tree.root)
-        with pytest.raises(ValueError, match="sub"):
+        with pytest.raises(ValueError, match="dyad"):
             layout.find.stimuli(
-                sub=SUB, kind="audio", ext=".wav", bids_filters=["sub-001"]
+                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["dyad-101"]
             )
 
     def test_rejects_reserved_stim_filter(self, tree: BIDSTree):
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="stim"):
             layout.find.stimuli(
-                sub=SUB, kind="audio", ext=".wav", bids_filters=["stim-audio"]
+                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["stim-audio"]
             )
 
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK, run="1")
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK, run="2")
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="1")
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="2")
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(
-            sub=SUB, kind="audio", ext=".wav", bids_filters=["run-1"]
+            dyad=DYAD, kind="audio", ext=".wav", bids_filters=["run-1"]
         )
         assert len(results) == 1
         assert results[0].entities.get("run") == "1"
 
     def test_cross_session_aggregation_sorted(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="2", task=TASK)
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="2", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+        results = layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
         assert len(results) == 2
         assert results == sorted(results)
 
     def test_multiple_ses_filters(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="2", task=TASK)
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="3", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="2", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="3", task=TASK)
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(
-            sub=SUB, kind="audio", ext=".wav", bids_filters=["ses-1", "ses-2"]
+            dyad=DYAD, kind="audio", ext=".wav", bids_filters=["ses-1", "ses-2"]
         )
         assert len(results) == 2
         assert {r.ses for r in results} == {"1", "2"}
@@ -98,56 +99,59 @@ class TestFindStimuli:
     def test_raises_if_area_absent(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         with pytest.raises(FileNotFoundError, match="stimuli"):
-            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
 
-    def test_raises_when_sub_absent(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
+    def test_raises_when_dyad_absent(self, tree: BIDSTree):
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        with pytest.raises(FileNotFoundError, match="sub-999"):
-            layout.find.stimuli(sub="999", kind="audio", ext=".wav")
+        with pytest.raises(FileNotFoundError, match="dyad-999"):
+            layout.find.stimuli(dyad="999", kind="audio", ext=".wav")
 
     def test_kind_dir_absent_lists_siblings(self, tree: BIDSTree):
-        tree.add_stimulus(kind="transcript", ext=".csv", sub=SUB, task=TASK)
+        tree.add_stimulus(kind="transcript", ext=".csv", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match="transcript"):
-            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
 
     def test_extension_mismatch_message(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".mp3", sub=SUB, task=TASK)
+        tree.add_stimulus(kind="audio", ext=".mp3", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match=r"\.mp3"):
-            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
 
     def test_filter_mismatch_message(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task="rest")
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task="rest")
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match="task-conv"):
             layout.find.stimuli(
-                sub=SUB, kind="audio", ext=".wav", bids_filters=["task-conv"]
+                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["task-conv"]
             )
 
     def test_session_missing_lists_available(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match="ses-1|available"):
             layout.find.stimuli(
-                sub=SUB, kind="audio", ext=".wav", bids_filters=["ses-2"]
+                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["ses-2"]
             )
 
     def test_raises_when_task_missing(self, tree: BIDSTree):
-        path = tree.stimuli_dir / f"sub-{SUB}" / "audio" / f"sub-{SUB}_stim-audio.wav"
+        path = (
+            tree.stimuli_dir / f"dyad-{DYAD}" / "audio" / f"dyad-{DYAD}_stim-audio.wav"
+        )
         path.parent.mkdir(parents=True)
         path.touch()
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="task"):
-            layout.find.stimuli(sub=SUB, kind="audio", ext=".wav")
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
 
     def test_descriptive_filter_via_events_metadata(self, tree: BIDSTree):
         # Filter `cond-R` matches only the trial whose sidecar metadata says cond=R
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(
             kind="audio",
             ext=".wav",
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             extra_entities={"trial": "1"},
@@ -155,7 +159,7 @@ class TestFindStimuli:
         tree.add_stimulus(
             kind="audio",
             ext=".wav",
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             extra_entities={"trial": "2"},
@@ -179,16 +183,17 @@ class TestFindStimuli:
         )
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(
-            sub=SUB, kind="audio", ext=".wav", bids_filters=["cond-R"]
+            dyad=DYAD, kind="audio", ext=".wav", bids_filters=["cond-R"]
         )
         assert len(results) == 1
         assert results[0].entities["trial"] == "1"
 
     def test_descriptive_filter_no_match_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(
             kind="audio",
             ext=".wav",
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
             extra_entities={"trial": "1"},
@@ -205,15 +210,16 @@ class TestFindStimuli:
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError, match="cond-L"):
             layout.find.stimuli(
-                sub=SUB, kind="audio", ext=".wav", bids_filters=["cond-L"]
+                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["cond-L"]
             )
 
     def test_descriptive_filter_or_within_key(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         for trial in ("1", "2", "3"):
             tree.add_stimulus(
                 kind="audio",
                 ext=".wav",
-                sub=SUB,
+                dyad=DYAD,
                 task=TASK,
                 run="1",
                 extra_entities={"trial": trial},
@@ -238,7 +244,7 @@ class TestFindStimuli:
         )
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(
-            sub=SUB, kind="audio", ext=".wav", bids_filters=["cond-R", "cond-L"]
+            dyad=DYAD, kind="audio", ext=".wav", bids_filters=["cond-R", "cond-L"]
         )
         assert len(results) == 3
 
@@ -247,14 +253,14 @@ class TestFindStimuli:
         tree.add_stimulus(
             kind="audio",
             ext=".wav",
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
         )
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError) as exc:
             layout.find.stimuli(
-                sub=SUB,
+                dyad=DYAD,
                 kind="audio",
                 ext=".wav",
                 bids_filters=["run-99"],
@@ -265,85 +271,89 @@ class TestFindStimuli:
 
 class TestFindFeatures:
     def test_translates_kind_to_feature_entity(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic")
+        results = layout.find.features(dyad=DYAD, kind="phonemic")
         assert len(results) == 1
         assert results[0].entities.get("feat") == "phonemic"
 
     def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, ses="1", task=TASK)
-        tree.add_feature(kind="phonemic", sub=SUB, ses="2", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="1", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="2", task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic", bids_filters=["ses-1"])
+        results = layout.find.features(
+            dyad=DYAD, kind="phonemic", bids_filters=["ses-1"]
+        )
         assert len(results) == 1
         assert results[0].ses == "1"
 
     def test_desc_none_excludes_variants(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, desc="gpt3")
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK, desc="gpt3")
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic")
+        results = layout.find.features(dyad=DYAD, kind="phonemic")
         assert len(results) == 1
         assert results[0].entities.get("desc") is None
 
     def test_desc_label_selects_variant(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, desc="gpt3")
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK, desc="gpt3")
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic", desc="gpt3")
+        results = layout.find.features(dyad=DYAD, kind="phonemic", desc="gpt3")
         assert len(results) == 1
         assert results[0].entities.get("desc") == "gpt3"
 
     def test_desc_star_returns_all_variants(self, tree: BIDSTree):
         # Variant folder holds a cell absent from the canonical folder
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="1")
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="2", desc="gpt3")
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK, run="1")
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK, run="2", desc="gpt3")
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic", desc="*")
+        results = layout.find.features(dyad=DYAD, kind="phonemic", desc="*")
         descs = {r.entities.get("desc") for r in results}
         assert descs == {None, "gpt3"}
 
     def test_rejects_reserved_desc_filter(self, tree: BIDSTree):
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="desc"):
-            layout.find.features(sub=SUB, kind="phonemic", bids_filters=["desc-gpt3"])
+            layout.find.features(dyad=DYAD, kind="phonemic", bids_filters=["desc-gpt3"])
 
-    def test_rejects_reserved_sub_filter(self, tree: BIDSTree):
+    def test_rejects_reserved_dyad_filter(self, tree: BIDSTree):
         layout = BIDSLayout(tree.root)
-        with pytest.raises(ValueError, match="sub"):
-            layout.find.features(sub=SUB, kind="phonemic", bids_filters=["sub-001"])
+        with pytest.raises(ValueError, match="dyad"):
+            layout.find.features(dyad=DYAD, kind="phonemic", bids_filters=["dyad-101"])
 
     def test_rejects_reserved_feature_filter(self, tree: BIDSTree):
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="feat"):
             layout.find.features(
-                sub=SUB, kind="phonemic", bids_filters=["feat-phonemic"]
+                dyad=DYAD, kind="phonemic", bids_filters=["feat-phonemic"]
             )
 
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="1")
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK, run="2")
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK, run="1")
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK, run="2")
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic", bids_filters=["run-1"])
+        results = layout.find.features(
+            dyad=DYAD, kind="phonemic", bids_filters=["run-1"]
+        )
         assert len(results) == 1
         assert results[0].entities.get("run") == "1"
 
     def test_cross_session_aggregation_sorted(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, ses="2", task=TASK)
-        tree.add_feature(kind="phonemic", sub=SUB, ses="1", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="2", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="1", task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.features(sub=SUB, kind="phonemic")
+        results = layout.find.features(dyad=DYAD, kind="phonemic")
         assert len(results) == 2
         assert results == sorted(results)
 
     def test_multiple_ses_filters(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, ses="1", task=TASK)
-        tree.add_feature(kind="phonemic", sub=SUB, ses="2", task=TASK)
-        tree.add_feature(kind="phonemic", sub=SUB, ses="3", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="1", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="2", task=TASK)
+        tree.add_feature(kind="phonemic", dyad=DYAD, ses="3", task=TASK)
         layout = BIDSLayout(tree.root)
         results = layout.find.features(
-            sub=SUB, kind="phonemic", bids_filters=["ses-1", "ses-2"]
+            dyad=DYAD, kind="phonemic", bids_filters=["ses-1", "ses-2"]
         )
         assert len(results) == 2
         assert {r.ses for r in results} == {"1", "2"}
@@ -351,39 +361,39 @@ class TestFindFeatures:
     def test_raises_if_area_absent(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         with pytest.raises(FileNotFoundError, match="features"):
-            layout.find.features(sub=SUB, kind="phonemic")
+            layout.find.features(dyad=DYAD, kind="phonemic")
 
-    def test_raises_when_sub_absent(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
+    def test_raises_when_dyad_absent(self, tree: BIDSTree):
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        with pytest.raises(FileNotFoundError, match="sub-999"):
-            layout.find.features(sub="999", kind="phonemic")
+        with pytest.raises(FileNotFoundError, match="dyad-999"):
+            layout.find.features(dyad="999", kind="phonemic")
 
     def test_raises_when_task_missing(self, tree: BIDSTree):
         path = (
             tree.features_dir
-            / f"sub-{SUB}"
+            / f"dyad-{DYAD}"
             / "phonemic"
-            / f"sub-{SUB}_feat-phonemic.parquet"
+            / f"dyad-{DYAD}_feat-phonemic.parquet"
         )
         path.parent.mkdir(parents=True)
         path.touch()
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="task"):
-            layout.find.features(sub=SUB, kind="phonemic")
+            layout.find.features(dyad=DYAD, kind="phonemic")
 
     def test_structural_filter_mismatch_uses_tiered_diagnostic(self, tree: BIDSTree):
         # Asserts on `_diagnose_lookup`'s message, not the descriptive helper's
         tree.add_feature(
             kind="phonemic",
-            sub=SUB,
+            dyad=DYAD,
             task=TASK,
             run="1",
         )
         layout = BIDSLayout(tree.root)
         with pytest.raises(FileNotFoundError) as exc:
             layout.find.features(
-                sub=SUB,
+                dyad=DYAD,
                 kind="phonemic",
                 bids_filters=["run-99"],
             )
@@ -393,43 +403,43 @@ class TestFindFeatures:
 
 class TestFindConfounds:
     def test_translates_kind_to_confound_entity(self, tree: BIDSTree):
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK)
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.confounds(sub=SUB, kind="phonemic")
+        results = layout.find.confounds(dyad=DYAD, kind="phonemic")
         assert len(results) == 1
         assert results[0].entities.get("conf") == "phonemic"
 
     def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
-        tree.add_confound(kind="phonemic", sub=SUB, ses="1", task=TASK)
-        tree.add_confound(kind="phonemic", sub=SUB, ses="2", task=TASK)
+        tree.add_confound(kind="phonemic", dyad=DYAD, ses="1", task=TASK)
+        tree.add_confound(kind="phonemic", dyad=DYAD, ses="2", task=TASK)
         layout = BIDSLayout(tree.root)
         results = layout.find.confounds(
-            sub=SUB, kind="phonemic", bids_filters=["ses-1"]
+            dyad=DYAD, kind="phonemic", bids_filters=["ses-1"]
         )
         assert len(results) == 1
         assert results[0].ses == "1"
 
     def test_desc_none_excludes_variants(self, tree: BIDSTree):
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, desc="onset")
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK)
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK, desc="onset")
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.confounds(sub=SUB, kind="phonemic")
+        results = layout.find.confounds(dyad=DYAD, kind="phonemic")
         assert len(results) == 1
         assert results[0].entities.get("desc") is None
 
     def test_desc_label_selects_variant(self, tree: BIDSTree):
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, desc="onset")
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK)
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK, desc="onset")
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
-        results = layout.find.confounds(sub=SUB, kind="phonemic", desc="onset")
+        results = layout.find.confounds(dyad=DYAD, kind="phonemic", desc="onset")
         assert len(results) == 1
         assert results[0].entities.get("desc") == "onset"
 
     def test_desc_star_returns_all_variants(self, tree: BIDSTree):
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, run="1")
-        tree.add_confound(kind="phonemic", sub=SUB, task=TASK, run="2", desc="onset")
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK, run="1")
+        tree.add_confound(kind="phonemic", dyad=DYAD, task=TASK, run="2", desc="onset")
         layout = BIDSLayout(tree.root)
-        results = layout.find.confounds(sub=SUB, kind="phonemic", desc="*")
+        results = layout.find.confounds(dyad=DYAD, kind="phonemic", desc="*")
         descs = {r.entities.get("desc") for r in results}
         assert descs == {None, "onset"}
 
@@ -437,26 +447,26 @@ class TestFindConfounds:
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="desc"):
             layout.find.confounds(
-                sub=SUB, kind="phonemic", bids_filters=["desc-onset"]
+                dyad=DYAD, kind="phonemic", bids_filters=["desc-onset"]
             )
 
     def test_raises_when_area_absent(self, tmp_path):
         layout = BIDSLayout(tmp_path)
         with pytest.raises(FileNotFoundError, match="confounds"):
-            layout.find.confounds(sub=SUB, kind="phonemic")
+            layout.find.confounds(dyad=DYAD, kind="phonemic")
 
     def test_raises_when_task_missing(self, tree: BIDSTree):
         path = (
             tree.confounds_dir
-            / f"sub-{SUB}"
+            / f"dyad-{DYAD}"
             / "phonemic"
-            / f"sub-{SUB}_conf-phonemic.parquet"
+            / f"dyad-{DYAD}_conf-phonemic.parquet"
         )
         path.parent.mkdir(parents=True)
         path.touch()
         layout = BIDSLayout(tree.root)
         with pytest.raises(ValueError, match="task"):
-            layout.find.confounds(sub=SUB, kind="phonemic")
+            layout.find.confounds(dyad=DYAD, kind="phonemic")
 
 
 class TestFindNuisance:
@@ -774,8 +784,7 @@ class TestPathDenoised:
         # keeps them distinct.
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(
-            f"sub-{SUB}_task-{TASK}_space-fsaverage6_hemi-L_desc-preproc"
-            f"_bold.func.gii"
+            f"sub-{SUB}_task-{TASK}_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii"
         )
         out = layout.path.denoised(source=source)
         assert out.entities.get("space") == "fsaverage6"
@@ -791,9 +800,7 @@ class TestPathDenoised:
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(
-            f"sub-{SUB}_ses-{SES}_task-{TASK}_desc-preproc_bold.nii.gz"
-        )
+        source = BIDSPath(f"sub-{SUB}_ses-{SES}_task-{TASK}_desc-preproc_bold.nii.gz")
         out = layout.path.denoised(source=source)
         assert f"ses-{SES}" in out.path.parts
 
@@ -862,41 +869,41 @@ class TestStampDatasetDescription:
 class TestPathStimulus:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio.wav")
         out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert out.entities.get("stim") == "transcript"
         assert out.path.name.endswith(".csv")
         assert "stimuli" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert "transcript" in out.path.parts
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio.wav")
         out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert "stimuli" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert not any(p.startswith("ses-") for p in out.path.parts)
         assert "transcript" in out.path.parts
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_ses-{SES}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_ses-{SES}_task-{TASK}_stim-audio.wav")
         out = layout.path.stimulus(kind="transcript", source=source, ext=".csv")
         assert "stimuli" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert f"ses-{SES}" in out.path.parts
         assert "transcript" in out.path.parts
 
     def test_invalid_extension_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio.wav")
         with pytest.raises(ValueError, match="extension"):
             layout.path.stimulus(kind="transcript", source=source, ext="csv")
 
     def test_source_with_desc_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-audio_desc-v2.wav")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-audio_desc-v2.wav")
         with pytest.raises(ValueError, match="no variants"):
             layout.path.stimulus(kind="transcript", source=source, ext=".csv")
 
@@ -904,17 +911,17 @@ class TestPathStimulus:
 class TestPathFeature:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic")
         assert out.entities.get("feat") == "phonemic"
         assert out.path.suffix == ".parquet"
         assert "features" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert "phonemic" in out.path.parts
 
     def test_applies_entity_override(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic", desc="gpt3")
         assert out.entities.get("desc") == "gpt3"
         assert out.path.name.endswith("_feat-phonemic_desc-gpt3.parquet")
@@ -923,25 +930,25 @@ class TestPathFeature:
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic")
         assert "features" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert not any(p.startswith("ses-") for p in out.path.parts)
         assert "phonemic" in out.path.parts
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_ses-{SES}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_ses-{SES}_task-{TASK}_stim-transcript.csv")
         out = layout.path.feature(source=source, kind="phonemic")
         assert "features" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert f"ses-{SES}" in out.path.parts
         assert "phonemic" in out.path.parts
 
     def test_invalid_override_value_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_stim-transcript.csv")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_stim-transcript.csv")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             layout.path.feature(source=source, kind="phonemic", desc="BAD!")
 
@@ -949,18 +956,18 @@ class TestPathFeature:
 class TestPathConfound:
     def test_derives_output_path(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_run-1_feat-phonemic.parquet")
         out = layout.path.confound(source=source, kind="phonemic")
         assert out.entities.get("conf") == "phonemic"
         assert out.entities.get("desc") is None
         assert out.path.suffix == ".parquet"
         assert "confounds" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert "phonemic" in out.path.parts
 
     def test_sets_desc_entity(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_run-1_feat-phonemic.parquet")
         out = layout.path.confound(source=source, kind="phonemic", desc="onset")
         assert out.entities.get("conf") == "phonemic"
         assert out.entities.get("desc") == "onset"
@@ -968,43 +975,32 @@ class TestPathConfound:
 
     def test_omits_ses_dir_when_source_has_no_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_run-1_feat-phonemic.parquet")
         out = layout.path.confound(source=source, kind="phonemic", desc="onset")
         assert "confounds" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert not any(p.startswith("ses-") for p in out.path.parts)
         assert "phonemic-onset" in out.path.parts
 
     def test_includes_ses_dir_when_source_has_ses(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
         source = BIDSPath(
-            f"sub-{SUB}_ses-{SES}_task-{TASK}_run-1_feat-phonemic.parquet"
+            f"dyad-{DYAD}_ses-{SES}_task-{TASK}_run-1_feat-phonemic.parquet"
         )
         out = layout.path.confound(source=source, kind="phonemic", desc="rate")
         assert "confounds" in out.path.parts
-        assert f"sub-{SUB}" in out.path.parts
+        assert f"dyad-{DYAD}" in out.path.parts
         assert f"ses-{SES}" in out.path.parts
         assert "phonemic-rate" in out.path.parts
 
     def test_invalid_desc_value_raises(self, tmp_path: Path):
         layout = BIDSLayout(tmp_path)
-        source = BIDSPath(f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet")
+        source = BIDSPath(f"dyad-{DYAD}_task-{TASK}_run-1_feat-phonemic.parquet")
         with pytest.raises(ValueError, match="Invalid BIDS entity"):
             layout.path.confound(source=source, kind="phonemic", desc="BAD!")
 
 
 class TestListSubjects:
-    def test_subjects_stimuli(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
-        tree.add_stimulus(kind="audio", ext=".wav", sub="002", task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.subjects(area="stimuli") == [SUB, "002"]
-
-    def test_subjects_features(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.subjects(area="features") == [SUB]
-
     def test_subjects_fmriprep(self, tree: BIDSTree):
         tree.add_bold(space=SPACE, sub=SUB, task=TASK)
         layout = BIDSLayout(tree.root)
@@ -1022,46 +1018,17 @@ class TestListSubjects:
         assert layout.list.subjects(area="stimuli") == []
 
 
-class TestListSessions:
-    def test_sessions_stimuli(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="1", task=TASK)
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, ses="2", task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.sessions(sub=SUB, area="stimuli") == ["1", "2"]
-
-    def test_sessions_fmriprep(self, tree: BIDSTree):
-        tree.add_bold(space=SPACE, sub=SUB, ses=SES, task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.sessions(sub=SUB, area="fmriprep") == [SES]
-
-    def test_sessions_empty_if_sub_absent(self, tmp_path: Path):
-        layout = BIDSLayout(tmp_path)
-        assert layout.list.sessions(sub=SUB, area="stimuli") == []
-
-    def test_sessions_features(self, tree: BIDSTree):
-        tree.add_feature(kind="phonemic", sub=SUB, ses="1", task=TASK)
-        tree.add_feature(kind="phonemic", sub=SUB, ses="2", task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.sessions(sub=SUB, area="features") == ["1", "2"]
-
-    def test_sessions_skips_non_ses_dirs(self, tree: BIDSTree):
-        tree.add_bold(space=SPACE, sub=SUB, ses=SES, task=TASK)
-        tree.add_bold(space=SPACE, sub=SUB, task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.sessions(sub=SUB, area="fmriprep") == [SES]
-
-    def test_sessions_empty_when_subject_has_no_ses(self, tree: BIDSTree):
-        tree.add_stimulus(kind="audio", ext=".wav", sub=SUB, task=TASK)
-        layout = BIDSLayout(tree.root)
-        assert layout.list.sessions(sub=SUB, area="stimuli") == []
-
-
 class TestListDyads:
     def test_dyads_stimuli(self, tree: BIDSTree):
         (tree.stimuli_dir / "dyad-001").mkdir(parents=True)
         (tree.stimuli_dir / "dyad-002").mkdir(parents=True)
         layout = BIDSLayout(tree.root)
         assert layout.list.dyads(area="stimuli") == ["001", "002"]
+
+    def test_dyads_features(self, tree: BIDSTree):
+        tree.add_feature(kind="phonemic", dyad=DYAD, task=TASK)
+        layout = BIDSLayout(tree.root)
+        assert layout.list.dyads(area="features") == [DYAD]
 
     def test_dyads_skips_non_dyad_dirs(self, tree: BIDSTree):
         (tree.stimuli_dir / "dyad-001").mkdir(parents=True)

@@ -700,7 +700,7 @@ class TestSaveFeature:
         path = save_feature(
             feature_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             ses="1",
             task="conv",
             run="1",
@@ -709,10 +709,10 @@ class TestSaveFeature:
         expected = (
             tmp_path
             / "features"
-            / "sub-001"
+            / "dyad-001"
             / "ses-1"
             / "llm"
-            / "sub-001_ses-1_task-conv_run-1_feat-llm.parquet"
+            / "dyad-001_ses-1_task-conv_run-1_feat-llm.parquet"
         )
         assert path == expected
         assert expected.exists()
@@ -723,7 +723,7 @@ class TestSaveFeature:
         path = save_feature(
             feature_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             feat="llm",
             desc="gpt2v10",
@@ -731,9 +731,9 @@ class TestSaveFeature:
         expected = (
             tmp_path
             / "features"
-            / "sub-001"
+            / "dyad-001"
             / "llm-gpt2v10"
-            / "sub-001_task-conv_feat-llm_desc-gpt2v10.parquet"
+            / "dyad-001_task-conv_feat-llm_desc-gpt2v10.parquet"
         )
         assert path == expected
         assert expected.exists()
@@ -742,13 +742,13 @@ class TestSaveFeature:
         path = save_feature(
             feature_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             feat="llm",
             cond="G",
             trial="3",
         )
-        assert path.name == "sub-001_task-conv_cond-G_trial-3_feat-llm.parquet"
+        assert path.name == "dyad-001_task-conv_cond-G_trial-3_feat-llm.parquet"
         assert path.exists()
 
     def test_roundtrip_with_read_feature(
@@ -757,7 +757,7 @@ class TestSaveFeature:
         path = save_feature(
             feature_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             feat="llm",
         )
@@ -768,7 +768,7 @@ class TestSaveFeature:
         path = save_feature(
             feature_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             feat="llm",
             metadata={"model": "gpt2"},
@@ -778,13 +778,15 @@ class TestSaveFeature:
         assert meta["feature_name"] == "llm"
         assert meta["feature_dim"] == 2
 
-    def test_requires_sub(self, tmp_path: Path, feature_df: pl.DataFrame):
+    def test_requires_dyad(self, tmp_path: Path, feature_df: pl.DataFrame):
         with pytest.raises(TypeError):
             save_feature(feature_df, bids_root=tmp_path, feat="llm")  # type: ignore[call-arg]
 
     def test_rejects_unsupported_entity(self, tmp_path: Path, feature_df: pl.DataFrame):
         with pytest.raises(ValueError, match="not supported"):
-            save_feature(feature_df, bids_root=tmp_path, sub="001", feat="llm", acq="x")
+            save_feature(
+                feature_df, bids_root=tmp_path, dyad="001", feat="llm", acq="x"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -799,7 +801,7 @@ class TestSaveConfound:
         path = save_confound(
             confound_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             ses="1",
             task="conv",
             run="1",
@@ -810,10 +812,10 @@ class TestSaveConfound:
         expected = (
             tmp_path
             / "confounds"
-            / "sub-001"
+            / "dyad-001"
             / "ses-1"
             / "phonemic"
-            / "sub-001_ses-1_task-conv_run-1_conf-phonemic.parquet"
+            / "dyad-001_ses-1_task-conv_run-1_conf-phonemic.parquet"
         )
         assert path == expected
         assert expected.exists()
@@ -824,7 +826,7 @@ class TestSaveConfound:
         path = save_confound(
             confound_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             conf="phonemic",
             desc="onset",
@@ -834,9 +836,9 @@ class TestSaveConfound:
         expected = (
             tmp_path
             / "confounds"
-            / "sub-001"
+            / "dyad-001"
             / "phonemic-onset"
-            / "sub-001_task-conv_conf-phonemic_desc-onset.parquet"
+            / "dyad-001_task-conv_conf-phonemic_desc-onset.parquet"
         )
         assert path == expected
         assert expected.exists()
@@ -847,7 +849,7 @@ class TestSaveConfound:
         path = save_confound(
             confound_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             conf="phonemic",
             repetition_time=2.0,
@@ -860,7 +862,7 @@ class TestSaveConfound:
         path = save_confound(
             confound_df,
             bids_root=tmp_path,
-            sub="001",
+            dyad="001",
             task="conv",
             conf="phonemic",
             repetition_time=2.0,

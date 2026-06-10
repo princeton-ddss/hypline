@@ -10,6 +10,10 @@ SUB = "001"
 TASK = "conv"
 SPACE = "MNI152NLin6Asym"
 
+# resolve_bold_image's source is a feature path; features are dyad-keyed on disk,
+# but confoundgen rekeys to sub before resolving the sub-keyed BOLD
+SUB_FEATURE_SOURCE = f"sub-{SUB}_task-{TASK}_run-1_feat-phonemic.parquet"
+
 
 _SEGMENT_ROWS = [
     {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
@@ -98,8 +102,8 @@ class TestResolveBoldImage:
     def test_fmriprep_preferred(self, tree: BIDSTree):
         # Both present: the fmriprep BOLD wins over the raw image
         bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
-        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
-        resolved = resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))
+        source = BIDSPath(SUB_FEATURE_SOURCE)
+        resolved = resolve_bold_image(BIDSLayout(tree.root), source)
         assert resolved.path == bold_path
 
     def test_raw_when_fmriprep_absent(self, tree: BIDSTree):
@@ -107,8 +111,8 @@ class TestResolveBoldImage:
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", write_raw=True)
         bold_path = tree.fmriprep_func_dir(sub=SUB).glob("*_bold.nii.gz").__next__()
         bold_path.unlink()
-        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
-        resolved = resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))
+        source = BIDSPath(SUB_FEATURE_SOURCE)
+        resolved = resolve_bold_image(BIDSLayout(tree.root), source)
         raw_bold = (
             tree.raw_func_dir(sub=SUB) / f"sub-{SUB}_task-{TASK}_run-1_bold.nii.gz"
         )
@@ -116,16 +120,16 @@ class TestResolveBoldImage:
 
     def test_neither_raises(self, tree: BIDSTree):
         # No BOLD image of any kind: n_trs is unresolvable
-        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
+        source = BIDSPath(SUB_FEATURE_SOURCE)
         with pytest.raises(FileNotFoundError, match="No BOLD image found"):
-            resolve_bold_image(BIDSLayout(tree.root), BIDSPath(feature_path))
+            resolve_bold_image(BIDSLayout(tree.root), source)
 
 
 class TestLoadBoldMeta:
     def test_non_bold_input_raises(self, tree: BIDSTree):
-        feature_path = tree.add_feature(sub=SUB, task=TASK, run="1", kind="phonemic")
+        source = BIDSPath(SUB_FEATURE_SOURCE)
         with pytest.raises(ValueError, match="Expected a BOLD file"):
-            load_bold_meta(BIDSLayout(tree.root), BIDSPath(feature_path))
+            load_bold_meta(BIDSLayout(tree.root), source)
 
     def test_missing_task_entity_raises(self, tree: BIDSTree):
         bold_path = tree.add_bold(sub=SUB, space=SPACE, run="1")

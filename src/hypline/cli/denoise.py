@@ -6,7 +6,7 @@ from loguru import logger
 
 from hypline.enums import BoldSpace
 
-from ._utils import run_per_subject, split_csv
+from ._utils import run_per_id, split_csv
 
 app = typer.Typer()
 
@@ -138,4 +138,6 @@ def denoise(
         logger.warning("No subjects found — nothing to denoise")
         return
 
-    run_per_subject(bids_root, "denoise", sub_ids=_sub_ids, task=denoiser.denoise)
+    run_per_id(
+        bids_root, "denoise", id_key="sub", id_values=_sub_ids, task=denoiser.denoise
+    )
