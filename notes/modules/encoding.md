@@ -38,8 +38,11 @@ A single `train(sub_id)` call is scoped to:
 
 `train(sub_id)` executes these steps in order:
 
-1. **`_discover_features`** — scans feature filenames for `sub_id`; returns raw
-   `dict[FeatureKey, Path]` with filename-only `CellKey`s. No events I/O. No user filters.
+1. **`_discover_features`** — resolves `sub_id`'s dyad via `dyad_of`
+   (participants.tsv; features are dyad-keyed — see
+   [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)), then scans
+   dyad-keyed feature filenames; returns raw `dict[FeatureKey, Path]` with
+   filename-only `CellKey`s. No events I/O. No user filters.
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
    (segment slices), and events.json `trial_type.Levels` (metadata) from the **raw** BIDS
    tree via `BIDSLayout.path.raw` (sidecars are identity-keyed, not per-variant). Returns
@@ -60,11 +63,13 @@ A single `train(sub_id)` call is scoped to:
 
 ## Alignment contract
 
-Features and BOLD runs are matched by stimulus-side identity entities
-(`sub`, `ses`, `task`, `run`). Every BOLD run in scope must have feature
-coverage for all requested features, and vice versa. Partial coverage is a
-hard error — silently dropping runs would mask upstream bugs in feature
-generation.
+Features and BOLD runs are matched by their shared run entities
+(`ses`, `task`, `run`). The leading identity is *not* shared (features
+`dyad`-keyed, BOLD `sub`-keyed — see
+[../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)). Every BOLD run in
+scope must have feature coverage for all requested features, and vice versa.
+Partial coverage is a hard error — silently dropping runs would mask upstream
+bugs in feature generation.
 
 **X/Y temporal alignment**: both X and Y are framed segment-locally —
 features bin into TRs 0…n-1 of the segment, and BOLD is sliced to the same
@@ -114,9 +119,9 @@ something the encoding fit does.
 All user-supplied `bids_filters` are applied post-resolution in `_apply_filters` against
 resolved `CellKey`s (features) and BOLD filename entities (BOLD). Neither `_discover_features`
 nor `_discover_bold` apply user filters. `_discover_features` uses only structural
-filters (`sub`, `feat`) plus the per-feature `desc` variant selector;
-`_discover_bold` uses `sub`, `space`, `desc` (the `bold_desc` derivative flavor),
-and `task`.
+filters (`dyad` — resolved from `sub` via `dyad_of` — and `feat`) plus the
+per-feature `desc` variant selector; `_discover_bold` uses `sub`, `space`, `desc`
+(the `bold_desc` derivative flavor), and `task`.
 
 Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
 to `BIDSLayout` queries. Applying all filters uniformly post-resolution ensures consistent

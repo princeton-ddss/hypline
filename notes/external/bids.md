@@ -13,7 +13,8 @@ sub-01_ses-01_task-movie_run-1_space-T1w_desc-preproc_bold.nii.gz
 
 | Entity   | Meaning                   | Presence                                |
 |----------|---------------------------|-----------------------------------------|
-| `sub`    | subject                   | always                                  |
+| `sub`    | subject                   | leading identity for per-brain files    |
+| `dyad`   | conversation pair         | leading identity for shared-conversation files (custom; see [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)) |
 | `ses`    | session                   | only when dataset has sessions          |
 | `task`   | task name                 | always for functional data              |
 | `acq`    | acquisition variant       | e.g. `acq-highres`                      |
@@ -57,8 +58,10 @@ exactly one entity name is allowed per run. See
 
 Hypline extends the BIDS root with four non-standard areas (`stimuli/`,
 `features/`, `confounds/`, `nuisance/`) that follow the same
-`sub-XX/ses-YY/<kind>/` nesting. See
-[../decisions/layout.md](../decisions/layout.md).
+`<identity>/[ses-YY/]<kind>/` nesting. The leading identity is `dyad` for the
+shared-conversation areas (`stimuli`/`features`/`confounds`) and `sub` for
+`nuisance`. See [../decisions/layout.md](../decisions/layout.md) and
+[../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
 
 ## `trial_type.Levels` for segment metadata
 

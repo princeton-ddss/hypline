@@ -9,11 +9,18 @@ Directory contract for the hypline-flavored BIDS root tree.
 ├── sub-XX/[ses-YY/]<datatype>/                        # raw BIDS
 ├── derivatives/fmriprep/sub-XX/[ses-YY/]<datatype>/   # fmriprep outputs
 ├── derivatives/hypline/sub-XX/[ses-YY/]func/          # hypline imaging derivatives (denoised BOLD)
-├── stimuli/sub-XX/[ses-YY/]<kind>/                    # audio, transcript, ...
-├── features/sub-XX/[ses-YY/]<kind>[-<desc>]/          # phonemic, semantic, ...
-├── confounds/sub-XX/[ses-YY/]<kind>[-<desc>]/         # phonemic, semantic, ...
-└── nuisance/sub-XX/[ses-YY/]<kind>[-<desc>]/          # physio, ... (run-level)
+├── stimuli/dyad-XX/[ses-YY/]<kind>/                   # audio, transcript, ... (shared conversation)
+├── features/dyad-XX/[ses-YY/]<kind>[-<desc>]/         # phonemic, semantic, ... (shared conversation)
+├── confounds/dyad-XX/[ses-YY/]<kind>[-<desc>]/        # phonemic, semantic, ... (shared conversation)
+└── nuisance/sub-XX/[ses-YY/]<kind>[-<desc>]/          # physio, ... (run-level, per-brain)
 ```
+
+`stimuli/`, `features/`, `confounds/` are **dyad-keyed** (derived from the
+shared conversation); BOLD-derived areas (raw, fmriprep, hypline, `nuisance/`)
+stay **sub-keyed**. See [dyad-keyed.md](dyad-keyed.md). The identity prefix is a
+parameter threaded through discovery — shared areas pass `dyad`, per-brain areas
+pass `sub`, one code path. `list.dyads(area=)` scans on-disk subdirs (distinct
+from the participants.tsv mapping).
 
 `ses-YY/` is present only for datasets with sessions; sessionless datasets nest
 `<datatype>` / `<kind>` directly under `sub-XX/`. Path resolution handles both.
@@ -35,7 +42,8 @@ is centralized.
 
 ## Vocabulary
 
-Two terms name directory levels below `sub-XX/ses-YY/` and must not be conflated:
+Two terms name directory levels below `<identity>/[ses-YY/]` (`<identity>` is
+`sub-XX` or `dyad-XX`) and must not be conflated:
 
 - **`datatype`** — BIDS spec directory (`func` / `anat` / `dwi` / ...). Applies to raw BIDS and fmriprep areas.
 - **`kind`** — hypline category. For `stimuli/`: `audio`, `transcript` (matches the `stim-<kind>` entity on stimulus filenames; no `desc` variants — see above). For `features/`: `phonemic`, `semantic` (matches the `feat-<kind>` entity on feature filenames). For `confounds/`: `phonemic`, `semantic` (matches the `conf-<kind>` entity on confound filenames; different derivations of a kind's source are differentiated by an optional `desc-<name>` entity). For `nuisance/`: user-named, e.g. `physio` (matches the `nuis-<kind>` entity on run-level nuisance filenames; optional `desc-<name>` derivation). Unlike the others, nuisance files carry a `_timeseries` suffix and are TSV — see [nuisance-files.md](nuisance-files.md).

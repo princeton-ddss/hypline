@@ -54,9 +54,10 @@ properties, so multi-hot per phoneme is the natural representation.
 ## `featuregen phonemic` chains confound generation
 
 `featuregen phonemic` generates phonemic confounds by default after writing
-features. Failure is isolated per subject: a subject's feature failure skips
-only its own confound, and other subjects proceed. `--skip-confoundgen` writes
-features only.
+features. Both generators iterate per **dyad** (features/confounds are
+dyad-keyed — see [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)), and
+failure is isolated per dyad: a dyad's feature failure skips only its own
+confound, and other dyads proceed. `--skip-confoundgen` writes features only.
 
 Defaulting to chained generation is intentional: feature → its timing-only
 confound is the dominant path. `confoundgen phonemic` stays standalone for

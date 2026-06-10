@@ -54,15 +54,17 @@ divergent variant — is covered in [feature-files.md](feature-files.md).
 
 ## Naming
 
-Confound filenames carry **stimulus-side identity entities** from the source
-BOLD (`sub`, `ses`, `task`, `run`), any segment entity value, and two hypline
-entities: `conf-<kind>` names the **source** a confound is derived from (matches
-the `confoundgen` subcommand and the `confounds/<kind>/` directory), and an
-**optional** `desc-<name>` names **which derivation** of that source (phonemic
-timestamps → `desc-onset` indicator, `desc-rate` count). This is the same
-source/derivation meaning and `<kind>[-<desc>]` template feature files use — see
-[feature-files.md](feature-files.md). Like feature files, they carry **no BIDS
-suffix** (none exists for derived confounds); validation rejects any path with one.
+Confound files are **dyad-keyed** — like features, they describe the shared
+conversation (see [dyad-keyed.md](dyad-keyed.md)). The stem carries the source
+feature's identity entities (`dyad`, `ses`, `task`, `run`), any segment entity
+value, and two hypline entities: `conf-<kind>` names the **source** a confound
+is derived from (matches the `confoundgen` subcommand and the `confounds/<kind>/`
+directory), and an **optional** `desc-<name>` names **which derivation** of that
+source (phonemic timestamps → `desc-onset` indicator, `desc-rate` count). This is
+the same source/derivation meaning and `<kind>[-<desc>]` template feature files
+use — see [feature-files.md](feature-files.md). Like feature files, they carry
+**no BIDS suffix** (none exists for derived confounds); validation rejects any
+path with one.
 
 A bare `conf-<kind>` is the kind's unnamed default derivation and a legitimate
 confound on its own: a user computing their own single derivation of the

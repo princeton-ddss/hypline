@@ -56,6 +56,7 @@ AI agents alike. Agent-agnostic by design.
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/events.md`, `modules/encoding.md` |
 | Loading segments without a BOLD file   | `modules/events.md`                                 |
 | Locating files in the BIDS tree        | `decisions/layout.md`, `external/bids.md`           |
+| Reasoning about dyad- vs sub-keyed areas | `decisions/dyad-keyed.md`, `decisions/layout.md`  |
 | Understanding BIDSPath guarantees      | `decisions/bidspath-validation.md`                  |
 | Phoneme-level feature questions        | `modules/phonemic.md`, `decisions/feature-files.md` |
 | Reasoning about X/Y temporal alignment | `decisions/feature-files.md`, `modules/encoding.md` |

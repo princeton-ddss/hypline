@@ -5,8 +5,13 @@ What `BIDSPath` enforces vs. what it leaves to callers.
 ## Enforced invariants
 
 - At least one entity must parse from the filename.
-- First entity must be `sub` — guarantees `bp.sub` is always present and matches
-  BIDS' rule that subject is the leading entity.
+- Exactly one leading **identity** entity — `sub` xor `dyad`
+  (`IDENTITY_ENTITIES`) — and it must lead the stem. `sub` keys per-brain files,
+  `dyad` keys shared-conversation files (`stimuli`/`features`/`confounds`); see
+  [dyad-keyed.md](dyad-keyed.md). `dyad` is **not** a BOLD identity entity
+  (`BOLD_IDENTITY_ENTITIES` stays `sub`/`ses`/`task`/`run`). Re-key between the
+  two with `with_identity(key, value)`; `with_entity`/`without_entity` reject
+  identity keys.
 - Entity keys/values, suffix, and extension match the BIDS character grammar
   (see `BIDS_ENTITY_RE`, `BIDS_SUFFIX_RE`, `EXTENSION_RE`).
 - Extension must be present and non-empty. Every BIDS file has one; wrap
@@ -35,7 +40,7 @@ prevents that class of bug.
 `BIDSPath.from_entities` places entities in a fixed order so derived paths
 across the codebase look identical regardless of kwarg order:
 
-1. Identity: `sub`, `ses`, `task`, `run`
+1. Identity: the leading identity (`sub` xor `dyad`), then `ses`, `task`, `run`
 2. Any other entities, alphabetically
 3. Category (`stim`/`feat`/`conf`/`nuis`), then `desc`
 

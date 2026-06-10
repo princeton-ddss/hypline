@@ -55,12 +55,14 @@ to ignore them can filter on the unit column.
 
 ## Naming
 
-Feature files carry **stimulus-side identity entities** from the source BOLD (`sub`, `ses`,
-`task`, `run`), the segment entity value (e.g. `trial-1`), and hypline's own `feat` entity:
+Feature files are **dyad-keyed** — they describe the shared conversation, not one
+brain (see [dyad-keyed.md](dyad-keyed.md)). The stem carries the dyad-keyed source
+stimulus's identity entities (`dyad`, `ses`, `task`, `run`), the segment entity
+value (e.g. `trial-1`), and hypline's own `feat` entity:
 
 ```
-sub-01_ses-01_task-movie_run-1_trial-1_feat-clip.parquet   # with sessions
-sub-01_task-movie_run-1_trial-1_feat-clip.parquet           # sessionless
+dyad-01_ses-01_task-movie_run-1_trial-1_feat-clip.parquet   # with sessions
+dyad-01_task-movie_run-1_trial-1_feat-clip.parquet           # sessionless
 ```
 
 Feature files live under `features/` — see [layout.md](layout.md) for the root tree.
@@ -160,8 +162,10 @@ multiple segments would silently merge timepoints across segment boundaries duri
 
 ## Mirroring requirement
 
-Feature filenames must carry the same stimulus-side identity entities as their source BOLD
-file. If BOLD has `ses-01_run-1`, the feature file must too.
+Feature files must carry the same **non-identity** run entities as the BOLD they
+feed (`ses`/`task`/`run`). If BOLD has `ses-01_run-1`, the feature file must too.
+The leading identity deliberately differs (features `dyad`-keyed, BOLD
+`sub`-keyed; bridged via participants.tsv — see [dyad-keyed.md](dyad-keyed.md)).
 
 This is how pipelines match features to BOLD runs. Aggregating features across sessions or
 runs (e.g. a subject-level embedding) is out of scope for encoding models — such features
@@ -182,8 +186,9 @@ dimensions are nameable.
 Keys prefixed with `_` are exempt from cross-file equality checks, reserved
 for genuinely per-file metadata.
 
-At encoding time, all feature files for the same (subject, feature) must have
-identical `hypline` metadata; mismatches are rejected.
+At encoding time, all feature files in scope for one feature (a training call is
+per-subject, but features are dyad-keyed, so this is the subject's resolved dyad)
+must have identical `hypline` metadata; mismatches are rejected.
 
 ## Temporal alignment
 
