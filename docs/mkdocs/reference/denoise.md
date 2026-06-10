@@ -30,13 +30,13 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 
 ```
 <dataset-root>/
-├── derivatives/fmriprep/sub-01/func/
-│   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
-│   ├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
-│   ├── sub-01_task-conv_run-1_desc-confounds_timeseries.tsv
-│   └── sub-01_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
-└── nuisance/sub-01/physio-v1/                                  # optional, user-supplied
-    └── sub-01_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
+├── derivatives/fmriprep/sub-001/func/
+│   ├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
+│   ├── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
+│   ├── sub-001_task-conv_run-1_desc-confounds_timeseries.tsv
+│   └── sub-001_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
+└── nuisance/sub-001/physio-v1/                                  # optional, user-supplied
+    └── sub-001_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
 ```
 
 ## Options
@@ -82,8 +82,8 @@ from the horizontal concat of all named sources. The two must be given together.
     Custom nuisance files are yours to create — hypline never writes them. Each
     must be a **tab-separated `.tsv`** with the `_timeseries` suffix and a
     `nuis-<kind>` entity, e.g.
-    `sub-01_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv`, placed in
-    `nuisance/sub-01/<kind>[-<desc>]/`. It is a **wide** table: one named column
+    `sub-001_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv`, placed in
+    `nuisance/sub-001/<kind>[-<desc>]/`. It is a **wide** table: one named column
     per regressor, one row per TR (row count must match the BOLD run). Every
     value must be **finite** — unlike the fMRIPrep table, there is no `n/a`
     convention, so a blank or non-numeric cell raises rather than being filled.
@@ -118,12 +118,12 @@ hypline denoise data/ \
   --custom-sources physio-v1 --custom-columns resp,cardiac
 ```
 
-Clean only run 1 of subjects 01 and 02:
+Clean only run 1 of subjects 001 and 101:
 
 ```bash
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
-  --sub-ids 01,02 \
+  --sub-ids 001,101 \
   --data-filters run-1
 ```
 
@@ -135,11 +135,11 @@ identity — only the `desc` entity (`desc-denoised`) and the root differ from t
 `desc-preproc` source:
 
 ```
-<dataset-root>/derivatives/hypline/sub-01/func/
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.func.gii    # output
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.json        # sidecar
-├── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.func.gii    # output
-└── sub-01_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.json        # sidecar
+<dataset-root>/derivatives/hypline/sub-001/func/
+├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.func.gii    # output
+├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.json        # sidecar
+├── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.func.gii    # output
+└── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.json        # sidecar
 ```
 
 The output keeps the input's dimensions — only the signal values change. Each run

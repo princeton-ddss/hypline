@@ -39,15 +39,15 @@ regressor, derived purely from phoneme timing.
 Phonemic feature files produced by [`featuregen phonemic`](featuregen.md):
 
 ```
-<dataset-root>/features/sub-01/phonemic/
-└── sub-01_task-conv_run-1_feat-phonemic.parquet
+<dataset-root>/features/dyad-101/phonemic/
+└── dyad-101_task-conv_run-1_feat-phonemic.parquet
 ```
 
 ### Options
 
 | Option           | Description                                                       | Default |
 | ---------------- | ---------------------------------------------------------------- | ------- |
-| `--sub-ids`      | Comma-separated subject IDs to process; omit for all             | all     |
+| `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
 | `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
@@ -63,11 +63,11 @@ Two derivations per run, tagged `conf-phonemic` and distinguished by `desc`.
 Each `desc` lands in its own subdirectory:
 
 ```
-<dataset-root>/confounds/sub-01/
+<dataset-root>/confounds/dyad-101/
 ├── phonemic-onset/
-│   └── sub-01_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
+│   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
 └── phonemic-rate/
-    └── sub-01_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
+    └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
 ```
 
 Each derivation is referred to by name (`phonemic-onset`, `phonemic-rate`). These

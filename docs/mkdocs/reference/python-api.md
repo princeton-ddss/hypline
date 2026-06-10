@@ -16,12 +16,14 @@ from hypline import (
 ```
 
 The two halves are deliberately asymmetric. **Saves are entity-based** —
-you pass `bids_root` plus BIDS entities (`sub`, `feat`/`conf`, `run`, …) and
+you pass `bids_root` plus BIDS entities (`dyad`, `feat`/`conf`, `run`, …) and
 hypline derives the canonical output path for you, so writes always land where
-the pipeline expects. **Reads are path-based** — you usually already have a file
-in hand. Both enforce the [dataset layout](../concepts/layout.md) and the file
-formats; a malformed DataFrame or path raises rather than writing something the
-CLI can't later consume.
+the pipeline expects. Features and confounds describe the shared conversation, so
+they are keyed by `dyad`, not `sub` — see [Subject vs.
+dyad](../concepts/layout.md#subject-vs-dyad). **Reads are path-based** — you
+usually already have a file in hand. Both enforce the [dataset
+layout](../concepts/layout.md) and the file formats; a malformed DataFrame or
+path raises rather than writing something the CLI can't later consume.
 
 ## Plugging in a custom feature
 
@@ -51,14 +53,14 @@ df = pl.DataFrame(
 path = save_feature(
     df,
     bids_root="data/",
-    sub="01",
+    dyad="101",
     feat="embed",
     task="conv",
     run="1",
 )
 ```
 
-This writes `data/features/sub-01/embed/sub-01_task-conv_run-1_feat-embed.parquet`.
+This writes `data/features/dyad-101/embed/dyad-101_task-conv_run-1_feat-embed.parquet`.
 Pass `desc="..."` to tag a variant into its own
 [`embed-<desc>/` subdirectory](../concepts/layout.md#variants-with-desc), and
 `metadata={...}` to stash extra keys in the Parquet footer.

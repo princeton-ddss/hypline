@@ -20,8 +20,8 @@ hypline transcribe <dataset-root> --audio-ext <ext> [OPTIONS]
 Stimulus audio files under the `stimuli/` area, tagged `stim-audio`:
 
 ```
-<dataset-root>/stimuli/sub-01/audio/
-└── sub-01_task-conv_run-1_stim-audio.wav
+<dataset-root>/stimuli/dyad-101/audio/
+└── dyad-101_task-conv_run-1_stim-audio.wav
 ```
 
 See [The hypline dataset layout](../concepts/layout.md) for how files are
@@ -35,7 +35,7 @@ named and discovered.
 | `--model`        | Whisper model: `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3` | `large-v2` |
 | `--model-dir`    | Where to find/download model weights                             | system cache     |
 | `--device`       | Hardware target: `cpu` or `cuda`                                 | `cpu`            |
-| `--sub-ids`      | Comma-separated subject IDs to process; omit for all             | all              |
+| `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all              |
 | `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`        | Overwrite existing transcripts (default skips them)              | off              |
 
@@ -47,16 +47,16 @@ named and discovered.
 
 ## Example
 
-Transcribe every subject's WAV audio with the default model:
+Transcribe every dyad's WAV audio with the default model:
 
 ```bash
 hypline transcribe data/ --audio-ext .wav
 ```
 
-Transcribe only subjects 01 and 02 on a GPU:
+Transcribe only dyads 101 and 102 on a GPU:
 
 ```bash
-hypline transcribe data/ --audio-ext .wav --sub-ids 01,02 --device cuda
+hypline transcribe data/ --audio-ext .wav --dyad-ids 101,102 --device cuda
 ```
 
 ## Outputs
@@ -65,11 +65,11 @@ A word-level transcript per audio file, tagged `stim-transcript`, written beside
 the audio under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/sub-01/
+<dataset-root>/stimuli/dyad-101/
 ├── audio/
-│   └── sub-01_task-conv_run-1_stim-audio.wav
+│   └── dyad-101_task-conv_run-1_stim-audio.wav
 └── transcript/
-    └── sub-01_task-conv_run-1_stim-transcript.csv
+    └── dyad-101_task-conv_run-1_stim-transcript.csv
 ```
 
 Each transcript row is one word with its onset time. These onsets are what

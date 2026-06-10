@@ -26,8 +26,8 @@ manner, voicing, …).
 Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/sub-01/transcript/
-└── sub-01_task-conv_run-1_stim-transcript.csv
+<dataset-root>/stimuli/dyad-101/transcript/
+└── dyad-101_task-conv_run-1_stim-transcript.csv
 ```
 
 ### Options
@@ -37,7 +37,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 | `--no-articulatory` | Use a plain phoneme identity vector instead of articulatory features | off |
 | `--desc`            | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen`| Write features only; do **not** also generate phonemic confounds | off     |
-| `--sub-ids`         | Comma-separated subject IDs to process; omit for all             | all     |
+| `--dyad-ids`        | Comma-separated dyad IDs to process; omit for all                | all     |
 | `--data-filters`    | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`           | Overwrite existing outputs (default skips them)                  | off     |
 
@@ -50,7 +50,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
 ### Example
 
-Generate phonemic features (and their confounds) for all subjects:
+Generate phonemic features (and their confounds) for all dyads:
 
 ```bash
 hypline featuregen phonemic data/
@@ -72,13 +72,13 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 ```
 <dataset-root>/
-├── features/sub-01/phonemic/
-│   └── sub-01_task-conv_run-1_feat-phonemic.parquet
-└── confounds/sub-01/                                    # from the chained confoundgen
+├── features/dyad-101/phonemic/
+│   └── dyad-101_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-101/                                  # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── sub-01_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── sub-01_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` and lives in its own subdirectory

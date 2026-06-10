@@ -15,8 +15,12 @@ Hypline reads run structure from the standard BIDS `events.tsv` file that sits
 beside each run in the raw tree:
 
 ```
-sub-01/func/sub-01_task-conv_run-1_events.tsv
+sub-001/func/sub-001_task-conv_run-1_events.tsv
 ```
+
+Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
+resolves them through [`participants.tsv`](layout.md#subject-vs-dyad) and reads
+either partner's events — segments are shared across a dyad by construction.
 
 Hypline infers segments from the `trial_type` column. A row whose `trial_type`
 is an `entity-value` pair (like `trial-1`) **declares a segment** — a named time
@@ -58,7 +62,7 @@ Segment names like `trial-1` carry no meaning on their own. Descriptive
 attributes — condition, stimulus item, counterbalance group — live in the
 companion `events.json` sidecar, under the BIDS `trial_type.Levels` field:
 
-```json title="sub-01_task-conv_run-1_events.json"
+```json title="sub-001_task-conv_run-1_events.json"
 {
   "trial_type": {
     "Levels": {

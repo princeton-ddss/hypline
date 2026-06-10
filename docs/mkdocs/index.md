@@ -107,8 +107,9 @@ overwrite its outputs; without it, hypline skips work it has already done.
 
 !!! tip "If a command seems to do nothing"
 
-    Two harmless cases look like failures. **`No subjects found`** means the area
-    that command reads is empty or your `--sub-ids` / `--data-filters` excluded
+    Two harmless cases look like failures. **`No dyads found`** (stimulus
+    commands) or **`No subjects found`** (`denoise`) means the area that command
+    reads is empty or your `--dyad-ids` / `--sub-ids` / `--data-filters` excluded
     everything — widen the filter or check the files are in place. A command that
     exits instantly with no log means its outputs already exist and were skipped;
     re-run with `--force` to regenerate. Per-command failure modes are listed

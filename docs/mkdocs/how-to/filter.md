@@ -1,11 +1,15 @@
 # Filter to specific runs or conditions
 
-Most hypline commands run over *every* subject, run, and segment they discover by
-convention. When you want a command to touch only part of your dataset — one
-subject, two runs, a single condition — you narrow it with two options that
-appear on nearly every command:
+Most hypline commands run over *everything* they discover by convention — every
+run and segment, and every dyad or subject. When you want a command to touch only
+part of your dataset — one dyad, two runs, a single condition — you narrow it with
+two options that appear on nearly every command:
 
-- **`--sub-ids`** — pick which subjects to process.
+- **`--dyad-ids`** / **`--sub-ids`** — pick which dyads or subjects to process.
+  Which one a command takes follows the area it writes: the dyad-keyed stimulus
+  commands (`transcribe`, `featuregen`, `confoundgen`) take `--dyad-ids`, while
+  the sub-keyed `denoise` takes `--sub-ids`. See [Subject vs.
+  dyad](../concepts/layout.md#subject-vs-dyad).
 - **`--data-filters`** — pick which runs and conditions within them.
 
 This guide shows the common selections. For *why* segments and conditions work
@@ -13,18 +17,21 @@ the way they do, see [Segments and metadata](../concepts/segments.md); for the
 full option list of any single command, see its [Reference](../reference/transcribe.md)
 page.
 
-## Select subjects with `--sub-ids`
+## Select dyads or subjects
 
-Pass comma-separated subject IDs (the value of the `sub-` entity, without the
-prefix):
+Pass comma-separated IDs (the value of the identity entity, without the prefix).
+Use `--dyad-ids` on the stimulus commands and `--sub-ids` on `denoise`:
 
 ```bash
-# only subjects 01 and 02
-hypline featuregen phonemic data/ --sub-ids 01,02
+# stimulus command: only dyads 101 and 102
+hypline featuregen phonemic data/ --dyad-ids 101,102
+
+# denoise: only subjects 001 and 101 (the two partners of dyad-101)
+hypline denoise data/ --columns trans_x,trans_y,trans_z --sub-ids 001,101
 ```
 
-Omit `--sub-ids` entirely to process every subject found wherever that command
-looks for its inputs.
+Omit the option entirely to process every dyad (or subject) found wherever that
+command looks for its inputs.
 
 ## Select runs and conditions with `--data-filters`
 
@@ -76,22 +83,23 @@ hypline denoise data/ \
 | Same entity, multiple values | **OR** — `run-1,run-2` → run 1 *or* 2 |
 | Different entities | **AND** — `run-1,cond-R` → run 1 *and* condition R |
 
-So `run-1,run-2,cond-G` means *(run 1 or run 2) and condition G*. Combine
-`--sub-ids` with `--data-filters` to slice on both axes at once:
+So `run-1,run-2,cond-G` means *(run 1 or run 2) and condition G*. Combine the
+identity option (`--dyad-ids` / `--sub-ids`) with `--data-filters` to slice on
+both axes at once:
 
 ```bash
-# subjects 01–02, run 1 only, condition R
+# subjects 001 and 101, run 1 only, condition R
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z \
-  --sub-ids 01,02 \
+  --sub-ids 001,101 \
   --data-filters run-1,cond-R
 ```
 
 ## Combining with `--force`
 
-`--sub-ids` and `--data-filters` decide *what is considered*; `--force` decides
-whether already-generated outputs are overwritten. They compose — scope a rerun
-to one run and force just that one:
+The identity option (`--dyad-ids` / `--sub-ids`) and `--data-filters` decide
+*what is considered*; `--force` decides whether already-generated outputs are
+overwritten. They compose — scope a rerun to one run and force just that one:
 
 ```bash
 hypline featuregen phonemic data/ --data-filters run-1 --force
@@ -103,9 +111,10 @@ See [Regenerate outputs after a fix](regenerate.md) for the rerun workflow.
 
 Two outcomes look similar but mean different things:
 
-- **`No subjects found`** — the input location is empty, or your `--sub-ids` /
-  `--data-filters` excluded everything. Widen the filter, or confirm the files
-  are in place.
+- **`No dyads found`** / **`No subjects found`** — the input location is empty, or
+  your `--dyad-ids` / `--sub-ids` / `--data-filters` excluded everything. Widen the
+  filter, or confirm the files are in place. (Stimulus commands report dyads;
+  `denoise` reports subjects.)
 - **An error naming an unknown entity** — a filter token names an entity that
   exists *nowhere*, neither on filenames nor in `events.json` metadata. Hypline
   treats this as a typo and raises, rather than silently matching nothing. Check

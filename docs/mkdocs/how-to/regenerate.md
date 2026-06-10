@@ -12,8 +12,9 @@ cheap, but it means a second run after a fix appears to do nothing: the outputs
 are still there, so every step is skipped.
 
 To overwrite, pass **`--force`**. Skipping is decided per output file, so
-`--force` combined with [`--sub-ids` / `--data-filters`](filter.md) regenerates
-**only** the subset you select — everything else is left untouched.
+`--force` combined with [the identity option (`--dyad-ids` / `--sub-ids`) /
+`--data-filters`](filter.md) regenerates **only** the subset you select —
+everything else is left untouched.
 
 ```bash
 # regenerate features for run 1 only; all other runs stay as they were
@@ -94,4 +95,4 @@ applies after editing any `nuisance/` file you regress out.
     If you are unsure how far a change propagates, rerun every step from the
     fix onward with `--force`. Hypline recomputes from scratch each time, so a
     broader `--force` is never *wrong* — only more expensive. Scope it with
-    `--sub-ids` / `--data-filters` to keep the cost down.
+    `--dyad-ids` / `--sub-ids` / `--data-filters` to keep the cost down.
