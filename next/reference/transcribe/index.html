@@ -1042,7 +1042,7 @@ named and discovered.</p>
 <tr>
 <td><code>--model-dir</code></td>
 <td>Where to find/download model weights</td>
-<td>system cache</td>
+<td><code>~/.cache/hypline/whisperx</code></td>
 </tr>
 <tr>
 <td><code>--device</code></td>
@@ -1069,8 +1069,8 @@ named and discovered.</p>
 <div class="admonition tip">
 <p class="admonition-title">Model size vs. speed</p>
 <p>Larger models are more accurate but slower. On a GPU, pass <code>--device cuda</code>.
-The first run downloads the chosen model to <code>--model-dir</code> (or the system
-cache); later runs reuse it.</p>
+The first run downloads the chosen model to <code>--model-dir</code> (default
+<code>~/.cache/hypline/whisperx</code>); later runs reuse it.</p>
 </div>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
 <p>Transcribe every dyad's WAV audio with the default model:</p>

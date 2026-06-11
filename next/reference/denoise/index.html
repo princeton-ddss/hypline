@@ -1017,7 +1017,9 @@ nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD u
 </ol>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Preprocessed BOLD</strong> (<code>desc-preproc</code>) under <code>derivatives/fmriprep/</code>.</li>
+<li><strong>Preprocessed BOLD</strong> under <code>derivatives/fmriprep/</code> — volumetric <code>desc-preproc</code>
+  <code>.nii.gz</code>, or surface <code>.func.gii</code> (named by <code>space</code>/<code>hemi</code>, with no <code>desc</code>),
+  selected by <code>--space</code>.</li>
 <li><strong>fMRIPrep confounds table</strong> (<code>desc-confounds_timeseries.tsv</code>, with its <code>.json</code>
   sidecar) beside the BOLD — read directly when you pass <code>--columns</code> /
   <code>--compcor</code>. The sidecar is always read (it carries the CompCor metadata), so
@@ -1169,14 +1171,14 @@ defaults to the volumetric <code>MNI152NLin2009cAsym</code>, so it can be omitte
 <p>The denoised BOLD is written to its own <strong><code>derivatives/hypline/</code></strong> tree, mirroring
 fMRIPrep's <code>sub-XX/[ses-YY/]func/</code> shape and preserving the source's full BOLD
 identity — only the <code>desc</code> entity (<code>desc-denoised</code>) and the root differ from the
-<code>desc-preproc</code> source:</p>
+source:</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/hypline/sub-003/ses-1/func/
 ├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # output
 └── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 </code></pre></div>
 <p>The output keeps the input's dimensions — only the signal values change. Each run
 gets a per-file <code>.json</code> sidecar recording its <code>Sources</code> (a <code>bids:</code> URI to the
-<code>desc-preproc</code> input), the resolved cleaning settings, and the hypline version.
+source BOLD), the resolved cleaning settings, and the hypline version.
 On first output, hypline stamps a <code>derivatives/hypline/dataset_description.json</code>
 (written once, left alone thereafter).</p>
 <p>Denoised BOLD lives in its own tree rather than beside its fMRIPrep source
@@ -1216,7 +1218,7 @@ inheriting fMRIPrep's.</p>
 <tr>
 <td>Command finishes, but no <code>desc-denoised</code> files appear</td>
 <td><code>--space</code> names a valid space that is <strong>absent</strong> from your fMRIPrep outputs, so nothing matched.</td>
-<td>Pass a <code>--space</code> you actually preprocessed (check the <code>space-</code> entity on your <code>desc-preproc</code> files).</td>
+<td>Pass a <code>--space</code> you actually preprocessed (check the <code>space-</code> entity on your fMRIPrep BOLD files).</td>
 </tr>
 <tr>
 <td><code>No subjects found — nothing to denoise</code></td>
