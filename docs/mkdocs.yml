@@ -79,6 +79,8 @@ plugins:
 
 nav:
   - Home: index.md
+  - Tutorials:
+    - A full run on the example dataset: tutorials/walkthrough.md
   - How-to guides:
     - Filter to specific runs or conditions: how-to/filter.md
     - Regenerate outputs after a fix: how-to/regenerate.md
@@ -91,6 +93,3 @@ nav:
     - hypline confoundgen: reference/confoundgen.md
     - hypline denoise: reference/denoise.md
     - Python API: reference/python-api.md
-  # Tutorial section is added once the example dataset is finalized:
-  # - Tutorial:
-  #   - Walkthrough: tutorial/walkthrough.md

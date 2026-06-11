@@ -117,6 +117,8 @@ overwrite its outputs; without it, hypline skips work it has already done.
 
 ## Where to go next
 
+- **Want to try it now?** Follow the [Tutorial](tutorials/walkthrough.md) — a full
+  pipeline run on a downloadable example dataset, one command at a time.
 - **New to hypline?** Start with [The hypline dataset layout](concepts/layout.md)
   to learn how a dataset is organized — every command depends on it.
 - **Want command details?** See the [Reference](reference/transcribe.md) for each
