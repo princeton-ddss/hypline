@@ -247,6 +247,26 @@
     
     
       <li class="md-tabs__item">
+        <a href="../../tutorials/walkthrough/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="../../how-to/filter/" class="md-tabs__link">
           
   
@@ -395,7 +415,7 @@
   
   
   <span class="md-ellipsis">
-    How-to guides
+    Tutorials
     
   </span>
   
@@ -405,6 +425,79 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    A full run on the example dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    How-to guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             How-to guides
           </label>
@@ -483,10 +576,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -499,8 +592,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Concepts
           </label>
@@ -584,10 +677,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -600,8 +693,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Reference
           </label>
@@ -958,8 +1051,8 @@ regenerating features.</p>
 </div>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <p>Phonemic feature files produced by <a href="../featuregen/"><code>featuregen phonemic</code></a>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-101/phonemic/
-└── dyad-101_task-conv_run-1_feat-phonemic.parquet
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-103/ses-1/phonemic/
+└── dyad-103_ses-1_task-conv_run-1_feat-phonemic.parquet
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -994,11 +1087,11 @@ regenerating features.</p>
 <h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
 <p>Two derivations per run, tagged <code>conf-phonemic</code> and distinguished by <code>desc</code>.
 Each <code>desc</code> lands in its own subdirectory:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/dyad-101/
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/dyad-103/ses-1/
 ├── phonemic-onset/
-│   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
+│   └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
 └── phonemic-rate/
-    └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
+    └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
 </code></pre></div>
 <p>Each derivation is referred to by name (<code>phonemic-onset</code>, <code>phonemic-rate</code>). These
 are feature-granular, encoding-side confounds; they are not read by

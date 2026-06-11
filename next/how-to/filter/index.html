@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../../tutorials/walkthrough/">
       
       
         <link rel="next" href="../regenerate/">
@@ -243,6 +243,26 @@
   
   
   
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/walkthrough/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
     
   
   
@@ -371,6 +391,79 @@
       
   
   
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    A full run on the example dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -392,10 +485,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -408,8 +501,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             How-to guides
           </label>
@@ -617,10 +710,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -633,8 +726,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Concepts
           </label>
@@ -713,10 +806,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -729,8 +822,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Reference
           </label>
@@ -1010,11 +1103,11 @@ page.</p>
 <h2 id="select-dyads-or-subjects">Select dyads or subjects<a class="headerlink" href="#select-dyads-or-subjects" title="Permanent link">&para;</a></h2>
 <p>Pass comma-separated IDs (the value of the identity entity, without the prefix).
 Use <code>--dyad-ids</code> on the stimulus commands and <code>--sub-ids</code> on <code>denoise</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># stimulus command: only dyads 101 and 102</span>
-hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">101</span>,102
+<div class="highlight"><pre><span></span><code><span class="c1"># stimulus command: only dyad 103 (pass more as a comma-separated list)</span>
+hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">103</span>
 
-<span class="c1"># denoise: only subjects 001 and 101 (the two partners of dyad-101)</span>
-hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">001</span>,101
+<span class="c1"># denoise: only subjects 003 and 103 (the two partners of dyad-103)</span>
+hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">003</span>,103
 </code></pre></div>
 <p>Omit the option entirely to process every dyad (or subject) found wherever that
 command looks for its inputs.</p>
@@ -1066,10 +1159,10 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 <p>So <code>run-1,run-2,cond-G</code> means <em>(run 1 or run 2) and condition G</em>. Combine the
 identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) with <code>--data-filters</code> to slice on
 both axes at once:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># subjects 001 and 101, run 1 only, condition R</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># subjects 003 and 103, run 1 only, condition R</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">001</span>,101<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">003</span>,103<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1,cond-R
 </code></pre></div>
 <h2 id="combining-with-force">Combining with <code>--force</code><a class="headerlink" href="#combining-with-force" title="Permanent link">&para;</a></h2>
@@ -1128,7 +1221,7 @@ overwritten. They compose — scope a rerun to one run and force just that one:<
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../.." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+          <a href="../../tutorials/walkthrough/" class="md-footer__link md-footer__link--prev" aria-label="Previous: A full run on the example dataset">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1138,7 +1231,7 @@ overwritten. They compose — scope a rerun to one run and force just that one:<
                 Previous
               </span>
               <div class="md-ellipsis">
-                Home
+                A full run on the example dataset
               </div>
             </div>
           </a>

@@ -247,6 +247,26 @@
     
     
       <li class="md-tabs__item">
+        <a href="../../tutorials/walkthrough/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="../../how-to/filter/" class="md-tabs__link">
           
   
@@ -395,7 +415,7 @@
   
   
   <span class="md-ellipsis">
-    How-to guides
+    Tutorials
     
   </span>
   
@@ -405,6 +425,79 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    A full run on the example dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    How-to guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             How-to guides
           </label>
@@ -483,10 +576,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -499,8 +592,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Concepts
           </label>
@@ -584,10 +677,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -600,8 +693,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Reference
           </label>
@@ -946,8 +1039,8 @@ phonemes, and each phoneme is represented by its articulatory features (place,
 manner, voicing, …).</p>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <p>Transcripts produced by <a href="../transcribe/"><code>transcribe</code></a>, under <code>stimuli/</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-101/transcript/
-└── dyad-101_task-conv_run-1_stim-transcript.csv
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-103/ses-1/transcript/
+└── dyad-103_ses-1_task-conv_run-1_transcript.csv
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -1012,13 +1105,13 @@ names the variant after it so it sits beside the default features:</p>
 <code>features/</code>. With <code>--skip-confoundgen</code> omitted, the matching <code>conf-phonemic</code>
 confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>):</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
-├── features/dyad-101/phonemic/
-│   └── dyad-101_task-conv_run-1_feat-phonemic.parquet
-└── confounds/dyad-101/                                  # from the chained confoundgen
+├── features/dyad-103/ses-1/phonemic/
+│   └── dyad-103_ses-1_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-103/ses-1/                            # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
 </code></pre></div>
 <p>A <code>--desc</code> label lands as <code>desc-&lt;label&gt;</code> and lives in its own subdirectory
 (<code>phonemic-&lt;label&gt;/</code>), keeping variants separate. See

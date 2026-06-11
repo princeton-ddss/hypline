@@ -247,6 +247,26 @@
     
     
       <li class="md-tabs__item">
+        <a href="../../tutorials/walkthrough/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="../../how-to/filter/" class="md-tabs__link">
           
   
@@ -395,7 +415,7 @@
   
   
   <span class="md-ellipsis">
-    How-to guides
+    Tutorials
     
   </span>
   
@@ -405,6 +425,79 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    A full run on the example dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    How-to guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             How-to guides
           </label>
@@ -483,10 +576,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -499,8 +592,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Concepts
           </label>
@@ -584,10 +677,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -600,8 +693,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Reference
           </label>
@@ -933,13 +1026,12 @@ nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD u
   <code>--custom-sources</code>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
-├── derivatives/fmriprep/sub-001/func/
-│   ├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-preproc_bold.func.gii
-│   ├── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-preproc_bold.func.gii
-│   ├── sub-001_task-conv_run-1_desc-confounds_timeseries.tsv
-│   └── sub-001_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
-└── nuisance/sub-001/physio-v1/                                  # optional, user-supplied
-    └── sub-001_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
+├── derivatives/fmriprep/sub-003/ses-1/func/
+│   ├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+│   ├── sub-003_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
+│   └── sub-003_ses-1_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
+└── nuisance/sub-003/ses-1/physio-v1/                                  # optional, user-supplied
+    └── sub-003_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
 </code></pre></div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <table>
@@ -1037,8 +1129,8 @@ from the horizontal concat of all named sources. The two must be given together.
 <p>Custom nuisance files are yours to create — hypline never writes them. Each
 must be a <strong>tab-separated <code>.tsv</code></strong> with the <code>_timeseries</code> suffix and a
 <code>nuis-&lt;kind&gt;</code> entity, e.g.
-<code>sub-001_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv</code>, placed in
-<code>nuisance/sub-001/&lt;kind&gt;[-&lt;desc&gt;]/</code>. It is a <strong>wide</strong> table: one named column
+<code>sub-003_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv</code>, placed in
+<code>nuisance/sub-003/ses-1/&lt;kind&gt;[-&lt;desc&gt;]/</code>. It is a <strong>wide</strong> table: one named column
 per regressor, one row per TR (row count must match the BOLD run). Every
 value must be <strong>finite</strong> — unlike the fMRIPrep table, there is no <code>n/a</code>
 convention, so a blank or non-numeric cell raises rather than being filled.</p>
@@ -1047,8 +1139,8 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 <p class="admonition-title">Things that must line up</p>
 <ul>
 <li><strong>Space must exist.</strong> <code>--space</code> must name a space present in your fMRIPrep
-  outputs. Surface spaces (<code>fsaverage*</code>) are cleaned per hemisphere
-  automatically.</li>
+  outputs. It defaults to the volumetric <code>MNI152NLin2009cAsym</code>; surface
+  spaces (<code>fsaverage*</code>) are cleaned per hemisphere automatically.</li>
 <li><strong>Column names must be unique</strong> across all channels (fMRIPrep and custom);
   a collision raises rather than silently dropping one.</li>
 <li><strong>TR counts must match.</strong> Every selected regressor channel and the BOLD
@@ -1056,22 +1148,21 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 </ul>
 </div>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<p>Clean surface BOLD for all subjects, regressing out a motion + drift model:</p>
+<p>Clean BOLD for all subjects, regressing out a motion + drift model. <code>--space</code>
+defaults to the volumetric <code>MNI152NLin2009cAsym</code>, so it can be omitted:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 </code></pre></div>
 <p>Add CompCor components, and a custom physiological regressor from <code>nuisance/</code>:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--space<span class="w"> </span>fsaverage6<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--custom-sources<span class="w"> </span>physio-v1<span class="w"> </span>--custom-columns<span class="w"> </span>resp,cardiac
 </code></pre></div>
-<p>Clean only run 1 of subjects 001 and 101:</p>
+<p>Clean only run 1 of subjects 003 and 103:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">001</span>,101<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">003</span>,103<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1
 </code></pre></div>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
@@ -1079,11 +1170,9 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 fMRIPrep's <code>sub-XX/[ses-YY/]func/</code> shape and preserving the source's full BOLD
 identity — only the <code>desc</code> entity (<code>desc-denoised</code>) and the root differ from the
 <code>desc-preproc</code> source:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/hypline/sub-001/func/
-├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.func.gii    # output
-├── sub-001_task-conv_run-1_space-fsaverage6_hemi-L_desc-denoised_bold.json        # sidecar
-├── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.func.gii    # output
-└── sub-001_task-conv_run-1_space-fsaverage6_hemi-R_desc-denoised_bold.json        # sidecar
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/hypline/sub-003/ses-1/func/
+├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # output
+└── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 </code></pre></div>
 <p>The output keeps the input's dimensions — only the signal values change. Each run
 gets a per-file <code>.json</code> sidecar recording its <code>Sources</code> (a <code>bids:</code> URI to the
