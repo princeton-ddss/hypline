@@ -69,7 +69,7 @@ hypline featuregen phonemic data/
 
 # fMRIPrep branch: clean the BOLD with a motion + drift model, read straight
 # from fMRIPrep's confounds table
-hypline denoise data/ --space fsaverage6 \
+hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 ```
 
@@ -80,7 +80,9 @@ sides an encoding model needs.
 
 Full guides and per-command reference live at the project
 [documentation](https://princeton-ddss.github.io/hypline/latest/). New to
-hypline? Start with
+hypline? Walk through
+[a full run on the example dataset](https://princeton-ddss.github.io/hypline/latest/tutorials/walkthrough/),
+or read
 [The hypline dataset layout](https://princeton-ddss.github.io/hypline/latest/concepts/layout/) —
 every command depends on it.
 
