@@ -1,5 +1,4 @@
 import shutil
-import tempfile
 from pathlib import Path
 
 from loguru import logger
@@ -22,7 +21,7 @@ class WhisperConfig(BaseModel):
     @classmethod
     def _default_model_dir(cls, v: Path | None) -> Path:
         if v is None:
-            v = Path(tempfile.gettempdir()) / "hypline" / "whisperx"
+            v = Path.home() / ".cache" / "hypline" / "whisperx"
             v.mkdir(parents=True, exist_ok=True)
             return v
         elif not v.is_dir():
@@ -54,6 +53,13 @@ class Transcriber:
             raise RuntimeError("CUDA is requested but not available")
 
         assert config.model_dir is not None  # For type inference
+
+        logger.info(
+            "Preparing Whisper model '{}' (downloads to {} if not cached; "
+            "first run may take several minutes)",
+            config.model.value,
+            config.model_dir,
+        )
 
         self.config = config
         self._layout = BIDSLayout(bids_root)

@@ -33,7 +33,7 @@ named and discovered.
 | ---------------- | ---------------------------------------------------------------- | ---------------- |
 | `--audio-ext`    | Extension of the audio files, e.g. `.wav` **(required)**         | —                |
 | `--model`        | Whisper model: `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3` | `large-v2` |
-| `--model-dir`    | Where to find/download model weights                             | system cache     |
+| `--model-dir`    | Where to find/download model weights                             | `~/.cache/hypline/whisperx` |
 | `--device`       | Hardware target: `cpu` or `cuda`                                 | `cpu`            |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all              |
 | `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
@@ -42,8 +42,8 @@ named and discovered.
 !!! tip "Model size vs. speed"
 
     Larger models are more accurate but slower. On a GPU, pass `--device cuda`.
-    The first run downloads the chosen model to `--model-dir` (or the system
-    cache); later runs reuse it.
+    The first run downloads the chosen model to `--model-dir` (default
+    `~/.cache/hypline/whisperx`); later runs reuse it.
 
 ## Example
 

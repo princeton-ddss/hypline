@@ -90,6 +90,7 @@ class PhonemicFeature:
         try:
             nltk.corpus.cmudict.entries()
         except LookupError:
+            logger.info("Downloading CMU pronouncing dictionary (one-time)")
             nltk.download("cmudict", quiet=True)
         cls._pronunciations = nltk.corpus.cmudict.dict()
         cls._phoneme_index = {ph: i for i, ph in enumerate(ARPABET_PHONEMES)}

@@ -37,7 +37,7 @@ def transcribe(
             Directory to find the model weights;
             if not found, downloads them here
             """,
-            show_default="system cache directory",
+            show_default="~/.cache/hypline/whisperx",
         ),
     ] = None,
     device: Annotated[
