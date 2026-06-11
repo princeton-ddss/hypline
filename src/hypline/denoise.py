@@ -118,12 +118,13 @@ def _denoise_surface(
 class Denoiser:
     """Confound regression to remove noise from preprocessed BOLD fMRI data.
 
-    Finds `desc-preproc` BOLD in the fmriprep tree, regresses out the fmriprep
-    confound columns selected by `columns`/`compcor`, and writes the denoised
-    run as `desc-denoised` into the hypline derivatives tree, so the output
-    carries its own provenance rather than fmriprep's `GeneratedBy`. Output
-    lands in a separate tree from the `desc-preproc` input, so the denoiser
-    never rediscovers its own runs. Volume and surface BOLD dispatch on
+    Finds preprocessed fmriprep BOLD (volumetric `desc-preproc`; surface
+    `.func.gii` carries no `desc`), regresses out the fmriprep confound columns
+    selected by `columns`/`compcor`, and writes the denoised run as
+    `desc-denoised` into the hypline derivatives tree, so the output carries its
+    own provenance rather than fmriprep's `GeneratedBy`. Output lands in a
+    separate tree from the input, so the denoiser never rediscovers its own
+    runs. Volume and surface BOLD dispatch on
     `type(space)`; surface runs are per-hemisphere and denoised independently.
     """
 
@@ -162,13 +163,17 @@ class Denoiser:
             SurfaceSpace: _denoise_surface,
         }[type(self._space)]
 
+        # Surface `.func.gii` carries no `desc` entity, so `desc-preproc` filters
+        # it to nothing; the `bold` suffix already excludes non-BOLD siblings there
+        desc_filter = ["desc-preproc"] if isinstance(self._space, VolumeSpace) else []
+
         bolds = self._layout.find.fmriprep(
             sub=sub_id,
             suffix="bold",
             ext=BOLD_EXTENSIONS[type(self._space)],
             bids_filters=[
-                "desc-preproc",
-                f"space-{self._space.value}",
+                f"space-{self._space}",
+                *desc_filter,
                 *self._bids_filters,
             ],
         )

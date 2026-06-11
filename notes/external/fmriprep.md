@@ -68,6 +68,11 @@ fmriprep's `GeneratedBy` provenance honest — see
 - Surface: `.func.gii`, one file per hemisphere (`hemi-L` / `hemi-R`).
 - Volume: `.nii.gz`.
 
+Volumetric BOLD carries `desc-preproc`; surface `.func.gii` carries **no `desc`**
+— it is named only by `space`/`hemi` (`..._space-fsaverage6_hemi-L_bold.func.gii`).
+Discovery that filters on `desc-preproc` is therefore volume-only; on surface it
+would match nothing. See [../modules/denoise.md](../modules/denoise.md).
+
 ## BOLD file identification in bold_dir
 
 A `bold_dir` contains many `.nii.gz` (and `.func.gii`) files that are **not**

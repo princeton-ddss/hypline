@@ -20,7 +20,9 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 
 ## Inputs
 
-- **Preprocessed BOLD** (`desc-preproc`) under `derivatives/fmriprep/`.
+- **Preprocessed BOLD** under `derivatives/fmriprep/` — volumetric `desc-preproc`
+  `.nii.gz`, or surface `.func.gii` (named by `space`/`hemi`, with no `desc`),
+  selected by `--space`.
 - **fMRIPrep confounds table** (`desc-confounds_timeseries.tsv`, with its `.json`
   sidecar) beside the BOLD — read directly when you pass `--columns` /
   `--compcor`. The sidecar is always read (it carries the CompCor metadata), so
@@ -130,7 +132,7 @@ hypline denoise data/ \
 The denoised BOLD is written to its own **`derivatives/hypline/`** tree, mirroring
 fMRIPrep's `sub-XX/[ses-YY/]func/` shape and preserving the source's full BOLD
 identity — only the `desc` entity (`desc-denoised`) and the root differ from the
-`desc-preproc` source:
+source:
 
 ```
 <dataset-root>/derivatives/hypline/sub-003/ses-1/func/
@@ -140,7 +142,7 @@ identity — only the `desc` entity (`desc-denoised`) and the root differ from t
 
 The output keeps the input's dimensions — only the signal values change. Each run
 gets a per-file `.json` sidecar recording its `Sources` (a `bids:` URI to the
-`desc-preproc` input), the resolved cleaning settings, and the hypline version.
+source BOLD), the resolved cleaning settings, and the hypline version.
 On first output, hypline stamps a `derivatives/hypline/dataset_description.json`
 (written once, left alone thereafter).
 
@@ -157,5 +159,5 @@ inheriting fMRIPrep's.
 | `--custom-sources and --custom-columns must be given together` | One of the custom-nuisance options was passed without the other. | Supply both, or neither. |
 | A `--custom-sources` source resolves to 0 (or multiple) files | A source names a `nuisance/<kind>[-<desc>]/` directory that does not exist (or matches more than one file per run). | Check the source spelling against your `nuisance/` directories. |
 | `Unequal number of TRs between BOLD and nuisance` | A regressor channel has a different row count than the BOLD it is paired with. | Confirm the fMRIPrep confounds table and any custom nuisance files span every TR of the run. |
-| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is **absent** from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your `desc-preproc` files). |
+| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is **absent** from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
 | `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` / `--data-filters` excluded them all. | Confirm fMRIPrep outputs exist and that your filters are not too narrow. |

@@ -9,10 +9,13 @@ derivative; one `denoise(sub_id)` call cleans every matching run for a subject.
 Denoised BOLD (`desc-denoised`) is written to the **`derivatives/hypline/`**
 tree (see [../decisions/layout.md](../decisions/layout.md)), mirroring fmriprep's
 `sub-XX/[ses-YY/]func/` shape with full BOLD identity preserved — only
-`desc=denoised` and the root differ from the `desc-preproc` source. Input is
-fixed to `desc-preproc` so denoise never re-cleans its own output. Surface BOLD
-is per-hemisphere (`hemi-L`/`hemi-R`); each hemi file is cleaned independently —
-no L/R coupling.
+`desc=denoised` and the root differ from the source. Volumetric input is fixed
+to `desc-preproc` so denoise never re-cleans its own output. Surface `.func.gii`
+carries **no `desc`** (see [../external/fmriprep.md](../external/fmriprep.md)),
+so the `desc-preproc` discovery filter is volume-only; surface discovery relies
+on the `_bold` suffix (and `space`) to exclude non-BOLD siblings. Surface BOLD is
+per-hemisphere (`hemi-L`/`hemi-R`); each hemi file is cleaned independently — no
+L/R coupling.
 
 Each output gets a per-file `..._desc-denoised_bold.json` sidecar: `Sources`
 (a `bids:fmriprep:` URI to the source BOLD), resolved cleaning settings
