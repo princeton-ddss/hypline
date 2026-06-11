@@ -254,6 +254,45 @@ def load_segments(layout: "BIDSLayout", source: BIDSPath) -> list[Segment]:
     return segments
 
 
+def _lookup_segment(segments: list[Segment], source: BIDSPath) -> Segment:
+    """Find the segment whose value matches `source`'s segment-entity value.
+
+    `segments` is assumed non-empty (the unsegmented case is handled by callers,
+    where empty segments mean the source spans the whole run). Raises ValueError
+    if the filename omits the segment entity declared in events.tsv or names a
+    value events.tsv does not declare.
+    """
+    segment_entity = segments[0].entity
+    value = source.entities.get(segment_entity)
+    if value is None:
+        raise ValueError(
+            f"Path is missing segment entity {segment_entity!r} declared in events.tsv"
+        )
+
+    matching = [s for s in segments if s.value == value]
+    if not matching:
+        valid = sorted(s.value for s in segments)
+        raise ValueError(
+            f"Segment value {segment_entity}-{value} not found in events.tsv "
+            f"— valid values: {valid}"
+        )
+    return matching[0]
+
+
+def frame_onset(layout: "BIDSLayout", source: BIDSPath) -> float:
+    """Run-relative onset of `source`'s segment; 0.0 for an unsegmented run.
+
+    Empty segments mean the source spans the whole run, so its frame-local times
+    are already run-relative and no offset applies. A segmented run whose segment
+    value is absent from the filename or unknown to events.tsv is malformed and
+    raises (see `_lookup_segment`).
+    """
+    segments = load_segments(layout, source)
+    if not segments:
+        return 0.0
+    return _lookup_segment(segments, source).onset
+
+
 def merge_filename_and_sidecar(
     *,
     filename_entities: Mapping[str, str],
@@ -321,25 +360,11 @@ def resolve_entities(layout: "BIDSLayout", source: BIDSPath) -> dict[str, str]:
             structural_keys=STRUCTURAL_ENTITIES,
         )
 
-    segment_entity = segments[0].entity
-    segment_value = filename_entities.get(segment_entity)
-    if segment_value is None:
-        raise ValueError(
-            f"Path is missing segment entity {segment_entity!r} declared in events.tsv"
-        )
-
-    matching = [s for s in segments if s.value == segment_value]
-    if not matching:
-        valid = sorted(s.value for s in segments)
-        raise ValueError(
-            f"Segment value {segment_entity}-{segment_value} not "
-            f"found in events.tsv — valid values: {valid}"
-        )
-
+    segment = _lookup_segment(segments, source)
     return merge_filename_and_sidecar(
         filename_entities=filename_entities,
-        sidecar_metadata=matching[0].metadata,
-        structural_keys=STRUCTURAL_ENTITIES | {segment_entity},
+        sidecar_metadata=segment.metadata,
+        structural_keys=STRUCTURAL_ENTITIES | {segment.entity},
     )
 
 
@@ -455,19 +480,29 @@ def _assign_turn(turns: list[Turn], start_time: float | None) -> str | None:
 
 
 def stamp_turns(
-    transcript: pl.DataFrame, turns: list[Turn]
+    frame: pl.DataFrame, turns: list[Turn], *, frame_onset: float
 ) -> tuple[pl.DataFrame, int]:
-    """Add a `turn_sub` column to a word-level transcript from speaking turns.
+    """Add a `turn_sub` column to a frame with a `start_time` column.
 
-    Each word's `turn_sub` is the bare sub label whose turn window contains its
-    `start_time` (see `_assign_turn`). Returns the augmented frame and the count
-    of *timed* words that landed in no window (silence) — a non-zero count flags
-    a possible timing/annotation mismatch the caller should surface. Untimed
-    words (null `start_time`) get a null `turn_sub` and are not counted.
+    `frame` is any frame carrying a `start_time` column — transcript, feature,
+    or confound, at whatever row granularity. `start_time` is frame-local
+    (0.0 = the segment's start), while `turns` are run-relative. Each row's
+    time is lifted by `frame_onset` (the segment's run-relative onset, as
+    returned by `frame_onset()`) before assignment, so a trial-local time
+    matches a run-relative window. Pass 0.0 for a whole-run frame (unsegmented
+    run) whose times are already run-relative.
+
+    Each row's `turn_sub` is the bare sub label whose turn window contains its
+    lifted `start_time` (see `_assign_turn`). Returns the augmented frame and the
+    count of *timed* rows that landed in no window (silence) — a non-zero count
+    flags a possible timing/annotation mismatch the caller should surface.
+    Untimed rows (null `start_time`) get a null `turn_sub` and are not counted.
     """
-    start_times = transcript.get_column("start_time").to_list()
-    turn_subs = [_assign_turn(turns, t) for t in start_times]
+    start_times = frame.get_column("start_time").to_list()
+    turn_subs = [
+        _assign_turn(turns, None if t is None else t + frame_onset) for t in start_times
+    ]
     n_silent = sum(
         sub is None and t is not None for sub, t in zip(turn_subs, start_times)
     )
-    return transcript.with_columns(pl.Series("turn_sub", turn_subs)), n_silent
+    return frame.with_columns(pl.Series("turn_sub", turn_subs)), n_silent

@@ -5,6 +5,7 @@ from hypline.bids import BIDSPath
 from hypline.events import (
     Segment,
     Turn,
+    frame_onset,
     load_segments,
     load_turns,
     merge_filename_and_sidecar,
@@ -154,6 +155,70 @@ class TestLoadSegments:
         segments = load_segments(BIDSLayout(tree.root), BIDSPath(bold_path))
         assert [seg.entity for seg in segments] == ["block", "block"]
         assert [seg.value for seg in segments] == ["1", "2"]
+
+
+class TestFrameOnset:
+    def test_unsegmented_run_returns_zero(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
+        assert frame_onset(BIDSLayout(tree.root), BIDSPath(stim)) == 0.0
+
+    def test_segmented_returns_matching_segment_onset(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD,
+            task=TASK,
+            run="1",
+            kind="audio",
+            ext=".wav",
+            extra_entities={"block": "2"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        # block-2 onset is 100.0 in _SEGMENT_ROWS
+        assert frame_onset(BIDSLayout(tree.root), BIDSPath(stim)) == 100.0
+
+    def test_missing_segment_entity_on_filename_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        with pytest.raises(ValueError, match="missing segment entity 'block'"):
+            frame_onset(BIDSLayout(tree.root), BIDSPath(stim))
+
+    def test_unknown_segment_value_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD,
+            task=TASK,
+            run="1",
+            kind="audio",
+            ext=".wav",
+            extra_entities={"block": "9"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=_SEGMENT_ROWS,
+            sidecar_json=_SEGMENT_LEVELS,
+        )
+        with pytest.raises(ValueError, match="block-9 not found"):
+            frame_onset(BIDSLayout(tree.root), BIDSPath(stim))
 
 
 class TestMergeFilenameAndSidecar:
@@ -492,22 +557,42 @@ class TestStampTurns:
         )
 
     def test_stamps_turn_sub_by_start_time(self):
-        df, n_silent = stamp_turns(self._transcript([5.0, 15.0]), self._TURNS)
+        df, n_silent = stamp_turns(
+            self._transcript([5.0, 15.0]), self._TURNS, frame_onset=0.0
+        )
         assert df.get_column("turn_sub").to_list() == ["001", "002"]
         assert n_silent == 0
 
     def test_boundary_belongs_to_window_it_starts_in(self):
         # half-open [onset, offset): 10.0 ends 001's window and starts 002's
-        df, _ = stamp_turns(self._transcript([10.0]), self._TURNS)
+        df, _ = stamp_turns(self._transcript([10.0]), self._TURNS, frame_onset=0.0)
         assert df.get_column("turn_sub").to_list() == ["002"]
 
     def test_null_start_time_gives_null_turn_sub_and_is_not_counted(self):
-        df, n_silent = stamp_turns(self._transcript([5.0, None]), self._TURNS)
+        df, n_silent = stamp_turns(
+            self._transcript([5.0, None]), self._TURNS, frame_onset=0.0
+        )
         assert df.get_column("turn_sub").to_list() == ["001", None]
         assert n_silent == 0
 
     def test_timed_word_in_gap_is_null_and_counted(self):
         gapped = [Turn("001", 0.0, 5.0), Turn("002", 10.0, 15.0)]
-        df, n_silent = stamp_turns(self._transcript([7.0]), gapped)
+        df, n_silent = stamp_turns(self._transcript([7.0]), gapped, frame_onset=0.0)
         assert df.get_column("turn_sub").to_list() == [None]
         assert n_silent == 1
+
+    def test_frame_onset_lifts_trial_local_times_into_run_frame(self):
+        # trial-local words 5.0/15.0 with a 100.0 frame onset match the
+        # run-relative windows; without the lift both would fall in a gap
+        df, n_silent = stamp_turns(
+            self._transcript([5.0, 15.0]), self._TURNS, frame_onset=100.0
+        )
+        assert df.get_column("turn_sub").to_list() == [None, None]
+        assert n_silent == 2
+
+        shifted = [Turn("001", 100.0, 110.0), Turn("002", 110.0, 120.0)]
+        df, n_silent = stamp_turns(
+            self._transcript([5.0, 15.0]), shifted, frame_onset=100.0
+        )
+        assert df.get_column("turn_sub").to_list() == ["001", "002"]
+        assert n_silent == 0

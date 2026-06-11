@@ -52,6 +52,15 @@ identical. The cross-partner-overlap-as-cross-talk rule and the timeline
 invariant that licenses the union live in
 [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
 
+`turn_speaker` onsets are **run-relative** (whole-run events.tsv clock), but a
+transcript's `start_time` is **frame-local** (0.0 = the segment's start, since
+each per-trial audio file is decoded independently). `stamp_turns` therefore
+takes a required `frame_onset` and lifts each word's time by it before matching
+— never compare the two frames directly. `frame_onset(layout, source)` supplies
+it: the matching segment's run-relative onset, or `0.0` for an unsegmented
+whole-run source (times already run-relative). A segmented source whose segment
+value is missing/unknown is malformed and raises (mirrors `resolve_entities`).
+
 ## Filename ↔ sidecar merge
 
 The four-case merge contract between filename entities and `events.json`

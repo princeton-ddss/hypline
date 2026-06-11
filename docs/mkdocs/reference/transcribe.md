@@ -105,9 +105,13 @@ turn_speaker    20.0    8.0
 - Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
   must **not** overlap — within a subject or across partners. A cross-partner
   overlap is treated as cross-talk and raises an error.
+- `turn_speaker` onsets are **run-relative** — the whole-run `events.tsv` clock,
+  the same frame as your segment (e.g. `trial-1`) rows. Write them that way even
+  when audio is split per trial; transcribe shifts each word by its segment's
+  onset before matching, so you never annotate turns in per-trial time.
 
 Each word's `turn_sub` is the bare subject label (`001`, `101`) whose window
-contains the word's `start_time`. Words that are un-timed, or fall in a gap
+contains the word's run-relative start. Words that are un-timed, or fall in a gap
 between turns, get a blank `turn_sub`; gap hits are logged as a possible
 timing/annotation mismatch. Transcripts whose runs carry no `turn_speaker` rows
 omit the column entirely.

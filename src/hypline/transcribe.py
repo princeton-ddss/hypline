@@ -7,7 +7,7 @@ from pydantic import BaseModel, field_validator
 
 from hypline.bids import normalize_bids_filters, validate_extension
 from hypline.enums import Device, WhisperModel
-from hypline.events import load_turns, stamp_turns
+from hypline.events import frame_onset, load_turns, stamp_turns
 from hypline.io import skip_existing
 from hypline.layout import BIDSLayout
 
@@ -127,7 +127,9 @@ class Transcriber:
 
             turns = load_turns(self._layout, audio_file)
             if turns:
-                df, n_silent = stamp_turns(df, turns)
+                df, n_silent = stamp_turns(
+                    df, turns, frame_onset=frame_onset(self._layout, audio_file)
+                )
                 if n_silent:
                     logger.warning(
                         "{}: {} timed word(s) fell outside any turn window "
