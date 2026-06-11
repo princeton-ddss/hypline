@@ -80,7 +80,6 @@ components. The `desc-denoised` BOLD on disk was built without them and is now s
 
 ```bash
 hypline denoise data/ \
-  --space fsaverage6 \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
   --compcor a:CSF:5,a:WM:5 \
   --force

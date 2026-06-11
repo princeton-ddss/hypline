@@ -26,8 +26,8 @@ manner, voicing, …).
 Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/dyad-101/transcript/
-└── dyad-101_task-conv_run-1_transcript.csv
+<dataset-root>/stimuli/dyad-103/ses-1/transcript/
+└── dyad-103_ses-1_task-conv_run-1_transcript.csv
 ```
 
 ### Options
@@ -72,13 +72,13 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 ```
 <dataset-root>/
-├── features/dyad-101/phonemic/
-│   └── dyad-101_task-conv_run-1_feat-phonemic.parquet
-└── confounds/dyad-101/                                  # from the chained confoundgen
+├── features/dyad-103/ses-1/phonemic/
+│   └── dyad-103_ses-1_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-103/ses-1/                            # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── dyad-101_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── dyad-101_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` and lives in its own subdirectory

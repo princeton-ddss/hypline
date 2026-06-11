@@ -23,11 +23,11 @@ Pass comma-separated IDs (the value of the identity entity, without the prefix).
 Use `--dyad-ids` on the stimulus commands and `--sub-ids` on `denoise`:
 
 ```bash
-# stimulus command: only dyads 101 and 102
-hypline featuregen phonemic data/ --dyad-ids 101,102
+# stimulus command: only dyad 103 (pass more as a comma-separated list)
+hypline featuregen phonemic data/ --dyad-ids 103
 
-# denoise: only subjects 001 and 101 (the two partners of dyad-101)
-hypline denoise data/ --columns trans_x,trans_y,trans_z --sub-ids 001,101
+# denoise: only subjects 003 and 103 (the two partners of dyad-103)
+hypline denoise data/ --columns trans_x,trans_y,trans_z --sub-ids 003,103
 ```
 
 Omit the option entirely to process every dyad (or subject) found wherever that
@@ -88,10 +88,10 @@ identity option (`--dyad-ids` / `--sub-ids`) with `--data-filters` to slice on
 both axes at once:
 
 ```bash
-# subjects 001 and 101, run 1 only, condition R
+# subjects 003 and 103, run 1 only, condition R
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z \
-  --sub-ids 001,101 \
+  --sub-ids 003,103 \
   --data-filters run-1,cond-R
 ```
 

@@ -96,7 +96,7 @@ hypline featuregen phonemic data/
 
 # fMRIPrep branch: clean the BOLD with a motion + drift model, read straight
 # from fMRIPrep's confounds table
-hypline denoise data/ --space fsaverage6 \
+hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 ```
 

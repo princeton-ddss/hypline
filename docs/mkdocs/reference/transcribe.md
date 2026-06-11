@@ -20,8 +20,8 @@ hypline transcribe <dataset-root> --audio-ext <ext> [OPTIONS]
 Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 
 ```
-<dataset-root>/stimuli/dyad-101/audio/
-└── dyad-101_task-conv_run-1_audio.wav
+<dataset-root>/stimuli/dyad-103/ses-1/audio/
+└── dyad-103_ses-1_task-conv_run-1_audio.wav
 ```
 
 See [The hypline dataset layout](../concepts/layout.md) for how files are
@@ -53,10 +53,10 @@ Transcribe every dyad's WAV audio with the default model:
 hypline transcribe data/ --audio-ext .wav
 ```
 
-Transcribe only dyads 101 and 102 on a GPU:
+Transcribe only dyad 103 on a GPU (pass more as a comma-separated list):
 
 ```bash
-hypline transcribe data/ --audio-ext .wav --dyad-ids 101,102 --device cuda
+hypline transcribe data/ --audio-ext .wav --dyad-ids 103 --device cuda
 ```
 
 ## Outputs
@@ -65,11 +65,11 @@ A word-level transcript per audio file, with the `_transcript` suffix, written
 beside the audio under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/dyad-101/
+<dataset-root>/stimuli/dyad-103/ses-1/
 ├── audio/
-│   └── dyad-101_task-conv_run-1_audio.wav
+│   └── dyad-103_ses-1_task-conv_run-1_audio.wav
 └── transcript/
-    └── dyad-101_task-conv_run-1_transcript.csv
+    └── dyad-103_ses-1_task-conv_run-1_transcript.csv
 ```
 
 Each transcript row is one word with its onset time. These onsets are what
@@ -91,10 +91,10 @@ Mark turns in each subject's raw `events.tsv` with the flat `trial_type` label
 `turn_speaker` — one row per window where **that subject** is the assigned
 speaker:
 
-```
-trial_type      onset   duration
-turn_speaker    0.0     12.5
-turn_speaker    20.0    8.0
+```tsv
+onset   duration   trial_type
+0.0     12.5       turn_speaker
+20.0    8.0        turn_speaker
 ```
 
 - The label records **whose turn it is by study design**, not who was observed

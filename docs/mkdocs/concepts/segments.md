@@ -15,7 +15,7 @@ Hypline reads run structure from the standard BIDS `events.tsv` file that sits
 beside each run in the raw tree:
 
 ```
-sub-001/func/sub-001_task-conv_run-1_events.tsv
+sub-003/ses-1/func/sub-003_ses-1_task-conv_run-1_events.tsv
 ```
 
 Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
@@ -62,7 +62,7 @@ Segment names like `trial-1` carry no meaning on their own. Descriptive
 attributes — condition, stimulus item, counterbalance group — live in the
 companion `events.json` sidecar, under the BIDS `trial_type.Levels` field:
 
-```json title="sub-001_task-conv_run-1_events.json"
+```json title="sub-003_ses-1_task-conv_run-1_events.json"
 {
   "trial_type": {
     "Levels": {
