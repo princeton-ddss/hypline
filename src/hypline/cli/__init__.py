@@ -24,6 +24,12 @@ def _version_callback(value: bool):
         raise typer.Exit()
 
 
+def _console_format(_record):
+    # callable format (not a string) stops loguru from appending the
+    # traceback here, keeping it in the file logs only
+    return "{time:YYYY-MM-DD HH:mm:ss} | <level>{level: <7}</level> | {message}\n"
+
+
 @app.callback()
 def callback(
     version: Annotated[
@@ -50,5 +56,5 @@ def callback(
         sys.stderr,
         level="DEBUG" if verbose else "INFO",
         colorize=sys.stderr.isatty(),
-        format="{time:YYYY-MM-DD HH:mm:ss} | <level>{level: <7}</level> | {message}",
+        format=_console_format,
     )

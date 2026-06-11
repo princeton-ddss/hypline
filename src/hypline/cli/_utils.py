@@ -23,9 +23,13 @@ def split_csv(value: str | None, param_hint: str | None = None) -> list[str] | N
     return items
 
 
+def log_dir(bids_root: Path, *command_parts: str) -> Path:
+    return bids_root / "logs" / Path(*command_parts)
+
+
 @contextmanager
 def id_log(bids_root: Path, *command_parts: str, id_key: Identity, id_value: str):
-    log_path = bids_root / "logs" / Path(*command_parts) / f"{id_key}-{id_value}.log"
+    log_path = log_dir(bids_root, *command_parts) / f"{id_key}-{id_value}.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     sink_id = logger.add(
         log_path,
@@ -33,6 +37,9 @@ def id_log(bids_root: Path, *command_parts: str, id_key: Identity, id_value: str
         rotation="5 MB",
         retention=1,
         format="{time:YYYY-MM-DD HH:mm:ss} {level: <7} {message}",
+        # Drop framework frames and value dumps (leak risk in shared data dir)
+        backtrace=False,
+        diagnose=False,
     )
     try:
         yield
@@ -59,16 +66,18 @@ def run_per_id(
         with id_log(bids_root, *command_parts, id_key=id_key, id_value=id_val):
             try:
                 task(id_val)
-            except Exception:
-                logger.exception("{}-{} failed", id_key, id_val)
+            except Exception as exc:
+                reason = " ".join(str(exc).split())  # collapse to one line
+                logger.exception("{}-{} failed: {}", id_key, id_val, reason)
                 failed.append(id_val)
 
     if failed:
         logger.error(
-            "{}/{} {}s failed: {}",
+            "{}/{} {}s failed: {} — see {} for tracebacks",
             len(failed),
             len(id_values),
             id_key,
             ",".join(failed),
+            log_dir(bids_root, *command_parts),
         )
         raise typer.Exit(code=1)
