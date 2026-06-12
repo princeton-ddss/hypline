@@ -26,13 +26,15 @@ curl -L -o hypline-tutorial-data.zip "<ZENODO-DOI>"
 unzip hypline-tutorial-data.zip -d data/
 ```
 
+[New paragraph about something else]
+
 The dataset is a [BIDS](https://bids.neuroimaging.io/)-style tree for one dyad —
 two partners (`sub-003` and `sub-103`) who held a conversation while both were
 scanned. It already contains the inputs hypline needs: stimulus audio under
 `stimuli/`, raw events and BOLD under each `sub-*/`, and fMRIPrep outputs under
 `derivatives/fmriprep/`.
 
-!!! info "What this example dataset is — and isn't"
+!!! info "What this example dataset is — and is not"
 
     It is a faithful subset of a real hyperscanning study (about 2.8 GB),
     trimmed so it is small enough to download and run quickly:
@@ -148,7 +150,7 @@ data/
 ```
 
 The two confound flavors live in their own subdirectories because they are
-`desc` *variants* of the same `conf-phonemic` kind — see
+`desc` _variants_ of the same `conf-phonemic` kind — see
 [Variants with `desc`](../concepts/layout.md#variants-with-desc).
 
 That completes the **stimulus branch**: from audio to the features (and
@@ -162,7 +164,7 @@ confounds) the encoding model uses as predictors.
 
 ## 4. Denoise the BOLD
 
-The other branch cleans the BOLD signal — the encoding model's *target*.
+The other branch cleans the BOLD signal — the encoding model's _target_.
 `denoise` reads fMRIPrep's preprocessed BOLD and regresses out nuisance signals
 you select from fMRIPrep's own confounds table.
 
@@ -213,10 +215,10 @@ hypline version — so the result is reproducible. See the
 
 `data/` now holds both sides an encoding model joins:
 
-| Side       | Where                              | From          |
-| ---------- | ---------------------------------- | ------------- |
-| Predictors | `features/dyad-103/…/phonemic/`    | steps 2–3     |
-| Target     | `derivatives/hypline/sub-*/…/func/`| step 4        |
+| Side       | Where                               | From      |
+| ---------- | ----------------------------------- | --------- |
+| Predictors | `features/dyad-103/…/phonemic/`     | steps 2–3 |
+| Target     | `derivatives/hypline/sub-*/…/func/` | step 4    |
 
 Each command read only what the previous steps wrote — no file paths, just the
 dataset root. To regenerate a step after changing an option, re-run it with
