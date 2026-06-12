@@ -40,11 +40,15 @@ All three follow the project-wide missing-unit convention — see
 token's `start_time` with `phoneme=None` and a zero `feature` vector.
 
 A token with a null `start_time` (un-alignable by WhisperX — see
-[transcriber.md](transcriber.md)) is handled differently: it is **dropped**, not
-emitted as a missing-unit row. A timing-less event cannot be binned to a TR, so
-it carries no usable signal, and a kept null row would be rejected by
-downstream downsampling, which fails fast on NaN timestamps (see
-[../../src/hypline/downsample.py](../../src/hypline/downsample.py)).
+[transcriber.md](transcriber.md)) is **retained**: the row is emitted with its
+phonemes computed as usual and `start_time` left null. This is the producer-
+retains / consumer-decides split — the producer stays a faithful copy of the
+source; TR-aligning consumers drop these rows before downsampling. See
+[../decisions/feature-files.md](../decisions/feature-files.md).
+
+A null **word** is a separate axis: it cannot be phoneme-vectorized and is not
+faithful text, so the producer drops it (and warns), which also guards the
+per-word `strip(PUNCTUATION)` lookup against `None`.
 
 ## Feature vector
 

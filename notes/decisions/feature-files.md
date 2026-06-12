@@ -53,6 +53,21 @@ shifts later events into earlier TRs and silently misaligns the feature
 matrix with BOLD. A null row preserves the grid; downstream code that wants
 to ignore them can filter on the unit column.
 
+## Null `start_time`: producer retains, consumer drops
+
+A row may carry a feature but no `start_time` (e.g. a word WhisperX could not
+align — see [../modules/phonemic.md](../modules/phonemic.md)). The feature value
+is fully computable without timing, so the producer **retains** the row with a
+null `start_time` — the feature file stays a faithful copy of its source.
+
+Disqualifying a null-timed row is the **consumer's** decision, made at its own
+boundary. TR-aligning consumers (encoding, phonemic confound) filter
+null-`start_time` rows immediately before their `downsample` call. `downsample`
+stays strict (raises on NaN timestamps); the drop is local to each call site,
+not centralized in the shared primitive. Text- or embedding-level analyses that
+do not bin to TRs may keep the rows. Storage permits nulls — `start_time` is
+validated as numeric dtype, and a null float survives the parquet round-trip.
+
 ## Naming
 
 Feature files are **dyad-keyed** — they describe the shared conversation, not one

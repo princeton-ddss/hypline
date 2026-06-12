@@ -136,10 +136,12 @@ class PhonemicFeature:
             raw_words = df.get_column("word").cast(pl.Utf8).to_list()
 
             rows_start, rows_phoneme, rows_word, rows_feature = [], [], [], []
-            skipped = 0
+            null_words = 0
             for start, word in zip(start_times, raw_words):
-                if start is None:
-                    skipped += 1
+                # Skip null words but keep untimed rows (null start_time) — a faithful
+                # source copy; consumers drop them as needed (e.g., TR alignment)
+                if word is None:
+                    null_words += 1
                     continue
                 phonemes = self._get_phonemes(word.strip(PUNCTUATION)) or [None]
                 for ph in phonemes:
@@ -150,9 +152,11 @@ class PhonemicFeature:
                         np.zeros(dim) if ph is None else self._phoneme_vector(ph)
                     )
 
-            if skipped:
+            if null_words:
                 logger.warning(
-                    "Skipped {} untimed word(s) in {}", skipped, transcript.path.name
+                    "Skipped {} null-word row(s) in {}",
+                    null_words,
+                    transcript.path.name,
                 )
 
             out_df = pl.DataFrame(

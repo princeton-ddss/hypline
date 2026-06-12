@@ -1570,6 +1570,47 @@ class TestInnerCv:
         assert cv.get_n_splits() == 3
 
 
+class TestBuildXy:
+    """End-to-end `_build_xy`: reads features, downsamples, assembles X."""
+
+    def _build_xy(self, tree: BIDSTree, feature_df: pl.DataFrame) -> TrainingData:
+        tree.add_participants({SUB: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1", df=feature_df)
+        enc = _make_encoding(tree, ["mfcc"])
+        feature_bids = enc._discover_features(SUB)
+        bold_metas = enc._discover_bold(SUB)
+        feature_bids = enc._resolve_cell_keys(SUB, feature_bids, bold_metas)
+        feature_bids, bold_metas = enc._apply_filters(SUB, feature_bids, bold_metas)
+        enc._validate_coverage(SUB, feature_bids, bold_metas)
+        return enc._build_xy(SUB, feature_bids, bold_metas)
+
+    def test_untimed_row_dropped_x_matches_all_timed(
+        self, tree: BIDSTree, tmp_path_factory: pytest.TempPathFactory
+    ):
+        # Distinct per-row feature values: a stray start_time drop that left the
+        # feature column unfiltered would shift X (or mismatch length and raise)
+        schema = {"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)}
+        null_df = pl.DataFrame(
+            {
+                "start_time": [0.0, None, 4.0, 8.0],
+                "feature": [[1.0], [2.0], [3.0], [4.0]],
+            },
+            schema=schema,
+        )
+        timed_df = pl.DataFrame(
+            {
+                "start_time": [0.0, 4.0, 8.0],
+                "feature": [[1.0], [3.0], [4.0]],
+            },
+            schema=schema,
+        )
+        timed_tree = BIDSTree(tmp_path_factory.mktemp("timed"))
+        x_null = self._build_xy(tree, null_df).X
+        x_timed = self._build_xy(timed_tree, timed_df).X
+        np.testing.assert_array_equal(x_null, x_timed)
+
+
 class TestTrainWiring:
     def test_train_fits_and_returns_artifact(
         self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch

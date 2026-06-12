@@ -62,6 +62,8 @@ class PhonemicConfound:
 
             logger.info("Generating phonemic confounds for {}", feat_file.path.name)
             df = read_feature(feat_file.path)
+            # Drop untimed rows — downsample needs TR alignment
+            df = df.filter(pl.col("start_time").is_not_null())
             start_times = df.get_column("start_time").to_numpy()
 
             sub_source = feat_file.with_identity("sub", first_sub)

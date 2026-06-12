@@ -18,7 +18,7 @@ TR = 2.0
 def _add_phonemic(
     tree: BIDSTree,
     *,
-    start_times: list[float],
+    start_times: list[float | None],
     phonemes: list[str | None],
     dyad: str = DYAD,
     ses: str | None = None,
@@ -115,6 +115,32 @@ class TestPhonemicConfoundGenerate:
             tree,
             start_times=[0.5, 0.5, 0.5, 5.0, 5.0, 5.0],
             phonemes=["K", "AE", "T", "D", "AO", "G"],
+        )
+        tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
+        tree.add_participants({SUB: DYAD})
+        layout = BIDSLayout(tree.root)
+
+        PhonemicConfound(bids_root=tree.root).generate(DYAD)
+
+        rate_path = layout.path.confound(
+            source=layout.find.features(dyad=DYAD, kind="phonemic")[0],
+            kind="phonemic",
+            desc="rate",
+        )
+        df = read_confound(rate_path.path)
+        confound = np.array(df.get_column("confound").to_list()).ravel()
+        expected = np.zeros(DEFAULT_BOLD_N_TRS)
+        expected[0] = 3.0
+        expected[2] = 3.0
+        np.testing.assert_array_equal(confound, expected)
+
+    def test_untimed_rows_dropped_not_raised(self, tree: BIDSTree):
+        # A null-start_time row must be dropped before downsample (which raises
+        # on NaN), leaving the rate count identical to the all-timed case
+        _add_phonemic(
+            tree,
+            start_times=[0.5, 0.5, 0.5, None, 5.0, 5.0, 5.0],
+            phonemes=["K", "AE", "T", "AH", "D", "AO", "G"],
         )
         tree.add_bold(sub=SUB, task=TASK, run="1", space="MNI152NLin6Asym", tr=TR)
         tree.add_participants({SUB: DYAD})

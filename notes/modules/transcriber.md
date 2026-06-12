@@ -28,12 +28,15 @@ Pyannote never receives a file path — only the already-decoded tensor.
 
 ## Null-timed tokens
 
-WhisperX's forced aligner cannot time tokens outside its character dictionary
-(numerals like `"5"`, some symbols). Whisper still emits the token, but
-`word_segments` carries it with `start`/`end` absent, which becomes a `null`
-`start_time` row in the transcript CSV. The class can't be fixed upstream, so
-downstream consumers must tolerate null `start_time` rows — see
-[phonemic.md](phonemic.md) for how phonemic features handle them.
+WhisperX's forced aligner occasionally cannot place a real spoken word in audio
+— from a CTC `backtrack` failure, or a word whose characters were all left
+unaligned. Whisper still emits the word, but `word_segments` carries it with
+`start`/`end` absent, which becomes a `null` `start_time` row in the transcript
+CSV, sitting in correct speech order with valid text. This is **not** the
+digits/symbols case: numerals and symbols align via whisperX's wildcard path and
+do get a `start_time`. Null-timed rows are rare and cannot be fixed upstream, so
+downstream consumers must tolerate them — see [phonemic.md](phonemic.md) for how
+phonemic features handle them.
 
 ## Speaker turns
 

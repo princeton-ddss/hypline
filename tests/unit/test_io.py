@@ -118,6 +118,15 @@ class TestWriteFeature:
         df = read_feature(feature_path)
         assert df.equals(feature_df)
 
+    def test_null_start_time_survives_roundtrip(self, feature_path: Path):
+        df = pl.DataFrame(
+            {"start_time": [0.0, None, 1.0], "feature": [[1.0, 2.0]] * 3},
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 2)},
+        )
+        write_feature(df, feature_path)
+        loaded = read_feature(feature_path)
+        assert loaded.get_column("start_time").to_list() == [0.0, None, 1.0]
+
     def test_creates_parent_dirs(self, tmp_path: Path, feature_df: pl.DataFrame):
         path = tmp_path / "a" / "b" / "sub-01_feat-mfcc.parquet"
         write_feature(feature_df, path)

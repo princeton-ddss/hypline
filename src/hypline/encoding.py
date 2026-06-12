@@ -1316,6 +1316,8 @@ class Encoding:
             feature_arrays: list[np.ndarray] = []
             for feature_name in self._features:
                 df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
+                # Drop untimed rows — downsample needs TR alignment
+                df = df.filter(df.get_column("start_time").is_not_null())
                 arr = downsample(
                     stack_array_column(df.get_column("feature")),
                     start_times=df.get_column("start_time").to_numpy(),
