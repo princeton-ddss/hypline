@@ -1,6 +1,6 @@
 # Filter to specific runs or conditions
 
-Most hypline commands run over *everything* they discover by convention — every
+Most hypline commands run over _everything_ they discover by convention — every
 run and segment, and every dyad or subject. When you want a command to touch only
 part of your dataset — one dyad, two runs, a single condition — you narrow it with
 two options that appear on nearly every command:
@@ -11,11 +11,6 @@ two options that appear on nearly every command:
   the sub-keyed `denoise` takes `--sub-ids`. See [Subject vs.
   dyad](../concepts/layout.md#subject-vs-dyad).
 - **`--data-filters`** — pick which runs and conditions within them.
-
-This guide shows the common selections. For *why* segments and conditions work
-the way they do, see [Segments and metadata](../concepts/segments.md); for the
-full option list of any single command, see its [Reference](../reference/transcribe.md)
-page.
 
 ## Select dyads or subjects
 
@@ -67,7 +62,7 @@ hypline denoise data/ --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z --data
 
 ### Runs AND a condition
 
-Mixing *different* entities narrows the match — every named entity must hold:
+Mixing _different_ entities narrows the match — every named entity must hold:
 
 ```bash
 # (run 1 or run 2) AND condition R
@@ -78,12 +73,12 @@ hypline denoise data/ \
 
 ## The matching rule, in one line
 
-| Tokens | Reads as |
-| ------ | -------- |
-| Same entity, multiple values | **OR** — `run-1,run-2` → run 1 *or* 2 |
-| Different entities | **AND** — `run-1,cond-R` → run 1 *and* condition R |
+| Tokens                       | Reads as                                           |
+| ---------------------------- | -------------------------------------------------- |
+| Same entity, multiple values | **OR** — `run-1,run-2` → run 1 _or_ 2              |
+| Different entities           | **AND** — `run-1,cond-R` → run 1 _and_ condition R |
 
-So `run-1,run-2,cond-G` means *(run 1 or run 2) and condition G*. Combine the
+So `run-1,run-2,cond-G` means _(run 1 or run 2) and condition G_. Combine the
 identity option (`--dyad-ids` / `--sub-ids`) with `--data-filters` to slice on
 both axes at once:
 
@@ -98,7 +93,7 @@ hypline denoise data/ \
 ## Combining with `--force`
 
 The identity option (`--dyad-ids` / `--sub-ids`) and `--data-filters` decide
-*what is considered*; `--force` decides whether already-generated outputs are
+_what is considered_; `--force` decides whether already-generated outputs are
 overwritten. They compose — scope a rerun to one run and force just that one:
 
 ```bash
@@ -116,6 +111,6 @@ Two outcomes look similar but mean different things:
   filter, or confirm the files are in place. (Stimulus commands report dyads;
   `denoise` reports subjects.)
 - **An error naming an unknown entity** — a filter token names an entity that
-  exists *nowhere*, neither on filenames nor in `events.json` metadata. Hypline
+  exists _nowhere_, neither on filenames nor in `events.json` metadata. Hypline
   treats this as a typo and raises, rather than silently matching nothing. Check
   the spelling against your filenames and sidecars.
