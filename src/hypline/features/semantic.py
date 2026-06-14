@@ -230,18 +230,14 @@ class SemanticFeature:
 
         states, metrics = self._forward(token_ids)
 
-        data = {
-            "start_time": rows_start,
-            "word": rows_word,
-            "token": tokens,
-            "feature": pl.Series(
-                "feature",
-                states.tolist(),
-                dtype=pl.Array(pl.Float64, states.shape[1]),
-            ),
-        }
+        data = {"start_time": rows_start, "token": tokens, "word": rows_word}
         if metrics is not None:
             data.update(metrics)
+        data["feature"] = pl.Series(
+            "feature",
+            states.tolist(),
+            dtype=pl.Array(pl.Float64, states.shape[1]),
+        )
 
         out_df = pl.DataFrame(data)
         metadata = {
