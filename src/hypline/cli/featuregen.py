@@ -190,8 +190,16 @@ def generate_semantic_feature(
             help="Overwrite existing outputs (default skips them)",
         ),
     ] = False,
+    skip_confoundgen: Annotated[
+        bool,
+        typer.Option(
+            "--skip-confoundgen",
+            help="Do not also generate semantic confounds from the new features",
+        ),
+    ] = False,
 ):
     """Generate contextual word embeddings from any Hugging Face causal LM."""
+    from hypline.confounds.semantic import SemanticConfound
     from hypline.features.semantic import HFModelConfig, SemanticFeature
     from hypline.layout import BIDSLayout
 
@@ -220,11 +228,24 @@ def generate_semantic_feature(
         force=force,
     )
 
+    if skip_confoundgen:
+        task = feature.generate
+    else:
+        confound = SemanticConfound(
+            bids_root=bids_root,
+            bids_filters=_bids_filters,
+            force=force,
+        )
+
+        def task(dyad_id: str):
+            feature.generate(dyad_id)
+            confound.generate(dyad_id)
+
     run_per_id(
         bids_root,
         "featuregen",
         "semantic",
         id_key="dyad",
         id_values=_dyad_ids,
-        task=feature.generate,
+        task=task,
     )
