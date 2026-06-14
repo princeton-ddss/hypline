@@ -6,11 +6,12 @@
 [![CD](https://github.com/princeton-ddss/hypline/actions/workflows/cd.yml/badge.svg)](https://github.com/princeton-ddss/hypline/actions/workflows/cd.yml)
 
 Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. It turns stimulus audio
-and [fMRIPrep](https://fmriprep.org/en/stable/index.html) outputs into the
-inputs an **encoding model** needs — transcripts, features, confounds, and
-denoised BOLD — all organized in one [BIDS](https://bids.neuroimaging.io/)-style
-dataset.
+hyperscanning studies involving dyadic conversations. Its commands are modular:
+each does one job — transcribe audio, generate features, denoise
+[fMRIPrep](https://fmriprep.org/en/stable/index.html) BOLD — and runs on its own.
+Run end to end, they prepare everything an **encoding model** needs — transcripts,
+features, confounds, and denoised BOLD — all organized in one
+[BIDS](https://bids.neuroimaging.io/)-style dataset.
 
 Hypline implements the encoding-model approach of Zada et al. (2026), *Neuron*
 ([10.1016/j.neuron.2025.11.004](https://doi.org/10.1016/j.neuron.2025.11.004)),
@@ -39,8 +40,8 @@ hypline --help
 
 ## The pipeline
 
-Hypline commands form a pipeline. Each reads from a shared dataset root and
-writes its outputs back into the same tree, along two independent branches — a
+Hypline's commands compose into a pipeline. Each reads from a shared dataset root
+and writes its outputs back into the same tree, along two independent branches — a
 **stimulus branch** and an **fMRIPrep branch** — that prepare the two sides an
 encoding model later joins:
 
@@ -55,7 +56,8 @@ encoding model later joins:
 
 `featuregen phonemic` also generates the matching phonemic confounds by default,
 so you rarely call `confoundgen phonemic` directly. You do not have to run every
-step — each works on its own as long as its inputs exist.
+step — run `transcribe` alone for transcripts, or `denoise` alone to clean
+fMRIPrep BOLD, as long as each command's inputs exist.
 
 ## Quick start
 

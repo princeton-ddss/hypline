@@ -1,13 +1,15 @@
 # Hypline
 
 Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. It turns stimulus audio
-and [fMRIPrep](https://fmriprep.org/en/stable/index.html) outputs into the
-inputs an **encoding model** needs — transcripts, features, confounds, and
-cleaned BOLD — all organized in one [BIDS](https://bids.neuroimaging.io/)-style
-dataset. An encoding model predicts the brain's BOLD response from features of
-the speech a participant heard; hypline prepares both sides of that fit, the
-stimulus features (the predictors) and the denoised BOLD (the target).
+hyperscanning studies involving dyadic conversations. Its commands are modular:
+each does one job — transcribe audio, generate features, denoise
+[fMRIPrep](https://fmriprep.org/en/stable/index.html) BOLD — and runs on its own.
+Run end to end, they prepare everything an **encoding model** needs —
+transcripts, features, confounds, and denoised BOLD — all organized in one
+[BIDS](https://bids.neuroimaging.io/)-style dataset. An encoding model predicts
+the brain's BOLD response from features of the speech a participant heard;
+hypline prepares both sides of that fit, the stimulus features (the predictors)
+and the denoised BOLD (the target).
 
 Hypline implements the encoding-model approach of Zada et al. (2026),[^zada]
 which used fMRI hyperscanning and language-model features to study the shared
@@ -54,10 +56,10 @@ hypline --help
 
 ## The pipeline
 
-Hypline commands form a pipeline. Each one reads from a shared dataset root and
-writes its outputs back into the same tree. The steps fall into two independent
-branches — a **stimulus branch** and an **fMRIPrep branch** — that prepare the
-two sides an encoding model later joins:
+Hypline's commands compose into a pipeline. Each one reads from a shared dataset
+root and writes its outputs back into the same tree. The steps fall into two
+independent branches — a **stimulus branch** and an **fMRIPrep branch** — that
+prepare the two sides an encoding model later joins:
 
 | Command                | Branch   | Reads                                  | Writes                          |
 | ---------------------- | -------- | -------------------------------------- | ------------------------------- |
@@ -80,8 +82,8 @@ them downstream.
     [featuregen reference](reference/featuregen.md).
 
 You do not have to run every step. Each command works on its own as long as its
-inputs exist — for example, you can run `denoise` on fMRIPrep outputs without
-ever transcribing audio.
+inputs exist — run `transcribe` alone for transcripts, or `denoise` alone to
+clean fMRIPrep BOLD without ever transcribing audio.
 
 ## Run the pipeline
 
