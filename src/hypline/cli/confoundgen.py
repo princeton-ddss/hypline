@@ -46,21 +46,21 @@ def generate_phonemic_confound(
 ):
     """Generate phonemic confounds (onset, rate) from phonemic feature files."""
     from hypline.confounds.phonemic import PhonemicConfound
+    from hypline.layout import BIDSLayout
 
     _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
+
+    _dyad_ids = _dyad_ids or BIDSLayout(bids_root).list.dyads(area="features")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to generate")
+        return
 
     confound = PhonemicConfound(
         bids_root=bids_root,
         bids_filters=_bids_filters,
         force=force,
     )
-
-    _dyad_ids = _dyad_ids or confound._layout.list.dyads(area="features")
-
-    if not _dyad_ids:
-        logger.warning("No dyads found — nothing to generate")
-        return
 
     run_per_id(
         bids_root,
@@ -109,21 +109,21 @@ def generate_semantic_confound(
 ):
     """Generate semantic confounds (onset, rate) from semantic feature files."""
     from hypline.confounds.semantic import SemanticConfound
+    from hypline.layout import BIDSLayout
 
     _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
+
+    _dyad_ids = _dyad_ids or BIDSLayout(bids_root).list.dyads(area="features")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to generate")
+        return
 
     confound = SemanticConfound(
         bids_root=bids_root,
         bids_filters=_bids_filters,
         force=force,
     )
-
-    _dyad_ids = _dyad_ids or confound._layout.list.dyads(area="features")
-
-    if not _dyad_ids:
-        logger.warning("No dyads found — nothing to generate")
-        return
 
     run_per_id(
         bids_root,

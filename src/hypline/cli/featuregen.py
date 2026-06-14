@@ -74,9 +74,15 @@ def generate_phonemic_feature(
     """Generate phonemic feature from word-level transcripts."""
     from hypline.confounds.phonemic import PhonemicConfound
     from hypline.features.phonemic import PhonemicFeature
+    from hypline.layout import BIDSLayout
 
     _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
+
+    _dyad_ids = _dyad_ids or BIDSLayout(bids_root).list.dyads(area="stimuli")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to generate")
+        return
 
     feature = PhonemicFeature(
         bids_root=bids_root,
@@ -85,12 +91,6 @@ def generate_phonemic_feature(
         desc=desc,
         force=force,
     )
-
-    _dyad_ids = _dyad_ids or feature._layout.list.dyads(area="stimuli")
-
-    if not _dyad_ids:
-        logger.warning("No dyads found — nothing to generate")
-        return
 
     if skip_confoundgen:
         task = feature.generate
@@ -206,8 +206,8 @@ def generate_semantic_feature(
     _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
-    # Discover dyads before constructing SemanticFeature, which downloads and
-    # loads the model in __init__ — skip that cost when there is nothing to do.
+    # Discover first: SemanticFeature.__init__ downloads the model,
+    # so skip constructing it when there is nothing to generate
     _dyad_ids = _dyad_ids or BIDSLayout(bids_root).list.dyads(area="stimuli")
     if not _dyad_ids:
         logger.warning("No dyads found — nothing to generate")

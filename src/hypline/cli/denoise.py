@@ -102,6 +102,7 @@ def denoise(
 ):
     """Regress fmriprep confounds out of preprocessed BOLD, writing desc-denoised."""
     from hypline.denoise import Denoiser
+    from hypline.layout import BIDSLayout
 
     _columns = split_csv(columns, param_hint="--columns") or []
     _compcor = split_csv(compcor, param_hint="--compcor") or []
@@ -121,6 +122,11 @@ def denoise(
     _sub_ids = split_csv(sub_ids, param_hint="--sub-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
 
+    _sub_ids = _sub_ids or BIDSLayout(bids_root).list.subjects(area="fmriprep")
+    if not _sub_ids:
+        logger.warning("No subjects found — nothing to denoise")
+        return
+
     denoiser = Denoiser(
         bids_root=bids_root,
         space=space.value,
@@ -131,12 +137,6 @@ def denoise(
         bids_filters=_bids_filters,
         force=force,
     )
-
-    _sub_ids = _sub_ids or denoiser._layout.list.subjects(area="fmriprep")
-
-    if not _sub_ids:
-        logger.warning("No subjects found — nothing to denoise")
-        return
 
     run_per_id(
         bids_root, "denoise", id_key="sub", id_values=_sub_ids, task=denoiser.denoise

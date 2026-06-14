@@ -75,10 +75,18 @@ def transcribe(
     """
     Transcribe audio files using a Whisper ASR model.
     """
+    from hypline.layout import BIDSLayout
     from hypline.transcribe import Transcriber, WhisperConfig
 
     _dyad_ids = split_csv(dyad_ids, param_hint="--dyad-ids")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
+
+    # Discover first: Transcriber.__init__ loads the Whisper model,
+    # so skip constructing it when there is nothing to transcribe
+    _dyad_ids = _dyad_ids or BIDSLayout(bids_root).list.dyads(area="stimuli")
+    if not _dyad_ids:
+        logger.warning("No dyads found — nothing to transcribe")
+        return
 
     config = WhisperConfig(
         model=model,
@@ -93,12 +101,6 @@ def transcribe(
         bids_filters=_bids_filters,
         force=force,
     )
-
-    _dyad_ids = _dyad_ids or transcriber._layout.list.dyads(area="stimuli")
-
-    if not _dyad_ids:
-        logger.warning("No dyads found — nothing to transcribe")
-        return
 
     run_per_id(
         bids_root,
