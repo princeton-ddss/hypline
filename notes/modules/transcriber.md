@@ -35,8 +35,8 @@ unaligned. Whisper still emits the word, but `word_segments` carries it with
 CSV, sitting in correct speech order with valid text. This is **not** the
 digits/symbols case: numerals and symbols align via whisperX's wildcard path and
 do get a `start_time`. Null-timed rows are rare and cannot be fixed upstream, so
-downstream consumers must tolerate them — see [phonemic.md](phonemic.md) for how
-phonemic features handle them.
+downstream consumers must tolerate them — see [phonemic.md](phonemic.md) and
+[semantic.md](semantic.md) for how phonemic and semantic features handle them.
 
 ## Speaker turns
 
