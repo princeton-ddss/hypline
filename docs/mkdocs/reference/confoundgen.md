@@ -10,6 +10,7 @@ hypline confoundgen <source> <dataset-root> [OPTIONS]
 | Subcommand | Source                                              |
 | ---------- | --------------------------------------------------- |
 | `phonemic` | timing of phonemic features (onset indicator, rate) |
+| `semantic` | timing of semantic features (onset indicator, rate) |
 
 Each confound file is a Parquet table already aligned to the BOLD TR grid.
 
@@ -74,3 +75,50 @@ Each derivation is referred to by name (`phonemic-onset`, `phonemic-rate`). Thes
 are feature-granular, encoding-side confounds; they are not read by
 [`denoise`](denoise.md), whose nuisance regressors come from fMRIPrep and the
 `nuisance/` area instead.
+
+---
+
+## `confoundgen semantic`
+
+Generate semantic confounds from semantic feature files — the same **onset**
+indicator and speech **rate** regressor as `phonemic`, derived from semantic
+feature timing rather than phoneme timing.
+
+!!! tip "Usually automatic"
+
+    [`featuregen semantic`](featuregen.md) runs this step for you by default.
+    Call `confoundgen semantic` directly only to regenerate confounds without
+    regenerating features.
+
+### Inputs
+
+Semantic feature files produced by [`featuregen semantic`](featuregen.md):
+
+```
+<dataset-root>/features/dyad-103/ses-1/semantic/
+└── dyad-103_ses-1_task-conv_run-1_feat-semantic.parquet
+```
+
+### Options
+
+Identical to [`confoundgen phonemic`](#confoundgen-phonemic): `--dyad-ids`,
+`--data-filters`, `--force`.
+
+### Example
+
+```bash
+hypline confoundgen semantic data/
+```
+
+### Outputs
+
+Two derivations per run, tagged `conf-semantic` and distinguished by `desc`,
+each in its own subdirectory:
+
+```
+<dataset-root>/confounds/dyad-103/ses-1/
+├── semantic-onset/
+│   └── dyad-103_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet   # speech-onset indicator
+└── semantic-rate/
+    └── dyad-103_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet    # speech rate per TR
+```

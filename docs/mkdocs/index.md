@@ -63,7 +63,9 @@ two sides an encoding model later joins:
 | ---------------------- | -------- | -------------------------------------- | ------------------------------- |
 | `transcribe`           | stimulus | stimulus audio                         | word-level transcripts          |
 | `featuregen phonemic`  | stimulus | transcripts                            | phonemic features (+ confounds) |
+| `featuregen semantic`  | stimulus | transcripts                            | semantic features (+ confounds) |
 | `confoundgen phonemic` | stimulus | phonemic features                      | `conf-phonemic` confounds       |
+| `confoundgen semantic` | stimulus | semantic features                      | `conf-semantic` confounds       |
 | `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds  | denoised BOLD (`desc-denoised`) |
 
 The branches never meet inside hypline: stimulus commands build the encoding

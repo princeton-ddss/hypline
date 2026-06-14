@@ -112,8 +112,8 @@ what kind of derivative it is:
 
 | Entity        | Area          | Example                         |
 | ------------- | ------------- | ------------------------------- |
-| `feat-<kind>` | `features/`   | `feat-phonemic`                 |
-| `conf-<kind>` | `confounds/`  | `conf-phonemic`                 |
+| `feat-<kind>` | `features/`   | `feat-phonemic`, `feat-semantic` |
+| `conf-<kind>` | `confounds/`  | `conf-phonemic`, `conf-semantic` |
 | `nuis-<kind>` | `nuisance/`   | `nuis-physio`                   |
 
 The `<kind>` matches the subdirectory the file lives in. A phonemic feature

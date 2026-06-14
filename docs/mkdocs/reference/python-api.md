@@ -27,9 +27,9 @@ path raises rather than writing something the CLI can't later consume.
 
 ## Plugging in a custom feature
 
-The CLI only generates `feat-phonemic` features. To drive an encoding model on
-a feature hypline doesn't compute — word embeddings, prosody, anything you can
-align to the stimulus — build the DataFrame yourself and `save_feature` it into
+The CLI generates `feat-phonemic` and `feat-semantic` features. To drive an
+encoding model on a feature hypline doesn't compute — prosody, anything else you
+can align to the stimulus — build the DataFrame yourself and `save_feature` it into
 the dataset. From then on it is a first-class feature: it sits under
 `features/`, carries the right entities, and any downstream step that reads
 features by name will find it.
