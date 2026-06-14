@@ -168,3 +168,17 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
     The model must be a causal/decoder LM with a fast tokenizer and a BOS token.
     Encoder checkpoints (BERT and the like) are rejected up front — `from_pretrained`
     would silently load them and emit garbage.
+
+!!! note "Gated models"
+
+    Some models (e.g. Llama) are license-gated. Request access on the model's
+    Hugging Face page, then set an [access token](https://huggingface.co/settings/tokens)
+    so the download can authenticate:
+
+    ```bash
+    export HF_TOKEN=hf_...
+    hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
+    ```
+
+    `transformers` reads `HF_TOKEN` automatically — no extra flag. Access must be
+    granted to the same account that issued the token, or the download fails.

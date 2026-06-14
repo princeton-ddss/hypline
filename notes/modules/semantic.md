@@ -48,3 +48,9 @@ scope. The HF id is an open string, not an enum or name map — the hub is
 unbounded, so `from_pretrained` validates the id better than a curated set
 could. Contrast `WhisperModel`, an enum, because whisperX supports a genuinely
 *closed* checkpoint list: enum for closed sets, open string for open sets.
+
+## Gated models authenticate via `HF_TOKEN`
+
+License-gated checkpoints (e.g. Llama) download only when the `HF_TOKEN` env var
+holds a token whose account has been granted access. `transformers` reads it
+automatically, so hypline exposes no auth flag.

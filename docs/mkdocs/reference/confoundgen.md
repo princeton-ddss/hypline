@@ -21,6 +21,18 @@ Each confound file is a Parquet table already aligned to the BOLD TR grid.
     [`denoise --columns` / `--compcor`](denoise.md). `confounds/` holds only
     stimulus-derived, feature-granular confounds.
 
+!!! note "Why there is no `desc` option"
+
+    Generated confounds capture *when* speech occurred, not its content — they
+    depend only on feature timing, never the feature values. So semantic features
+    from two different models, `semantic-gpt2xl` and `semantic-llama`, yield the
+    same `semantic-onset` and `semantic-rate`; there is no variant to choose.
+
+    Need a confound that depends on variant-specific data (e.g. the feature values
+    themselves)? Derive it yourself and write it with
+    [`save_confound`](python-api.md#hypline.save_confound), choosing your own
+    `desc`.
+
 ---
 
 ## `confoundgen phonemic`
