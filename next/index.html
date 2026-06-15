@@ -976,13 +976,15 @@
 
 <h1 id="hypline">Hypline<a class="headerlink" href="#hypline" title="Permanent link">&para;</a></h1>
 <p>Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. It turns stimulus audio
-and <a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> outputs into the
-inputs an <strong>encoding model</strong> needs — transcripts, features, confounds, and
-cleaned BOLD — all organized in one <a href="https://bids.neuroimaging.io/">BIDS</a>-style
-dataset. An encoding model predicts the brain's BOLD response from features of
-the speech a participant heard; hypline prepares both sides of that fit, the
-stimulus features (the predictors) and the denoised BOLD (the target).</p>
+hyperscanning studies involving dyadic conversations. Its commands are modular:
+each does one job — transcribe audio, generate features, denoise
+<a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> BOLD — and runs on its own.
+Run end to end, they prepare everything an <strong>encoding model</strong> needs —
+transcripts, features, confounds, and denoised BOLD — all organized in one
+<a href="https://bids.neuroimaging.io/">BIDS</a>-style dataset. An encoding model predicts
+the brain's BOLD response from features of the speech a participant heard;
+hypline prepares both sides of that fit, the stimulus features (the predictors)
+and the denoised BOLD (the target).</p>
 <p>Hypline implements the encoding-model approach of Zada et al. (2026),<sup id="fnref:zada"><a class="footnote-ref" href="#fn:zada">1</a></sup>
 which used fMRI hyperscanning and language-model features to study the shared
 neural systems for speech production and comprehension in real-time dyadic
@@ -1014,10 +1016,10 @@ which must be installed separately and available on your <code>PATH</code>. Othe
 commands do not need it.</p>
 </div>
 <h2 id="the-pipeline">The pipeline<a class="headerlink" href="#the-pipeline" title="Permanent link">&para;</a></h2>
-<p>Hypline commands form a pipeline. Each one reads from a shared dataset root and
-writes its outputs back into the same tree. The steps fall into two independent
-branches — a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong> — that prepare the
-two sides an encoding model later joins:</p>
+<p>Hypline's commands compose into a pipeline. Each one reads from a shared dataset
+root and writes its outputs back into the same tree. The steps fall into two
+independent branches — a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong> — that
+prepare the two sides an encoding model later joins:</p>
 <table>
 <thead>
 <tr>
@@ -1041,10 +1043,22 @@ two sides an encoding model later joins:</p>
 <td>phonemic features (+ confounds)</td>
 </tr>
 <tr>
+<td><code>featuregen semantic</code></td>
+<td>stimulus</td>
+<td>transcripts</td>
+<td>semantic features (+ confounds)</td>
+</tr>
+<tr>
 <td><code>confoundgen phonemic</code></td>
 <td>stimulus</td>
 <td>phonemic features</td>
 <td><code>conf-phonemic</code> confounds</td>
+</tr>
+<tr>
+<td><code>confoundgen semantic</code></td>
+<td>stimulus</td>
+<td>semantic features</td>
+<td><code>conf-semantic</code> confounds</td>
 </tr>
 <tr>
 <td><code>denoise</code></td>
@@ -1065,8 +1079,8 @@ default, so you rarely call <code>confoundgen phonemic</code> directly. See the
 <a href="reference/featuregen/">featuregen reference</a>.</p>
 </div>
 <p>You do not have to run every step. Each command works on its own as long as its
-inputs exist — for example, you can run <code>denoise</code> on fMRIPrep outputs without
-ever transcribing audio.</p>
+inputs exist — run <code>transcribe</code> alone for transcripts, or <code>denoise</code> alone to
+clean fMRIPrep BOLD without ever transcribing audio.</p>
 <h2 id="run-the-pipeline">Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permanent link">&para;</a></h2>
 <p>Once your files sit where hypline expects (see
 <a href="concepts/layout/">the dataset layout</a>), every command takes the dataset root

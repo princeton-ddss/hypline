@@ -830,6 +830,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#featuregen-semantic" class="md-nav__link">
+    <span class="md-ellipsis">
+      featuregen semantic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="featuregen semantic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -992,6 +1043,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#featuregen-semantic" class="md-nav__link">
+    <span class="md-ellipsis">
+      featuregen semantic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="featuregen semantic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1029,6 +1131,10 @@ feature kind.</p>
 <td><code>phonemic</code></td>
 <td>phoneme-level articulatory features from transcripts</td>
 </tr>
+<tr>
+<td><code>semantic</code></td>
+<td>contextual word embeddings from a Hugging Face causal LM</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -1039,8 +1145,8 @@ phonemes, and each phoneme is represented by its articulatory features (place,
 manner, voicing, …).</p>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <p>Transcripts produced by <a href="../transcribe/"><code>transcribe</code></a>, under <code>stimuli/</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-103/ses-1/transcript/
-└── dyad-103_ses-1_task-conv_run-1_transcript.csv
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-030/ses-1/transcript/
+└── dyad-030_ses-1_task-conv_run-1_transcript.csv
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -1105,13 +1211,13 @@ names the variant after it so it sits beside the default features:</p>
 <code>features/</code>. With <code>--skip-confoundgen</code> omitted, the matching <code>conf-phonemic</code>
 confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>):</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
-├── features/dyad-103/ses-1/phonemic/
-│   └── dyad-103_ses-1_task-conv_run-1_feat-phonemic.parquet
-└── confounds/dyad-103/ses-1/                            # from the chained confoundgen
+├── features/dyad-030/ses-1/phonemic/
+│   └── dyad-030_ses-1_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
 </code></pre></div>
 <p>A <code>--desc</code> label lands as <code>desc-&lt;label&gt;</code> and lives in its own subdirectory
 (<code>phonemic-&lt;label&gt;/</code>), keeping variants separate. See
@@ -1122,6 +1228,122 @@ confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>
 <code>start_time</code> (seconds from the start of the stimulus) and a <code>feature</code> vector.
 Timing is the phoneme's word onset — hypline does not yet have sub-word
 audio alignment, so phonemes within a word share that word's onset.</p>
+</div>
+<hr />
+<h2 id="featuregen-semantic"><code>featuregen semantic</code><a class="headerlink" href="#featuregen-semantic" title="Permanent link">&para;</a></h2>
+<p>Derive <strong>contextual word embeddings</strong> from any Hugging Face causal (decoder) LM.
+The transcript is tokenized and run through the model; each sub-word token's
+hidden state at a chosen <code>--layer</code> becomes its <code>feature</code> vector. The model id is
+passed verbatim to <code>from_pretrained</code>, so the hub is open and unbounded — any
+causal LM with a fast (Rust) tokenizer and a BOS token works.</p>
+<h3 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h3>
+<p>The same transcripts as <a href="#featuregen-phonemic"><code>featuregen phonemic</code></a>, under
+<code>stimuli/</code>. Untimed words (null <code>start_time</code>) are retained as real LM context
+but carry their null timing into the output; null-<code>word</code> rows are skipped.</p>
+<p>The whole transcript is encoded in one forward pass, so it must fit the model's
+context window (tokens + a BOS prefix ≤ <code>max_position_embeddings</code>). A long
+transcript on a short-context model (gpt-2 caps at 1024) raises rather than
+truncating — reach for a longer-context LM instead.</p>
+<h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--model</code></td>
+<td><strong>Required.</strong> Hugging Face causal-LM id (e.g. <code>gpt2-xl</code>, <code>meta-llama/Llama-3.2-1B</code>)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--model-dir</code></td>
+<td>Cache dir for downloaded weights</td>
+<td><code>~/.cache/hypline/huggingface</code></td>
+</tr>
+<tr>
+<td><code>--device</code></td>
+<td>Hardware target (<code>cpu</code> or <code>cuda</code>)</td>
+<td><code>cpu</code></td>
+</tr>
+<tr>
+<td><code>--layer</code></td>
+<td>Hidden-layer index in <code>0..num_hidden_layers</code>; omit for the middle layer</td>
+<td>middle</td>
+</tr>
+<tr>
+<td><code>--desc</code></td>
+<td>Tag outputs as a named variant (alphanumeric), e.g. <code>--desc v2</code> → <code>desc-v2</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--skip-confoundgen</code></td>
+<td>Write features only; do <strong>not</strong> also generate semantic confounds</td>
+<td>off</td>
+</tr>
+<tr>
+<td><code>--dyad-ids</code></td>
+<td>Comma-separated dyad IDs to process; omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Features and confounds together</p>
+<p>As with <code>phonemic</code>, <code>featuregen semantic</code> also runs
+<a href="../confoundgen/"><code>confoundgen semantic</code></a> by default. Pass <code>--skip-confoundgen</code>
+for features without confounds.</p>
+</div>
+<h3 id="example_1">Example<a class="headerlink" href="#example_1" title="Permanent link">&para;</a></h3>
+<p>Generate gpt-2 semantic features (and their confounds) for all dyads:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>semantic<span class="w"> </span>data/<span class="w"> </span>--model<span class="w"> </span>gpt2-xl
+</code></pre></div>
+<h3 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h3>
+<p>A semantic feature file per transcript, tagged <code>feat-semantic</code>, under
+<code>features/</code>. Each row carries <code>start_time</code>, <code>word</code>, <code>token</code>, the <code>feature</code>
+vector, and — for any non-zero layer — per-token LM metrics (<code>rank</code>,
+<code>true_prob</code>, <code>entropy</code>). The Parquet footer records <code>hf_model</code>, <code>hf_tokenizer</code>
+(equal to <code>hf_model</code> unless overridden via the <a href="../python-api/">Python API</a>), and
+<code>layer</code>. With <code>--skip-confoundgen</code> omitted, the matching <code>conf-semantic</code>
+confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>):</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
+├── features/dyad-030/ses-1/semantic/
+│   └── dyad-030_ses-1_task-conv_run-1_feat-semantic.parquet
+└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
+    ├── semantic-onset/
+    │   └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
+    └── semantic-rate/
+        └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Causal LMs only</p>
+<p>The model must be a causal/decoder LM with a fast tokenizer and a BOS token.
+Encoder checkpoints (BERT and the like) are rejected up front — <code>from_pretrained</code>
+would silently load them and emit garbage.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Gated models</p>
+<p>Some models (e.g. Llama) are license-gated. Request access on the model's
+Hugging Face page, then set an <a href="https://huggingface.co/settings/tokens">access token</a>
+so the download can authenticate:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">HF_TOKEN</span><span class="o">=</span>hf_...
+hypline<span class="w"> </span>featuregen<span class="w"> </span>semantic<span class="w"> </span>data/<span class="w"> </span>--model<span class="w"> </span>meta-llama/Llama-3.2-1B
+</code></pre></div>
+<p><code>transformers</code> reads <code>HF_TOKEN</code> automatically — no extra flag. Access must be
+granted to the same account that issued the token, or the download fails.</p>
 </div>
 
 

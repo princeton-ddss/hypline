@@ -1059,17 +1059,17 @@ assume it.</p>
 a few extra areas. A complete tree looks like this:</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/
 ├── participants.tsv                         # required: dyad ↔ subject mapping
-├── sub-003/ses-1/func/                      # raw BIDS (events files live here)
+├── sub-031/ses-1/func/                      # raw BIDS (events files live here)
 ├── derivatives/
-│   ├── fmriprep/sub-003/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
-│   └── hypline/sub-003/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
-├── stimuli/dyad-103/ses-1/audio/            # stimulus audio, transcripts
-├── features/dyad-103/ses-1/phonemic/        # generated features
-├── confounds/dyad-103/ses-1/phonemic/       # generated confounds
-└── nuisance/sub-003/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
+│   ├── fmriprep/sub-031/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
+│   └── hypline/sub-031/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
+├── stimuli/dyad-030/ses-1/audio/            # stimulus audio, transcripts
+├── features/dyad-030/ses-1/phonemic/        # generated features
+├── confounds/dyad-030/ses-1/phonemic/       # generated confounds
+└── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
 </code></pre></div>
 <ul>
-<li><strong><code>sub-003/</code>, <code>derivatives/fmriprep/</code></strong> are standard BIDS areas. You provide
+<li><strong><code>sub-031/</code>, <code>derivatives/fmriprep/</code></strong> are standard BIDS areas. You provide
   these — your raw recordings and your fMRIPrep run.</li>
 <li><strong><code>derivatives/hypline/</code></strong> is a BIDS derivatives tree hypline fills with its
   imaging derivatives — currently the <a href="../../reference/denoise/"><code>denoise</code></a>
@@ -1077,7 +1077,7 @@ a few extra areas. A complete tree looks like this:</p>
   <code>dataset_description.json</code>.</li>
 <li><strong><code>stimuli/</code>, <code>features/</code>, <code>confounds/</code></strong> are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by <strong>dyad</strong>
-  (<code>dyad-103/</code>), not subject — see <a href="#subject-vs-dyad">Subject vs. dyad</a> below.</li>
+  (<code>dyad-030/</code>), not subject — see <a href="#subject-vs-dyad">Subject vs. dyad</a> below.</li>
 <li><strong><code>nuisance/</code></strong> is optional and <em>you</em> fill it — run-level regressors (e.g.
   physiological recordings) for <a href="../../reference/denoise/"><code>denoise</code></a> to regress
   out alongside fMRIPrep's confounds.</li>
@@ -1087,13 +1087,13 @@ a few extra areas. A complete tree looks like this:</p>
 <div class="admonition info">
 <p class="admonition-title">Sessions are optional</p>
 <p>Examples here use a <code>ses-1/</code> level under each subject
-(<code>sub-003/ses-1/func/</code>) to match the tutorial dataset. Datasets without
-sessions omit the level entirely (<code>sub-003/func/</code>). Hypline handles both.</p>
+(<code>sub-031/ses-1/func/</code>) to match the tutorial dataset. Datasets without
+sessions omit the level entirely (<code>sub-031/func/</code>). Hypline handles both.</p>
 </div>
 <h2 id="how-files-are-named">How files are named<a class="headerlink" href="#how-files-are-named" title="Permanent link">&para;</a></h2>
 <p>Hypline follows BIDS filename conventions: a filename is a chain of
 <code>entity-value</code> pairs joined by <code>_</code>, ending in a suffix and extension.</p>
-<div class="highlight"><pre><span></span><code>sub-003_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
+<div class="highlight"><pre><span></span><code>sub-031_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
 \____________________________________________/ \__/ \_____/
                    entities                   suffix   ext
 </code></pre></div>
@@ -1111,18 +1111,18 @@ both are scanned. An artifact is keyed by <strong>what it is derived from</stron
 <li><strong><code>dyad</code>-keyed</strong> — derived from the <em>shared conversation</em> between two partners:
   <code>stimuli/</code>, <code>features/</code>, <code>confounds/</code>. One conversation → one dyad → one set of
   stimuli/features/confounds, later consumed by <em>each</em> partner's per-subject
-  encoding model. A <code>dyad-103</code> audio file is the dyad's shared recording, not
+  encoding model. A <code>dyad-030</code> audio file is the dyad's shared recording, not
   either partner's.</li>
 </ul>
 <p>Because the two worlds use different identity entities, hypline bridges them
 through <strong><code>participants.tsv</code></strong> — a standard BIDS table at the dataset root with
 the required <code>participant_id</code> column plus a custom <strong><code>dyad_id</code></strong> column:</p>
 <div class="highlight"><pre><span></span><code>participant_id   dyad_id
-sub-003          dyad-103
-sub-103          dyad-103
+sub-031          dyad-030
+sub-032          dyad-030
 </code></pre></div>
 <p>This is the single source of truth for which subjects make up which dyad — here
-subjects <code>003</code> and <code>103</code> are partners in <code>dyad-103</code> (a real study has many such
+subjects <code>031</code> and <code>032</code> are partners in <code>dyad-030</code> (a real study has many such
 pairs). It is read lazily: a purely <code>sub</code>-keyed workflow (e.g. <code>denoise</code>
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
 a sub-keyed BOLD requires it and errors if it is missing.</p>
@@ -1133,7 +1133,7 @@ a sub-keyed BOLD requires it and errors if it is missing.</p>
 spaces. Hypline splits on tabs, so a space-separated row collapses into one
 column and fails with a misleading "missing column" error.</p>
 </div>
-<p>So a <code>dyad-103</code> feature file does <strong>not</strong> match a BOLD file by sharing <code>sub</code> —
+<p>So a <code>dyad-030</code> feature file does <strong>not</strong> match a BOLD file by sharing <code>sub</code> —
 the two carry different identity entities. The join goes through
 <code>participants.tsv</code>: a subject's encoding model looks up its dyad, then reads that
 dyad's features.</p>
@@ -1152,12 +1152,12 @@ what kind of derivative it is:</p>
 <tr>
 <td><code>feat-&lt;kind&gt;</code></td>
 <td><code>features/</code></td>
-<td><code>feat-phonemic</code></td>
+<td><code>feat-phonemic</code>, <code>feat-semantic</code></td>
 </tr>
 <tr>
 <td><code>conf-&lt;kind&gt;</code></td>
 <td><code>confounds/</code></td>
-<td><code>conf-phonemic</code></td>
+<td><code>conf-phonemic</code>, <code>conf-semantic</code></td>
 </tr>
 <tr>
 <td><code>nuis-&lt;kind&gt;</code></td>
@@ -1167,15 +1167,15 @@ what kind of derivative it is:</p>
 </tbody>
 </table>
 <p>The <code>&lt;kind&gt;</code> matches the subdirectory the file lives in. A phonemic feature
-(<code>feat-phonemic</code>) lives under <code>features/dyad-103/ses-1/phonemic/</code>.</p>
+(<code>feat-phonemic</code>) lives under <code>features/dyad-030/ses-1/phonemic/</code>.</p>
 <p>Stimuli carry no category entity. Their kind is a trailing filename suffix
-(<code>_audio</code>, <code>_transcript</code>) instead — e.g. <code>dyad-103_ses-1_task-conv_run-1_audio.wav</code>
-under <code>stimuli/dyad-103/ses-1/audio/</code>.</p>
+(<code>_audio</code>, <code>_transcript</code>) instead — e.g. <code>dyad-030_ses-1_task-conv_run-1_audio.wav</code>
+under <code>stimuli/dyad-030/ses-1/audio/</code>.</p>
 <h3 id="variants-with-desc">Variants with <code>desc</code><a class="headerlink" href="#variants-with-desc" title="Permanent link">&para;</a></h3>
 <p>Some commands accept a <code>--desc</code> label that tags an output as one <em>variant</em> among
 several. Variants live in their own subdirectory so they stay physically
 separate:</p>
-<div class="highlight"><pre><span></span><code>confounds/dyad-103/ses-1/
+<div class="highlight"><pre><span></span><code>confounds/dyad-030/ses-1/
 ├── phonemic-onset/    # conf-phonemic_desc-onset — speech-onset indicator
 └── phonemic-rate/     # conf-phonemic_desc-rate  — speech rate per TR
 </code></pre></div>

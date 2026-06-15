@@ -853,6 +853,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#confoundgen-semantic" class="md-nav__link">
+    <span class="md-ellipsis">
+      confoundgen semantic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="confoundgen semantic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -992,6 +1043,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#confoundgen-semantic" class="md-nav__link">
+    <span class="md-ellipsis">
+      confoundgen semantic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="confoundgen semantic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1028,6 +1130,10 @@ BOLD runs. <code>confoundgen</code> is a group of subcommands, one per confound 
 <td><code>phonemic</code></td>
 <td>timing of phonemic features (onset indicator, rate)</td>
 </tr>
+<tr>
+<td><code>semantic</code></td>
+<td>timing of semantic features (onset indicator, rate)</td>
+</tr>
 </tbody>
 </table>
 <p>Each confound file is a Parquet table already aligned to the BOLD TR grid.</p>
@@ -1037,6 +1143,17 @@ BOLD runs. <code>confoundgen</code> is a group of subcommands, one per confound 
 reads them straight from fMRIPrep's confounds table — see
 <a href="../denoise/"><code>denoise --columns</code> / <code>--compcor</code></a>. <code>confounds/</code> holds only
 stimulus-derived, feature-granular confounds.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Why there is no <code>desc</code> option</p>
+<p>Generated confounds capture <em>when</em> speech occurred, not its content — they
+depend only on feature timing, never the feature values. So semantic features
+from two different models, <code>semantic-gpt2xl</code> and <code>semantic-llama</code>, yield the
+same <code>semantic-onset</code> and <code>semantic-rate</code>; there is no variant to choose.</p>
+<p>Need a confound that depends on variant-specific data (e.g. the feature values
+themselves)? Derive it yourself and write it with
+<a href="../python-api/#hypline.save_confound"><code>save_confound</code></a>, choosing your own
+<code>desc</code>.</p>
 </div>
 <hr />
 <h2 id="confoundgen-phonemic"><code>confoundgen phonemic</code><a class="headerlink" href="#confoundgen-phonemic" title="Permanent link">&para;</a></h2>
@@ -1051,8 +1168,8 @@ regenerating features.</p>
 </div>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <p>Phonemic feature files produced by <a href="../featuregen/"><code>featuregen phonemic</code></a>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-103/ses-1/phonemic/
-└── dyad-103_ses-1_task-conv_run-1_feat-phonemic.parquet
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-030/ses-1/phonemic/
+└── dyad-030_ses-1_task-conv_run-1_feat-phonemic.parquet
 </code></pre></div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
@@ -1087,16 +1204,47 @@ regenerating features.</p>
 <h3 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h3>
 <p>Two derivations per run, tagged <code>conf-phonemic</code> and distinguished by <code>desc</code>.
 Each <code>desc</code> lands in its own subdirectory:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/dyad-103/ses-1/
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/dyad-030/ses-1/
 ├── phonemic-onset/
-│   └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
+│   └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet   # speech-onset indicator
 └── phonemic-rate/
-    └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
+    └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet    # speech rate per TR
 </code></pre></div>
 <p>Each derivation is referred to by name (<code>phonemic-onset</code>, <code>phonemic-rate</code>). These
 are feature-granular, encoding-side confounds; they are not read by
 <a href="../denoise/"><code>denoise</code></a>, whose nuisance regressors come from fMRIPrep and the
 <code>nuisance/</code> area instead.</p>
+<hr />
+<h2 id="confoundgen-semantic"><code>confoundgen semantic</code><a class="headerlink" href="#confoundgen-semantic" title="Permanent link">&para;</a></h2>
+<p>Generate semantic confounds from semantic feature files — the same <strong>onset</strong>
+indicator and speech <strong>rate</strong> regressor as <code>phonemic</code>, derived from semantic
+feature timing rather than phoneme timing.</p>
+<div class="admonition tip">
+<p class="admonition-title">Usually automatic</p>
+<p><a href="../featuregen/"><code>featuregen semantic</code></a> runs this step for you by default.
+Call <code>confoundgen semantic</code> directly only to regenerate confounds without
+regenerating features.</p>
+</div>
+<h3 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h3>
+<p>Semantic feature files produced by <a href="../featuregen/"><code>featuregen semantic</code></a>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-030/ses-1/semantic/
+└── dyad-030_ses-1_task-conv_run-1_feat-semantic.parquet
+</code></pre></div>
+<h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
+<p>Identical to <a href="#confoundgen-phonemic"><code>confoundgen phonemic</code></a>: <code>--dyad-ids</code>,
+<code>--data-filters</code>, <code>--force</code>.</p>
+<h3 id="example_1">Example<a class="headerlink" href="#example_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>confoundgen<span class="w"> </span>semantic<span class="w"> </span>data/
+</code></pre></div>
+<h3 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h3>
+<p>Two derivations per run, tagged <code>conf-semantic</code> and distinguished by <code>desc</code>,
+each in its own subdirectory:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/confounds/dyad-030/ses-1/
+├── semantic-onset/
+│   └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet   # speech-onset indicator
+└── semantic-rate/
+    └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet    # speech rate per TR
+</code></pre></div>
 
 
 

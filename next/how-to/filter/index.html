@@ -1103,11 +1103,11 @@ page.</p>
 <h2 id="select-dyads-or-subjects">Select dyads or subjects<a class="headerlink" href="#select-dyads-or-subjects" title="Permanent link">&para;</a></h2>
 <p>Pass comma-separated IDs (the value of the identity entity, without the prefix).
 Use <code>--dyad-ids</code> on the stimulus commands and <code>--sub-ids</code> on <code>denoise</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># stimulus command: only dyad 103 (pass more as a comma-separated list)</span>
-hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">103</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># stimulus command: only dyad 030 (pass more as a comma-separated list)</span>
+hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">030</span>
 
-<span class="c1"># denoise: only subjects 003 and 103 (the two partners of dyad-103)</span>
-hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">003</span>,103
+<span class="c1"># denoise: only subjects 031 and 032 (the two partners of dyad-030)</span>
+hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z<span class="w"> </span>--sub-ids<span class="w"> </span><span class="m">031</span>,032
 </code></pre></div>
 <p>Omit the option entirely to process every dyad (or subject) found wherever that
 command looks for its inputs.</p>
@@ -1159,10 +1159,10 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 <p>So <code>run-1,run-2,cond-G</code> means <em>(run 1 or run 2) and condition G</em>. Combine the
 identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) with <code>--data-filters</code> to slice on
 both axes at once:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># subjects 003 and 103, run 1 only, condition R</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># subjects 031 and 032, run 1 only, condition R</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">003</span>,103<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-ids<span class="w"> </span><span class="m">031</span>,032<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1,cond-R
 </code></pre></div>
 <h2 id="combining-with-force">Combining with <code>--force</code><a class="headerlink" href="#combining-with-force" title="Permanent link">&para;</a></h2>

@@ -528,6 +528,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#5-optional-add-a-custom-nuisance-regressor" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. (Optional) Add a custom nuisance regressor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-you-have-now" class="md-nav__link">
     <span class="md-ellipsis">
       What you have now
@@ -981,6 +990,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#5-optional-add-a-custom-nuisance-regressor" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. (Optional) Add a custom nuisance regressor
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-you-have-now" class="md-nav__link">
     <span class="md-ellipsis">
       What you have now
@@ -1038,7 +1056,7 @@ curl<span class="w"> </span>-L<span class="w"> </span>-o<span class="w"> </span>
 unzip<span class="w"> </span>hypline-tutorial-data.zip<span class="w"> </span>-d<span class="w"> </span>data/
 </code></pre></div>
 <p>The dataset is a <a href="https://bids.neuroimaging.io/">BIDS</a>-style tree for one dyad —
-two partners (<code>sub-003</code> and <code>sub-103</code>) who held a conversation while both were
+two partners (<code>sub-031</code> and <code>sub-032</code>) who held a conversation while both were
 scanned. It already contains the inputs hypline needs: stimulus audio under
 <code>stimuli/</code>, raw events and BOLD under each <code>sub-*/</code>, and fMRIPrep outputs under
 <code>derivatives/fmriprep/</code>.</p>
@@ -1063,10 +1081,10 @@ its inputs from the directory layout — you never pass individual file paths.</
 Whisper speech-recognition model.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--model<span class="w"> </span>tiny
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>Transcribing dyad-103_ses-1_task-conv_run-1_trial-1_audio.wav
-Transcribing dyad-103_ses-1_task-conv_run-1_trial-3_audio.wav
-Transcribing dyad-103_ses-1_task-conv_run-2_trial-1_audio.wav
-Transcribing dyad-103_ses-1_task-conv_run-2_trial-3_audio.wav
+<div class="highlight"><pre><span></span><code>Transcribing dyad-030_ses-1_task-conv_run-1_trial-1_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-1_trial-3_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-2_trial-1_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-2_trial-3_audio.wav
 </code></pre></div>
 <p>(Log lines are abridged here; a first run also prints a one-time model download
 and voice-activity-detection messages.)</p>
@@ -1085,23 +1103,23 @@ audio covers only its R trials (<code>trial-1</code>, <code>trial-3</code>), so 
 those trials and not the others. The run's <code>events.tsv</code> still describes every
 trial — hypline simply transcribes the audio that is present.</p>
 <p>The transcripts land beside the audio, under a new <code>transcript/</code> subdirectory:</p>
-<div class="highlight"><pre><span></span><code>data/stimuli/dyad-103/ses-1/transcript/
-├── dyad-103_ses-1_task-conv_run-1_trial-1_transcript.csv
-├── dyad-103_ses-1_task-conv_run-1_trial-3_transcript.csv
-├── dyad-103_ses-1_task-conv_run-2_trial-1_transcript.csv
-└── dyad-103_ses-1_task-conv_run-2_trial-3_transcript.csv
+<div class="highlight"><pre><span></span><code>data/stimuli/dyad-030/ses-1/transcript/
+├── dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
+├── dyad-030_ses-1_task-conv_run-1_trial-3_transcript.csv
+├── dyad-030_ses-1_task-conv_run-2_trial-1_transcript.csv
+└── dyad-030_ses-1_task-conv_run-2_trial-3_transcript.csv
 </code></pre></div>
 <p>Each CSV is one row per word, with its timing and the partner who spoke it:</p>
 <div class="highlight"><pre><span></span><code>word,start_time,end_time,confidence_score,turn_sub
-Thank,5.714,6.095,0.368,003
-you.,6.195,6.416,0.326,003
+Thank,5.714,6.095,0.368,031
+you.,6.195,6.416,0.326,031
 </code></pre></div>
-<p>These transcripts are <strong>dyad-keyed</strong> (<code>dyad-103</code>), because the conversation
+<p>These transcripts are <strong>dyad-keyed</strong> (<code>dyad-030</code>), because the conversation
 belongs to the pair, not to either partner. See
 <a href="../../concepts/layout/#subject-vs-dyad">Subject vs. dyad</a> for why.</p>
 <div class="admonition success">
 <p class="admonition-title">Check</p>
-<p><code>ls data/stimuli/dyad-103/ses-1/transcript/</code> lists <strong>four</strong> <code>_transcript.csv</code>
+<p><code>ls data/stimuli/dyad-030/ses-1/transcript/</code> lists <strong>four</strong> <code>_transcript.csv</code>
 files, and each opens with the <code>word,start_time,end_time,…</code> header above. No
 transcripts means the audio was not found — confirm you passed <code>--audio-ext
 .wav</code> and that <code>data/</code> is the unpacked dataset root.</p>
@@ -1112,9 +1130,9 @@ for each — a per-word representation that becomes a predictor in the encoding
 model.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>Generating phonemic features for dyad-103_ses-1_task-conv_run-1_trial-1_transcript.csv
+<div class="highlight"><pre><span></span><code>Generating phonemic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
 ...
-Generating phonemic confounds for dyad-103_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet
+Generating phonemic confounds for dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet
 ...
 </code></pre></div>
 <p>By default this step also generates the matching <strong>phonemic confounds</strong> —
@@ -1123,13 +1141,13 @@ get both in one command. (Pass <code>--skip-confoundgen</code> to suppress that,
 <a href="../../reference/confoundgen/"><code>confoundgen phonemic</code></a> on its own later.)</p>
 <p>Two new areas appear, both dyad-keyed:</p>
 <div class="highlight"><pre><span></span><code>data/
-├── features/dyad-103/ses-1/phonemic/
-│   └── dyad-103_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet   # … one per transcript (4)
-└── confounds/dyad-103/ses-1/
+├── features/dyad-030/ses-1/phonemic/
+│   └── dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet   # … one per transcript (4)
+└── confounds/dyad-030/ses-1/
     ├── phonemic-onset/
-    │   └── dyad-103_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-onset.parquet   # … (4)
+    │   └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-onset.parquet   # … (4)
     └── phonemic-rate/
-        └── dyad-103_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-rate.parquet    # … (4)
+        └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-rate.parquet    # … (4)
 </code></pre></div>
 <p>The two confound flavors live in their own subdirectories because they are
 <code>desc</code> <em>variants</em> of the same <code>conf-phonemic</code> kind — see
@@ -1149,8 +1167,8 @@ you select from fMRIPrep's own confounds table.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 </code></pre></div>
-<div class="highlight"><pre><span></span><code>Denoising starting: sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
-Denoising complete: sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+<div class="highlight"><pre><span></span><code>Denoising starting: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+Denoising complete: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
 ...
 </code></pre></div>
 <p>Here <code>--columns</code> names confound columns from fMRIPrep's table: the six head-motion
@@ -1158,14 +1176,14 @@ parameters (<code>trans_*</code>, <code>rot_*</code>) plus <code>cosine</code>, 
 cosine-drift regressor. We did not pass <code>--space</code>, so <code>denoise</code> cleaned the
 default <strong>volumetric</strong> space (<code>MNI152NLin2009cAsym</code>) — the main target for most
 analyses.</p>
-<p>This step is <strong>sub-keyed</strong>: it processes each partner's brain (<code>sub-003</code>,
-<code>sub-103</code>) independently, so all four run × subject combinations are denoised.
+<p>This step is <strong>sub-keyed</strong>: it processes each partner's brain (<code>sub-031</code>,
+<code>sub-032</code>) independently, so all four run × subject combinations are denoised.
 The output goes to hypline's own derivatives tree, leaving fMRIPrep's untouched:</p>
-<div class="highlight"><pre><span></span><code>data/derivatives/hypline/sub-003/ses-1/func/
-├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz
-└── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json
+<div class="highlight"><pre><span></span><code>data/derivatives/hypline/sub-031/ses-1/func/
+├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz
+└── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json
 </code></pre></div>
-<p>The same pair is written for each run and subject — <code>sub-003</code> and <code>sub-103</code>,
+<p>The same pair is written for each run and subject — <code>sub-031</code> and <code>sub-032</code>,
 <code>run-1</code> and <code>run-2</code>.</p>
 <p>Each denoised BOLD carries a <code>.json</code> sidecar recording exactly how it was made —
 the <code>desc-preproc</code> source it came from, the resolved regressor columns, and the
@@ -1178,6 +1196,44 @@ hypline version — so the result is reproducible. See the
 for each subject and run — <strong>eight</strong> files total (2 subjects × 2 runs × 2). If
 the command logged <code>No subjects found</code>, check that <code>derivatives/fmriprep/</code>
 unpacked correctly under <code>data/</code>.</p>
+</div>
+<h2 id="5-optional-add-a-custom-nuisance-regressor">5. (Optional) Add a custom nuisance regressor<a class="headerlink" href="#5-optional-add-a-custom-nuisance-regressor" title="Permanent link">&para;</a></h2>
+<p>So far <code>denoise</code> pulled every regressor from fMRIPrep's confounds table via
+<code>--columns</code>. The other channel is <strong>custom nuisance files</strong> under <code>nuisance/</code> —
+run-level regressors you supply yourself that fMRIPrep never produced (e.g.
+physiological recordings). The example dataset ships a small set so you can try
+this path:</p>
+<div class="highlight"><pre><span></span><code>data/nuisance/sub-031/ses-1/demo/
+└── sub-031_ses-1_task-conv_run-1_nuis-demo_timeseries.tsv   # … one per subject × run (4)
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">These are synthetic</p>
+<p>The shipped <code>nuis-demo</code> files hold <strong>synthetic placeholder regressors</strong>
+(<code>demo_regressor1</code>, <code>demo_regressor2</code>) — not real signals — so the tutorial
+can exercise <code>--custom-sources</code> without needing physiological data. In a real
+analysis you author these yourself; the
+<a href="../../reference/denoise/#options"><code>denoise</code> reference</a> documents the
+<code>nuisance/</code> file format under <code>--custom-sources</code>.</p>
+</div>
+<p>Re-run <code>denoise</code> adding the custom source. <code>--custom-sources</code> names the
+<code>nuisance/&lt;kind&gt;/</code> directory and <code>--custom-columns</code> selects columns from it; the
+two go together:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--custom-sources<span class="w"> </span>demo<span class="w"> </span>--custom-columns<span class="w"> </span>demo_regressor1,demo_regressor2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--force
+</code></pre></div>
+<p>The synthetic regressors are now stacked with the fMRIPrep columns into one
+regressor matrix. We pass <code>--force</code> because <a href="#4-denoise-the-bold">step 4</a> already
+wrote <code>desc-denoised</code> outputs — without it, <code>denoise</code> skips files that exist. The
+<code>.json</code> sidecar now also records <code>custom_sources</code> and <code>custom_columns</code>, so the
+result stays reproducible.</p>
+<div class="admonition success">
+<p class="admonition-title">Check</p>
+<p>The same <strong>eight</strong> <code>desc-denoised</code> files are rewritten, and each sidecar's
+<code>custom_columns</code> lists <code>demo_regressor1</code>, <code>demo_regressor2</code>. A
+<code>Nuisance column name collision across channels</code> error means a custom column
+name collides with a selected fMRIPrep column — rename or drop one.</p>
 </div>
 <h2 id="what-you-have-now">What you have now<a class="headerlink" href="#what-you-have-now" title="Permanent link">&para;</a></h2>
 <p><code>data/</code> now holds both sides an encoding model joins:</p>
@@ -1192,7 +1248,7 @@ unpacked correctly under <code>data/</code>.</p>
 <tbody>
 <tr>
 <td>Predictors</td>
-<td><code>features/dyad-103/…/phonemic/</code></td>
+<td><code>features/dyad-030/…/phonemic/</code></td>
 <td>steps 2–3</td>
 </tr>
 <tr>

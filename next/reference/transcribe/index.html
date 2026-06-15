@@ -1014,8 +1014,8 @@ containers, …) — pass its extension to <code>--audio-ext</code>.</p>
 </div>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <p>Stimulus audio files under the <code>stimuli/</code> area, with the <code>_audio</code> suffix:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-103/ses-1/audio/
-└── dyad-103_ses-1_task-conv_run-1_audio.wav
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-030/ses-1/audio/
+└── dyad-030_ses-1_task-conv_run-1_audio.wav
 </code></pre></div>
 <p>See <a href="../../concepts/layout/">The hypline dataset layout</a> for how files are
 named and discovered.</p>
@@ -1076,17 +1076,17 @@ The first run downloads the chosen model to <code>--model-dir</code> (default
 <p>Transcribe every dyad's WAV audio with the default model:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav
 </code></pre></div>
-<p>Transcribe only dyad 103 on a GPU (pass more as a comma-separated list):</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">103</span><span class="w"> </span>--device<span class="w"> </span>cuda
+<p>Transcribe only dyad 030 on a GPU (pass more as a comma-separated list):</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--dyad-ids<span class="w"> </span><span class="m">030</span><span class="w"> </span>--device<span class="w"> </span>cuda
 </code></pre></div>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
 <p>A word-level transcript per audio file, with the <code>_transcript</code> suffix, written
 beside the audio under <code>stimuli/</code>:</p>
-<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-103/ses-1/
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-030/ses-1/
 ├── audio/
-│   └── dyad-103_ses-1_task-conv_run-1_audio.wav
+│   └── dyad-030_ses-1_task-conv_run-1_audio.wav
 └── transcript/
-    └── dyad-103_ses-1_task-conv_run-1_transcript.csv
+    └── dyad-030_ses-1_task-conv_run-1_transcript.csv
 </code></pre></div>
 <p>Each transcript row is one word with its onset time. These onsets are what
 <code>featuregen phonemic</code> reads to place features on the timeline.</p>

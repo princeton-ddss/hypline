@@ -1194,9 +1194,9 @@ usually already have a file in hand. Both enforce the <a href="../../concepts/la
 layout</a> and the file formats; a malformed DataFrame or
 path raises rather than writing something the CLI can't later consume.</p>
 <h2 id="plugging-in-a-custom-feature">Plugging in a custom feature<a class="headerlink" href="#plugging-in-a-custom-feature" title="Permanent link">&para;</a></h2>
-<p>The CLI only generates <code>feat-phonemic</code> features. To drive an encoding model on
-a feature hypline doesn't compute — word embeddings, prosody, anything you can
-align to the stimulus — build the DataFrame yourself and <code>save_feature</code> it into
+<p>The CLI generates <code>feat-phonemic</code> and <code>feat-semantic</code> features. To drive an
+encoding model on a feature hypline doesn't compute — prosody, anything else you
+can align to the stimulus — build the DataFrame yourself and <code>save_feature</code> it into
 the dataset. From then on it is a first-class feature: it sits under
 <code>features/</code>, carries the right entities, and any downstream step that reads
 features by name will find it.</p>
@@ -1223,7 +1223,7 @@ the stimulus) and <code>feature</code> (one equal-width vector per row). Match t
     <span class="n">run</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>This writes <code>data/features/dyad-103/ses-1/embed/dyad-103_ses-1_task-conv_run-1_feat-embed.parquet</code>.
+<p>This writes <code>data/features/dyad-030/ses-1/embed/dyad-030_ses-1_task-conv_run-1_feat-embed.parquet</code>.
 Pass <code>desc="..."</code> to tag a variant into its own
 <a href="../../concepts/layout/#variants-with-desc"><code>embed-&lt;desc&gt;/</code> subdirectory</a>, and
 <code>metadata={...}</code> to stash extra keys in the Parquet footer.</p>
