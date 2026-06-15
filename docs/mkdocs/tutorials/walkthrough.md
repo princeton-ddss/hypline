@@ -209,6 +209,52 @@ hypline version — so the result is reproducible. See the
     the command logged `No subjects found`, check that `derivatives/fmriprep/`
     unpacked correctly under `data/`.
 
+## 5. (Optional) Add a custom nuisance regressor
+
+So far `denoise` pulled every regressor from fMRIPrep's confounds table via
+`--columns`. The other channel is **custom nuisance files** under `nuisance/` —
+run-level regressors you supply yourself that fMRIPrep never produced (e.g.
+physiological recordings). The example dataset ships a small set so you can try
+this path:
+
+```text
+data/nuisance/sub-031/ses-1/demo/
+└── sub-031_ses-1_task-conv_run-1_nuis-demo_timeseries.tsv   # … one per subject × run (4)
+```
+
+!!! info "These are synthetic"
+
+    The shipped `nuis-demo` files hold **synthetic placeholder regressors**
+    (`demo_regressor1`, `demo_regressor2`) — not real signals — so the tutorial
+    can exercise `--custom-sources` without needing physiological data. In a real
+    analysis you author these yourself; the
+    [`denoise` reference](../reference/denoise.md#options) documents the
+    `nuisance/` file format under `--custom-sources`.
+
+Re-run `denoise` adding the custom source. `--custom-sources` names the
+`nuisance/<kind>/` directory and `--custom-columns` selects columns from it; the
+two go together:
+
+```bash
+hypline denoise data/ \
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
+  --custom-sources demo --custom-columns demo_regressor1,demo_regressor2 \
+  --force
+```
+
+The synthetic regressors are now stacked with the fMRIPrep columns into one
+regressor matrix. We pass `--force` because [step 4](#4-denoise-the-bold) already
+wrote `desc-denoised` outputs — without it, `denoise` skips files that exist. The
+`.json` sidecar now also records `custom_sources` and `custom_columns`, so the
+result stays reproducible.
+
+!!! success "Check"
+
+    The same **eight** `desc-denoised` files are rewritten, and each sidecar's
+    `custom_columns` lists `demo_regressor1`, `demo_regressor2`. A
+    `Nuisance column name collision across channels` error means a custom column
+    name collides with a selected fMRIPrep column — rename or drop one.
+
 ## What you have now
 
 `data/` now holds both sides an encoding model joins:
