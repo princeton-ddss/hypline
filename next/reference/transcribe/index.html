@@ -1072,6 +1072,14 @@ named and discovered.</p>
 The first run downloads the chosen model to <code>--model-dir</code> (default
 <code>~/.cache/hypline/whisperx</code>); later runs reuse it.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Relocating the cache</p>
+<p>The <code>~/.cache/hypline</code> root is shared by every command that downloads model
+weights (<code>transcribe</code>, <code>featuregen semantic</code>, <code>featuregen spectral</code>). Set
+<code>HYPLINE_CACHE</code> to move that root — e.g. <code>HYPLINE_CACHE=/scratch/$USER/hypline</code>
+on a cluster with a small home quota. An explicit <code>--model-dir</code> still wins
+over both.</p>
+</div>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
 <p>Transcribe every dyad's WAV audio with the default model:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav

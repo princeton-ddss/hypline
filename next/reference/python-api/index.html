@@ -1194,7 +1194,8 @@ usually already have a file in hand. Both enforce the <a href="../../concepts/la
 layout</a> and the file formats; a malformed DataFrame or
 path raises rather than writing something the CLI can't later consume.</p>
 <h2 id="plugging-in-a-custom-feature">Plugging in a custom feature<a class="headerlink" href="#plugging-in-a-custom-feature" title="Permanent link">&para;</a></h2>
-<p>The CLI generates <code>feat-phonemic</code> and <code>feat-semantic</code> features. To drive an
+<p>The CLI generates <code>feat-phonemic</code>, <code>feat-semantic</code>, and <code>feat-spectral</code>
+features. To drive an
 encoding model on a feature hypline doesn't compute — prosody, anything else you
 can align to the stimulus — build the DataFrame yourself and <code>save_feature</code> it into
 the dataset. From then on it is a first-class feature: it sits under

@@ -881,6 +881,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#featuregen-spectral" class="md-nav__link">
+    <span class="md-ellipsis">
+      featuregen spectral
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="featuregen spectral">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1094,6 +1145,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#featuregen-spectral" class="md-nav__link">
+    <span class="md-ellipsis">
+      featuregen spectral
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="featuregen spectral">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1134,6 +1236,10 @@ feature kind.</p>
 <tr>
 <td><code>semantic</code></td>
 <td>contextual word embeddings from a Hugging Face causal LM</td>
+</tr>
+<tr>
+<td><code>spectral</code></td>
+<td>Whisper log-Mel spectrogram from stimulus audio, aligned to the BOLD TR grid</td>
 </tr>
 </tbody>
 </table>
@@ -1344,6 +1450,97 @@ hypline<span class="w"> </span>featuregen<span class="w"> </span>semantic<span c
 </code></pre></div>
 <p><code>transformers</code> reads <code>HF_TOKEN</code> automatically — no extra flag. Access must be
 granted to the same account that issued the token, or the download fails.</p>
+</div>
+<hr />
+<h2 id="featuregen-spectral"><code>featuregen spectral</code><a class="headerlink" href="#featuregen-spectral" title="Permanent link">&para;</a></h2>
+<p>Derive a <strong>log-Mel spectrogram</strong> from the stimulus audio using a
+<a href="https://github.com/openai/whisper">Whisper</a> feature extractor — the same
+front-end that turns audio into the input Whisper's encoder sees. Unlike
+<code>phonemic</code> and <code>semantic</code>, this reads audio directly (no transcript needed) and
+its output is <strong>pre-aligned to the run's BOLD TR grid</strong>: one log-Mel vector per
+TR, ready to feed an encoding model without a downstream binning step.</p>
+<h3 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h3>
+<p>Stimulus audio under <code>stimuli/</code> — the same files <a href="../transcribe/"><code>transcribe</code></a>
+reads, selected by <code>--audio-ext</code>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/stimuli/dyad-030/ses-1/audio/
+└── dyad-030_ses-1_task-conv_run-1_audio.wav
+</code></pre></div>
+<p>Aligning to the TR grid needs the run's BOLD timing (TR and number of frames).
+The dyad's partners share one simultaneous scan, so any partner's BOLD supplies
+it. A dyad with no resolvable BOLD raises.</p>
+<h3 id="options_2">Options<a class="headerlink" href="#options_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--audio-ext</code></td>
+<td>Extension of the audio files, e.g. <code>.wav</code> <strong>(required)</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--model</code></td>
+<td>Whisper model whose extractor produces the spectrogram: <code>tiny</code>, <code>base</code>, <code>small</code>, <code>medium</code>, <code>large-v2</code>, <code>large-v3</code></td>
+<td><code>tiny</code></td>
+</tr>
+<tr>
+<td><code>--model-dir</code></td>
+<td>Cache dir for downloaded weights</td>
+<td><code>~/.cache/hypline/huggingface</code></td>
+</tr>
+<tr>
+<td><code>--desc</code></td>
+<td>Tag outputs as a named variant (alphanumeric), e.g. <code>--desc v2</code> → <code>desc-v2</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--dyad-ids</code></td>
+<td>Comma-separated dyad IDs to process; omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">No <code>--device</code>, no confounds</p>
+<p>The Whisper feature extractor is a CPU Mel transform with no forward pass, so
+there is no <code>--device</code> option. And unlike <code>phonemic</code> and <code>semantic</code>, spectral
+has no chained <code>confoundgen</code> step — it writes features only.</p>
+</div>
+<h3 id="example_2">Example<a class="headerlink" href="#example_2" title="Permanent link">&para;</a></h3>
+<p>Generate spectral features for all dyads with the default <code>tiny</code> extractor:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>spectral<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav
+</code></pre></div>
+<h3 id="outputs_2">Outputs<a class="headerlink" href="#outputs_2" title="Permanent link">&para;</a></h3>
+<p>A spectral feature file per stimulus, tagged <code>feat-spectral</code>, under <code>features/</code>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-030/ses-1/spectral/
+└── dyad-030_ses-1_task-conv_run-1_feat-spectral.parquet
+</code></pre></div>
+<p>A <code>--desc</code> label lands as <code>desc-&lt;label&gt;</code> in its own subdirectory
+(<code>spectral-&lt;label&gt;/</code>). See
+<a href="../../concepts/layout/#variants-with-desc">The hypline dataset layout</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Feature file format</p>
+<p>Unlike the per-word/per-phoneme feature files, spectral rows are
+<strong>per-TR</strong>: each row is one TR with its <code>start_time</code> (seconds from the start
+of the stimulus) and a log-Mel <code>feature</code> vector (length = the model's number
+of Mel bands). The Parquet footer records the <code>model</code>, <code>sampling_rate</code>,
+<code>hop_length</code>, <code>n_mels</code>, <code>chunk_length</code>, <code>repetition_time</code>, and
+<code>downsample_method</code>.</p>
 </div>
 
 
