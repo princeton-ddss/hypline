@@ -8,6 +8,7 @@ from loguru import logger
 from pydantic import BaseModel, field_validator
 
 from hypline.bids import BIDS_ENTITY_VALUE_RE, BIDSPath, normalize_bids_filters
+from hypline.cache import hypline_cache_dir
 from hypline.enums import Device
 from hypline.io import skip_existing, write_feature
 from hypline.layout import BIDSLayout
@@ -51,10 +52,8 @@ class HFModelConfig(BaseModel):
     @classmethod
     def _default_model_dir(cls, v: Path | None) -> Path:
         if v is None:
-            v = Path.home() / ".cache" / "hypline" / "huggingface"
-            v.mkdir(parents=True, exist_ok=True)
-            return v
-        elif not v.is_dir():
+            return hypline_cache_dir("huggingface")
+        if not v.is_dir():
             raise ValueError(f"model_dir does not exist: {v}")
         return v
 

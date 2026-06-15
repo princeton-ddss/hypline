@@ -12,6 +12,7 @@ hypline featuregen <kind> <dataset-root> [OPTIONS]
 | ---------- | ---------------------------------------------------- |
 | `phonemic` | phoneme-level articulatory features from transcripts |
 | `semantic` | contextual word embeddings from a Hugging Face causal LM |
+| `spectral` | Whisper log-Mel spectrogram from stimulus audio, aligned to the BOLD TR grid |
 
 ---
 
@@ -182,3 +183,76 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
     `transformers` reads `HF_TOKEN` automatically — no extra flag. Access must be
     granted to the same account that issued the token, or the download fails.
+
+---
+
+## `featuregen spectral`
+
+Derive a **log-Mel spectrogram** from the stimulus audio using a
+[Whisper](https://github.com/openai/whisper) feature extractor — the same
+front-end that turns audio into the input Whisper's encoder sees. Unlike
+`phonemic` and `semantic`, this reads audio directly (no transcript needed) and
+its output is **pre-aligned to the run's BOLD TR grid**: one log-Mel vector per
+TR, ready to feed an encoding model without a downstream binning step.
+
+### Inputs
+
+Stimulus audio under `stimuli/` — the same files [`transcribe`](transcribe.md)
+reads, selected by `--audio-ext`:
+
+```
+<dataset-root>/stimuli/dyad-030/ses-1/audio/
+└── dyad-030_ses-1_task-conv_run-1_audio.wav
+```
+
+Aligning to the TR grid needs the run's BOLD timing (TR and number of frames).
+The dyad's partners share one simultaneous scan, so any partner's BOLD supplies
+it. A dyad with no resolvable BOLD raises.
+
+### Options
+
+| Option           | Description                                                       | Default |
+| ---------------- | ---------------------------------------------------------------- | ------- |
+| `--audio-ext`    | Extension of the audio files, e.g. `.wav` **(required)**         | —       |
+| `--model`        | Whisper model whose extractor produces the spectrogram: `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3` | `tiny` |
+| `--model-dir`    | Cache dir for downloaded weights                                 | `~/.cache/hypline/huggingface` |
+| `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
+| `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
+| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--force`        | Overwrite existing outputs (default skips them)                  | off     |
+
+!!! note "No `--device`, no confounds"
+
+    The Whisper feature extractor is a CPU Mel transform with no forward pass, so
+    there is no `--device` option. And unlike `phonemic` and `semantic`, spectral
+    has no chained `confoundgen` step — it writes features only.
+
+### Example
+
+Generate spectral features for all dyads with the default `tiny` extractor:
+
+```bash
+hypline featuregen spectral data/ --audio-ext .wav
+```
+
+### Outputs
+
+A spectral feature file per stimulus, tagged `feat-spectral`, under `features/`:
+
+```
+<dataset-root>/features/dyad-030/ses-1/spectral/
+└── dyad-030_ses-1_task-conv_run-1_feat-spectral.parquet
+```
+
+A `--desc` label lands as `desc-<label>` in its own subdirectory
+(`spectral-<label>/`). See
+[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+
+!!! note "Feature file format"
+
+    Unlike the per-word/per-phoneme feature files, spectral rows are
+    **per-TR**: each row is one TR with its `start_time` (seconds from the start
+    of the stimulus) and a log-Mel `feature` vector (length = the model's number
+    of Mel bands). The Parquet footer records the `model`, `sampling_rate`,
+    `hop_length`, `n_mels`, `chunk_length`, `repetition_time`, and
+    `downsample_method`.

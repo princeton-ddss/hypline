@@ -112,7 +112,7 @@ what kind of derivative it is:
 
 | Entity        | Area          | Example                         |
 | ------------- | ------------- | ------------------------------- |
-| `feat-<kind>` | `features/`   | `feat-phonemic`, `feat-semantic` |
+| `feat-<kind>` | `features/`   | `feat-phonemic`, `feat-semantic`, `feat-spectral` |
 | `conf-<kind>` | `confounds/`  | `conf-phonemic`, `conf-semantic` |
 | `nuis-<kind>` | `nuisance/`   | `nuis-physio`                   |
 

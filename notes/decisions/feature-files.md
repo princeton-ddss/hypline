@@ -41,6 +41,20 @@ word's `start_time` — see [../modules/phonemic.md](../modules/phonemic.md)).
 TR alignment is the consumer's responsibility: pipelines that need TR-level X
 call `downsample`, which bins on `start_time`.
 
+**Producers may pre-align when binning is consumer-invariant.** The default
+above defers alignment because sparse, irregular event features (phonemic,
+semantic) let each consumer bin its own way. A feature that is dense, regular,
+and event-free has no such freedom — every consumer would collapse it to the
+TR grid identically — so its producer may bake TR alignment into the output
+instead: rows at TR cadence (`start_time = i * TR`), not the source's native
+rate. Storing native frames would only multiply file size, and a consumer's
+re-downsample of an already-TR grid is a `downsample` pass-through, so the
+pre-alignment is lossless.
+
+The spectral feature ([../modules/spectral.md](../modules/spectral.md)) is the
+first to qualify: a dense ~10-ms log-Mel spectrogram with no event structure,
+emitted pre-aligned at TR cadence.
+
 ## Missing-unit rows
 
 When a generator's upstream source yields a timestamped item but no feature

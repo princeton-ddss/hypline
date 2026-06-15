@@ -45,6 +45,14 @@ named and discovered.
     The first run downloads the chosen model to `--model-dir` (default
     `~/.cache/hypline/whisperx`); later runs reuse it.
 
+!!! note "Relocating the cache"
+
+    The `~/.cache/hypline` root is shared by every command that downloads model
+    weights (`transcribe`, `featuregen semantic`, `featuregen spectral`). Set
+    `HYPLINE_CACHE` to move that root — e.g. `HYPLINE_CACHE=/scratch/$USER/hypline`
+    on a cluster with a small home quota. An explicit `--model-dir` still wins
+    over both.
+
 ## Example
 
 Transcribe every dyad's WAV audio with the default model:

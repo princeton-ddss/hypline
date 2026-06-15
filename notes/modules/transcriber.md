@@ -47,6 +47,15 @@ all turn logic to `hypline.events` (`load_turns`, `stamp_turns`); see
 [events.md](events.md). A non-zero count of timed words landing in no turn
 window is logged as a possible timing/annotation mismatch rather than raised.
 
+## `WhisperModel` enum is shared with spectral featuregen
+
+The `WhisperModel` enum (`hypline.enums`) is used by both transcription and the
+spectral feature ([spectral.md](spectral.md)). The two are intentionally coupled
+on the checkpoint-name set but not on config: transcribe feeds the name to
+whisperX's full ASR model and defaults `large-v2`; spectral feeds it to the
+log-Mel `AutoFeatureExtractor` (front-end only) and defaults `tiny`. Each keeps
+its own config type. Adding or removing a member affects both call sites.
+
 ## Caveat
 
 If a future change routes audio through pyannote by file path (e.g.

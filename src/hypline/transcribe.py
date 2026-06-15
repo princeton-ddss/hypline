@@ -5,6 +5,7 @@ from loguru import logger
 from pydantic import BaseModel, field_validator
 
 from hypline.bids import normalize_bids_filters, validate_extension
+from hypline.cache import hypline_cache_dir
 from hypline.enums import Device, WhisperModel
 from hypline.events import frame_onset, load_turns, stamp_turns
 from hypline.io import skip_existing
@@ -21,10 +22,8 @@ class WhisperConfig(BaseModel):
     @classmethod
     def _default_model_dir(cls, v: Path | None) -> Path:
         if v is None:
-            v = Path.home() / ".cache" / "hypline" / "whisperx"
-            v.mkdir(parents=True, exist_ok=True)
-            return v
-        elif not v.is_dir():
+            return hypline_cache_dir("whisperx")
+        if not v.is_dir():
             raise ValueError(f"model_dir does not exist: {v}")
         return v
 
