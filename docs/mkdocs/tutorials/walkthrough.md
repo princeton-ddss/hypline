@@ -27,7 +27,7 @@ unzip hypline-tutorial-data.zip -d data/
 ```
 
 The dataset is a [BIDS](https://bids.neuroimaging.io/)-style tree for one dyad —
-two partners (`sub-003` and `sub-103`) who held a conversation while both were
+two partners (`sub-031` and `sub-032`) who held a conversation while both were
 scanned. It already contains the inputs hypline needs: stimulus audio under
 `stimuli/`, raw events and BOLD under each `sub-*/`, and fMRIPrep outputs under
 `derivatives/fmriprep/`.
@@ -59,10 +59,10 @@ hypline transcribe data/ --audio-ext .wav --model tiny
 ```
 
 ```text
-Transcribing dyad-103_ses-1_task-conv_run-1_trial-1_audio.wav
-Transcribing dyad-103_ses-1_task-conv_run-1_trial-3_audio.wav
-Transcribing dyad-103_ses-1_task-conv_run-2_trial-1_audio.wav
-Transcribing dyad-103_ses-1_task-conv_run-2_trial-3_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-1_trial-1_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-1_trial-3_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-2_trial-1_audio.wav
+Transcribing dyad-030_ses-1_task-conv_run-2_trial-3_audio.wav
 ```
 
 (Log lines are abridged here; a first run also prints a one-time model download
@@ -86,28 +86,28 @@ trial — hypline simply transcribes the audio that is present.
 The transcripts land beside the audio, under a new `transcript/` subdirectory:
 
 ```text
-data/stimuli/dyad-103/ses-1/transcript/
-├── dyad-103_ses-1_task-conv_run-1_trial-1_transcript.csv
-├── dyad-103_ses-1_task-conv_run-1_trial-3_transcript.csv
-├── dyad-103_ses-1_task-conv_run-2_trial-1_transcript.csv
-└── dyad-103_ses-1_task-conv_run-2_trial-3_transcript.csv
+data/stimuli/dyad-030/ses-1/transcript/
+├── dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
+├── dyad-030_ses-1_task-conv_run-1_trial-3_transcript.csv
+├── dyad-030_ses-1_task-conv_run-2_trial-1_transcript.csv
+└── dyad-030_ses-1_task-conv_run-2_trial-3_transcript.csv
 ```
 
 Each CSV is one row per word, with its timing and the partner who spoke it:
 
 ```csv
 word,start_time,end_time,confidence_score,turn_sub
-Thank,5.714,6.095,0.368,003
-you.,6.195,6.416,0.326,003
+Thank,5.714,6.095,0.368,031
+you.,6.195,6.416,0.326,031
 ```
 
-These transcripts are **dyad-keyed** (`dyad-103`), because the conversation
+These transcripts are **dyad-keyed** (`dyad-030`), because the conversation
 belongs to the pair, not to either partner. See
 [Subject vs. dyad](../concepts/layout.md#subject-vs-dyad) for why.
 
 !!! success "Check"
 
-    `ls data/stimuli/dyad-103/ses-1/transcript/` lists **four** `_transcript.csv`
+    `ls data/stimuli/dyad-030/ses-1/transcript/` lists **four** `_transcript.csv`
     files, and each opens with the `word,start_time,end_time,…` header above. No
     transcripts means the audio was not found — confirm you passed `--audio-ext
     .wav` and that `data/` is the unpacked dataset root.
@@ -123,9 +123,9 @@ hypline featuregen phonemic data/
 ```
 
 ```text
-Generating phonemic features for dyad-103_ses-1_task-conv_run-1_trial-1_transcript.csv
+Generating phonemic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
 ...
-Generating phonemic confounds for dyad-103_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet
+Generating phonemic confounds for dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet
 ...
 ```
 
@@ -138,13 +138,13 @@ Two new areas appear, both dyad-keyed:
 
 ```text
 data/
-├── features/dyad-103/ses-1/phonemic/
-│   └── dyad-103_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet   # … one per transcript (4)
-└── confounds/dyad-103/ses-1/
+├── features/dyad-030/ses-1/phonemic/
+│   └── dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet   # … one per transcript (4)
+└── confounds/dyad-030/ses-1/
     ├── phonemic-onset/
-    │   └── dyad-103_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-onset.parquet   # … (4)
+    │   └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-onset.parquet   # … (4)
     └── phonemic-rate/
-        └── dyad-103_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-rate.parquet    # … (4)
+        └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-rate.parquet    # … (4)
 ```
 
 The two confound flavors live in their own subdirectories because they are
@@ -172,8 +172,8 @@ hypline denoise data/ \
 ```
 
 ```text
-Denoising starting: sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
-Denoising complete: sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+Denoising starting: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+Denoising complete: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
 ...
 ```
 
@@ -183,17 +183,17 @@ cosine-drift regressor. We did not pass `--space`, so `denoise` cleaned the
 default **volumetric** space (`MNI152NLin2009cAsym`) — the main target for most
 analyses.
 
-This step is **sub-keyed**: it processes each partner's brain (`sub-003`,
-`sub-103`) independently, so all four run × subject combinations are denoised.
+This step is **sub-keyed**: it processes each partner's brain (`sub-031`,
+`sub-032`) independently, so all four run × subject combinations are denoised.
 The output goes to hypline's own derivatives tree, leaving fMRIPrep's untouched:
 
 ```text
-data/derivatives/hypline/sub-003/ses-1/func/
-├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz
-└── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json
+data/derivatives/hypline/sub-031/ses-1/func/
+├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz
+└── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json
 ```
 
-The same pair is written for each run and subject — `sub-003` and `sub-103`,
+The same pair is written for each run and subject — `sub-031` and `sub-032`,
 `run-1` and `run-2`.
 
 Each denoised BOLD carries a `.json` sidecar recording exactly how it was made —
@@ -215,7 +215,7 @@ hypline version — so the result is reproducible. See the
 
 | Side       | Where                              | From          |
 | ---------- | ---------------------------------- | ------------- |
-| Predictors | `features/dyad-103/…/phonemic/`    | steps 2–3     |
+| Predictors | `features/dyad-030/…/phonemic/`    | steps 2–3     |
 | Target     | `derivatives/hypline/sub-*/…/func/`| step 4        |
 
 Each command read only what the previous steps wrote — no file paths, just the

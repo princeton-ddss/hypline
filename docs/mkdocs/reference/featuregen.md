@@ -27,8 +27,8 @@ manner, voicing, …).
 Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/dyad-103/ses-1/transcript/
-└── dyad-103_ses-1_task-conv_run-1_transcript.csv
+<dataset-root>/stimuli/dyad-030/ses-1/transcript/
+└── dyad-030_ses-1_task-conv_run-1_transcript.csv
 ```
 
 ### Options
@@ -73,13 +73,13 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 ```
 <dataset-root>/
-├── features/dyad-103/ses-1/phonemic/
-│   └── dyad-103_ses-1_task-conv_run-1_feat-phonemic.parquet
-└── confounds/dyad-103/ses-1/                            # from the chained confoundgen
+├── features/dyad-030/ses-1/phonemic/
+│   └── dyad-030_ses-1_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── dyad-103_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
@@ -154,13 +154,13 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 ```
 <dataset-root>/
-├── features/dyad-103/ses-1/semantic/
-│   └── dyad-103_ses-1_task-conv_run-1_feat-semantic.parquet
-└── confounds/dyad-103/ses-1/                            # from the chained confoundgen
+├── features/dyad-030/ses-1/semantic/
+│   └── dyad-030_ses-1_task-conv_run-1_feat-semantic.parquet
+└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
     ├── semantic-onset/
-    │   └── dyad-103_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
+    │   └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
     └── semantic-rate/
-        └── dyad-103_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
+        └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
 ```
 
 !!! note "Causal LMs only"

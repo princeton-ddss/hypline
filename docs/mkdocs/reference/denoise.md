@@ -32,12 +32,12 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 
 ```
 <dataset-root>/
-├── derivatives/fmriprep/sub-003/ses-1/func/
-│   ├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
-│   ├── sub-003_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
-│   └── sub-003_ses-1_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
-└── nuisance/sub-003/ses-1/physio-v1/                                  # optional, user-supplied
-    └── sub-003_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
+├── derivatives/fmriprep/sub-031/ses-1/func/
+│   ├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+│   ├── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
+│   └── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
+└── nuisance/sub-031/ses-1/physio-v1/                                  # optional, user-supplied
+    └── sub-031_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
 ```
 
 ## Options
@@ -83,8 +83,8 @@ from the horizontal concat of all named sources. The two must be given together.
     Custom nuisance files are yours to create — hypline never writes them. Each
     must be a **tab-separated `.tsv`** with the `_timeseries` suffix and a
     `nuis-<kind>` entity, e.g.
-    `sub-003_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv`, placed in
-    `nuisance/sub-003/ses-1/<kind>[-<desc>]/`. It is a **wide** table: one named column
+    `sub-031_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv`, placed in
+    `nuisance/sub-031/ses-1/<kind>[-<desc>]/`. It is a **wide** table: one named column
     per regressor, one row per TR (row count must match the BOLD run). Every
     value must be **finite** — unlike the fMRIPrep table, there is no `n/a`
     convention, so a blank or non-numeric cell raises rather than being filled.
@@ -118,12 +118,12 @@ hypline denoise data/ \
   --custom-sources physio-v1 --custom-columns resp,cardiac
 ```
 
-Clean only run 1 of subjects 003 and 103:
+Clean only run 1 of subjects 031 and 032:
 
 ```bash
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
-  --sub-ids 003,103 \
+  --sub-ids 031,032 \
   --data-filters run-1
 ```
 
@@ -135,9 +135,9 @@ identity — only the `desc` entity (`desc-denoised`) and the root differ from t
 source:
 
 ```
-<dataset-root>/derivatives/hypline/sub-003/ses-1/func/
-├── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # output
-└── sub-003_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
+<dataset-root>/derivatives/hypline/sub-031/ses-1/func/
+├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # output
+└── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 ```
 
 The output keeps the input's dimensions — only the signal values change. Each run

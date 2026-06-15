@@ -60,7 +60,7 @@ path = save_feature(
 )
 ```
 
-This writes `data/features/dyad-103/ses-1/embed/dyad-103_ses-1_task-conv_run-1_feat-embed.parquet`.
+This writes `data/features/dyad-030/ses-1/embed/dyad-030_ses-1_task-conv_run-1_feat-embed.parquet`.
 Pass `desc="..."` to tag a variant into its own
 [`embed-<desc>/` subdirectory](../concepts/layout.md#variants-with-desc), and
 `metadata={...}` to stash extra keys in the Parquet footer.
