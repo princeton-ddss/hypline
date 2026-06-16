@@ -932,6 +932,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#featuregen-syntactic" class="md-nav__link">
+    <span class="md-ellipsis">
+      featuregen syntactic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="featuregen syntactic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1196,6 +1247,57 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#featuregen-syntactic" class="md-nav__link">
+    <span class="md-ellipsis">
+      featuregen syntactic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="featuregen syntactic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#outputs_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1240,6 +1342,10 @@ feature kind.</p>
 <tr>
 <td><code>spectral</code></td>
 <td>Whisper log-Mel spectrogram from stimulus audio, aligned to the BOLD TR grid</td>
+</tr>
+<tr>
+<td><code>syntactic</code></td>
+<td>per-token POS, dependency, and stopword features from transcripts</td>
 </tr>
 </tbody>
 </table>
@@ -1331,7 +1437,9 @@ confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>
 <div class="admonition note">
 <p class="admonition-title">Feature file format</p>
 <p>Feature files are Parquet tables. Each row is one phoneme with a
-<code>start_time</code> (seconds from the start of the stimulus) and a <code>feature</code> vector.
+<code>start_time</code> (seconds from the start of the stimulus), a <code>turn_sub</code> label
+(forward-filled from the transcript; carried through unchanged), and a
+<code>feature</code> vector.
 Timing is the phoneme's word onset — hypline does not yet have sub-word
 audio alignment, so phonemes within a word share that word's onset.</p>
 </div>
@@ -1419,7 +1527,8 @@ for features without confounds.</p>
 </code></pre></div>
 <h3 id="outputs_1">Outputs<a class="headerlink" href="#outputs_1" title="Permanent link">&para;</a></h3>
 <p>A semantic feature file per transcript, tagged <code>feat-semantic</code>, under
-<code>features/</code>. Each row carries <code>start_time</code>, <code>word</code>, <code>token</code>, the <code>feature</code>
+<code>features/</code>. Each row carries <code>start_time</code>, <code>turn_sub</code> (forward-filled from the
+transcript; carried through unchanged), <code>word</code>, <code>token</code>, the <code>feature</code>
 vector, and — for any non-zero layer — per-token LM metrics (<code>rank</code>,
 <code>true_prob</code>, <code>entropy</code>). The Parquet footer records <code>hf_model</code>, <code>hf_tokenizer</code>
 (equal to <code>hf_model</code> unless overridden via the <a href="../python-api/">Python API</a>), and
@@ -1541,6 +1650,86 @@ of the stimulus) and a log-Mel <code>feature</code> vector (length = the model's
 of Mel bands). The Parquet footer records the <code>model</code>, <code>sampling_rate</code>,
 <code>hop_length</code>, <code>n_mels</code>, <code>chunk_length</code>, <code>repetition_time</code>, and
 <code>downsample_method</code>.</p>
+</div>
+<hr />
+<h2 id="featuregen-syntactic"><code>featuregen syntactic</code><a class="headerlink" href="#featuregen-syntactic" title="Permanent link">&para;</a></h2>
+<p>Derive <strong>per-token syntactic-function features</strong> from word-level transcripts with
+<a href="https://spacy.io/">spaCy</a>. Each token's feature is a fixed-width one-hot of its
+POS tag concatenated with its dependency relation, plus a final 0/1 stopword
+dimension. The model is fixed (<code>en_core_web_lg</code>) and auto-downloaded on first use
+— there is no <code>--model</code> option.</p>
+<p>Words are tokenized and tagged <strong>one conversational turn at a time</strong>: the
+dependency parser needs coherent utterances, so words are grouped by <code>turn_sub</code>
+(which subject held the floor) and each maximal run is parsed as one document.
+A word that spaCy splits into several tokens (<code>"don't"</code> → <code>do</code> + <code>n't</code>) yields
+one row per piece, each inheriting the source word's <code>start_time</code> by char-span
+overlap.</p>
+<h3 id="inputs_3">Inputs<a class="headerlink" href="#inputs_3" title="Permanent link">&para;</a></h3>
+<p>The same transcripts as <a href="#featuregen-phonemic"><code>featuregen phonemic</code></a>, under
+<code>stimuli/</code>. Untimed words (null <code>start_time</code>) are retained as parse context — a
+dropped word would fragment its turn's sentence and mis-tag neighbors — but carry
+their null timing into the output. Null-<code>word</code> rows are dropped and warned.</p>
+<h3 id="options_3">Options<a class="headerlink" href="#options_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--desc</code></td>
+<td>Tag outputs as a named variant (alphanumeric), e.g. <code>--desc v2</code> → <code>desc-v2</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--dyad-ids</code></td>
+<td>Comma-separated dyad IDs to process; omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Narrow to specific runs/conditions — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Fixed model, no <code>--device</code>, no confounds</p>
+<p>The spaCy model is fixed (<code>en_core_web_lg</code>), so there is no <code>--model</code> option;
+the parse runs on CPU, so there is no <code>--device</code> either. And unlike <code>phonemic</code>
+and <code>semantic</code>, syntactic has no chained <code>confoundgen</code> step — it writes
+features only.</p>
+</div>
+<h3 id="example_3">Example<a class="headerlink" href="#example_3" title="Permanent link">&para;</a></h3>
+<p>Generate syntactic features for all dyads:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>syntactic<span class="w"> </span>data/
+</code></pre></div>
+<h3 id="outputs_3">Outputs<a class="headerlink" href="#outputs_3" title="Permanent link">&para;</a></h3>
+<p>A syntactic feature file per transcript, tagged <code>feat-syntactic</code>, under
+<code>features/</code>:</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/features/dyad-030/ses-1/syntactic/
+└── dyad-030_ses-1_task-conv_run-1_feat-syntactic.parquet
+</code></pre></div>
+<p>A <code>--desc</code> label lands as <code>desc-&lt;label&gt;</code> in its own subdirectory
+(<code>syntactic-&lt;label&gt;/</code>). See
+<a href="../../concepts/layout/#variants-with-desc">The hypline dataset layout</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Feature file format</p>
+<p>Each row is one spaCy <strong>token</strong> with its <code>start_time</code> (seconds from the start
+of the stimulus), its <code>turn_sub</code> label (the utterance the parse grouped on),
+the <code>token</code> text, its source <code>word</code>, and a one-hot
+<code>feature</code> vector (POS ⊕ dependency ⊕ stopword). Width and column order are fit
+to the model's full label vocabulary, so they are fixed across transcripts; a
+label outside that vocabulary leaves its block all-zero. The Parquet footer
+records <code>spacy_model</code> and the <code>feature_dim_labels</code> naming each dimension.</p>
 </div>
 
 

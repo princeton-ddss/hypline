@@ -1133,7 +1133,7 @@ speaker:</p>
 contains the word's run-relative start. Words that are un-timed, or fall in a gap
 between turns, get a blank <code>turn_sub</code>; gap hits are logged as a possible
 timing/annotation mismatch. Transcripts whose runs carry no <code>turn_speaker</code> rows
-omit the column entirely.</p>
+still get the column, with every value null, so the schema is uniform.</p>
 
 
 
