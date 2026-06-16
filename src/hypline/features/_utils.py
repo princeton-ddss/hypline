@@ -1,12 +1,52 @@
 """Shared helpers for transcript-derived features.
 
-Currently: word/token char-span alignment. Both semantic and syntactic features
-join transcript words into a single string, tokenize it (HF or spaCy), then
-attribute each token back to its source word by char-span overlap. The span math
-and the overlap test live here so the two generators share one source of truth.
+Transcript loading plus word/token char-span alignment. All three word-level
+features (semantic, phonemic, syntactic) load a transcript the same way — drop
+null-word rows, retain untimed words, forward-fill `turn_sub` — then join the
+kept words, tokenize, and attribute each token back to its source word by
+char-span overlap. The loader, span math, and overlap test live here so the
+generators share one source of truth.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
+
+import polars as pl
+from loguru import logger
+
+
+def load_transcript_words(
+    path: Path,
+) -> tuple[list[float | None], list[str], list[str | None]]:
+    """Return `(starts, words, turns)` for a transcript's usable words.
+
+    Drops null-word rows (cannot be tokenized) but retains untimed (null
+    `start_time`) words — they are real context for the LM/parser. `turn_sub` is
+    forward-filled *before* the drop: stamp_turns leaves untimed words null, but
+    they belong to the surrounding utterance, so a null would fragment a turn
+    mid-sentence and corrupt its parse. Raises if no usable words remain.
+    """
+    name = path.name
+    df = pl.read_csv(path, schema_overrides={"turn_sub": pl.Utf8}).with_columns(
+        pl.col("turn_sub").fill_null(strategy="forward")
+    )
+
+    null_words = df.get_column("word").is_null().sum()
+    if null_words:
+        logger.warning("Skipped {} null-word row(s) in {}", null_words, name)
+
+    df = df.filter(pl.col("word").is_not_null())
+    if df.is_empty():
+        raise ValueError(
+            f"{name}: no usable words (all null); cannot generate features"
+        )
+
+    return (
+        df.get_column("start_time").to_list(),
+        df.get_column("word").cast(pl.Utf8).to_list(),
+        df.get_column("turn_sub").to_list(),
+    )
 
 
 def build_word_spans(words: list[str]) -> list[tuple[int, int]]:

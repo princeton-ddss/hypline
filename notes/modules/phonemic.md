@@ -50,6 +50,11 @@ A null **word** is a separate axis: it cannot be phoneme-vectorized and is not
 faithful text, so the producer drops it (and warns), which also guards the
 per-word `strip(PUNCTUATION)` lookup against `None`.
 
+Transcript loading is shared with semantic and syntactic via
+`features._utils.load_transcript_words` (null-word drop, untimed retention,
+`turn_sub` forward-fill — see [syntactic.md](syntactic.md)). The output carries
+the forward-filled `turn_sub` column, though phonemic does not group on it.
+
 ## Feature vector
 
 Articulatory features (place, manner, voicing, etc.) are intrinsic phoneme

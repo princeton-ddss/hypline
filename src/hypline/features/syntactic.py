@@ -9,7 +9,11 @@ import polars as pl
 from loguru import logger
 
 from hypline.bids import BIDS_ENTITY_VALUE_RE, normalize_bids_filters
-from hypline.features._utils import build_word_spans, first_overlapping_word
+from hypline.features._utils import (
+    build_word_spans,
+    first_overlapping_word,
+    load_transcript_words,
+)
 from hypline.io import skip_existing, write_feature
 from hypline.layout import BIDSLayout
 
@@ -102,32 +106,36 @@ class SyntacticFeature:
             self._generate_one(transcript, out.path)
 
     def _generate_one(self, source: BIDSPath, out_path: Path) -> None:
-        kept_starts, kept_words, kept_turns = self._load_words(source)
+        word_starts, words, word_turns = load_transcript_words(source.path)
 
         nlp = self._nlp
         assert nlp is not None  # narrow Optional; _load runs in __init__
         dim = len(self._dim_labels)
 
-        rows_start, rows_token, rows_word, rows_feature = [], [], [], []
-        for words, word_starts, spans in self._iter_turns(
-            kept_starts, kept_words, kept_turns
+        rows_start, rows_turn, rows_token, rows_word, rows_feature = [], [], [], [], []
+        for turn, utt_words, utt_starts, utt_spans in self._iter_turns(
+            word_starts, words, word_turns
         ):
-            text = " ".join(words)
+            text = " ".join(utt_words)
             # Full-sentence tokenization (not per-word): spaCy resolves
             # abbreviations and punctuation using neighbors, so token boundaries
             # can differ from a word-by-word pass. A multi-token word's pieces all
             # overlap its span, so each inherits its start_time.
             doc = nlp(text)
             for token in doc:
-                idx = first_overlapping_word(token.idx, token.idx + len(token), spans)
-                rows_start.append(word_starts[idx])
+                idx = first_overlapping_word(
+                    token.idx, token.idx + len(token), utt_spans
+                )
+                rows_start.append(utt_starts[idx])
+                rows_turn.append(turn)
                 rows_token.append(token.text)
-                rows_word.append(words[idx])
+                rows_word.append(utt_words[idx])
                 rows_feature.append(self._token_vector(token))
 
         out_df = pl.DataFrame(
             {
                 "start_time": rows_start,
+                "turn_sub": rows_turn,
                 "token": rows_token,
                 "word": rows_word,
                 "feature": pl.Series(
@@ -144,58 +152,31 @@ class SyntacticFeature:
         write_feature(out_df, out_path, metadata=metadata)
         logger.debug("Wrote syntactic feature to {}", out_path)
 
-    def _load_words(
-        self, source: BIDSPath
-    ) -> tuple[list[float | None], list[str], list[str | None]]:
-        """Return `(starts, words, turns)` for timed and untimed words.
-
-        Drops null-word rows but keeps untimed (null-start_time) words as parse
-        context (see class docstring). `turn_sub` is forward-filled *before* the
-        drop: stamp_turns leaves untimed words null, but they belong to the
-        surrounding utterance — leaving a null would fragment a turn mid-sentence
-        and corrupt its parse tree. Raises if no usable words remain.
-        """
-        df = pl.read_csv(source.path).with_columns(
-            pl.col("turn_sub").cast(pl.Utf8).fill_null(strategy="forward")
-        )
-
-        null_words = df.get_column("word").is_null().sum()
-        if null_words:
-            logger.warning(
-                "Skipped {} null-word row(s) in {}", null_words, source.path.name
-            )
-
-        df = df.filter(pl.col("word").is_not_null())
-        if df.is_empty():
-            raise ValueError(
-                f"{source.path.name}: no usable words (all null); cannot "
-                "generate syntactic features"
-            )
-
-        return (
-            df.get_column("start_time").to_list(),
-            df.get_column("word").cast(pl.Utf8).to_list(),
-            df.get_column("turn_sub").to_list(),
-        )
-
     def _iter_turns(
         self,
-        starts: list[float | None],
+        word_starts: list[float | None],
         words: list[str],
-        turns: list[str | None],
-    ) -> Iterator[tuple[list[str], list[float | None], list[tuple[int, int]]]]:
-        """Yield `(words, word_starts, spans)` per consecutive-turn run.
+        word_turns: list[str | None],
+    ) -> Iterator[
+        tuple[str | None, list[str], list[float | None], list[tuple[int, int]]]
+    ]:
+        """Yield `(turn, utt_words, utt_starts, utt_spans)` per consecutive-turn run.
 
         A turn boundary is any change in `turn_sub` between adjacent kept words;
-        each maximal run of equal `turn_sub` is parsed as one document.
-        `build_word_spans` rebuilds char spans local to each run's joined text, so
-        offsets index that run, not the whole file.
+        each maximal run of equal `turn_sub` is parsed as one document (one
+        utterance). `build_word_spans` rebuilds char spans local to each
+        utterance's joined text, so offsets index that run, not the whole file.
         """
         start = 0
         for i in range(1, len(words) + 1):
-            if i == len(words) or turns[i] != turns[start]:
-                run_words, run_starts = words[start:i], starts[start:i]
-                yield run_words, run_starts, build_word_spans(run_words)
+            if i == len(words) or word_turns[i] != word_turns[start]:
+                utt_words, utt_starts = words[start:i], word_starts[start:i]
+                yield (
+                    word_turns[start],
+                    utt_words,
+                    utt_starts,
+                    build_word_spans(utt_words),
+                )
                 start = i
 
     def _token_vector(self, token: Token) -> np.ndarray:

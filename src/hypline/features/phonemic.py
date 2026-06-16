@@ -6,6 +6,7 @@ import polars as pl
 from loguru import logger
 
 from hypline.bids import BIDS_ENTITY_VALUE_RE, normalize_bids_filters
+from hypline.features._utils import load_transcript_words
 from hypline.io import skip_existing, write_feature
 from hypline.layout import BIDSLayout
 
@@ -131,37 +132,26 @@ class PhonemicFeature:
                 continue
 
             logger.info("Generating phonemic features for {}", transcript.path.name)
-            df = pl.read_csv(transcript.path)
-            start_times = df.get_column("start_time").to_list()
-            raw_words = df.get_column("word").cast(pl.Utf8).to_list()
+            word_starts, words, word_turns = load_transcript_words(transcript.path)
 
-            rows_start, rows_phoneme, rows_word, rows_feature = [], [], [], []
-            null_words = 0
-            for start, word in zip(start_times, raw_words):
-                # Skip null words but keep untimed rows (null start_time) — a faithful
-                # source copy; consumers drop them as needed (e.g., TR alignment)
-                if word is None:
-                    null_words += 1
-                    continue
+            rows_start, rows_turn, rows_phoneme, rows_word, rows_feature = (
+                [] for _ in range(5)
+            )
+            for start, word, turn in zip(word_starts, words, word_turns):
                 phonemes = self._get_phonemes(word.strip(PUNCTUATION)) or [None]
                 for ph in phonemes:
                     rows_start.append(start)
+                    rows_turn.append(turn)
                     rows_phoneme.append(ph)
                     rows_word.append(word)
                     rows_feature.append(
                         np.zeros(dim) if ph is None else self._phoneme_vector(ph)
                     )
 
-            if null_words:
-                logger.warning(
-                    "Skipped {} null-word row(s) in {}",
-                    null_words,
-                    transcript.path.name,
-                )
-
             out_df = pl.DataFrame(
                 {
                     "start_time": rows_start,
+                    "turn_sub": rows_turn,
                     "phoneme": rows_phoneme,
                     "word": rows_word,
                     "feature": pl.Series(

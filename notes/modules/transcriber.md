@@ -40,12 +40,14 @@ downstream consumers must tolerate them — see [phonemic.md](phonemic.md) and
 
 ## Speaker turns
 
-When the dyad's `events.tsv` files carry `turn_speaker` rows, each transcript
-gains a `turn_sub` column naming which subject held the floor when each word
-began (assigned by study design, not observed speech). Transcriber delegates
-all turn logic to `hypline.events` (`load_turns`, `stamp_turns`); see
-[events.md](events.md). A non-zero count of timed words landing in no turn
-window is logged as a possible timing/annotation mismatch rather than raised.
+Every transcript carries a `turn_sub` column so downstream feature generators
+can read it unconditionally. When the dyad's `events.tsv` files carry
+`turn_speaker` rows, it names which subject held the floor when each word began
+(assigned by study design, not observed speech); with no turns, the column is
+present but all-null. Transcriber delegates turn logic to `hypline.events`
+(`load_turns`, `stamp_turns`); see [events.md](events.md). A non-zero count of
+timed words landing in no turn window is logged as a possible timing/annotation
+mismatch rather than raised.
 
 ## `WhisperModel` enum is shared with spectral featuregen
 

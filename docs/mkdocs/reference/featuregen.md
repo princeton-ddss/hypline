@@ -91,7 +91,9 @@ A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
 !!! note "Feature file format"
 
     Feature files are Parquet tables. Each row is one phoneme with a
-    `start_time` (seconds from the start of the stimulus) and a `feature` vector.
+    `start_time` (seconds from the start of the stimulus), a `turn_sub` label
+    (forward-filled from the transcript; carried through unchanged), and a
+    `feature` vector.
     Timing is the phoneme's word onset — hypline does not yet have sub-word
     audio alignment, so phonemes within a word share that word's onset.
 
@@ -147,7 +149,8 @@ hypline featuregen semantic data/ --model gpt2-xl
 ### Outputs
 
 A semantic feature file per transcript, tagged `feat-semantic`, under
-`features/`. Each row carries `start_time`, `word`, `token`, the `feature`
+`features/`. Each row carries `start_time`, `turn_sub` (forward-filled from the
+transcript; carried through unchanged), `word`, `token`, the `feature`
 vector, and — for any non-zero layer — per-token LM metrics (`rank`,
 `true_prob`, `entropy`). The Parquet footer records `hf_model`, `hf_tokenizer`
 (equal to `hf_model` unless overridden via the [Python API](python-api.md)), and
@@ -323,7 +326,8 @@ A `--desc` label lands as `desc-<label>` in its own subdirectory
 !!! note "Feature file format"
 
     Each row is one spaCy **token** with its `start_time` (seconds from the start
-    of the stimulus), the `token` text, its source `word`, and a one-hot
+    of the stimulus), its `turn_sub` label (the utterance the parse grouped on),
+    the `token` text, its source `word`, and a one-hot
     `feature` vector (POS ⊕ dependency ⊕ stopword). Width and column order are fit
     to the model's full label vocabulary, so they are fixed across transcripts; a
     label outside that vocabulary leaves its block all-zero. The Parquet footer

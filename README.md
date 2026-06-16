@@ -51,6 +51,7 @@ encoding model later joins:
 | `featuregen phonemic`  | stimulus | transcripts                           | phonemic features (+ confounds) |
 | `featuregen semantic`  | stimulus | transcripts                           | semantic features (+ confounds) |
 | `featuregen spectral`  | stimulus | stimulus audio                        | spectral features (TR-aligned)  |
+| `featuregen syntactic` | stimulus | transcripts                           | syntactic features              |
 | `confoundgen phonemic` | stimulus | phonemic features                     | `conf-phonemic` confounds       |
 | `confoundgen semantic` | stimulus | semantic features                     | `conf-semantic` confounds       |
 | `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds | denoised BOLD (`desc-denoised`) |

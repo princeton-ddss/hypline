@@ -23,6 +23,11 @@ becomes one spaCy doc.
 untimed words null, but they belong to the surrounding utterance — leaving a null
 would split a turn mid-sentence and corrupt its parse.
 
+Transcript loading is shared across all three word-level features via
+`features._utils.load_transcript_words` (which requires a `turn_sub` column).
+Phonemic and semantic carry `turn_sub` through to their output too, though only
+syntactic groups parsing on it.
+
 ## Retains untimed words as parse context
 
 Untimed (null `start_time`) words stay in the input — the producer-retains /

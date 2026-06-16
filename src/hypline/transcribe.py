@@ -142,6 +142,11 @@ class Transcriber:
                         audio_file.path.name,
                         n_silent,
                     )
+            else:
+                # Guarantee `turn_sub` even without turns: feature generators read
+                # it unconditionally. Explicit nulls, not empty turns through
+                # stamp_turns, which would flag every word as silent and warn.
+                df = df.with_columns(pl.lit(None, dtype=pl.Utf8).alias("turn_sub"))
 
             out.path.parent.mkdir(parents=True, exist_ok=True)
             df.write_csv(out.path)

@@ -26,6 +26,11 @@ word must stay in the input even though TR-aligning consumers later drop its row
 A null **word** (vs. null `start_time`) is dropped and warned — it cannot be
 tokenized and is not faithful text.
 
+Transcript loading is shared with phonemic and syntactic via
+`features._utils.load_transcript_words` (null-word drop, untimed retention,
+`turn_sub` forward-fill — see [syntactic.md](syntactic.md)). The output carries
+the forward-filled `turn_sub` column, though semantic does not group on it.
+
 ## Single-pass, no windowing
 
 The whole transcript goes through the model in one forward pass — no chunking.

@@ -47,10 +47,15 @@ def _write_transcript(
     *,
     dyad: str = DYAD,
     task: str = TASK,
+    turns: list[str | None] | None = None,
 ) -> Path:
     path = tree.add_stimulus(dyad=dyad, task=task, kind="transcript", ext=".csv")
     df = pl.DataFrame(
-        {"start_time": [r[0] for r in rows], "word": [r[1] for r in rows]}
+        {
+            "start_time": [r[0] for r in rows],
+            "turn_sub": turns if turns is not None else [DYAD] * len(rows),
+            "word": [r[1] for r in rows],
+        }
     )
     df.write_csv(path)
     return path
@@ -245,7 +250,7 @@ class TestPhonemicMultiTranscript:
         tree.add_stimulus(dyad=DYAD, task=TASK, run="1", kind="transcript", ext=".csv")
         tree.add_stimulus(dyad=DYAD, task=TASK, run="2", kind="transcript", ext=".csv")
         layout = BIDSLayout(tree.root)
-        df = pl.DataFrame({"start_time": [0.0], "word": ["cat"]})
+        df = pl.DataFrame({"start_time": [0.0], "turn_sub": [DYAD], "word": ["cat"]})
         for transcript in layout.find.stimuli(dyad=DYAD, kind="transcript", ext=".csv"):
             df.write_csv(transcript.path)
         PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(DYAD)
