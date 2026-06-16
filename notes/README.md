@@ -50,7 +50,7 @@ AI agents alike. Agent-agnostic by design.
 | Editing denoise / nuisance regression logic | `modules/denoise.md`, `decisions/nuisance-files.md` |
 | Placing a hypline imaging derivative (denoised BOLD) | `decisions/layout.md`, `external/fmriprep.md` |
 | Selecting confound columns (`--columns`/`--custom-columns`) | `modules/denoise.md`, `external/fmriprep.md` |
-| Handling null / un-timed transcript tokens | `modules/transcriber.md`, `modules/phonemic.md`, `modules/semantic.md` |
+| Handling null / un-timed transcript tokens | `modules/transcriber.md`, `modules/phonemic.md`, `modules/semantic.md`, `modules/syntactic.md` |
 | Handling speaker turns (`turn_sub` column)  | `modules/events.md`, `modules/transcriber.md`, `decisions/dyad-keyed.md` |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`, `modules/events.md` |
@@ -62,6 +62,7 @@ AI agents alike. Agent-agnostic by design.
 | Phoneme-level feature questions        | `modules/phonemic.md`, `decisions/feature-files.md` |
 | Token-level semantic / embedding feature questions | `modules/semantic.md`, `decisions/feature-files.md` |
 | Spectral / log-Mel feature questions   | `modules/spectral.md`, `decisions/feature-files.md` |
+| Syntactic POS / dependency feature questions | `modules/syntactic.md`, `decisions/feature-files.md` |
 | Reasoning about X/Y temporal alignment | `decisions/feature-files.md`, `modules/encoding.md` |
 | Selecting a feature variant in encoding | `modules/encoding.md`, `decisions/feature-files.md` |
 | Extracting TR or volume count for a run | `modules/bold.md`                                   |

@@ -10,28 +10,12 @@ from pydantic import BaseModel, field_validator
 from hypline.bids import BIDS_ENTITY_VALUE_RE, BIDSPath, normalize_bids_filters
 from hypline.cache import hypline_cache_dir
 from hypline.enums import Device
+from hypline.features._utils import build_word_spans, first_overlapping_word
 from hypline.io import skip_existing, write_feature
 from hypline.layout import BIDSLayout
 
 if TYPE_CHECKING:
     import numpy as np
-
-
-def _first_overlapping_word(
-    token_start: int, token_end: int, spans: list[tuple[int, int]]
-) -> int:
-    """Index of the first word whose char span overlaps [token_start, token_end).
-
-    Overlap, not char_start containment: a fast tokenizer folds the leading
-    space into the offset (gpt-2 `Ġcat` -> (3,7) while `cat` spans [4,7)), so
-    containment would match no word. A token always overlaps at least its start
-    word, so this never fails to attribute (which would desync output rows from
-    the model's per-token states).
-    """
-    for idx, (word_start, word_end) in enumerate(spans):
-        if token_start < word_end and word_start < token_end:
-            return idx
-    raise ValueError(f"token span [{token_start}, {token_end}) overlaps no word span")
 
 
 class HFModelConfig(BaseModel):
@@ -171,24 +155,17 @@ class SemanticFeature:
         start_times = df.get_column("start_time").to_list()
         raw_words = df.get_column("word").cast(pl.Utf8).to_list()
 
-        # Join timed and untimed words into one string and record each word's
-        # char span from that same construction (single source of truth — offsets
-        # index this string, not the CSV). Null words cannot be tokenized; drop
-        # them, but retain untimed (null start_time) words as real LM context.
-        words, word_starts, spans = [], [], []
-        cursor = 0
+        # Drop null words (cannot be tokenized) but retain untimed
+        # (null start_time) words as real LM context
+        words, word_starts = [], []
         null_words = 0
         for start, word in zip(start_times, raw_words):
             if word is None:
                 null_words += 1
                 continue
-            if words:
-                cursor += 1  # the single joining space
-            span_start = cursor
-            cursor += len(word)
             words.append(word)
             word_starts.append(start)
-            spans.append((span_start, cursor))
+        spans = build_word_spans(words)
 
         if null_words:
             logger.warning(
@@ -223,7 +200,7 @@ class SemanticFeature:
         tokens = self._tokenizer.convert_ids_to_tokens(token_ids)
         rows_start, rows_word = [], []
         for token_start, token_end in offsets:
-            idx = _first_overlapping_word(token_start, token_end, spans)
+            idx = first_overlapping_word(token_start, token_end, spans)
             rows_start.append(word_starts[idx])
             rows_word.append(words[idx])
 

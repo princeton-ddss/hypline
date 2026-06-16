@@ -13,6 +13,7 @@ hypline featuregen <kind> <dataset-root> [OPTIONS]
 | `phonemic` | phoneme-level articulatory features from transcripts |
 | `semantic` | contextual word embeddings from a Hugging Face causal LM |
 | `spectral` | Whisper log-Mel spectrogram from stimulus audio, aligned to the BOLD TR grid |
+| `syntactic` | per-token POS, dependency, and stopword features from transcripts |
 
 ---
 
@@ -256,3 +257,74 @@ A `--desc` label lands as `desc-<label>` in its own subdirectory
     of Mel bands). The Parquet footer records the `model`, `sampling_rate`,
     `hop_length`, `n_mels`, `chunk_length`, `repetition_time`, and
     `downsample_method`.
+
+---
+
+## `featuregen syntactic`
+
+Derive **per-token syntactic-function features** from word-level transcripts with
+[spaCy](https://spacy.io/). Each token's feature is a fixed-width one-hot of its
+POS tag concatenated with its dependency relation, plus a final 0/1 stopword
+dimension. The model is fixed (`en_core_web_lg`) and auto-downloaded on first use
+— there is no `--model` option.
+
+Words are tokenized and tagged **one conversational turn at a time**: the
+dependency parser needs coherent utterances, so words are grouped by `turn_sub`
+(which subject held the floor) and each maximal run is parsed as one document.
+A word that spaCy splits into several tokens (`"don't"` → `do` + `n't`) yields
+one row per piece, each inheriting the source word's `start_time` by char-span
+overlap.
+
+### Inputs
+
+The same transcripts as [`featuregen phonemic`](#featuregen-phonemic), under
+`stimuli/`. Untimed words (null `start_time`) are retained as parse context — a
+dropped word would fragment its turn's sentence and mis-tag neighbors — but carry
+their null timing into the output. Null-`word` rows are dropped and warned.
+
+### Options
+
+| Option           | Description                                                       | Default |
+| ---------------- | ---------------------------------------------------------------- | ------- |
+| `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
+| `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
+| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--force`        | Overwrite existing outputs (default skips them)                  | off     |
+
+!!! note "Fixed model, no `--device`, no confounds"
+
+    The spaCy model is fixed (`en_core_web_lg`), so there is no `--model` option;
+    the parse runs on CPU, so there is no `--device` either. And unlike `phonemic`
+    and `semantic`, syntactic has no chained `confoundgen` step — it writes
+    features only.
+
+### Example
+
+Generate syntactic features for all dyads:
+
+```bash
+hypline featuregen syntactic data/
+```
+
+### Outputs
+
+A syntactic feature file per transcript, tagged `feat-syntactic`, under
+`features/`:
+
+```
+<dataset-root>/features/dyad-030/ses-1/syntactic/
+└── dyad-030_ses-1_task-conv_run-1_feat-syntactic.parquet
+```
+
+A `--desc` label lands as `desc-<label>` in its own subdirectory
+(`syntactic-<label>/`). See
+[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+
+!!! note "Feature file format"
+
+    Each row is one spaCy **token** with its `start_time` (seconds from the start
+    of the stimulus), the `token` text, its source `word`, and a one-hot
+    `feature` vector (POS ⊕ dependency ⊕ stopword). Width and column order are fit
+    to the model's full label vocabulary, so they are fixed across transcripts; a
+    label outside that vocabulary leaves its block all-zero. The Parquet footer
+    records `spacy_model` and the `feature_dim_labels` naming each dimension.

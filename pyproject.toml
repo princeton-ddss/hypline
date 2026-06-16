@@ -19,6 +19,7 @@ dependencies = [
     "pyarrow>=23.0.1",
     "pydantic>=2.10.6",
     "scikit-learn>=1.6.1",
+    "spacy>=3.8.0",
     "typer>=0.15.2",
     "whisperx>=3.8.4",
 ]
