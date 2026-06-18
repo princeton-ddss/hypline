@@ -1583,7 +1583,7 @@ class TestBuildXy:
         feature_bids = enc._resolve_cell_keys(SUB, feature_bids, bold_metas)
         feature_bids, bold_metas = enc._apply_filters(SUB, feature_bids, bold_metas)
         enc._validate_coverage(SUB, feature_bids, bold_metas)
-        return enc._build_xy(SUB, feature_bids, bold_metas)
+        return enc._build_xy(feature_bids, bold_metas)
 
     def test_untimed_row_dropped_x_matches_all_timed(
         self, tree: BIDSTree, tmp_path_factory: pytest.TempPathFactory

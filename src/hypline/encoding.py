@@ -128,19 +128,30 @@ class EncodingConfig(BaseModel):
 
 
 @dataclass(frozen=True)
-class TrainingData:
-    """Assembled feature and BOLD arrays ready for regression.
+class XData:
+    """Assembled feature matrix and its row/column geometry, no target.
 
-    X and Y share the same row axis: X[row_slices[cell_key]] and
-    Y[row_slices[cell_key]] together give the feature matrix and BOLD
-    response for that cell. col_slices indexes into the column axis of X,
-    mapping each feature name to its contiguous block of columns.
+    `row_slices` maps each cell to its contiguous block of rows in X (in
+    `_sort_key` order); `col_slices` maps each feature name to its contiguous
+    block of columns. This is what predict needs — X alone — and what train
+    extends with Y (see `TrainingData`).
     """
 
     X: np.ndarray
-    Y: np.ndarray
     row_slices: dict[CellKey, slice]
     col_slices: dict[str, slice]
+
+
+@dataclass(frozen=True)
+class TrainingData(XData):
+    """`XData` plus the aligned BOLD target Y, on X's same row axis.
+
+    Subclassing appends `Y` as the last field — construction is kwargs-only at
+    every site, so the positional reorder is inert. Do not switch any
+    `TrainingData(...)` call to positional args without accounting for this.
+    """
+
+    Y: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -399,6 +410,63 @@ def _load_bold_array(path: Path) -> np.ndarray:
         raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
 
+def align_y(
+    bold_metas: dict[BoldKey, BoldMeta], row_slices: dict[CellKey, slice]
+) -> np.ndarray:
+    """Slice each cell's BOLD response onto X's row geometry.
+
+    For each cell in `row_slices`, recompute `onset_tr` from *this*
+    `bold_metas`' TR and segment, then take `arr[onset : onset + n_trs]` where
+    `n_trs` is the row-slice length. Onset is recomputed (not reused from X's
+    build) so a cross-subject Y, whose TR may differ from X's source, slices the
+    correct rows: a segment at 40 s is onset_tr 20 at TR 2.0 but 40 at TR 1.0.
+
+    Raises if a cell's run is absent from `bold_metas`, or if the recomputed
+    `n_trs` disagrees with the row-slice length (TR/duration drift between the
+    subject that built X and this one).
+    """
+    Y_parts: list[np.ndarray] = []
+    arrays: dict[BoldKey, np.ndarray] = {}  # cache per run; segments share a file
+    for cell_key, sl in row_slices.items():
+        bold_key = cell_key.to_bold_key()
+        if bold_key not in bold_metas:
+            raise ValueError(f"No BOLD run for cell {cell_key} (bold_key {bold_key})")
+        bold_meta = bold_metas[bold_key]
+        if bold_key not in arrays:
+            arrays[bold_key] = _load_bold_array(bold_meta.bids.path)
+        bold_data = arrays[bold_key]
+
+        if not bold_meta.segments:
+            onset_tr, n_trs = 0, bold_data.shape[0]
+        else:
+            segment_value = cell_key[bold_meta.segments[0].entity]
+            seg = next(s for s in bold_meta.segments if s.value == segment_value)
+            tr_slice = segment_tr_slice(seg, bold_meta.repetition_time)
+            onset_tr, n_trs = tr_slice.start, tr_slice.stop - tr_slice.start
+
+        # drift guard: fires cross-subject when this run's TR/duration makes the
+        # recomputed span diverge from X's row geometry; inert in same-subject train
+        expected = sl.stop - sl.start
+        if n_trs != expected:
+            raise ValueError(
+                f"Cell {cell_key} spans {expected} row(s) in X but BOLD here "
+                f"yields {n_trs} TR(s) — TR or segment-duration drift between "
+                f"the subject that built X and this one"
+            )
+
+        # bounds check: a too-short array would silently truncate Y (numpy slice)
+        if onset_tr + n_trs > bold_data.shape[0]:
+            raise ValueError(
+                f"Segment for cell {cell_key} extends to TR {onset_tr + n_trs} "
+                f"but BOLD at {bold_meta.bids.path.name} has only "
+                f"{bold_data.shape[0]} TRs"
+            )
+
+        Y_parts.append(bold_data[onset_tr : onset_tr + n_trs])
+
+    return np.concatenate(Y_parts)
+
+
 class CellDelayer(BaseEstimator, TransformerMixin):
     """Stack finite-impulse-response delays of X, one column block per delay.
 
@@ -501,6 +569,112 @@ def _build_pipeline(
     )
 
     return Pipeline([("kernelizer", column_kernelizer), ("model", model)])
+
+
+def _reset_cell_lengths(pipeline: "Pipeline", cell_lengths: list[int]) -> None:
+    """Overwrite each band's `CellDelayer.cell_lengths` to the predict geometry.
+
+    `CellDelayer` froze the *train* subject's per-cell row counts at fit; its
+    `transform` builds FIR boundary masks from them and raises if X's row count
+    disagrees. Predict's cells differ, so the frozen lengths are wrong — reset
+    them before predict. Safe because `cell_lengths` only drives boundary masking
+    and the row-count check (both functions of the current X), never the fitted
+    weights.
+
+    Targets `transformers_` — the fitted transformer clones sklearn made at fit
+    (the same tree `_numpyfy_fitted` walks) — not the unfitted `.transformers`
+    spec. Each entry is `(name, inner_pipeline, col_slice)`; the inner pipeline's
+    `.steps` are `(step_name, estimator)` tuples. `cell_lengths` order must match
+    X's `row_slices` order.
+    """
+    ck = pipeline.named_steps["kernelizer"]
+    for _, transformer, _ in ck.transformers_:
+        for _, step in transformer.steps:
+            if isinstance(step, CellDelayer):
+                step.cell_lengths = cell_lengths
+
+
+def _matches(cell: CellKey, test_on: dict[str, str]) -> bool:
+    """Whether `cell` satisfies every entity constraint in `test_on`.
+
+    Mirrors `_apply_filters._cell_matches`: each `entity -> value` must equal the
+    cell's value for that entity (absent entity never matches). `test_on` is an
+    already-parsed selector; its string grammar is a predict-CLI concern.
+    """
+    return all(cell.get(entity) == value for entity, value in test_on.items())
+
+
+def _assert_same_cell_schema(
+    available: set[CellKey], train_cells: set[CellKey]
+) -> None:
+    """Raise if source and train cells disagree on their entity key set.
+
+    `available - train_cells` is a set op across (possibly) different subjects;
+    `__eq__`/`__hash__` key on the full entity dict, so a differing schema (source
+    missing `cond`, a different descriptive merge) makes the subtraction silently
+    mis-select. The `col_slices` guard checks *columns*; this checks *cells*. Rests
+    on the "same study => same cell schema" invariant from the overview.
+    """
+    schemas = {c.keys() for c in available} | {c.keys() for c in train_cells}
+    if len(schemas) > 1:
+        raise ValueError(
+            f"Cell-schema mismatch between source and train cells: "
+            f"{sorted(sorted(s) for s in schemas)}"
+        )
+
+
+def select_cells(
+    available: set[CellKey],
+    artifact: "EncodingArtifact",
+    model: "EncodingModel",
+    test_on: dict[str, str] | None = None,
+) -> set[CellKey]:
+    """Choose which cells `model` predicts on — OOS by default, or `test_on`.
+
+    Runs upstream of `_build_x`, on the source subject's *full* discovered cells
+    (`available`); recipe filters are not replayed — stored `train`/`universe` are
+    trusted. Three modes (model trained on a subset of cells):
+
+    - `test_on`: explicit override, honored regardless of train membership. Warns
+      (does not reject) on overlap with `train_cells` — predicting on trained-on
+      cells is usually a mistake, occasionally intentional. May name cells outside
+      the train corpus.
+    - K-fold (`universe` set): OOS is `universe - train_cells`, bounded by the
+      universe (cells outside it, e.g. a later run, are excluded).
+    - single model (`universe is None`): OOS is `available - train_cells`,
+      unbounded.
+
+    Raises on an empty selection. For the K-fold branch, also raises if the bounded
+    OOS set is not fully present on the source — its cells are drawn from the train
+    subject's `universe`, so a cell absent here would be silently dropped by the
+    feature-subset filter, yielding fewer predictions with no error. Fail fast.
+    """
+    _assert_same_cell_schema(available, model.train_cells)
+    if test_on:
+        sel = {c for c in available if _matches(c, test_on)}
+        if sel & model.train_cells:
+            logger.warning(
+                "test_on selects {} cell(s) the model was trained on",
+                len(sel & model.train_cells),
+            )
+    elif artifact.universe is not None:
+        sel = artifact.universe - model.train_cells
+    else:
+        sel = available - model.train_cells
+
+    if not sel:
+        if test_on:
+            raise ValueError(f"test_on matched no available cells: {test_on}")
+        raise ValueError("empty out-of-sample set — pass test_on to name cells")
+
+    if artifact.universe is not None:
+        missing = sel - available
+        if missing:
+            raise ValueError(
+                f"bounded OOS cells absent on source subject: "
+                f"{sorted(map(repr, missing))}"
+            )
+    return sel
 
 
 def _numpyfy_fitted(obj: object, _seen: set[int] | None = None) -> None:
@@ -744,7 +918,7 @@ class Encoding:
         feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
         feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
         self._validate_coverage(sub_id, feature_bids, bold_metas)
-        data = self._build_xy(sub_id, feature_bids, bold_metas)
+        data = self._build_xy(feature_bids, bold_metas)
 
         # himalaya binds the backend at estimator construction, not at fit — set it
         # before building the pipeline or fitting silently falls back to CPU
@@ -828,6 +1002,66 @@ class Encoding:
         layout = BIDSLayout(bids_root)
         out = layout.path.result(sub=sub, kind="encoding", desc=desc)
         return load_artifact(out.path)
+
+    @classmethod
+    def _from_recipe(cls, recipe: XRecipe, bids_root: str | Path) -> "Encoding":
+        """Rebuild an `Encoding` from a stored recipe to drive predict.
+
+        Predict has no constructor args and runs on a possibly different subject
+        in a different `bids_root`, but discovery/build are instance methods
+        reading `self._features`, `self.bold_space`, etc. Reconstruct exactly those
+        attributes from the recipe. `__new__` bypasses `__init__` validation —
+        recipe values were validated at train, and re-running validation would
+        require dummy `desc`/`fold`/`force` args for no gain.
+
+        No `config`/`device`: predict runs on the numpy backend (CPU always), and
+        the discovery/build path predict uses reads no `self.config`. `bids_root`
+        is a caller argument, deliberately not part of X identity. The loaded
+        recipe carries `col_slices` (train-filled) for the rebuild assert.
+        """
+        enc = cls.__new__(cls)
+        enc._layout = BIDSLayout(bids_root)
+        enc._features = recipe.features
+        enc.tasks = recipe.tasks
+        enc._task_filters = [f"task-{task}" for task in recipe.tasks]
+        enc.bold_space = recipe.bold_space
+        enc._bold_desc = recipe.bold_desc
+        enc.downsample = recipe.downsample
+        enc._recipe = recipe
+        return enc
+
+    def predict(
+        self,
+        model: EncodingModel,
+        feature_bids: dict[FeatureKey, BIDSPath],
+        bold_metas: dict[BoldKey, BoldMeta],
+        cells: set[CellKey],
+    ) -> dict:
+        """Run one model over `cells` of a subject, returning its `Y_hat` (no Y).
+
+        Consumes pre-discovered `feature_bids`/`bold_metas` (the analyze loop calls
+        predict K times; re-discovering per call means K+1 filesystem scans) and
+        subsets them to `cells`. Rebuilds X via the same `_build_x` path as train,
+        asserts `col_slices` matches the recipe (rebuild guard), resets the loaded
+        pipeline's frozen train cell-lengths to this X's geometry, and predicts on
+        the numpy backend. Discovery already happened upstream.
+
+        Returns `{"row_slices": ..., "Y_hat": ...}` — per-model, no actual Y. The
+        caller does `align_y(target_bold, row_slices)` if it wants Y to compare against.
+        """
+        from himalaya.backend import set_backend
+
+        sub_feature_bids = {fk: b for fk, b in feature_bids.items() if fk.cell in cells}
+        data = self._build_x(sub_feature_bids, bold_metas)
+        if data.col_slices != self._recipe.col_slices:
+            raise ValueError(
+                f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"
+            )
+        set_backend("numpy")
+        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
+        _reset_cell_lengths(model.pipeline, cell_lengths)
+        Y_hat = model.pipeline.predict(data.X.astype(np.float32))
+        return {"row_slices": data.row_slices, "Y_hat": Y_hat}
 
     def _discover_features(self, sub_id: str) -> dict[FeatureKey, BIDSPath]:
         """Discover and validate feature file paths for a subject.
@@ -1231,46 +1465,26 @@ class Encoding:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-    def _build_xy(
+    def _build_x(
         self,
-        sub_id: str,
         feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
-    ) -> TrainingData:
-        """Assemble X and Y matrices for regression from feature files and BOLD arrays.
+    ) -> XData:
+        """Assemble the X feature matrix and its row/column geometry, no target.
 
-        Cells are sorted deterministically so row positions in X and Y are stable
-        across runs. Column layout is derived from the first cell and assumed
-        invariant — all cells must yield the same feature dimensionality.
+        Takes `bold_metas` because X's per-cell row count and TR come from the
+        BOLD *timeline* (segment TR slices / array length), not its signal — no
+        BOLD data enters X.
 
-        Segment slice coverage is validated against actual BOLD array length before
-        any data is assembled; a mismatch raises early rather than producing a
-        silently truncated Y.
+        Cells are sorted deterministically so row positions are stable across
+        runs. Column layout is derived from the first cell and assumed invariant —
+        all cells must yield the same feature dimensionality. Each cell's row count
+        (`n_trs`) comes from its BOLD sidecar: the segment TR slice for segmented
+        runs, or the array length for unsegmented runs. Only unsegmented runs read
+        a BOLD array here (their `n_trs` has no other source); a fully-segmented
+        study reads zero arrays. Segment-coverage against actual array length is
+        deferred to `align_y`, which reads the arrays for Y.
         """
-        bold_arrays: dict[BoldKey, np.ndarray] = {
-            key: _load_bold_array(meta.bids.path) for key, meta in bold_metas.items()
-        }
-
-        for bold_key, bold_meta in bold_metas.items():
-            if not bold_meta.segments:
-                continue
-            expected = max(
-                segment_tr_slice(seg, bold_meta.repetition_time).stop
-                for seg in bold_meta.segments
-            )
-            actual = bold_arrays[bold_key].shape[0]
-            if expected > actual:
-                loc = _format_loc(
-                    sub=sub_id,
-                    ses=bold_key.ses,
-                    task=bold_key.task,
-                    run=bold_key.run,
-                    space=self.bold_space,
-                )
-                raise ValueError(
-                    f"events.tsv declares segments extending to TR {expected} "
-                    f"but BOLD at {loc} has only {actual} TRs"
-                )
 
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
         def _sort_key(k: CellKey) -> tuple:
@@ -1287,7 +1501,6 @@ class Encoding:
         )
 
         X_parts: list[np.ndarray] = []
-        Y_parts: list[np.ndarray] = []
         row_slices: dict[CellKey, slice] = {}
         col_slices: dict[str, slice] = {}
         row_offset = 0
@@ -1297,20 +1510,17 @@ class Encoding:
         for cell_key in cell_keys:
             bold_key = cell_key.to_bold_key()
             bold_meta = bold_metas[bold_key]
-            bold_data = bold_arrays[bold_key]
 
-            # Construct Y for the given cell
+            # n_trs sets this cell's row span; arrays read only when unsegmented
             if not bold_meta.segments:
-                onset_tr, n_trs = 0, bold_data.shape[0]
+                n_trs = _load_bold_array(bold_meta.bids.path).shape[0]
             else:
-                segment_entity = bold_meta.segments[0].entity
-                segment_value = cell_key[segment_entity]
+                segment_value = cell_key[bold_meta.segments[0].entity]
                 seg = next(s for s in bold_meta.segments if s.value == segment_value)
                 tr_slice = segment_tr_slice(seg, bold_meta.repetition_time)
-                onset_tr, n_trs = tr_slice.start, tr_slice.stop - tr_slice.start
+                n_trs = tr_slice.stop - tr_slice.start
             row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
             row_offset += n_trs
-            Y_parts.append(bold_data[onset_tr : onset_tr + n_trs])
 
             # Construct X for the given cell
             feature_arrays: list[np.ndarray] = []
@@ -1335,6 +1545,20 @@ class Encoding:
             X_parts.append(np.hstack(feature_arrays))
 
         X = np.concatenate(X_parts, axis=0)
-        Y = np.concatenate(Y_parts, axis=0)
+        return XData(X=X, row_slices=row_slices, col_slices=col_slices)
 
-        return TrainingData(X=X, Y=Y, row_slices=row_slices, col_slices=col_slices)
+    def _build_xy(
+        self,
+        feature_bids: dict[FeatureKey, BIDSPath],
+        bold_metas: dict[BoldKey, BoldMeta],
+    ) -> TrainingData:
+        """Assemble X via `_build_x`, then slice the aligned BOLD target Y onto it.
+
+        Segment slice coverage is validated against actual BOLD array length in
+        `align_y`; a mismatch raises rather than producing a silently truncated Y.
+        """
+        data = self._build_x(feature_bids, bold_metas)
+        Y = align_y(bold_metas, data.row_slices)
+        return TrainingData(
+            X=data.X, row_slices=data.row_slices, col_slices=data.col_slices, Y=Y
+        )
