@@ -1409,7 +1409,7 @@ class TestFoldHelpers:
         with pytest.raises(ValueError, match="needs >= 2 groups"):
             _partition_groups(groups, "loo")
 
-    def test_select_rows_preserves_build_xy_order(self):
+    def test_select_rows_preserves_build_x_order(self):
         # row_slices insertion order is _sort_key order; _select_rows must keep it
         data = TrainingData(
             X=np.arange(30).reshape(6, 5).astype(np.float64),
@@ -1570,10 +1570,12 @@ class TestInnerCv:
         assert cv.get_n_splits() == 3
 
 
-class TestBuildXy:
-    """End-to-end `_build_xy`: reads features, downsamples, assembles X."""
+class TestBuildTrainingData:
+    """End-to-end `_build_training_data`: reads features, downsamples, assembles X."""
 
-    def _build_xy(self, tree: BIDSTree, feature_df: pl.DataFrame) -> TrainingData:
+    def _build_training_data(
+        self, tree: BIDSTree, feature_df: pl.DataFrame
+    ) -> TrainingData:
         tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1", df=feature_df)
@@ -1583,7 +1585,8 @@ class TestBuildXy:
         feature_bids = enc._resolve_cell_keys(SUB, feature_bids, bold_metas)
         feature_bids, bold_metas = enc._apply_filters(SUB, feature_bids, bold_metas)
         enc._validate_coverage(SUB, feature_bids, bold_metas)
-        return enc._build_xy(feature_bids, bold_metas)
+        feature_metas = enc._enrich_feature_metas(feature_bids, bold_metas)
+        return enc._build_training_data(feature_metas, bold_metas)
 
     def test_untimed_row_dropped_x_matches_all_timed(
         self, tree: BIDSTree, tmp_path_factory: pytest.TempPathFactory
@@ -1606,8 +1609,8 @@ class TestBuildXy:
             schema=schema,
         )
         timed_tree = BIDSTree(tmp_path_factory.mktemp("timed"))
-        x_null = self._build_xy(tree, null_df).X
-        x_timed = self._build_xy(timed_tree, timed_df).X
+        x_null = self._build_training_data(tree, null_df).X
+        x_timed = self._build_training_data(timed_tree, timed_df).X
         np.testing.assert_array_equal(x_null, x_timed)
 
 
@@ -1638,7 +1641,8 @@ class TestTrainWiring:
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
         monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
-        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
 
         from sklearn.pipeline import Pipeline
 
@@ -1681,7 +1685,8 @@ class TestArtifactRoundTrip:
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
         monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
-        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
         return enc, data
 
     def test_round_trip(self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch):
@@ -1794,7 +1799,8 @@ class TestFoldedTrain:
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
         monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
-        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
         return enc, data
 
     def test_partition_correctness(

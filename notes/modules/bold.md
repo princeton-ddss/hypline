@@ -49,7 +49,10 @@ Because the counts are guaranteed equal, callers producing TR-aligned
 artifacts (e.g. confound files) may anchor `n_trs` on either the raw or the
 preprocessed BOLD — both are correct, and a mismatch can only surface as the
 invariant raising. `n_trs` is also space-invariant across fmriprep outputs of
-the same run, so any `space-*` variant works.
+the same run, so any `space-*` variant works. The count is never re-verified
+against the array at meta-build time; the one divergence that could matter —
+dummy-scan trimming — is refused above, and array-length reconciliation happens
+once, in encoding's `align_y`, on the path that already loads voxels.
 
 For the downstream events-timeline reasoning behind the raw-relative onset
 rule, see [../decisions/feature-files.md](../decisions/feature-files.md).

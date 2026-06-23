@@ -128,6 +128,21 @@ class EncodingConfig(BaseModel):
 
 
 @dataclass(frozen=True)
+class FeatureMeta:
+    """One feature cell's TR-grid placement.
+
+    Resolved once by `_enrich_feature_metas` so `_build_x` never reads BOLD.
+    `onset_tr` is currently unconsumed — X rows start at 0 per cell, and `align_y`
+    recomputes its own onset from the target subject's BOLD.
+    """
+
+    bids: BIDSPath
+    n_trs: int
+    onset_tr: int
+    repetition_time: float
+
+
+@dataclass(frozen=True)
 class XData:
     """Assembled feature matrix and its row/column geometry, no target.
 
@@ -279,10 +294,10 @@ def _partition_groups(
 def _select_rows(
     data: TrainingData, cells: set[CellKey]
 ) -> tuple[np.ndarray, np.ndarray, list[CellKey]]:
-    """Slice `data` down to `cells`, preserving `_build_xy` row order.
+    """Slice `data` down to `cells`, preserving `_build_x` row order.
 
     Iterates `data.row_slices` directly — a dict already built in `_sort_key`
-    order by `_build_xy`, so surviving cells keep that order with no re-sort.
+    order by `_build_x`, so surviving cells keep that order with no re-sort.
     The ordered surviving cells are returned so the inner-CV selector and
     `CellDelayer` can recover per-cell row counts from `data.row_slices` in the
     same row order.
@@ -918,7 +933,8 @@ class Encoding:
         feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
         feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
         self._validate_coverage(sub_id, feature_bids, bold_metas)
-        data = self._build_xy(feature_bids, bold_metas)
+        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
+        data = self._build_training_data(feature_metas, bold_metas)
 
         # himalaya binds the backend at estimator construction, not at fit — set it
         # before building the pipeline or fitting silently falls back to CPU
@@ -964,7 +980,7 @@ class Encoding:
         recipe = replace(self._recipe, col_slices=data.col_slices)
 
         if self._fold is None:
-            # cell order tracks data.row_slices (= _build_xy / _sort_key order)
+            # cell order tracks data.row_slices (= _build_x / _sort_key order)
             ordered_cells = list(data.row_slices)
             pipeline = _fit_model(data.X, data.Y, ordered_cells)
             artifact = EncodingArtifact(
@@ -1030,29 +1046,26 @@ class Encoding:
         enc._recipe = recipe
         return enc
 
-    def predict(
+    def _predict_model(
         self,
         model: EncodingModel,
-        feature_bids: dict[FeatureKey, BIDSPath],
-        bold_metas: dict[BoldKey, BoldMeta],
-        cells: set[CellKey],
+        feature_metas: dict[FeatureKey, FeatureMeta],
     ) -> dict:
-        """Run one model over `cells` of a subject, returning its `Y_hat` (no Y).
+        """Run one model over a pre-selected cell set, returning its `Y_hat` (no Y).
 
-        Consumes pre-discovered `feature_bids`/`bold_metas` (the analyze loop calls
-        predict K times; re-discovering per call means K+1 filesystem scans) and
-        subsets them to `cells`. Rebuilds X via the same `_build_x` path as train,
-        asserts `col_slices` matches the recipe (rebuild guard), resets the loaded
-        pipeline's frozen train cell-lengths to this X's geometry, and predicts on
-        the numpy backend. Discovery already happened upstream.
+        Consumes pre-discovered, pre-enriched `feature_metas` already subset to the
+        selected cells (the analyze loop calls this K times; re-discovering per call
+        means K+1 filesystem scans). Rebuilds X via the same `_build_x` path as
+        train, asserts `col_slices` matches the recipe (rebuild guard), resets the
+        loaded pipeline's frozen train cell-lengths to this X's geometry, and
+        predicts on the numpy backend.
 
         Returns `{"row_slices": ..., "Y_hat": ...}` — per-model, no actual Y. The
         caller does `align_y(target_bold, row_slices)` if it wants Y to compare against.
         """
         from himalaya.backend import set_backend
 
-        sub_feature_bids = {fk: b for fk, b in feature_bids.items() if fk.cell in cells}
-        data = self._build_x(sub_feature_bids, bold_metas)
+        data = self._build_x(feature_metas)
         if data.col_slices != self._recipe.col_slices:
             raise ValueError(
                 f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"
@@ -1465,25 +1478,74 @@ class Encoding:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-    def _build_x(
+    def _enrich_feature_metas(
         self,
         feature_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
-    ) -> XData:
+    ) -> dict[FeatureKey, FeatureMeta]:
+        """Enrich each feature path into a `FeatureMeta` with its TR-grid placement.
+
+        The crossover between feature cells and the BOLD timeline happens here,
+        once: derive `(onset_tr, n_trs)` from the segment TR-slice for segmented
+        runs, or from the run's header `n_trs` for unsegmented runs, and stamp
+        `repetition_time`. `_build_x` then reads placement off the metas and never
+        touches `bold_metas`.
+
+        No BOLD voxel data is read — placement comes from `bold_metas` alone.
+        The header `n_trs` carried by each meta is trusted; `align_y` reconciles
+        it against the actual array.
+        """
+        cells_by_bold_key: dict[BoldKey, set[CellKey]] = {}
+        for feature_key in feature_bids:
+            bold_key = feature_key.cell.to_bold_key()
+            cells_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
+
+        placement_by_cell: dict[CellKey, tuple[int, int, float]] = {}
+        for bold_key, cells in cells_by_bold_key.items():
+            bold_meta = bold_metas[bold_key]
+            if not bold_meta.segments:
+                # Unsegmented: the whole run is one cell spanning the full timeline
+                for cell_key in cells:
+                    placement_by_cell[cell_key] = (
+                        0,
+                        bold_meta.n_trs,
+                        bold_meta.repetition_time,
+                    )
+            else:
+                for cell_key in cells:
+                    segment = next(
+                        seg
+                        for seg in bold_meta.segments
+                        if seg.value == cell_key[seg.entity]
+                    )
+                    tr_slice = segment_tr_slice(segment, bold_meta.repetition_time)
+                    placement_by_cell[cell_key] = (
+                        tr_slice.start,  # onset_tr
+                        tr_slice.stop - tr_slice.start,  # n_trs
+                        bold_meta.repetition_time,
+                    )
+
+        feature_metas: dict[FeatureKey, FeatureMeta] = {}
+        for feature_key, bids in feature_bids.items():
+            onset_tr, n_trs, repetition_time = placement_by_cell[feature_key.cell]
+            feature_metas[feature_key] = FeatureMeta(
+                bids=bids,
+                n_trs=n_trs,
+                onset_tr=onset_tr,
+                repetition_time=repetition_time,
+            )
+        return feature_metas
+
+    def _build_x(self, feature_metas: dict[FeatureKey, FeatureMeta]) -> XData:
         """Assemble the X feature matrix and its row/column geometry, no target.
 
-        Takes `bold_metas` because X's per-cell row count and TR come from the
-        BOLD *timeline* (segment TR slices / array length), not its signal — no
-        BOLD data enters X.
+        Reads `n_trs`/`repetition_time` off each cell's `FeatureMeta` — the
+        crossover with the BOLD timeline already happened in `_enrich_feature_metas`,
+        so X no longer touches `bold_metas` and no BOLD data enters X.
 
         Cells are sorted deterministically so row positions are stable across
         runs. Column layout is derived from the first cell and assumed invariant —
-        all cells must yield the same feature dimensionality. Each cell's row count
-        (`n_trs`) comes from its BOLD sidecar: the segment TR slice for segmented
-        runs, or the array length for unsegmented runs. Only unsegmented runs read
-        a BOLD array here (their `n_trs` has no other source); a fully-segmented
-        study reads zero arrays. Segment-coverage against actual array length is
-        deferred to `align_y`, which reads the arrays for Y.
+        all cells must yield the same feature dimensionality.
         """
 
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
@@ -1497,7 +1559,7 @@ class Encoding:
             return (ses is not None, ses or "", task, run is not None, run or "", *rest)
 
         cell_keys = sorted(
-            {feature_key.cell for feature_key in feature_bids}, key=_sort_key
+            {feature_key.cell for feature_key in feature_metas}, key=_sort_key
         )
 
         X_parts: list[np.ndarray] = []
@@ -1508,31 +1570,24 @@ class Encoding:
         col_slices_initialized = False
 
         for cell_key in cell_keys:
-            bold_key = cell_key.to_bold_key()
-            bold_meta = bold_metas[bold_key]
-
-            # n_trs sets this cell's row span; arrays read only when unsegmented
-            if not bold_meta.segments:
-                n_trs = _load_bold_array(bold_meta.bids.path).shape[0]
-            else:
-                segment_value = cell_key[bold_meta.segments[0].entity]
-                seg = next(s for s in bold_meta.segments if s.value == segment_value)
-                tr_slice = segment_tr_slice(seg, bold_meta.repetition_time)
-                n_trs = tr_slice.stop - tr_slice.start
+            # Geometry is per-cell, shared across this cell's feature metas
+            cell_meta = feature_metas[FeatureKey(cell_key, next(iter(self._features)))]
+            n_trs = cell_meta.n_trs
             row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
             row_offset += n_trs
 
             # Construct X for the given cell
             feature_arrays: list[np.ndarray] = []
             for feature_name in self._features:
-                df = read_feature(feature_bids[FeatureKey(cell_key, feature_name)].path)
+                meta = feature_metas[FeatureKey(cell_key, feature_name)]
+                df = read_feature(meta.bids.path)
                 # Drop untimed rows — downsample needs TR alignment
                 df = df.filter(df.get_column("start_time").is_not_null())
                 arr = downsample(
                     stack_array_column(df.get_column("feature")),
                     start_times=df.get_column("start_time").to_numpy(),
                     n_trs=n_trs,
-                    repetition_time=bold_meta.repetition_time,
+                    repetition_time=meta.repetition_time,
                     method=self.downsample,
                 )
                 feature_arrays.append(arr)
@@ -1547,18 +1602,22 @@ class Encoding:
         X = np.concatenate(X_parts, axis=0)
         return XData(X=X, row_slices=row_slices, col_slices=col_slices)
 
-    def _build_xy(
+    def _build_training_data(
         self,
-        feature_bids: dict[FeatureKey, BIDSPath],
+        feature_metas: dict[FeatureKey, FeatureMeta],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> TrainingData:
-        """Assemble X via `_build_x`, then slice the aligned BOLD target Y onto it.
+        """Bundle X (from `_build_x`) with the aligned BOLD target Y onto its rows.
 
-        Segment slice coverage is validated against actual BOLD array length in
+        The X+Y carrier is train-only — predict stops at X (`_build_x`) and never
+        builds Y. Segment coverage vs. actual BOLD array length is checked in
         `align_y`; a mismatch raises rather than producing a silently truncated Y.
         """
-        data = self._build_x(feature_bids, bold_metas)
-        Y = align_y(bold_metas, data.row_slices)
+        x_data = self._build_x(feature_metas)
+        Y = align_y(bold_metas, x_data.row_slices)
         return TrainingData(
-            X=data.X, row_slices=data.row_slices, col_slices=data.col_slices, Y=Y
+            X=x_data.X,
+            row_slices=x_data.row_slices,
+            col_slices=x_data.col_slices,
+            Y=Y,
         )
