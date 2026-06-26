@@ -32,7 +32,6 @@ from hypline.events import merge_filename_and_sidecar, segment_tr_slice
 from hypline.io import (
     read_feature,
     read_feature_metadata,
-    skip_existing,
     stack_array_column,
 )
 from hypline.layout import BIDSLayout
@@ -132,7 +131,7 @@ class FeatureMeta:
     """One feature cell's TR-grid placement.
 
     Resolved once by `_enrich_feature_metas` so `_build_x` never reads BOLD.
-    `onset_tr` is currently unconsumed — X rows start at 0 per cell, and `align_y`
+    `onset_tr` is currently unconsumed — X rows start at 0 per cell, and `_align_y`
     recomputes its own onset from the target subject's BOLD.
     """
 
@@ -191,7 +190,7 @@ class XRecipe:
 
 
 @dataclass(frozen=True)
-class EncodingModel:
+class FittedModel:
     """One fitted model and the cell set it was fit on.
 
     `train_cells` is the post-filter `row_slices` key set — the cells actually
@@ -229,7 +228,7 @@ class EncodingArtifact:
 
     recipe: XRecipe
     fold: FoldSpec | None
-    models: list[EncodingModel]
+    models: list[FittedModel]
     universe: set[CellKey] | None
 
 
@@ -425,7 +424,7 @@ def _load_bold_array(path: Path) -> np.ndarray:
         raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
 
-def align_y(
+def _align_y(
     bold_metas: dict[BoldKey, BoldMeta], row_slices: dict[CellKey, slice]
 ) -> np.ndarray:
     """Slice each cell's BOLD response onto X's row geometry.
@@ -638,10 +637,10 @@ def _assert_same_cell_schema(
         )
 
 
-def select_cells(
+def _select_cells(
     available: set[CellKey],
     artifact: "EncodingArtifact",
-    model: "EncodingModel",
+    model: "FittedModel",
     test_on: dict[str, str] | None = None,
 ) -> set[CellKey]:
     """Choose which cells `model` predicts on — OOS by default, or `test_on`.
@@ -734,7 +733,7 @@ def _numpyfy_fitted(obj: object, _seen: set[int] | None = None) -> None:
         setattr(obj, attr, _convert(value))
 
 
-def _write_artifact(artifact: EncodingArtifact, path: Path) -> None:
+def write_artifact(artifact: EncodingArtifact, path: Path) -> None:
     """Dump `artifact` to `path` (.joblib) plus a non-pipeline JSON sidecar.
 
     Forces fitted weights to numpy before the joblib dump (see `_numpyfy_fitted`)
@@ -814,267 +813,41 @@ def load_artifact(path: Path) -> EncodingArtifact:
     return joblib.load(path)
 
 
-class Encoding:
-    def __init__(
-        self,
-        config: EncodingConfig,
-        *,
-        bids_root: str | Path,
-        features: list[str],
-        tasks: list[str],
-        bold_space: str,
-        bold_desc: str = "denoised",
-        downsample: FeatureDownsampleMethod = "mean",
-        bids_filters: list[str] | None = None,
-        fold_by: str | None = None,
-        n_folds: int | Literal["loo"] | None = None,
-        desc: str,
-        force: bool = False,
-    ):
-        import torch
+class _EncodingContext:
+    """Shared recipe-derived discovery/build path for train and predict.
 
-        if config.device is Device.CUDA and not torch.cuda.is_available():
-            raise RuntimeError("CUDA is requested but not available")
-        self.config = config
-        self._layout = BIDSLayout(bids_root)
+    Not instantiated directly. Both `EncodingTrainer` and `EncodingPredictor`
+    inherit these methods; they differ only in how the recipe attrs are
+    populated (validated constructor args vs. a loaded artifact).
+    """
 
-        if not features:
-            raise ValueError("features must be a non-empty list")
-        parsed = [parse_kind_desc(entry) for entry in features]
-        kinds = [kind for kind, _ in parsed]
-        if len(kinds) != len(set(kinds)):
-            dupes = sorted({k for k in kinds if kinds.count(k) > 1})
-            raise ValueError(
-                f"Duplicate feature kind(s) {dupes} in features"
-                " — each kind may appear once"
-            )
-        # Iteration order fixes X column layout
-        self._features: dict[str, tuple[str, str | None]] = dict(zip(features, parsed))
+    # Attribute contract: subclasses set these (trainer in __init__, predictor via
+    # _set_recipe_attrs). Declared here so the shared methods type-check against the
+    # base. `_layout` is caller-supplied (bids_root); the rest are recipe-derived.
+    _layout: BIDSLayout
+    _features: dict[str, tuple[str, str | None]]
+    tasks: list[str]
+    _task_filters: list[str]
+    bold_space: SurfaceSpace | VolumeSpace
+    _bold_desc: str
+    downsample: FeatureDownsampleMethod
+    _recipe: XRecipe
 
-        if not tasks:
-            raise ValueError("tasks must be a non-empty list")
-        if len(tasks) != len(set(tasks)):
-            dupes = sorted({t for t in tasks if tasks.count(t) > 1})
-            raise ValueError(f"Duplicate entries in tasks: {dupes}")
-        self.tasks = tasks
-        self._task_filters = [f"task-{task}" for task in tasks]
+    def _set_recipe_attrs(self, recipe: XRecipe) -> None:
+        """Populate the recipe-derived attrs both roles share.
 
-        self.bold_space = parse_bold_space(bold_space)
-
-        if not BIDS_ENTITY_VALUE_RE.match(bold_desc):
-            raise ValueError(f"Invalid bold_desc: {bold_desc!r}")
-        self._bold_desc = bold_desc
-
-        if downsample not in get_args(FeatureDownsampleMethod):
-            raise ValueError(
-                f"downsample must be one of {get_args(FeatureDownsampleMethod)};"
-                f" got {downsample!r}"
-            )
-        self.downsample = downsample
-
-        self.bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
-        )
-
-        # fold_by/n_folds are paired: both define one fold group or neither does.
-        # Only subject-independent checks run here; group-count and entity-presence
-        # validation is data-dependent and deferred to train / _partition_groups.
-        if (fold_by is None) != (n_folds is None):
-            raise ValueError(
-                "fold_by and n_folds must be set together or both left unset; "
-                f"got fold_by={fold_by!r}, n_folds={n_folds!r}"
-            )
-        self._fold: FoldSpec | None = None
-        if fold_by is not None:
-            assert n_folds is not None
-            if fold_by in CellKey.EXCLUDE:
-                raise ValueError(
-                    f"fold_by={fold_by!r} is not a cell axis (it never appears on "
-                    f"a cell); valid axes exclude {sorted(CellKey.EXCLUDE)}"
-                )
-            if n_folds != "loo" and n_folds < 2:
-                raise ValueError(
-                    f"n_folds must be >= 2 or 'loo'; got {n_folds!r}. A single fold "
-                    "is no split — pass n_folds=None for a single model"
-                )
-            self._fold = FoldSpec(by=fold_by, n=n_folds)
-
-        if not BIDS_ENTITY_VALUE_RE.match(desc):
-            raise ValueError(f"Invalid desc: {desc!r}")
-        self._desc = desc
-        self._force = force
-
-        # col_slices is filled by train from the assembled TrainingData
-        self._recipe = XRecipe(
-            features=self._features,
-            tasks=self.tasks,
-            bold_space=self.bold_space,
-            bold_desc=self._bold_desc,
-            downsample=self.downsample,
-            bids_filters=self.bids_filters,
-            delays=self.config.delays,
-            alphas=self.config.alphas,
-        )
-
-    def train(self, sub_id: str) -> EncodingArtifact:
-        """Fit the encoding model for a subject and persist it as an artifact.
-
-        Writes a `.joblib` blob plus a JSON sidecar to the `desc`-keyed results
-        path and returns the in-memory `EncodingArtifact`. An existing file is
-        left untouched and loaded back unless `force=True` — the fit is skipped
-        entirely, mirroring featuregen/confoundgen's check-before-compute.
+        These attrs drive the discovery/build path (`_discover_*`, `_build_x`).
+        The trainer fills them inline during validated `__init__`; the predictor
+        calls this from a loaded `artifact.recipe`. `_layout`/`_artifact` are set
+        by the caller — they are not recipe-derived (`bids_root` is a caller arg).
         """
-        out = self._layout.path.result(sub=sub_id, kind="encoding", desc=self._desc)
-        if skip_existing(out.path, force=self._force):
-            return load_artifact(out.path)
-
-        feature_bids = self._discover_features(sub_id)
-        bold_metas = self._discover_bold(sub_id)
-        feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
-        feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
-        self._validate_coverage(sub_id, feature_bids, bold_metas)
-        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
-        data = self._build_training_data(feature_metas, bold_metas)
-
-        # himalaya binds the backend at estimator construction, not at fit — set it
-        # before building the pipeline or fitting silently falls back to CPU
-        from himalaya.backend import set_backend
-
-        set_backend("torch_cuda" if self.config.device is Device.CUDA else "torch")
-
-        # segment entity is invariant across bold_metas (validated in _discover_bold);
-        # None when runs are unsegmented
-        segment_metas = [meta for meta in (bold_metas or {}).values() if meta.segments]
-        segment_entity = segment_metas[0].segments[0].entity if segment_metas else None
-
-        def _fit_model(
-            X: np.ndarray,
-            Y: np.ndarray,
-            ordered_cells: list[CellKey],
-        ):
-            # Each fold needs a fresh pipeline: cell_lengths differ per fold and
-            # CellDelayer's boundary masks are built from them at construction.
-            # Inner CV is rebuilt per model so its hyperparameter search stays
-            # confined to that model's own train cells.
-            cell_lengths = [
-                data.row_slices[cell].stop - data.row_slices[cell].start
-                for cell in ordered_cells
-            ]
-            cv = _inner_cv(
-                ordered_cells=ordered_cells,
-                cell_lengths=cell_lengths,
-                segment_entity=segment_entity,
-                fold=self._fold,
-            )
-            pipeline = _build_pipeline(
-                col_slices=data.col_slices,
-                cell_lengths=cell_lengths,
-                delays=self.config.delays,
-                alphas=self.config.alphas,
-                cv=cv,
-            )
-            # torch backends want float32; float64 doubles memory and can error on CUDA
-            pipeline.fit(X.astype(np.float32), Y.astype(np.float32))
-            return pipeline
-
-        recipe = replace(self._recipe, col_slices=data.col_slices)
-
-        if self._fold is None:
-            # cell order tracks data.row_slices (= _build_x / _sort_key order)
-            ordered_cells = list(data.row_slices)
-            pipeline = _fit_model(data.X, data.Y, ordered_cells)
-            artifact = EncodingArtifact(
-                recipe=recipe,
-                fold=None,
-                models=[
-                    EncodingModel(pipeline=pipeline, train_cells=set(data.row_slices))
-                ],
-                universe=None,
-            )
-        else:
-            all_cells = set(data.row_slices)
-            groups = _group_cells_by(all_cells, self._fold.by)
-            held_out = _partition_groups(groups, self._fold.n)
-            models = []
-            for held in held_out:
-                train_cells = all_cells - held
-                X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
-                pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
-                models.append(EncodingModel(pipeline=pipeline, train_cells=train_cells))
-            artifact = EncodingArtifact(
-                recipe=recipe, fold=self._fold, models=models, universe=all_cells
-            )
-
-        _write_artifact(artifact, out.path)
-        return artifact
-
-    @classmethod
-    def load(cls, bids_root: str | Path, *, sub: str, desc: str) -> EncodingArtifact:
-        """Load a persisted encoding artifact, resolving it from `(sub, desc)`.
-
-        `(sub, kind="encoding", desc)` fully determines the file, so no
-        `Encoding` instance or recipe is needed to read one back.
-        """
-        layout = BIDSLayout(bids_root)
-        out = layout.path.result(sub=sub, kind="encoding", desc=desc)
-        return load_artifact(out.path)
-
-    @classmethod
-    def _from_recipe(cls, recipe: XRecipe, bids_root: str | Path) -> "Encoding":
-        """Rebuild an `Encoding` from a stored recipe to drive predict.
-
-        Predict has no constructor args and runs on a possibly different subject
-        in a different `bids_root`, but discovery/build are instance methods
-        reading `self._features`, `self.bold_space`, etc. Reconstruct exactly those
-        attributes from the recipe. `__new__` bypasses `__init__` validation —
-        recipe values were validated at train, and re-running validation would
-        require dummy `desc`/`fold`/`force` args for no gain.
-
-        No `config`/`device`: predict runs on the numpy backend (CPU always), and
-        the discovery/build path predict uses reads no `self.config`. `bids_root`
-        is a caller argument, deliberately not part of X identity. The loaded
-        recipe carries `col_slices` (train-filled) for the rebuild assert.
-        """
-        enc = cls.__new__(cls)
-        enc._layout = BIDSLayout(bids_root)
-        enc._features = recipe.features
-        enc.tasks = recipe.tasks
-        enc._task_filters = [f"task-{task}" for task in recipe.tasks]
-        enc.bold_space = recipe.bold_space
-        enc._bold_desc = recipe.bold_desc
-        enc.downsample = recipe.downsample
-        enc._recipe = recipe
-        return enc
-
-    def _predict_model(
-        self,
-        model: EncodingModel,
-        feature_metas: dict[FeatureKey, FeatureMeta],
-    ) -> dict:
-        """Run one model over a pre-selected cell set, returning its `Y_hat` (no Y).
-
-        Consumes pre-discovered, pre-enriched `feature_metas` already subset to the
-        selected cells (the analyze loop calls this K times; re-discovering per call
-        means K+1 filesystem scans). Rebuilds X via the same `_build_x` path as
-        train, asserts `col_slices` matches the recipe (rebuild guard), resets the
-        loaded pipeline's frozen train cell-lengths to this X's geometry, and
-        predicts on the numpy backend.
-
-        Returns `{"row_slices": ..., "Y_hat": ...}` — per-model, no actual Y. The
-        caller does `align_y(target_bold, row_slices)` if it wants Y to compare against.
-        """
-        from himalaya.backend import set_backend
-
-        data = self._build_x(feature_metas)
-        if data.col_slices != self._recipe.col_slices:
-            raise ValueError(
-                f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"
-            )
-        set_backend("numpy")
-        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
-        _reset_cell_lengths(model.pipeline, cell_lengths)
-        Y_hat = model.pipeline.predict(data.X.astype(np.float32))
-        return {"row_slices": data.row_slices, "Y_hat": Y_hat}
+        self._features = recipe.features
+        self.tasks = recipe.tasks
+        self._task_filters = [f"task-{task}" for task in recipe.tasks]
+        self.bold_space = recipe.bold_space
+        self._bold_desc = recipe.bold_desc
+        self.downsample = recipe.downsample
+        self._recipe = recipe
 
     def _discover_features(self, sub_id: str) -> dict[FeatureKey, BIDSPath]:
         """Discover and validate feature file paths for a subject.
@@ -1363,6 +1136,315 @@ class Encoding:
 
         return resolved_feature_bids
 
+    def _enrich_feature_metas(
+        self,
+        feature_bids: dict[FeatureKey, BIDSPath],
+        bold_metas: dict[BoldKey, BoldMeta],
+    ) -> dict[FeatureKey, FeatureMeta]:
+        """Enrich each feature path into a `FeatureMeta` with its TR-grid placement.
+
+        The crossover between feature cells and the BOLD timeline happens here,
+        once: derive `(onset_tr, n_trs)` from the segment TR-slice for segmented
+        runs, or from the run's header `n_trs` for unsegmented runs, and stamp
+        `repetition_time`. `_build_x` then reads placement off the metas and never
+        touches `bold_metas`.
+
+        No BOLD voxel data is read — placement comes from `bold_metas` alone.
+        The header `n_trs` carried by each meta is trusted; `_align_y` reconciles
+        it against the actual array.
+        """
+        cells_by_bold_key: dict[BoldKey, set[CellKey]] = {}
+        for feature_key in feature_bids:
+            bold_key = feature_key.cell.to_bold_key()
+            cells_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
+
+        placement_by_cell: dict[CellKey, tuple[int, int, float]] = {}
+        for bold_key, cells in cells_by_bold_key.items():
+            bold_meta = bold_metas[bold_key]
+            if not bold_meta.segments:
+                # Unsegmented: the whole run is one cell spanning the full timeline
+                for cell_key in cells:
+                    placement_by_cell[cell_key] = (
+                        0,
+                        bold_meta.n_trs,
+                        bold_meta.repetition_time,
+                    )
+            else:
+                for cell_key in cells:
+                    segment = next(
+                        seg
+                        for seg in bold_meta.segments
+                        if seg.value == cell_key[seg.entity]
+                    )
+                    tr_slice = segment_tr_slice(segment, bold_meta.repetition_time)
+                    placement_by_cell[cell_key] = (
+                        tr_slice.start,  # onset_tr
+                        tr_slice.stop - tr_slice.start,  # n_trs
+                        bold_meta.repetition_time,
+                    )
+
+        feature_metas: dict[FeatureKey, FeatureMeta] = {}
+        for feature_key, bids in feature_bids.items():
+            onset_tr, n_trs, repetition_time = placement_by_cell[feature_key.cell]
+            feature_metas[feature_key] = FeatureMeta(
+                bids=bids,
+                n_trs=n_trs,
+                onset_tr=onset_tr,
+                repetition_time=repetition_time,
+            )
+        return feature_metas
+
+    def _build_x(self, feature_metas: dict[FeatureKey, FeatureMeta]) -> XData:
+        """Assemble the X feature matrix and its row/column geometry, no target.
+
+        Reads `n_trs`/`repetition_time` off each cell's `FeatureMeta` — the
+        crossover with the BOLD timeline already happened in `_enrich_feature_metas`,
+        so X no longer touches `bold_metas` and no BOLD data enters X.
+
+        Cells are sorted deterministically so row positions are stable across
+        runs. Column layout is derived from the first cell and assumed invariant —
+        all cells must yield the same feature dimensionality.
+        """
+
+        # None sorts before any value; empty string is a stable tiebreaker for ses/run
+        def _sort_key(k: CellKey) -> tuple:
+            ses = k.get("ses")
+            task = k["task"]
+            run = k.get("run")
+            rest = sorted(
+                val for key, val in k.items() if key not in ("ses", "run", "task")
+            )
+            return (ses is not None, ses or "", task, run is not None, run or "", *rest)
+
+        cell_keys = sorted(
+            {feature_key.cell for feature_key in feature_metas}, key=_sort_key
+        )
+
+        X_parts: list[np.ndarray] = []
+        row_slices: dict[CellKey, slice] = {}
+        col_slices: dict[str, slice] = {}
+        row_offset = 0
+        col_offset = 0
+        col_slices_initialized = False
+
+        for cell_key in cell_keys:
+            # Geometry is per-cell, shared across this cell's feature metas
+            cell_meta = feature_metas[FeatureKey(cell_key, next(iter(self._features)))]
+            n_trs = cell_meta.n_trs
+            row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
+            row_offset += n_trs
+
+            # Construct X for the given cell
+            feature_arrays: list[np.ndarray] = []
+            for feature_name in self._features:
+                meta = feature_metas[FeatureKey(cell_key, feature_name)]
+                df = read_feature(meta.bids.path)
+                # Drop untimed rows — downsample needs TR alignment
+                df = df.filter(df.get_column("start_time").is_not_null())
+                arr = downsample(
+                    stack_array_column(df.get_column("feature")),
+                    start_times=df.get_column("start_time").to_numpy(),
+                    n_trs=n_trs,
+                    repetition_time=meta.repetition_time,
+                    method=self.downsample,
+                )
+                feature_arrays.append(arr)
+            if not col_slices_initialized:
+                for feature_name, arr in zip(self._features, feature_arrays):
+                    n_cols = arr.shape[1]
+                    col_slices[feature_name] = slice(col_offset, col_offset + n_cols)
+                    col_offset += n_cols
+                col_slices_initialized = True  # col slices are invariant across cells
+            X_parts.append(np.hstack(feature_arrays))
+
+        X = np.concatenate(X_parts, axis=0)
+        return XData(X=X, row_slices=row_slices, col_slices=col_slices)
+
+
+class EncodingTrainer(_EncodingContext):
+    """Recipe -> fit -> artifact. Owns validation, filtering, and Y-build."""
+
+    def __init__(
+        self,
+        config: EncodingConfig,
+        *,
+        bids_root: str | Path,
+        features: list[str],
+        tasks: list[str],
+        bold_space: str,
+        bold_desc: str = "denoised",
+        downsample: FeatureDownsampleMethod = "mean",
+        bids_filters: list[str] | None = None,
+        fold_by: str | None = None,
+        n_folds: int | Literal["loo"] | None = None,
+    ):
+        import torch
+
+        if config.device is Device.CUDA and not torch.cuda.is_available():
+            raise RuntimeError("CUDA is requested but not available")
+        self.config = config
+        self._layout = BIDSLayout(bids_root)
+
+        if not features:
+            raise ValueError("features must be a non-empty list")
+        parsed = [parse_kind_desc(entry) for entry in features]
+        kinds = [kind for kind, _ in parsed]
+        if len(kinds) != len(set(kinds)):
+            dupes = sorted({k for k in kinds if kinds.count(k) > 1})
+            raise ValueError(
+                f"Duplicate feature kind(s) {dupes} in features"
+                " — each kind may appear once"
+            )
+        # Iteration order fixes X column layout
+        self._features: dict[str, tuple[str, str | None]] = dict(zip(features, parsed))
+
+        if not tasks:
+            raise ValueError("tasks must be a non-empty list")
+        if len(tasks) != len(set(tasks)):
+            dupes = sorted({t for t in tasks if tasks.count(t) > 1})
+            raise ValueError(f"Duplicate entries in tasks: {dupes}")
+        self.tasks = tasks
+        self._task_filters = [f"task-{task}" for task in tasks]
+
+        self.bold_space = parse_bold_space(bold_space)
+
+        if not BIDS_ENTITY_VALUE_RE.match(bold_desc):
+            raise ValueError(f"Invalid bold_desc: {bold_desc!r}")
+        self._bold_desc = bold_desc
+
+        if downsample not in get_args(FeatureDownsampleMethod):
+            raise ValueError(
+                f"downsample must be one of {get_args(FeatureDownsampleMethod)};"
+                f" got {downsample!r}"
+            )
+        self.downsample = downsample
+
+        self.bids_filters = normalize_bids_filters(
+            bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
+        )
+
+        # fold_by/n_folds are paired: both define one fold group or neither does.
+        # Only subject-independent checks run here; group-count and entity-presence
+        # validation is data-dependent and deferred to train / _partition_groups.
+        if (fold_by is None) != (n_folds is None):
+            raise ValueError(
+                "fold_by and n_folds must be set together or both left unset; "
+                f"got fold_by={fold_by!r}, n_folds={n_folds!r}"
+            )
+        self._fold: FoldSpec | None = None
+        if fold_by is not None:
+            assert n_folds is not None
+            if fold_by in CellKey.EXCLUDE:
+                raise ValueError(
+                    f"fold_by={fold_by!r} is not a cell axis (it never appears on "
+                    f"a cell); valid axes exclude {sorted(CellKey.EXCLUDE)}"
+                )
+            if n_folds != "loo" and n_folds < 2:
+                raise ValueError(
+                    f"n_folds must be >= 2 or 'loo'; got {n_folds!r}. A single fold "
+                    "is no split — pass n_folds=None for a single model"
+                )
+            self._fold = FoldSpec(by=fold_by, n=n_folds)
+
+        # col_slices is filled by train from the assembled TrainingData
+        self._recipe = XRecipe(
+            features=self._features,
+            tasks=self.tasks,
+            bold_space=self.bold_space,
+            bold_desc=self._bold_desc,
+            downsample=self.downsample,
+            bids_filters=self.bids_filters,
+            delays=self.config.delays,
+            alphas=self.config.alphas,
+        )
+
+    def train(self, sub_id: str) -> EncodingArtifact:
+        """Fit the encoding model for a subject and return the in-memory artifact.
+
+        Pure compute: discovers, builds X/Y, fits, and returns the
+        `EncodingArtifact`. Persistence is the caller's concern — pass the result
+        to `write_artifact` to store it, and gate the fit on `skip_existing`
+        before calling if a check-before-compute cache is wanted.
+        """
+        feature_bids = self._discover_features(sub_id)
+        bold_metas = self._discover_bold(sub_id)
+        feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
+        feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
+        self._validate_coverage(sub_id, feature_bids, bold_metas)
+        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
+        data = self._build_training_data(feature_metas, bold_metas)
+
+        # himalaya binds the backend at estimator construction, not at fit — set it
+        # before building the pipeline or fitting silently falls back to CPU
+        from himalaya.backend import set_backend
+
+        set_backend("torch_cuda" if self.config.device is Device.CUDA else "torch")
+
+        # segment entity is invariant across bold_metas (validated in _discover_bold);
+        # None when runs are unsegmented
+        segment_metas = [meta for meta in (bold_metas or {}).values() if meta.segments]
+        segment_entity = segment_metas[0].segments[0].entity if segment_metas else None
+
+        def _fit_model(
+            X: np.ndarray,
+            Y: np.ndarray,
+            ordered_cells: list[CellKey],
+        ):
+            # Each fold needs a fresh pipeline: cell_lengths differ per fold and
+            # CellDelayer's boundary masks are built from them at construction.
+            # Inner CV is rebuilt per model so its hyperparameter search stays
+            # confined to that model's own train cells.
+            cell_lengths = [
+                data.row_slices[cell].stop - data.row_slices[cell].start
+                for cell in ordered_cells
+            ]
+            cv = _inner_cv(
+                ordered_cells=ordered_cells,
+                cell_lengths=cell_lengths,
+                segment_entity=segment_entity,
+                fold=self._fold,
+            )
+            pipeline = _build_pipeline(
+                col_slices=data.col_slices,
+                cell_lengths=cell_lengths,
+                delays=self.config.delays,
+                alphas=self.config.alphas,
+                cv=cv,
+            )
+            # torch backends want float32; float64 doubles memory and can error on CUDA
+            pipeline.fit(X.astype(np.float32), Y.astype(np.float32))
+            return pipeline
+
+        recipe = replace(self._recipe, col_slices=data.col_slices)
+
+        if self._fold is None:
+            # cell order tracks data.row_slices (= _build_x / _sort_key order)
+            ordered_cells = list(data.row_slices)
+            pipeline = _fit_model(data.X, data.Y, ordered_cells)
+            artifact = EncodingArtifact(
+                recipe=recipe,
+                fold=None,
+                models=[
+                    FittedModel(pipeline=pipeline, train_cells=set(data.row_slices))
+                ],
+                universe=None,
+            )
+        else:
+            all_cells = set(data.row_slices)
+            groups = _group_cells_by(all_cells, self._fold.by)
+            held_out = _partition_groups(groups, self._fold.n)
+            models = []
+            for held in held_out:
+                train_cells = all_cells - held
+                X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
+                pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
+                models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
+            artifact = EncodingArtifact(
+                recipe=recipe, fold=self._fold, models=models, universe=all_cells
+            )
+
+        return artifact
+
     def _apply_filters(
         self,
         sub_id: str,
@@ -1478,130 +1560,6 @@ class Encoding:
                 msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-    def _enrich_feature_metas(
-        self,
-        feature_bids: dict[FeatureKey, BIDSPath],
-        bold_metas: dict[BoldKey, BoldMeta],
-    ) -> dict[FeatureKey, FeatureMeta]:
-        """Enrich each feature path into a `FeatureMeta` with its TR-grid placement.
-
-        The crossover between feature cells and the BOLD timeline happens here,
-        once: derive `(onset_tr, n_trs)` from the segment TR-slice for segmented
-        runs, or from the run's header `n_trs` for unsegmented runs, and stamp
-        `repetition_time`. `_build_x` then reads placement off the metas and never
-        touches `bold_metas`.
-
-        No BOLD voxel data is read — placement comes from `bold_metas` alone.
-        The header `n_trs` carried by each meta is trusted; `align_y` reconciles
-        it against the actual array.
-        """
-        cells_by_bold_key: dict[BoldKey, set[CellKey]] = {}
-        for feature_key in feature_bids:
-            bold_key = feature_key.cell.to_bold_key()
-            cells_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
-
-        placement_by_cell: dict[CellKey, tuple[int, int, float]] = {}
-        for bold_key, cells in cells_by_bold_key.items():
-            bold_meta = bold_metas[bold_key]
-            if not bold_meta.segments:
-                # Unsegmented: the whole run is one cell spanning the full timeline
-                for cell_key in cells:
-                    placement_by_cell[cell_key] = (
-                        0,
-                        bold_meta.n_trs,
-                        bold_meta.repetition_time,
-                    )
-            else:
-                for cell_key in cells:
-                    segment = next(
-                        seg
-                        for seg in bold_meta.segments
-                        if seg.value == cell_key[seg.entity]
-                    )
-                    tr_slice = segment_tr_slice(segment, bold_meta.repetition_time)
-                    placement_by_cell[cell_key] = (
-                        tr_slice.start,  # onset_tr
-                        tr_slice.stop - tr_slice.start,  # n_trs
-                        bold_meta.repetition_time,
-                    )
-
-        feature_metas: dict[FeatureKey, FeatureMeta] = {}
-        for feature_key, bids in feature_bids.items():
-            onset_tr, n_trs, repetition_time = placement_by_cell[feature_key.cell]
-            feature_metas[feature_key] = FeatureMeta(
-                bids=bids,
-                n_trs=n_trs,
-                onset_tr=onset_tr,
-                repetition_time=repetition_time,
-            )
-        return feature_metas
-
-    def _build_x(self, feature_metas: dict[FeatureKey, FeatureMeta]) -> XData:
-        """Assemble the X feature matrix and its row/column geometry, no target.
-
-        Reads `n_trs`/`repetition_time` off each cell's `FeatureMeta` — the
-        crossover with the BOLD timeline already happened in `_enrich_feature_metas`,
-        so X no longer touches `bold_metas` and no BOLD data enters X.
-
-        Cells are sorted deterministically so row positions are stable across
-        runs. Column layout is derived from the first cell and assumed invariant —
-        all cells must yield the same feature dimensionality.
-        """
-
-        # None sorts before any value; empty string is a stable tiebreaker for ses/run
-        def _sort_key(k: CellKey) -> tuple:
-            ses = k.get("ses")
-            task = k["task"]
-            run = k.get("run")
-            rest = sorted(
-                val for key, val in k.items() if key not in ("ses", "run", "task")
-            )
-            return (ses is not None, ses or "", task, run is not None, run or "", *rest)
-
-        cell_keys = sorted(
-            {feature_key.cell for feature_key in feature_metas}, key=_sort_key
-        )
-
-        X_parts: list[np.ndarray] = []
-        row_slices: dict[CellKey, slice] = {}
-        col_slices: dict[str, slice] = {}
-        row_offset = 0
-        col_offset = 0
-        col_slices_initialized = False
-
-        for cell_key in cell_keys:
-            # Geometry is per-cell, shared across this cell's feature metas
-            cell_meta = feature_metas[FeatureKey(cell_key, next(iter(self._features)))]
-            n_trs = cell_meta.n_trs
-            row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
-            row_offset += n_trs
-
-            # Construct X for the given cell
-            feature_arrays: list[np.ndarray] = []
-            for feature_name in self._features:
-                meta = feature_metas[FeatureKey(cell_key, feature_name)]
-                df = read_feature(meta.bids.path)
-                # Drop untimed rows — downsample needs TR alignment
-                df = df.filter(df.get_column("start_time").is_not_null())
-                arr = downsample(
-                    stack_array_column(df.get_column("feature")),
-                    start_times=df.get_column("start_time").to_numpy(),
-                    n_trs=n_trs,
-                    repetition_time=meta.repetition_time,
-                    method=self.downsample,
-                )
-                feature_arrays.append(arr)
-            if not col_slices_initialized:
-                for feature_name, arr in zip(self._features, feature_arrays):
-                    n_cols = arr.shape[1]
-                    col_slices[feature_name] = slice(col_offset, col_offset + n_cols)
-                    col_offset += n_cols
-                col_slices_initialized = True  # col slices are invariant across cells
-            X_parts.append(np.hstack(feature_arrays))
-
-        X = np.concatenate(X_parts, axis=0)
-        return XData(X=X, row_slices=row_slices, col_slices=col_slices)
-
     def _build_training_data(
         self,
         feature_metas: dict[FeatureKey, FeatureMeta],
@@ -1611,13 +1569,125 @@ class Encoding:
 
         The X+Y carrier is train-only — predict stops at X (`_build_x`) and never
         builds Y. Segment coverage vs. actual BOLD array length is checked in
-        `align_y`; a mismatch raises rather than producing a silently truncated Y.
+        `_align_y`; a mismatch raises rather than producing a silently truncated Y.
         """
         x_data = self._build_x(feature_metas)
-        Y = align_y(bold_metas, x_data.row_slices)
+        Y = _align_y(bold_metas, x_data.row_slices)
         return TrainingData(
             X=x_data.X,
             row_slices=x_data.row_slices,
             col_slices=x_data.col_slices,
             Y=Y,
         )
+
+
+class EncodingPredictor(_EncodingContext):
+    """Loaded artifact -> inference. Rebuilds X via the shared path."""
+
+    def __init__(self, *, bids_root: str | Path, artifact: EncodingArtifact) -> None:
+        """Wrap a loaded artifact to drive predict on a given `bids_root`.
+
+        Reconstructs the discovery/build attrs from `artifact.recipe` (validated
+        at train, so no re-validation here) and stashes the whole `artifact`: the
+        `predict` loop reads `artifact.models`/`artifact.universe` to select cells
+        per model, and `_predict_model` reads `self._recipe.col_slices` for the
+        rebuild guard. Both come off the one loaded artifact.
+
+        No `config`/`device`: predict runs on the numpy backend (CPU always) and
+        the discovery/build path reads no `self.config`. `bids_root` is a caller
+        argument, deliberately not part of X identity; the loaded recipe carries
+        `col_slices` (train-filled) for the rebuild guard.
+        """
+        self._layout = BIDSLayout(bids_root)
+        self._set_recipe_attrs(artifact.recipe)
+        self._artifact = artifact
+
+    @classmethod
+    def load(
+        cls,
+        *,
+        bids_root: str | Path,
+        sub_id: str,
+        desc: str,
+    ) -> "EncodingPredictor":
+        """Load a persisted artifact by `(sub_id, desc)` and wrap it for predict.
+
+        `(sub_id, kind="encoding", desc)` fully determines the file. `sub_id` is the
+        *model* subject (whose trained weights); the source subject is passed to
+        `predict`, and may differ.
+        """
+        layout = BIDSLayout(bids_root)
+        out = layout.path.result(sub=sub_id, kind="encoding", desc=desc)
+        return cls(bids_root=bids_root, artifact=load_artifact(out.path))
+
+    def predict(
+        self,
+        source_sub_id: str,
+        test_on: dict[str, str] | None = None,
+    ) -> list[dict]:
+        """Predict each model's `Y_hat` from a source subject's features.
+
+        Discovers and enriches the features for `source_sub_id` once (the per-model
+        loop reuses one filesystem scan), then for each model in the artifact selects
+        its cells (OOS by default, or `test_on`), subsets the enriched metas, and
+        runs `_predict_model`. Returns one `{row_slices, Y_hat}` per model, in
+        `artifact.models` order — a single-model artifact yields a length-1 list.
+
+        Predict-only: no target Y. `source_sub_id` provides features (X); the model's
+        weights are baked in at load (`EncodingPredictor.__init__`). Comparing
+        `Y_hat` against a target subject's actual BOLD is the `analyze` exercise
+        — it calls
+        `_align_y` on the returned `row_slices` with the target's `bold_metas`.
+
+        Uses full discovery, not the recipe's `bids_filters`: `_select_cells`
+        trusts the stored `train`/`universe` sets and may name cells (`test_on`)
+        outside the train corpus, so the source's available cells must not be
+        pre-narrowed by replaying train-time filters. `_apply_filters` and
+        `_validate_coverage` (a train coverage invariant) are deliberately skipped.
+        """
+        feature_bids = self._discover_features(source_sub_id)
+        bold_metas = self._discover_bold(source_sub_id)
+        feature_bids = self._resolve_cell_keys(source_sub_id, feature_bids, bold_metas)
+        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
+        available = {feature_key.cell for feature_key in feature_metas}
+
+        results: list[dict] = []
+        for model in self._artifact.models:
+            cells = _select_cells(available, self._artifact, model, test_on)
+            sub_metas = {
+                feature_key: meta
+                for feature_key, meta in feature_metas.items()
+                if feature_key.cell in cells
+            }
+            results.append(self._predict_model(model, sub_metas))
+        return results
+
+    def _predict_model(
+        self,
+        model: FittedModel,
+        feature_metas: dict[FeatureKey, FeatureMeta],
+    ) -> dict:
+        """Run one model over a pre-selected cell set, returning its `Y_hat` (no Y).
+
+        Consumes pre-discovered, pre-enriched `feature_metas` already subset to the
+        selected cells (the analyze loop calls this K times; re-discovering per call
+        means K+1 filesystem scans). Rebuilds X via the same `_build_x` path as
+        train, asserts `col_slices` matches the recipe (rebuild guard), resets the
+        loaded pipeline's frozen train cell-lengths to this X's geometry, and
+        predicts on the numpy backend.
+
+        Returns `{"row_slices": ..., "Y_hat": ...}` — per-model, no actual Y. The
+        caller does `_align_y(target_bold, row_slices)` for Y to compare against.
+        """
+        from himalaya.backend import set_backend
+
+        data = self._build_x(feature_metas)
+        if data.col_slices != self._recipe.col_slices:
+            raise ValueError(
+                f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"
+            )
+        set_backend("numpy")
+        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
+        _reset_cell_lengths(model.pipeline, cell_lengths)
+        Y_hat = model.pipeline.predict(data.X.astype(np.float32))
+        return {"row_slices": data.row_slices, "Y_hat": Y_hat}
