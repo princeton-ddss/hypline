@@ -612,87 +612,71 @@ def _reset_cell_lengths(pipeline: "Pipeline", cell_lengths: list[int]) -> None:
                 step.cell_lengths = cell_lengths
 
 
-def _matches(cell: CellKey, test_on: dict[str, str]) -> bool:
-    """Whether `cell` satisfies every entity constraint in `test_on`.
+def _select_cells(
+    available: set[CellKey],
+    artifact: "EncodingArtifact",
+    model: "FittedModel",
+    *,
+    test_on: dict[str, str] | None = None,
+) -> set[CellKey]:
+    """Choose which cells `model` predicts on — out-of-sample by default, or `test_on`.
 
-    Mirrors `_apply_filters._cell_matches`: each `entity -> value` must equal the
-    cell's value for that entity (absent entity never matches). `test_on` is an
-    already-parsed selector; its string grammar is a predict-CLI concern.
+    `available` is the source subject's *full* discovered cell set. Recipe filters
+    are deliberately not replayed: the stored `train`/`universe` sets are trusted,
+    and `test_on` is allowed to name cells outside the train corpus, so narrowing
+    `available` up front would wrongly exclude valid targets.
+
+    The mode (read off the code below) is the easy part; the subtle bits:
+
+    - `test_on` overrides everything and only *warns* on overlap with `train_cells`
+      — predicting on trained-on cells is usually a leak but occasionally deliberate.
+    - K-fold (`universe` set) bounds OOS to the universe so cells the train fold
+      never saw (e.g. a later run discovered only at predict time) aren't selected.
+    - The bounded-OOS presence check exists because K-fold OOS cells come from the
+      *train* subject's universe: one absent on this source would be silently dropped
+      downstream by the feature-subset filter — fewer predictions, no error. Raise.
+
+    Raises on an empty selection.
     """
-    return all(cell.get(entity) == value for entity, value in test_on.items())
-
-
-def _assert_same_cell_schema(
-    available: set[CellKey], train_cells: set[CellKey]
-) -> None:
-    """Raise if source and train cells disagree on their entity key set.
-
-    `available - train_cells` is a set op across (possibly) different subjects;
-    `__eq__`/`__hash__` key on the full entity dict, so a differing schema (source
-    missing `cond`, a different descriptive merge) makes the subtraction silently
-    mis-select. The `col_slices` guard checks *columns*; this checks *cells*. Rests
-    on the "same study => same cell schema" invariant from the overview.
-    """
-    schemas = {c.keys() for c in available} | {c.keys() for c in train_cells}
+    # If source and train cells have different entity keys, they never hash/compare
+    # equal, so `available - train_cells` below subtracts nothing — wrongly keeping
+    # trained-on cells in the OOS set. Catch the mismatch here instead.
+    schemas = {c.keys() for c in available} | {c.keys() for c in model.train_cells}
     if len(schemas) > 1:
         raise ValueError(
             f"Cell-schema mismatch between source and train cells: "
             f"{sorted(sorted(s) for s in schemas)}"
         )
 
-
-def _select_cells(
-    available: set[CellKey],
-    artifact: "EncodingArtifact",
-    model: "FittedModel",
-    test_on: dict[str, str] | None = None,
-) -> set[CellKey]:
-    """Choose which cells `model` predicts on — OOS by default, or `test_on`.
-
-    Runs upstream of `_build_x`, on the source subject's *full* discovered cells
-    (`available`); recipe filters are not replayed — stored `train`/`universe` are
-    trusted. Three modes (model trained on a subset of cells):
-
-    - `test_on`: explicit override, honored regardless of train membership. Warns
-      (does not reject) on overlap with `train_cells` — predicting on trained-on
-      cells is usually a mistake, occasionally intentional. May name cells outside
-      the train corpus.
-    - K-fold (`universe` set): OOS is `universe - train_cells`, bounded by the
-      universe (cells outside it, e.g. a later run, are excluded).
-    - single model (`universe is None`): OOS is `available - train_cells`,
-      unbounded.
-
-    Raises on an empty selection. For the K-fold branch, also raises if the bounded
-    OOS set is not fully present on the source — its cells are drawn from the train
-    subject's `universe`, so a cell absent here would be silently dropped by the
-    feature-subset filter, yielding fewer predictions with no error. Fail fast.
-    """
-    _assert_same_cell_schema(available, model.train_cells)
     if test_on:
-        sel = {c for c in available if _matches(c, test_on)}
-        if sel & model.train_cells:
+        selected = {
+            cell
+            for cell in available
+            if all(cell.get(entity) == value for entity, value in test_on.items())
+        }
+        if selected & model.train_cells:
             logger.warning(
                 "test_on selects {} cell(s) the model was trained on",
-                len(sel & model.train_cells),
+                len(selected & model.train_cells),
             )
     elif artifact.universe is not None:
-        sel = artifact.universe - model.train_cells
+        selected = artifact.universe - model.train_cells
     else:
-        sel = available - model.train_cells
+        selected = available - model.train_cells
 
-    if not sel:
+    if not selected:
         if test_on:
             raise ValueError(f"test_on matched no available cells: {test_on}")
         raise ValueError("empty out-of-sample set — pass test_on to name cells")
 
     if artifact.universe is not None:
-        missing = sel - available
+        missing = selected - available
         if missing:
             raise ValueError(
                 f"bounded OOS cells absent on source subject: "
                 f"{sorted(map(repr, missing))}"
             )
-    return sel
+    return selected
 
 
 def _numpyfy_fitted(obj: object, _seen: set[int] | None = None) -> None:
@@ -1639,7 +1623,7 @@ class EncodingPredictor(_EncodingContext):
 
         results: list[dict] = []
         for model in self._artifact.models:
-            cells = _select_cells(available, self._artifact, model, test_on)
+            cells = _select_cells(available, self._artifact, model, test_on=test_on)
             sub_metas = {
                 feature_key: meta
                 for feature_key, meta in feature_metas.items()
