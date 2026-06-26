@@ -155,6 +155,19 @@ class XData:
     row_slices: dict[CellKey, slice]
     col_slices: dict[str, slice]
 
+    def cell_lengths(self, ordered_cells: list[CellKey] | None = None) -> list[int]:
+        """Per-cell row counts — the geometry `CellDelayer` and `_inner_cv` consume.
+
+        Order matters and is positional: these counts must line up with X's row
+        blocks, since `CellDelayer`'s FIR mask keys off cumulative offsets. Pass
+        `ordered_cells` for a cell subset in a specific order (e.g. a fold's train
+        cells); omit it to take all cells in `row_slices` order.
+        """
+        cells = self.row_slices.keys() if ordered_cells is None else ordered_cells
+        return [
+            self.row_slices[cell].stop - self.row_slices[cell].start for cell in cells
+        ]
+
 
 @dataclass(frozen=True)
 class TrainingData(XData):
@@ -589,24 +602,22 @@ def _build_pipeline(
     return Pipeline([("kernelizer", column_kernelizer), ("model", model)])
 
 
-def _reset_cell_lengths(pipeline: "Pipeline", cell_lengths: list[int]) -> None:
+def _rebind_cell_lengths(pipeline: "Pipeline", cell_lengths: list[int]) -> None:
     """Overwrite each band's `CellDelayer.cell_lengths` to the predict geometry.
 
     `CellDelayer` froze the *train* subject's per-cell row counts at fit; its
     `transform` builds FIR boundary masks from them and raises if X's row count
-    disagrees. Predict's cells differ, so the frozen lengths are wrong — reset
+    disagrees. Predict's cells differ, so the frozen lengths are wrong — rebind
     them before predict. Safe because `cell_lengths` only drives boundary masking
     and the row-count check (both functions of the current X), never the fitted
     weights.
 
     Targets `transformers_` — the fitted transformer clones sklearn made at fit
     (the same tree `_numpyfy_fitted` walks) — not the unfitted `.transformers`
-    spec. Each entry is `(name, inner_pipeline, col_slice)`; the inner pipeline's
-    `.steps` are `(step_name, estimator)` tuples. `cell_lengths` order must match
-    X's `row_slices` order.
+    spec, which predict never touches. `cell_lengths` order must match X's
+    `row_slices` order.
     """
-    ck = pipeline.named_steps["kernelizer"]
-    for _, transformer, _ in ck.transformers_:
+    for _, transformer, _ in pipeline.named_steps["kernelizer"].transformers_:
         for _, step in transformer.steps:
             if isinstance(step, CellDelayer):
                 step.cell_lengths = cell_lengths
@@ -1363,10 +1374,7 @@ class EncodingTrainer(_EncodingContext):
             # CellDelayer's boundary masks are built from them at construction.
             # Inner CV is rebuilt per model so its hyperparameter search stays
             # confined to that model's own train cells.
-            cell_lengths = [
-                data.row_slices[cell].stop - data.row_slices[cell].start
-                for cell in ordered_cells
-            ]
+            cell_lengths = data.cell_lengths(ordered_cells)
             cv = _inner_cv(
                 ordered_cells=ordered_cells,
                 cell_lengths=cell_lengths,
@@ -1642,7 +1650,7 @@ class EncodingPredictor(_EncodingContext):
         Consumes pre-discovered, pre-enriched `feature_metas` already subset to the
         selected cells (the analyze loop calls this K times; re-discovering per call
         means K+1 filesystem scans). Rebuilds X via the same `_build_x` path as
-        train, asserts `col_slices` matches the recipe (rebuild guard), resets the
+        train, asserts `col_slices` matches the recipe (rebuild guard), rebinds the
         loaded pipeline's frozen train cell-lengths to this X's geometry, and
         predicts on the numpy backend.
 
@@ -1657,7 +1665,6 @@ class EncodingPredictor(_EncodingContext):
                 f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"
             )
         set_backend("numpy")
-        cell_lengths = [s.stop - s.start for s in data.row_slices.values()]
-        _reset_cell_lengths(model.pipeline, cell_lengths)
+        _rebind_cell_lengths(model.pipeline, data.cell_lengths())
         Y_hat = model.pipeline.predict(data.X.astype(np.float32))
         return {"row_slices": data.row_slices, "Y_hat": Y_hat}
