@@ -143,7 +143,7 @@ class TestBuildPipeline:
 class TestEncodingInit:
     def test_valid_config_succeeds(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
-        assert list(enc._features) == ["mfcc"]
+        assert list(enc._recipe.features) == ["mfcc"]
 
     def test_empty_features_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="non-empty"):
@@ -164,7 +164,7 @@ class TestEncodingInit:
 
     def test_variant_entry_parsed(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["semantic-gpt3"])
-        assert enc._features == {"semantic-gpt3": ("semantic", "gpt3")}
+        assert enc._recipe.features == {"semantic-gpt3": ("semantic", "gpt3")}
 
     def test_desc_reserved_in_filters_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="desc"):
@@ -176,7 +176,7 @@ class TestEncodingInit:
 
     def test_unknown_entity_accepted_at_init(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["xyz-foo"])
-        assert enc.bids_filters == ["xyz-foo"]
+        assert enc._recipe.bids_filters == ["xyz-foo"]
 
     def test_invalid_bold_space_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="Unsupported BOLD data space"):
