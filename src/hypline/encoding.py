@@ -182,6 +182,19 @@ class TrainingData(XData):
 
 
 @dataclass(frozen=True)
+class Prediction:
+    """One model's predicted BOLD and the row geometry it sits on.
+
+    `row_slices` maps each predicted cell to its contiguous block of rows in
+    `Y_hat` (`_build_x` order). Predict-only: there is no actual Y — `analyze`
+    recovers it from a target subject via `_align_y` on this same geometry.
+    """
+
+    row_slices: dict[CellKey, slice]
+    Y_hat: np.ndarray
+
+
+@dataclass(frozen=True)
 class XRecipe:
     """Everything needed to rebuild X identically on another subject.
 
@@ -1602,20 +1615,17 @@ class EncodingPredictor(_EncodingContext):
         self,
         source_sub_id: str,
         test_on: dict[str, str] | None = None,
-    ) -> list[dict]:
+    ) -> list[Prediction]:
         """Predict each model's `Y_hat` from a source subject's features.
 
         Discovers and enriches the features for `source_sub_id` once (the per-model
         loop reuses one filesystem scan), then for each model in the artifact selects
         its cells (OOS by default, or `test_on`), subsets the enriched metas, and
-        runs `_predict_model`. Returns one `{row_slices, Y_hat}` per model, in
+        runs `_predict_model`. Returns one `Prediction` per model, in
         `artifact.models` order — a single-model artifact yields a length-1 list.
 
-        Predict-only: no target Y. `source_sub_id` provides features (X); the model's
-        weights are baked in at load (`EncodingPredictor.__init__`). Comparing
-        `Y_hat` against a target subject's actual BOLD is the `analyze` exercise
-        — it calls
-        `_align_y` on the returned `row_slices` with the target's `bold_metas`.
+        Predict-only: no target Y. `source_sub_id` provides features (X); the
+        model's weights are baked in at load (`EncodingPredictor.__init__`).
 
         Uses full discovery, not the recipe's `bids_filters`: `_select_cells`
         trusts the stored `train`/`universe` sets and may name cells (`test_on`)
@@ -1629,7 +1639,7 @@ class EncodingPredictor(_EncodingContext):
         feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
         available = {feature_key.cell for feature_key in feature_metas}
 
-        results: list[dict] = []
+        results: list[Prediction] = []
         for model in self._artifact.models:
             cells = _select_cells(available, self._artifact, model, test_on=test_on)
             sub_metas = {
@@ -1644,7 +1654,7 @@ class EncodingPredictor(_EncodingContext):
         self,
         model: FittedModel,
         feature_metas: dict[FeatureKey, FeatureMeta],
-    ) -> dict:
+    ) -> Prediction:
         """Run one model over a pre-selected cell set, returning its `Y_hat` (no Y).
 
         Consumes pre-discovered, pre-enriched `feature_metas` already subset to the
@@ -1654,8 +1664,8 @@ class EncodingPredictor(_EncodingContext):
         loaded pipeline's frozen train cell-lengths to this X's geometry, and
         predicts on the numpy backend.
 
-        Returns `{"row_slices": ..., "Y_hat": ...}` — per-model, no actual Y. The
-        caller does `_align_y(target_bold, row_slices)` for Y to compare against.
+        Returns a `Prediction` — per-model, no actual Y. The caller does
+        `_align_y(target_bold, prediction.row_slices)` for Y to compare against.
         """
         from himalaya.backend import set_backend
 
@@ -1667,4 +1677,4 @@ class EncodingPredictor(_EncodingContext):
         set_backend("numpy")
         _rebind_cell_lengths(model.pipeline, data.cell_lengths())
         Y_hat = model.pipeline.predict(data.X.astype(np.float32))
-        return {"row_slices": data.row_slices, "Y_hat": Y_hat}
+        return Prediction(row_slices=data.row_slices, Y_hat=Y_hat)
