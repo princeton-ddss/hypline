@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
@@ -283,7 +285,7 @@ class _Find:
     the matching segment. See `events.resolve_entities` for the merge contract.
     """
 
-    def __init__(self, layout: "BIDSLayout"):
+    def __init__(self, layout: BIDSLayout):
         self._layout = layout
 
     def _find(
@@ -397,7 +399,7 @@ class _Find:
         kind: str,
         ext: str,
         bids_filters: list[str] | None = None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         """Find stimulus files for a dyad.
 
         Stimuli describe the shared conversation, so they are dyad-keyed. `kind`
@@ -433,7 +435,7 @@ class _Find:
         kind: str,
         desc: str | None = None,
         bids_filters: list[str] | None = None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         """Find feature files for a dyad.
 
         Features are derived from the shared conversation, so they are
@@ -474,7 +476,7 @@ class _Find:
         kind: str,
         desc: str | None = None,
         bids_filters: list[str] | None = None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         """Find confound files for a dyad.
 
         Confounds are derived from the shared conversation, so they are
@@ -515,7 +517,7 @@ class _Find:
         kind: str,
         desc: str | None = None,
         bids_filters: list[str] | None = None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         """Find nuisance files.
 
         `kind` maps to the nuis-<kind> entity and the per-session subdirectory
@@ -555,7 +557,7 @@ class _Find:
         suffix: str,
         ext: str,
         bids_filters: list[str] | None = None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         return self._find_func(
             area="fmriprep",
             sub=sub,
@@ -571,7 +573,7 @@ class _Find:
         suffix: str,
         ext: str,
         bids_filters: list[str] | None = None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         return self._find_func(
             area="hypline",
             sub=sub,
@@ -588,7 +590,7 @@ class _Find:
         suffix: str,
         ext: str,
         bids_filters: list[str] | None,
-    ) -> list["BIDSPath"]:
+    ) -> list[BIDSPath]:
         filters = normalize_bids_filters(bids_filters, reserved={"sub"})
         ses_values = [f[4:] for f in filters if f.startswith("ses-")] or None
         user_filters = [f for f in filters if not f.startswith("ses-")]
@@ -613,7 +615,7 @@ class _Find:
 
 
 class _Path:
-    def __init__(self, layout: "BIDSLayout"):
+    def __init__(self, layout: BIDSLayout):
         self._layout = layout
 
     def raw(
@@ -879,7 +881,7 @@ class _Path:
 
 
 class _List:
-    def __init__(self, layout: "BIDSLayout"):
+    def __init__(self, layout: BIDSLayout):
         self._layout = layout
 
     def subjects(self, *, area: Area) -> list[str]:

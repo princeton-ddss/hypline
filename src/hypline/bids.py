@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -132,7 +134,7 @@ class BIDSPath:
         suffix: str | None = None,
         parent: str | Path = ".",
         **entities: str,
-    ) -> "BIDSPath":
+    ) -> BIDSPath:
         """Build a BIDSPath from entity kwargs in canonical order.
 
         Order: identity (`dyad` xor `sub`, then `ses`/`task`/`run`), then
@@ -203,7 +205,7 @@ class BIDSPath:
                 f"No BIDS entity {name!r} in {self._path.name!r}"
             ) from None
 
-    def with_entity(self, key: str, value: str) -> "BIDSPath":
+    def with_entity(self, key: str, value: str) -> BIDSPath:
         """Return a new BIDSPath with `key` set to `value`.
 
         Existing keys keep their position; new keys are appended. Order is
@@ -220,7 +222,7 @@ class BIDSPath:
         entities[key] = value
         return self._rebuild(entities)
 
-    def without_entity(self, key: str) -> "BIDSPath":
+    def without_entity(self, key: str) -> BIDSPath:
         """Return a new BIDSPath with `key` removed.
 
         No-op if `key` is absent. Refuses to remove the leading identity
@@ -233,7 +235,7 @@ class BIDSPath:
         entities = {k: v for k, v in self._entities.items() if k != key}
         return self._rebuild(entities)
 
-    def with_identity(self, key: str, value: str) -> "BIDSPath":
+    def with_identity(self, key: str, value: str) -> BIDSPath:
         """Return a new BIDSPath re-keyed to identity `key` (`sub` xor `dyad`).
 
         Drops the current leading identity, sets `key=value`, and rebuilds in
@@ -266,7 +268,7 @@ class BIDSPath:
         stem = self._path.name[: -len(self._ext)] if self._ext else self._path.name
         return self._path.with_name(f"{stem}{ext}")
 
-    def _rebuild(self, entities: dict[str, str]) -> "BIDSPath":
+    def _rebuild(self, entities: dict[str, str]) -> BIDSPath:
         parts = [f"{k}-{v}" for k, v in entities.items()]
         if self._suffix:
             parts.append(self._suffix)
@@ -281,7 +283,7 @@ class BIDSPath:
     def __hash__(self) -> int:
         return hash(self._path)
 
-    def __lt__(self, other: "BIDSPath") -> bool:
+    def __lt__(self, other: BIDSPath) -> bool:
         if not isinstance(other, BIDSPath):
             return NotImplemented
         return self._path < other._path

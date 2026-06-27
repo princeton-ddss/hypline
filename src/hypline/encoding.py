@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import reprlib
 from dataclasses import dataclass, field, replace
@@ -227,7 +229,7 @@ class FittedModel:
     fit on.
     """
 
-    pipeline: "Pipeline"
+    pipeline: Pipeline
     train_cells: set[CellKey]
 
 
@@ -348,8 +350,8 @@ def _inner_cv(
     ordered_cells: list[CellKey],
     cell_lengths: list[int],
     segment_entity: str | None,
-    fold: "FoldSpec | None",
-) -> "BaseCrossValidator":
+    fold: FoldSpec | None,
+) -> BaseCrossValidator:
     """Build the hyperparameter-search splitter confined to one model's train set.
 
     Applies the 3-step inner-unit rule over this model's train cells:
@@ -566,8 +568,8 @@ def _build_pipeline(
     cell_lengths: list[int],
     delays: list[int],
     alphas: list[float],
-    cv: "BaseCrossValidator",
-) -> "Pipeline":
+    cv: BaseCrossValidator,
+) -> Pipeline:
     """Assemble an unfitted banded-ridge pipeline, one kernel band per feature.
 
     Each feature in `col_slices` gets its own band:
@@ -615,7 +617,7 @@ def _build_pipeline(
     return Pipeline([("kernelizer", column_kernelizer), ("model", model)])
 
 
-def _rebind_cell_lengths(pipeline: "Pipeline", cell_lengths: list[int]) -> None:
+def _rebind_cell_lengths(pipeline: Pipeline, cell_lengths: list[int]) -> None:
     """Overwrite each band's `CellDelayer.cell_lengths` to the predict geometry.
 
     `CellDelayer` froze the *train* subject's per-cell row counts at fit; its
@@ -638,8 +640,8 @@ def _rebind_cell_lengths(pipeline: "Pipeline", cell_lengths: list[int]) -> None:
 
 def _select_cells(
     available: set[CellKey],
-    artifact: "EncodingArtifact",
-    model: "FittedModel",
+    artifact: EncodingArtifact,
+    model: FittedModel,
     *,
     test_on: dict[str, str] | None = None,
 ) -> set[CellKey]:
@@ -1600,7 +1602,7 @@ class EncodingPredictor(_EncodingContext):
         bids_root: str | Path,
         sub_id: str,
         desc: str,
-    ) -> "EncodingPredictor":
+    ) -> EncodingPredictor:
         """Load a persisted artifact by `(sub_id, desc)` and wrap it for predict.
 
         `(sub_id, kind="encoding", desc)` fully determines the file. `sub_id` is the

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
@@ -181,7 +183,7 @@ def _validate_segment_records(
                 )
 
 
-def load_segments(layout: "BIDSLayout", source: BIDSPath) -> list[Segment]:
+def load_segments(layout: BIDSLayout, source: BIDSPath) -> list[Segment]:
     """Load segments + Levels metadata for the run identified by `source`.
 
     No BOLD file required. `source` may be any BIDSPath carrying
@@ -279,7 +281,7 @@ def _lookup_segment(segments: list[Segment], source: BIDSPath) -> Segment:
     return matching[0]
 
 
-def frame_onset(layout: "BIDSLayout", source: BIDSPath) -> float:
+def frame_onset(layout: BIDSLayout, source: BIDSPath) -> float:
     """Run-relative onset of `source`'s segment; 0.0 for an unsegmented run.
 
     Empty segments mean the source spans the whole run, so its frame-local times
@@ -337,7 +339,7 @@ def merge_filename_and_sidecar(
     return merged
 
 
-def resolve_entities(layout: "BIDSLayout", source: BIDSPath) -> dict[str, str]:
+def resolve_entities(layout: BIDSLayout, source: BIDSPath) -> dict[str, str]:
     """Resolve a path's full entity set by merging filename with events.json.
 
     Locates the run's events sidecars via `(sub, ses, task, run)`, finds the
@@ -416,7 +418,7 @@ def _parse_turns(events: pl.DataFrame | None, sub: str) -> list[Turn]:
     return turns
 
 
-def load_turns(layout: "BIDSLayout", source: BIDSPath) -> list[Turn]:
+def load_turns(layout: BIDSLayout, source: BIDSPath) -> list[Turn]:
     """Load and merge speaking turns across all partners of `source`'s dyad.
 
     `source` is a dyad-keyed run path (e.g. a stimulus audio file). Reads each
