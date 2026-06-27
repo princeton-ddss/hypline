@@ -9,9 +9,9 @@ from hypline.encoding import (
     BoldKey,
     CellDelayer,
     CellKey,
-    Encoding,
     EncodingArtifact,
     EncodingConfig,
+    EncodingTrainer,
     FeatureKey,
     FoldSpec,
     TrainingData,
@@ -20,6 +20,8 @@ from hypline.encoding import (
     _inner_cv,
     _partition_groups,
     _select_rows,
+    load_artifact,
+    write_artifact,
 )
 
 from .conftest import BIDSTree
@@ -40,11 +42,9 @@ def _make_encoding(
     bids_filters: list[str] | None = None,
     fold_by: str | None = None,
     n_folds: int | Literal["loo"] | None = None,
-    desc: str = "v1",
-    force: bool = False,
-) -> Encoding:
-    return Encoding(
-        EncodingConfig(),
+) -> EncodingTrainer:
+    return EncodingTrainer(
+        config=EncodingConfig(),
         bids_root=tree.root,
         features=features,
         tasks=tasks if tasks is not None else [TASK],
@@ -53,8 +53,6 @@ def _make_encoding(
         bids_filters=bids_filters,
         fold_by=fold_by,
         n_folds=n_folds,
-        desc=desc,
-        force=force,
     )
 
 
@@ -145,7 +143,7 @@ class TestBuildPipeline:
 class TestEncodingInit:
     def test_valid_config_succeeds(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"])
-        assert list(enc._features) == ["mfcc"]
+        assert list(enc._recipe.features) == ["mfcc"]
 
     def test_empty_features_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="non-empty"):
@@ -166,7 +164,7 @@ class TestEncodingInit:
 
     def test_variant_entry_parsed(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["semantic-gpt3"])
-        assert enc._features == {"semantic-gpt3": ("semantic", "gpt3")}
+        assert enc._recipe.features == {"semantic-gpt3": ("semantic", "gpt3")}
 
     def test_desc_reserved_in_filters_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="desc"):
@@ -178,7 +176,7 @@ class TestEncodingInit:
 
     def test_unknown_entity_accepted_at_init(self, tree: BIDSTree):
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["xyz-foo"])
-        assert enc.bids_filters == ["xyz-foo"]
+        assert enc._recipe.bids_filters == ["xyz-foo"]
 
     def test_invalid_bold_space_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="Unsupported BOLD data space"):
@@ -1409,7 +1407,7 @@ class TestFoldHelpers:
         with pytest.raises(ValueError, match="needs >= 2 groups"):
             _partition_groups(groups, "loo")
 
-    def test_select_rows_preserves_build_xy_order(self):
+    def test_select_rows_preserves_build_x_order(self):
         # row_slices insertion order is _sort_key order; _select_rows must keep it
         data = TrainingData(
             X=np.arange(30).reshape(6, 5).astype(np.float64),
@@ -1570,10 +1568,12 @@ class TestInnerCv:
         assert cv.get_n_splits() == 3
 
 
-class TestBuildXy:
-    """End-to-end `_build_xy`: reads features, downsamples, assembles X."""
+class TestBuildTrainingData:
+    """End-to-end `_build_training_data`: reads features, downsamples, assembles X."""
 
-    def _build_xy(self, tree: BIDSTree, feature_df: pl.DataFrame) -> TrainingData:
+    def _build_training_data(
+        self, tree: BIDSTree, feature_df: pl.DataFrame
+    ) -> TrainingData:
         tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1", df=feature_df)
@@ -1583,7 +1583,8 @@ class TestBuildXy:
         feature_bids = enc._resolve_cell_keys(SUB, feature_bids, bold_metas)
         feature_bids, bold_metas = enc._apply_filters(SUB, feature_bids, bold_metas)
         enc._validate_coverage(SUB, feature_bids, bold_metas)
-        return enc._build_xy(SUB, feature_bids, bold_metas)
+        feature_metas = enc._enrich_feature_metas(feature_bids, bold_metas)
+        return enc._build_training_data(feature_metas, bold_metas)
 
     def test_untimed_row_dropped_x_matches_all_timed(
         self, tree: BIDSTree, tmp_path_factory: pytest.TempPathFactory
@@ -1606,8 +1607,8 @@ class TestBuildXy:
             schema=schema,
         )
         timed_tree = BIDSTree(tmp_path_factory.mktemp("timed"))
-        x_null = self._build_xy(tree, null_df).X
-        x_timed = self._build_xy(timed_tree, timed_df).X
+        x_null = self._build_training_data(tree, null_df).X
+        x_timed = self._build_training_data(timed_tree, timed_df).X
         np.testing.assert_array_equal(x_null, x_timed)
 
 
@@ -1638,7 +1639,8 @@ class TestTrainWiring:
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
         monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
-        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
 
         from sklearn.pipeline import Pipeline
 
@@ -1659,8 +1661,8 @@ class TestArtifactRoundTrip:
     """Write → load reproduces the recipe, cell set, and predictions exactly."""
 
     def _trained(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch, *, force: bool = False
-    ) -> tuple[Encoding, TrainingData]:
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ) -> tuple[EncodingTrainer, TrainingData]:
         n_rows, n_voxels = 20, 5
         rng = np.random.RandomState(0)
         data = TrainingData(
@@ -1672,7 +1674,7 @@ class TestArtifactRoundTrip:
             },
             col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
         )
-        enc = _make_encoding(tree, ["phonemic-gpt3", "mfcc"], force=force)
+        enc = _make_encoding(tree, ["phonemic-gpt3", "mfcc"])
         for step in (
             "_discover_features",
             "_discover_bold",
@@ -1681,7 +1683,8 @@ class TestArtifactRoundTrip:
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
         monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
-        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
         return enc, data
 
     def test_round_trip(self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch):
@@ -1691,14 +1694,16 @@ class TestArtifactRoundTrip:
         X = data.X.astype(np.float32)
 
         artifact = enc.train(SUB)
+        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        write_artifact(artifact, out.path)
 
-        # Predictions compare numpy-vs-numpy: train already forced the in-memory
-        # pipeline to the numpy backend during the write, so a plain predict here
-        # is the numpy reference for the reloaded pipeline.
+        # Predictions compare numpy-vs-numpy: write_artifact already forced the
+        # in-memory pipeline to the numpy backend during the dump, so a plain
+        # predict here is the numpy reference for the reloaded pipeline.
         set_backend("numpy")
         ref = np.asarray(artifact.models[0].pipeline.predict(X))
 
-        loaded = Encoding.load(tree.root, sub=SUB, desc="v1")
+        loaded = load_artifact(out.path)
         got = np.asarray(loaded.models[0].pipeline.predict(X))
         np.testing.assert_array_equal(got, ref)
 
@@ -1717,9 +1722,10 @@ class TestArtifactRoundTrip:
         import json
 
         enc, _ = self._trained(tree, monkeypatch)
-        enc.train(SUB)
+        artifact = enc.train(SUB)
 
         out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        write_artifact(artifact, out.path)
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
         assert sidecar["recipe"]["tasks"] == [TASK]
         assert sidecar["recipe"]["col_slices"] == {
@@ -1732,28 +1738,6 @@ class TestArtifactRoundTrip:
             frozenset({("task", "a"), ("run", "1")}),
             frozenset({("task", "a"), ("run", "2")}),
         }
-
-    def test_force_governs_overwrite(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
-    ):
-        import os
-
-        enc, _ = self._trained(tree, monkeypatch)
-        enc.train(SUB)
-        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
-
-        # Backdate the blob so a rewrite is unambiguous (avoids ns-resolution ties)
-        old = 1_000_000_000
-        os.utime(out.path, ns=(old, old))
-
-        # force=False skips: existing file is loaded, not rewritten
-        enc_skip, _ = self._trained(tree, monkeypatch)
-        enc_skip.train(SUB)
-        assert out.path.stat().st_mtime_ns == old
-
-        enc_force, _ = self._trained(tree, monkeypatch, force=True)
-        enc_force.train(SUB)
-        assert out.path.stat().st_mtime_ns != old
 
 
 class TestFoldedTrain:
@@ -1770,7 +1754,7 @@ class TestFoldedTrain:
         fold_by: str,
         n_folds: int | Literal["loo"],
         cells: list[CellKey] | None = None,
-    ) -> tuple[Encoding, TrainingData]:
+    ) -> tuple[EncodingTrainer, TrainingData]:
         cells = cells if cells is not None else self.CELLS
         n_per, n_cols, n_voxels = 5, 7, 3
         rng = np.random.RandomState(0)
@@ -1794,7 +1778,8 @@ class TestFoldedTrain:
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
         monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
-        monkeypatch.setattr(enc, "_build_xy", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
+        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
         return enc, data
 
     def test_partition_correctness(
@@ -1897,8 +1882,10 @@ class TestFoldedTrain:
 
         enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
         artifact = enc.train(SUB)
+        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        write_artifact(artifact, out.path)
 
-        loaded = Encoding.load(tree.root, sub=SUB, desc="v1")
+        loaded = load_artifact(out.path)
         assert len(loaded.models) == len(artifact.models)
         assert loaded.universe == artifact.universe
         assert [m.train_cells for m in loaded.models] == [

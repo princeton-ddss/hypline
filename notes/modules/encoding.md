@@ -1,10 +1,12 @@
 # Encoding — scope and assumptions
 
-What a single encoding training run operates on, what it requires, and
-what assumptions could break it.
+What encoding training and inference operate on, what they require, and
+what assumptions could break them.
 
 The encoding pipeline fits a model from stimulus-derived features (X) to
-BOLD responses (Y) — typically banded ridge regression.
+BOLD responses (Y) — typically banded ridge regression. Training (`EncodingTrainer`)
+and out-of-sample inference (`EncodingPredictor`) are separate roles over a shared
+X-build path; see [Predict](#predict--out-of-sample-inference-across-subjects).
 
 ## Scope of a single training run
 
@@ -12,7 +14,7 @@ A single `train(sub_id)` call is scoped to:
 
 - **One subject.** Subjects are modeled independently — different brains,
   different voxel alignment.
-- **Tasks are an explicit input.** `Encoding(tasks=[...])` declares which
+- **Tasks are an explicit input.** `EncodingTrainer(tasks=[...])` declares which
   task values are in scope; others are excluded at discovery. `task` is a
   `CellKey` axis: `tasks=["A", "B"]` opts into a multi-task fit where
   A-cells and B-cells are distinct rows sharing regression weights.
@@ -20,7 +22,7 @@ A single `train(sub_id)` call is scoped to:
   at the call site.
 - **Multiple sessions and runs: allowed and expected.** More data,
   concatenated into a single X/Y.
-- **Features are named with optional variant.** Each `Encoding(features=[...])`
+- **Features are named with optional variant.** Each `EncodingTrainer(features=[...])`
   entry is `<kind>` (canonical, reads the bare `<kind>/` folder) or
   `<kind>-<desc>` (reads the `<kind>-<desc>/` variant folder). Two entries
   sharing a `kind` are rejected at construction — variants of one kind are
@@ -57,9 +59,51 @@ A single `train(sub_id)` call is scoped to:
    filtered `(dict[FeatureKey, Path], dict[BoldKey, BoldMeta])`.
 5. **`_validate_coverage`** — bidirectional `(ses, task, run)` coverage: every
    filtered BOLD run must have feature coverage and vice versa. Raises if either
-   filtered set is empty. Void-returning.
-6. **`_build_xy`** — loads BOLD arrays; validates `max(slice.stop) ≤ BOLD TRs`;
-   assembles X (features) and Y (BOLD) matrices.
+   filtered set is empty. Void-returning. **Train-only** — predict needs only the
+   feature→BOLD half (already enforced by `_resolve_cell_keys`), so it skips this.
+6. **`_enrich_feature_metas`** — the single feature↔BOLD-timeline crossover: derives
+   each cell's TR-grid placement (`onset_tr`, `n_trs`, `repetition_time`) from
+   `bold_metas` (segment TR-slice, or the run header for unsegmented runs). Reads no
+   BOLD voxel data. Once this runs, X-building never touches `bold_metas` again.
+7. **`_build_x`** — assembles the X feature matrix and its row/column geometry from
+   the enriched metas alone; no Y, no BOLD. Shared by train and predict.
+8. **`_build_training_data`** (train-only) — wraps `_build_x` and appends Y via
+   `_align_y`, which slices each cell's BOLD onto X's row geometry and validates
+   `n_trs` against the array (drift guard + bounds check) before assembling.
+
+## Predict — out-of-sample inference across subjects
+
+Predict reuses the same discovery + `_build_x` path (no parallel builder) so the
+rebuilt X is byte-identical in layout to train's; a `col_slices` mismatch against
+the stored recipe is a hard error (schema-drift guard). It diverges from train in
+three durable ways:
+
+- **Three independent subjects.** *Model* subject = whose trained weights (which
+  artifact). *Source* subject = whose features build X (the prediction inputs).
+  *Target* subject = whose actual BOLD is Y, for comparison (analyze only — predict
+  takes no target). All three are orthogonal; any combination is valid within one
+  study. See [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
+- **Cell selection, not coverage.** Each model predicts on its out-of-sample cells
+  by default; an explicit `test_on` selector overrides (honored even for trained-on
+  cells, with a warning, never rejected). OOS is `available − train` for a single
+  model (unbounded — a new subject's extra runs are fair game) but `universe − train`
+  for a K-fold model (bounded to the train corpus). Empty selection is an error,
+  not a silent no-op.
+- **No train-time filters replayed.** Predict discovers the source's *full* cell
+  set; recipe `bids_filters` (the train-corpus bound) are deliberately not re-applied,
+  so `test_on` can name cells outside the original corpus.
+
+The package predicts per-model and never stitches the K predictions — consolidating
+them is the consumer's concern.
+
+## Same-study assumption (load-bearing)
+
+Predict and analyze run across subjects *within one study* sharing the design
+(paradigm, acquisition, TR). Encoding weights tie to a feature space and voxel grid,
+so crossing studies breaks feature alignment regardless of TR. This is a usage
+contract, not a recipe guard: `XRecipe` carries no `repetition_time`, and the
+per-build TR check (`_discover_bold`) plus `_align_y`'s drift guard enforce
+*consistency*, not cross-study tolerance.
 
 ## Alignment contract
 
@@ -148,7 +192,8 @@ before any empty-result `FileNotFoundError`.
 ## Assumptions that could break
 
 - **Consistent TR across all runs** for a subject. Mixed-TR datasets would
-  need per-run TR handling.
+  need per-run TR handling. (Cross-subject predict/analyze additionally assume
+  one shared study — see [Same-study assumption](#same-study-assumption-load-bearing).)
 - **Feature files mirror BOLD identity entities.** See
   [../decisions/feature-files.md](../decisions/feature-files.md).
 - **Segment contract** (single entity, non-overlap, cross-run agreement, cell schema

@@ -66,14 +66,18 @@ not apply. The same simultaneous-timeline invariant still underwrites it: turn
 windows from the two files share one clock, so cross-file overlap is genuine
 cross-talk (raised) rather than a timeline-misalignment artifact.
 
-## Encoding seam is a stopgap
+## Encoding seam
 
-`Encoding._discover_features` routes `sub → dyad` via `dyad_of` so dyad features
-join to a sub-keyed BOLD model. `CellKey` keeps both `sub` and `dyad` as
-**invariant identities, not cell axes** — dyad features join to sub-keyed BOLD
-without `dyad` becoming a grouping axis. The full cross-subject join (train on
-one partner, predict another) is a separate, larger change and is not yet
-shipped. See [../modules/encoding.md](../modules/encoding.md).
+`_discover_features` (shared by `EncodingTrainer`/`EncodingPredictor`) routes
+`sub → dyad` via `dyad_of` so dyad features join to a sub-keyed BOLD model.
+`CellKey` keeps both `sub` and `dyad` as **invariant identities, not cell axes** —
+dyad features join to sub-keyed BOLD without `dyad` becoming a grouping axis.
+
+The full cross-subject join *is* now shipped: `EncodingPredictor.predict` separates
+the *source*, *model*, and *target* subjects (defined in
+[../modules/encoding.md](../modules/encoding.md#predict--out-of-sample-inference-across-subjects)).
+The dyad-keyed consequence: within one dyad, `source=self`/`partner` give identical X
+because features are dyad-shared, so source varies X only *across* dyads.
 
 See [bidspath-validation.md](bidspath-validation.md) for the `sub` xor `dyad`
 identity rule and `with_identity` re-keying.
