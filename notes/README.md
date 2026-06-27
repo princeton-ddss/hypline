@@ -47,6 +47,7 @@ AI agents alike. Agent-agnostic by design.
 | Changing the confound file schema      | `decisions/confound-files.md`                       |
 | Changing the nuisance file schema      | `decisions/nuisance-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
+| Predicting out-of-sample / across subjects | `modules/encoding.md`, `decisions/dyad-keyed.md` |
 | Editing denoise / nuisance regression logic | `modules/denoise.md`, `decisions/nuisance-files.md` |
 | Placing a hypline imaging derivative (denoised BOLD) | `decisions/layout.md`, `external/fmriprep.md` |
 | Selecting confound columns (`--columns`/`--custom-columns`) | `modules/denoise.md`, `external/fmriprep.md` |
