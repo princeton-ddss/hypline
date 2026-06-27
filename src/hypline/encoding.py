@@ -1262,8 +1262,8 @@ class EncodingTrainer(_EncodingContext):
 
     def __init__(
         self,
-        config: EncodingConfig,
         *,
+        config: EncodingConfig,
         bids_root: str | Path,
         features: list[str],
         tasks: list[str],

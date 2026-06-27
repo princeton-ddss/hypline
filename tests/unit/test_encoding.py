@@ -44,7 +44,7 @@ def _make_encoding(
     n_folds: int | Literal["loo"] | None = None,
 ) -> EncodingTrainer:
     return EncodingTrainer(
-        EncodingConfig(),
+        config=EncodingConfig(),
         bids_root=tree.root,
         features=features,
         tasks=tasks if tasks is not None else [TASK],
