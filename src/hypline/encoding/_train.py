@@ -343,7 +343,7 @@ class EncodingTrainer(_EncodingContext):
             # cell order tracks data.row_slices (= _build_x / _sort_key order)
             ordered_cells = list(data.row_slices)
             pipeline = _fit_model(data.X, data.Y, ordered_cells)
-            artifact = EncodingArtifact(
+            return EncodingArtifact(
                 recipe=recipe,
                 fold=None,
                 models=[
@@ -351,21 +351,19 @@ class EncodingTrainer(_EncodingContext):
                 ],
                 universe=None,
             )
-        else:
-            all_cells = set(data.row_slices)
-            groups = _group_cells_by(all_cells, self._fold.by)
-            held_out = _partition_groups(groups, self._fold.n)
-            models = []
-            for held in held_out:
-                train_cells = all_cells - held
-                X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
-                pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
-                models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
-            artifact = EncodingArtifact(
-                recipe=recipe, fold=self._fold, models=models, universe=all_cells
-            )
 
-        return artifact
+        all_cells = set(data.row_slices)
+        groups = _group_cells_by(all_cells, self._fold.by)
+        held_out = _partition_groups(groups, self._fold.n)
+        models = []
+        for held in held_out:
+            train_cells = all_cells - held
+            X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
+            pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
+            models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
+        return EncodingArtifact(
+            recipe=recipe, fold=self._fold, models=models, universe=all_cells
+        )
 
     def _apply_filters(
         self,
