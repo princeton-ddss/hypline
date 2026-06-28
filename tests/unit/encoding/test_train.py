@@ -490,7 +490,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[3, 3],
             segment_entity=None,
-            fold=FoldSpec(by="run", n=2),
+            fold_by="run",
         )
         assert isinstance(cv, self.PredefinedSplit)
         assert self._group_ids_per_cell(cv.test_fold, [3, 3]) == [0, 1]
@@ -505,7 +505,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[2, 2],
             segment_entity=None,
-            fold=FoldSpec(by="cond", n=2),
+            fold_by="cond",
         )
         assert isinstance(cv, self.PredefinedSplit)
         assert self._group_ids_per_cell(cv.test_fold, [2, 2]) == [0, 1]
@@ -521,7 +521,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[2, 2],
             segment_entity=None,
-            fold=FoldSpec(by="run", n=2),
+            fold_by="run",
         )
         assert isinstance(cv, self.PredefinedSplit)
         assert self._group_ids_per_cell(cv.test_fold, [2, 2]) == [0, 1]
@@ -536,7 +536,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[2, 2],
             segment_entity="trial",
-            fold=FoldSpec(by="run", n=2),
+            fold_by="run",
         )
         assert isinstance(cv, self.PredefinedSplit)
         assert self._group_ids_per_cell(cv.test_fold, [2, 2]) == [0, 1]
@@ -551,7 +551,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[2, 2],
             segment_entity=None,
-            fold=None,
+            fold_by=None,
         )
         assert isinstance(cv, self.KFold)
         assert cv.n_splits == 2 and cv.shuffle is False
@@ -563,7 +563,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[6],
             segment_entity=None,
-            fold=None,
+            fold_by=None,
         )
         assert isinstance(cv, self.KFold)
         assert cv.n_splits == 2
@@ -578,7 +578,7 @@ class TestInnerCv:
                 ordered_cells=cells,
                 cell_lengths=[1],
                 segment_entity=None,
-                fold=None,
+                fold_by=None,
             )
 
     def test_inner_cv_never_straddles_cell_boundary(self):
@@ -592,7 +592,7 @@ class TestInnerCv:
             ordered_cells=cells,
             cell_lengths=[2, 3, 4],
             segment_entity=None,
-            fold=FoldSpec(by="run", n=2),
+            fold_by="run",
         )
         assert isinstance(cv, self.PredefinedSplit)
         assert self._group_ids_per_cell(cv.test_fold, [2, 3, 4]) == [0, 1, 2]
@@ -669,7 +669,7 @@ class TestTrainWiring:
             "_validate_coverage",
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
+        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: ({}, {}))
         monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
         monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
 
@@ -725,7 +725,7 @@ class TestFoldedTrain:
             "_validate_coverage",
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
+        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: ({}, {}))
         monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
         monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
         return enc, data

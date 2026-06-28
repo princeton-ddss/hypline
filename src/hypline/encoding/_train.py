@@ -118,16 +118,16 @@ def _inner_cv(
     ordered_cells: list[CellKey],
     cell_lengths: list[int],
     segment_entity: str | None,
-    fold: FoldSpec | None,
+    fold_by: str | None,
 ) -> BaseCrossValidator:
     """Build the hyperparameter-search splitter confined to one model's train set.
 
     Applies the 3-step inner-unit rule over this model's train cells:
 
-    1. `fold.by` itself, if the train set holds >=2 distinct values — symmetric
+    1. `fold_by` itself, if the train set holds >=2 distinct values — symmetric
        with outer folding, valid for structural and descriptive `fold_by` alike.
     2. Descend the structural chain `[ses, task, run, segment_entity]`
-       coarsest-first, skipping only `fold.by` (already failed step 1); first
+       coarsest-first, skipping only `fold_by` (already failed step 1); first
        entity with >=2 distinct train values wins. The full chain is walked —
        entities coarser than a structural `fold_by` are NOT skipped, because BIDS
        labels are not strictly nested (a `run` value recurs across sessions), so a
@@ -139,15 +139,12 @@ def _inner_cv(
        varies at the trial level"; the leak is a property of the data (no coarser
        structure), not something the CV strategy should mask.
     3. No eligible entity (train set collapsed to a single cell) → contiguous
-       `KFold(n_splits=2, shuffle=False)`. No seed — contiguous halving keeps
-       FIR-correlated adjacent TRs on the same side except at one boundary.
+       `KFold(n_splits=2, shuffle=False)`. Contiguous (unshuffled) halves keep
+       FIR-correlated adjacent TRs together except at the split boundary.
 
-    Steps 1–2 return a `PredefinedSplit` over whole cells: each cell's chosen
-    entity value (mapped to an int) is repeated by the cell's row count, so a
-    group id is constant within a cell and leave-one-value-out never splits a
-    cell. `segment_entity` is `None` when runs are unsegmented (it drops out of
-    the chain naturally). `fold` is `None` for unfolded models — step 1 is then
-    skipped and the rule starts at step 2.
+    Steps 1–2 return a `PredefinedSplit` over whole cells: the group id is
+    constant within a cell, so leave-one-value-out never splits a cell mid-way
+    (which would leak FIR-delayed rows across the train/test boundary).
     """
     from sklearn.model_selection import KFold, PredefinedSplit
 
@@ -159,8 +156,6 @@ def _inner_cv(
         value_to_id = {v: i for i, v in enumerate(dict.fromkeys(values))}
         per_row_group_ids = np.repeat([value_to_id[v] for v in values], cell_lengths)
         return PredefinedSplit(per_row_group_ids)
-
-    fold_by = fold.by if fold is not None else None
 
     # step 1: fold_by as the inner unit
     if fold_by is not None:
@@ -305,10 +300,13 @@ class EncodingTrainer(_EncodingContext):
 
         set_backend("torch_cuda" if self._config.device is Device.CUDA else "torch")
 
-        # segment entity is invariant across bold_metas (validated in _discover_bold);
-        # None when runs are unsegmented
-        segment_metas = [meta for meta in (bold_metas or {}).values() if meta.segments]
-        segment_entity = segment_metas[0].segments[0].entity if segment_metas else None
+        # Segment entity is invariant across bold_metas (validated in _discover_bold),
+        # so any segmented meta answers it; None when runs are unsegmented
+        segmented_meta = next((m for m in bold_metas.values() if m.segments), None)
+        segment_entity = segmented_meta.segments[0].entity if segmented_meta else None
+
+        # fold_by is the only FoldSpec field the inner CV consumes; n is outer-only
+        fold_by = self._fold.by if self._fold is not None else None
 
         def _fit_model(
             X: np.ndarray,
@@ -324,7 +322,7 @@ class EncodingTrainer(_EncodingContext):
                 ordered_cells=ordered_cells,
                 cell_lengths=cell_lengths,
                 segment_entity=segment_entity,
-                fold=self._fold,
+                fold_by=fold_by,
             )
             pipeline = _build_pipeline(
                 col_slices=data.col_slices,
