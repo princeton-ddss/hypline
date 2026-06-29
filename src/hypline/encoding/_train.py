@@ -56,9 +56,8 @@ def _partition_groups(
 ) -> list[set[CellKey]]:
     """Map a fold count to per-fold held-out cell sets over whole groups.
 
-    Sorts the group values, then splits them into K held-out buckets — `int`
-    folds into K contiguous chunks, `"loo"` into one group per bucket. Cells are
-    never split across folds (the split unit is the group).
+    Cells are never split across folds — the split unit is the whole group, so
+    FIR-delayed rows within a cell can't leak across the train/test boundary.
 
     The sort makes bucketing reproducible within a run (predict never recomputes
     folds, so no seed is needed).
@@ -76,6 +75,7 @@ def _partition_groups(
             f"n_folds={n_folds} exceeds the {n_groups} group(s) found for "
             f"the fold_by entity"
         )
+
     # Contiguous chunks; earlier buckets absorb the remainder
     base, extra = divmod(n_groups, n_folds)
     buckets: list[set[CellKey]] = []
@@ -98,8 +98,7 @@ def _select_rows(
     Iterates `data.row_slices` directly — a dict already built in `_sort_key`
     order by `_build_x`, so surviving cells keep that order with no re-sort.
     The ordered surviving cells are returned so the inner-CV selector and
-    `CellDelayer` can recover per-cell row counts from `data.row_slices` in the
-    same row order.
+    `CellDelayer` can recover per-cell row counts in the same row order.
     """
     X_parts: list[np.ndarray] = []
     Y_parts: list[np.ndarray] = []
@@ -131,7 +130,7 @@ def _inner_cv(
        entity with >=2 distinct train values wins. The full chain is walked —
        entities coarser than a structural `fold_by` are NOT skipped, because BIDS
        labels are not strictly nested (a `run` value recurs across sessions), so a
-       coarser entity can legitimately vary while `fold.by` is constant.
+       coarser entity can legitimately vary while `fold_by` is constant.
        Descriptive keys (e.g. `cond`) are excluded here: a descriptive value can
        straddle a run boundary and leak. They re-enter only via step 1. When only
        `segment_entity` varies, this yields leave-one-trial-out, which is leaky
@@ -157,13 +156,13 @@ def _inner_cv(
         per_row_group_ids = np.repeat([value_to_id[v] for v in values], cell_lengths)
         return PredefinedSplit(per_row_group_ids)
 
-    # step 1: fold_by as the inner unit
+    # Step 1
     if fold_by is not None:
         cv = _split_on(fold_by)
         if cv is not None:
             return cv
 
-    # step 2: descend the structural chain, skipping only fold_by
+    # Step 2
     chain = ["ses", "task", "run"]
     if segment_entity is not None:
         chain.append(segment_entity)
@@ -174,7 +173,7 @@ def _inner_cv(
         if cv is not None:
             return cv
 
-    # step 3: single-cell train fold → contiguous 2-way halves
+    # Step 3
     if sum(cell_lengths) < 2:
         raise ValueError(
             "Inner CV cannot form a 2-way split: a train fold collapsed to a "
