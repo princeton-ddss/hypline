@@ -37,7 +37,7 @@ class TestArtifactRoundTrip:
             "_validate_coverage",
         ):
             monkeypatch.setattr(enc, step, lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: (None, None))
+        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: ({}, {}))
         monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
         monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
         return enc, data

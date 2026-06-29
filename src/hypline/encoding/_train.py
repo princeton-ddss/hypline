@@ -56,9 +56,8 @@ def _partition_groups(
 ) -> list[set[CellKey]]:
     """Map a fold count to per-fold held-out cell sets over whole groups.
 
-    Sorts the group values, then splits them into K held-out buckets — `int`
-    folds into K contiguous chunks, `"loo"` into one group per bucket. Cells are
-    never split across folds (the split unit is the group).
+    Cells are never split across folds — the split unit is the whole group, so
+    FIR-delayed rows within a cell can't leak across the train/test boundary.
 
     The sort makes bucketing reproducible within a run (predict never recomputes
     folds, so no seed is needed).
@@ -76,6 +75,7 @@ def _partition_groups(
             f"n_folds={n_folds} exceeds the {n_groups} group(s) found for "
             f"the fold_by entity"
         )
+
     # Contiguous chunks; earlier buckets absorb the remainder
     base, extra = divmod(n_groups, n_folds)
     buckets: list[set[CellKey]] = []
@@ -98,8 +98,7 @@ def _select_rows(
     Iterates `data.row_slices` directly — a dict already built in `_sort_key`
     order by `_build_x`, so surviving cells keep that order with no re-sort.
     The ordered surviving cells are returned so the inner-CV selector and
-    `CellDelayer` can recover per-cell row counts from `data.row_slices` in the
-    same row order.
+    `CellDelayer` can recover per-cell row counts in the same row order.
     """
     X_parts: list[np.ndarray] = []
     Y_parts: list[np.ndarray] = []
@@ -118,20 +117,20 @@ def _inner_cv(
     ordered_cells: list[CellKey],
     cell_lengths: list[int],
     segment_entity: str | None,
-    fold: FoldSpec | None,
+    fold_by: str | None,
 ) -> BaseCrossValidator:
     """Build the hyperparameter-search splitter confined to one model's train set.
 
     Applies the 3-step inner-unit rule over this model's train cells:
 
-    1. `fold.by` itself, if the train set holds >=2 distinct values — symmetric
+    1. `fold_by` itself, if the train set holds >=2 distinct values — symmetric
        with outer folding, valid for structural and descriptive `fold_by` alike.
     2. Descend the structural chain `[ses, task, run, segment_entity]`
-       coarsest-first, skipping only `fold.by` (already failed step 1); first
+       coarsest-first, skipping only `fold_by` (already failed step 1); first
        entity with >=2 distinct train values wins. The full chain is walked —
        entities coarser than a structural `fold_by` are NOT skipped, because BIDS
        labels are not strictly nested (a `run` value recurs across sessions), so a
-       coarser entity can legitimately vary while `fold.by` is constant.
+       coarser entity can legitimately vary while `fold_by` is constant.
        Descriptive keys (e.g. `cond`) are excluded here: a descriptive value can
        straddle a run boundary and leak. They re-enter only via step 1. When only
        `segment_entity` varies, this yields leave-one-trial-out, which is leaky
@@ -139,15 +138,12 @@ def _inner_cv(
        varies at the trial level"; the leak is a property of the data (no coarser
        structure), not something the CV strategy should mask.
     3. No eligible entity (train set collapsed to a single cell) → contiguous
-       `KFold(n_splits=2, shuffle=False)`. No seed — contiguous halving keeps
-       FIR-correlated adjacent TRs on the same side except at one boundary.
+       `KFold(n_splits=2, shuffle=False)`. Contiguous (unshuffled) halves keep
+       FIR-correlated adjacent TRs together except at the split boundary.
 
-    Steps 1–2 return a `PredefinedSplit` over whole cells: each cell's chosen
-    entity value (mapped to an int) is repeated by the cell's row count, so a
-    group id is constant within a cell and leave-one-value-out never splits a
-    cell. `segment_entity` is `None` when runs are unsegmented (it drops out of
-    the chain naturally). `fold` is `None` for unfolded models — step 1 is then
-    skipped and the rule starts at step 2.
+    Steps 1–2 return a `PredefinedSplit` over whole cells: the group id is
+    constant within a cell, so leave-one-value-out never splits a cell mid-way
+    (which would leak FIR-delayed rows across the train/test boundary).
     """
     from sklearn.model_selection import KFold, PredefinedSplit
 
@@ -160,15 +156,13 @@ def _inner_cv(
         per_row_group_ids = np.repeat([value_to_id[v] for v in values], cell_lengths)
         return PredefinedSplit(per_row_group_ids)
 
-    fold_by = fold.by if fold is not None else None
-
-    # step 1: fold_by as the inner unit
+    # Step 1
     if fold_by is not None:
         cv = _split_on(fold_by)
         if cv is not None:
             return cv
 
-    # step 2: descend the structural chain, skipping only fold_by
+    # Step 2
     chain = ["ses", "task", "run"]
     if segment_entity is not None:
         chain.append(segment_entity)
@@ -179,7 +173,7 @@ def _inner_cv(
         if cv is not None:
             return cv
 
-    # step 3: single-cell train fold → contiguous 2-way halves
+    # Step 3
     if sum(cell_lengths) < 2:
         raise ValueError(
             "Inner CV cannot form a 2-way split: a train fold collapsed to a "
@@ -305,10 +299,13 @@ class EncodingTrainer(_EncodingContext):
 
         set_backend("torch_cuda" if self._config.device is Device.CUDA else "torch")
 
-        # segment entity is invariant across bold_metas (validated in _discover_bold);
-        # None when runs are unsegmented
-        segment_metas = [meta for meta in (bold_metas or {}).values() if meta.segments]
-        segment_entity = segment_metas[0].segments[0].entity if segment_metas else None
+        # Segment entity is invariant across bold_metas (validated in _discover_bold),
+        # so any segmented meta answers it; None when runs are unsegmented
+        segmented_meta = next((m for m in bold_metas.values() if m.segments), None)
+        segment_entity = segmented_meta.segments[0].entity if segmented_meta else None
+
+        # fold_by is the only FoldSpec field the inner CV consumes; n is outer-only
+        fold_by = self._fold.by if self._fold is not None else None
 
         def _fit_model(
             X: np.ndarray,
@@ -324,7 +321,7 @@ class EncodingTrainer(_EncodingContext):
                 ordered_cells=ordered_cells,
                 cell_lengths=cell_lengths,
                 segment_entity=segment_entity,
-                fold=self._fold,
+                fold_by=fold_by,
             )
             pipeline = _build_pipeline(
                 col_slices=data.col_slices,
@@ -343,7 +340,7 @@ class EncodingTrainer(_EncodingContext):
             # cell order tracks data.row_slices (= _build_x / _sort_key order)
             ordered_cells = list(data.row_slices)
             pipeline = _fit_model(data.X, data.Y, ordered_cells)
-            artifact = EncodingArtifact(
+            return EncodingArtifact(
                 recipe=recipe,
                 fold=None,
                 models=[
@@ -351,21 +348,19 @@ class EncodingTrainer(_EncodingContext):
                 ],
                 universe=None,
             )
-        else:
-            all_cells = set(data.row_slices)
-            groups = _group_cells_by(all_cells, self._fold.by)
-            held_out = _partition_groups(groups, self._fold.n)
-            models = []
-            for held in held_out:
-                train_cells = all_cells - held
-                X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
-                pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
-                models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
-            artifact = EncodingArtifact(
-                recipe=recipe, fold=self._fold, models=models, universe=all_cells
-            )
 
-        return artifact
+        all_cells = set(data.row_slices)
+        groups = _group_cells_by(all_cells, self._fold.by)
+        held_out = _partition_groups(groups, self._fold.n)
+        models = []
+        for held in held_out:
+            train_cells = all_cells - held
+            X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
+            pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
+            models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
+        return EncodingArtifact(
+            recipe=recipe, fold=self._fold, models=models, universe=all_cells
+        )
 
     def _apply_filters(
         self,
