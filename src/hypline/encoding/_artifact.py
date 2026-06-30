@@ -28,6 +28,7 @@ class XRecipe:
     """
 
     features: dict[str, tuple[str, str | None]]
+    confounds: dict[str, tuple[str, str | None]]
     tasks: list[str]
     bold_space: SurfaceSpace | VolumeSpace
     bold_desc: str
@@ -157,6 +158,7 @@ def _sidecar(artifact: EncodingArtifact) -> dict:
         "hypline_version": __version__,
         "recipe": {
             "features": {name: list(spec) for name, spec in recipe.features.items()},
+            "confounds": {name: list(spec) for name, spec in recipe.confounds.items()},
             "tasks": recipe.tasks,
             "bold_space": str(recipe.bold_space),
             "bold_desc": recipe.bold_desc,

@@ -31,7 +31,9 @@ class CellKey:
     - sub, dyad: invariant identities across a training call (features are
       dyad-keyed, BOLD is sub-keyed; neither is a cell axis)
     - desc, res, den: image-variant entities (BOLD derivatives only)
-    - space, feat: orthogonal axes — handled by dedicated arguments
+    - space, feat, conf: orthogonal axes — handled by dedicated arguments
+      (feat/conf are the category entities naming the regressor kind, not a
+      cell axis; excluding both lets feature and confound cells compare equal)
 
     `task` flows through as a cell axis: a training call may declare multiple
     tasks (`tasks=["A", "B"]`), in which case cells from different tasks become
@@ -49,6 +51,7 @@ class CellKey:
             "den",
             "space",
             "feat",
+            "conf",
         )
     )
     __slots__ = ("_entities",)
@@ -102,7 +105,7 @@ class EncodingConfig(BaseModel):
 class FeatureMeta:
     """One feature cell's TR-grid placement.
 
-    Resolved once by `_enrich_feature_metas` so `_build_x` never reads BOLD.
+    Resolved once by `_enrich_regressor_metas` so `_build_x` never reads BOLD.
     `onset_tr` is currently unconsumed — X rows start at 0 per cell, and `_align_y`
     recomputes its own onset from the target subject's BOLD.
     """

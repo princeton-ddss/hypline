@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import reprlib
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 
@@ -15,6 +15,8 @@ from hypline.bold import BOLD_EXTENSIONS, BoldMeta, load_bold_meta
 from hypline.downsample import downsample
 from hypline.events import merge_filename_and_sidecar, segment_tr_slice
 from hypline.io import (
+    read_confound,
+    read_confound_metadata,
     read_feature,
     read_feature_metadata,
     stack_array_column,
@@ -33,6 +35,11 @@ from ._schema import (
 
 _SOLVER_N_ITER = 100
 _SOLVER_DIAGONALIZE_METHOD = "svd"
+
+# Reserved col_slices key for the single confound band. Feature/confound entries
+# match BIDS_ENTITY_VALUE_RE (alphanumeric only), so the surrounding underscores
+# make this key uncollidable with any feature name.
+_CONFOUND_BAND = "__confounds__"
 
 
 def _format_loc(**entities: str | None) -> str:
@@ -54,6 +61,82 @@ def _diff_meta(reference: dict, compare: dict) -> list[str]:
             cs = "<missing>" if cv is missing else reprlib.repr(cv)
             lines.append(f"{key}: {rs} != {cs}")
     return lines
+
+
+def _require_uniform_schema(
+    regressor_bids: dict[FeatureKey, BIDSPath], label: str
+) -> None:
+    """Assert every discovered regressor file shares one cell-entity schema.
+
+    A non-uniform schema means cells can't line up on X's row axis. `label`
+    ('feat'/'conf') only colors the error message.
+    """
+    schema: frozenset[str] | None = None
+    schema_path: Path | None = None
+    for regressor_key, bids in regressor_bids.items():
+        file_schema = regressor_key.cell.keys()
+        if schema is None:
+            schema, schema_path = file_schema, bids.path
+        elif file_schema != schema:
+            raise ValueError(
+                f"Inconsistent {label} file schemas:\n  {schema_path}\n  {bids.path}"
+            )
+
+
+def _require_consistent_metadata(
+    regressor_bids: dict[FeatureKey, BIDSPath],
+    read_meta: Callable[[Path], dict],
+    label: str,
+) -> None:
+    """Assert all files of one entry carry identical generator metadata.
+
+    Keys prefixed with '_' are exempt — reserved for per-file metadata. `read_meta`
+    parameterizes the data source (`read_feature_metadata`/`read_confound_metadata`),
+    both of which return a plain dict, so the comparison stays source-agnostic.
+    """
+    per_entry_meta: dict[str, tuple[dict, Path]] = {}
+    for regressor_key, bids in regressor_bids.items():
+        meta = {
+            key: val
+            for key, val in read_meta(bids.path).items()
+            if not key.startswith("_")
+        }
+        entry = regressor_key.feature
+        if entry not in per_entry_meta:
+            per_entry_meta[entry] = (meta, bids.path)
+        elif per_entry_meta[entry][0] != meta:
+            ref_meta, ref_path = per_entry_meta[entry]
+            diff = "\n".join(f"    {line}" for line in _diff_meta(ref_meta, meta))
+            raise ValueError(
+                f"Inconsistent metadata for {label}={entry}:\n"
+                f"  {ref_path}\n  {bids.path}\n  differing keys:\n{diff}"
+            )
+
+
+def _require_full_coverage(
+    regressor_bids: dict[FeatureKey, BIDSPath],
+    entries: dict[str, tuple[str, str | None]],
+    sub_id: str,
+    label: str,
+) -> None:
+    """Assert every entry is present at every discovered cell.
+
+    A missing entry at any cell would silently produce an incomplete X, so it
+    raises instead.
+    """
+    expected = {
+        FeatureKey(cell_key, entry)
+        for cell_key in {key.cell for key in regressor_bids}
+        for entry in entries
+    }
+    missing = expected - regressor_bids.keys()
+    if missing:
+        regressor_key = next(iter(missing))
+        loc = _format_loc(sub=sub_id, **dict(regressor_key.cell.items()))
+        msg = f"Missing {label}={regressor_key.feature} at {loc}"
+        if len(missing) > 1:
+            msg += f" ({len(missing) - 1} other coverage gaps exist)"
+        raise FileNotFoundError(msg)
 
 
 def _load_bold_array(path: Path) -> np.ndarray:
@@ -239,55 +322,59 @@ class _EncodingContext:
                     )
                 feature_bids[feature_key] = bids
 
-        # Validate: all files share the same entity key set
-        schema: frozenset[str] | None = None
-        schema_path: Path | None = None
-        for feature_key, bids in feature_bids.items():
-            file_schema = feature_key.cell.keys()
-            if schema is None:
-                schema, schema_path = file_schema, bids.path
-            elif file_schema != schema:
-                raise ValueError(
-                    f"Inconsistent feature file schemas:\n"
-                    f"  {schema_path}\n  {bids.path}"
-                )
-
-        # Validate: metadata is identical across files for each feature
-        # (keys prefixed with '_' are exempt — reserved for per-file metadata)
-        per_feature_meta: dict[str, tuple[dict, Path]] = {}
-        for feature_key, bids in feature_bids.items():
-            meta = {
-                key: val
-                for key, val in read_feature_metadata(bids.path).items()
-                if not key.startswith("_")
-            }
-            feature_name = feature_key.feature
-            if feature_name not in per_feature_meta:
-                per_feature_meta[feature_name] = (meta, bids.path)
-            elif per_feature_meta[feature_name][0] != meta:
-                ref_meta, ref_path = per_feature_meta[feature_name]
-                diff = "\n".join(f"    {line}" for line in _diff_meta(ref_meta, meta))
-                raise ValueError(
-                    f"Inconsistent metadata for feat={feature_name}:\n"
-                    f"  {ref_path}\n  {bids.path}\n  differing keys:\n{diff}"
-                )
-
-        # Validate: all features present at every cell
-        expected = {
-            FeatureKey(cell_key, feature_name)
-            for cell_key in {feature_key.cell for feature_key in feature_bids}
-            for feature_name in self._recipe.features
-        }
-        missing = expected - feature_bids.keys()
-        if missing:
-            feature_key = next(iter(missing))
-            loc = _format_loc(sub=sub_id, **dict(feature_key.cell.items()))
-            msg = f"Missing feat={feature_key.feature} at {loc}"
-            if len(missing) > 1:
-                msg += f" ({len(missing) - 1} other coverage gaps exist)"
-            raise FileNotFoundError(msg)
-
+        _require_uniform_schema(feature_bids, "feature")
+        _require_consistent_metadata(feature_bids, read_feature_metadata, "feat")
+        _require_full_coverage(feature_bids, self._recipe.features, sub_id, "feat")
         return feature_bids
+
+    def _discover_confounds(self, sub_id: str) -> dict[FeatureKey, BIDSPath]:
+        """Discover and validate confound file paths for a subject.
+
+        Mirrors `_discover_features` so confound cells resolve to the same cell
+        schema and full per-cell coverage — they must line up on X's row axis with
+        the feature cells. The differences from features: files are read via
+        `find.confounds`/`read_confound_metadata`, and the `FeatureKey.feature`
+        slot holds the confound entry string (the recipe's `confounds` key). The
+        latter is incidental — confounds all collapse into one ridge band in
+        `_build_x`, so the per-entry key only labels coverage and dedup here.
+
+        Returns an empty dict when no confounds are configured.
+        """
+        if not self._recipe.confounds:
+            return {}
+
+        # Confounds are dyad-keyed; resolve this subject's dyad via participants.tsv
+        dyad_id = self._layout.dyad_of(sub_id)
+        confound_bids: dict[FeatureKey, BIDSPath] = {}
+        for entry, (kind, desc) in self._recipe.confounds.items():
+            confound_files = self._layout.find.confounds(
+                dyad=dyad_id,
+                kind=kind,
+                desc=desc,
+                bids_filters=self._recipe.task_filters,
+            )
+
+            for bids in confound_files:
+                cell_key = CellKey(
+                    **{
+                        key: val
+                        for key, val in bids.entities.items()
+                        if key not in CellKey.EXCLUDE
+                    }
+                )
+                confound_key = FeatureKey(cell=cell_key, feature=entry)
+                if confound_key in confound_bids:
+                    loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
+                    raise ValueError(
+                        f"Multiple confound files for conf={entry}, {loc}:\n"
+                        f"  {confound_bids[confound_key].path}\n  {bids.path}"
+                    )
+                confound_bids[confound_key] = bids
+
+        _require_uniform_schema(confound_bids, "confound")
+        _require_consistent_metadata(confound_bids, read_confound_metadata, "conf")
+        _require_full_coverage(confound_bids, self._recipe.confounds, sub_id, "conf")
+        return confound_bids
 
     def _discover_bold(self, sub_id: str) -> dict[BoldKey, BoldMeta]:
         """Discover BOLD files and load their metadata for a subject.
@@ -487,27 +574,28 @@ class _EncodingContext:
 
         return resolved_feature_bids
 
-    def _enrich_feature_metas(
+    def _enrich_regressor_metas(
         self,
-        feature_bids: dict[FeatureKey, BIDSPath],
+        regressor_bids: dict[FeatureKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> dict[FeatureKey, FeatureMeta]:
-        """Enrich each feature path into a `FeatureMeta` with its TR-grid placement.
+        """Enrich each regressor path into a `FeatureMeta` with its TR-grid placement.
 
-        The crossover between feature cells and the BOLD timeline happens here,
-        once: derive `(onset_tr, n_trs)` from the segment TR-slice for segmented
-        runs, or from the run's header `n_trs` for unsegmented runs, and stamp
-        `repetition_time`. `_build_x` then reads placement off the metas and never
-        touches `bold_metas`.
+        Role-neutral: features and confounds both flow through here, since placement
+        depends only on the cell's BOLD timeline, not the regressor's role. The
+        crossover between cells and the BOLD timeline happens here, once: derive
+        `(onset_tr, n_trs)` from the segment TR-slice for segmented runs, or from the
+        run's header `n_trs` for unsegmented runs, and stamp `repetition_time`.
+        `_build_x` then reads placement off the metas and never touches `bold_metas`.
 
         No BOLD voxel data is read — placement comes from `bold_metas` alone.
         The header `n_trs` carried by each meta is trusted; `_align_y` reconciles
         it against the actual array.
         """
         cells_by_bold_key: dict[BoldKey, set[CellKey]] = {}
-        for feature_key in feature_bids:
-            bold_key = feature_key.cell.to_bold_key()
-            cells_by_bold_key.setdefault(bold_key, set()).add(feature_key.cell)
+        for regressor_key in regressor_bids:
+            bold_key = regressor_key.cell.to_bold_key()
+            cells_by_bold_key.setdefault(bold_key, set()).add(regressor_key.cell)
 
         placement_by_cell: dict[CellKey, tuple[int, int, float]] = {}
         for bold_key, cells in cells_by_bold_key.items():
@@ -534,27 +622,65 @@ class _EncodingContext:
                         bold_meta.repetition_time,
                     )
 
-        feature_metas: dict[FeatureKey, FeatureMeta] = {}
-        for feature_key, bids in feature_bids.items():
-            onset_tr, n_trs, repetition_time = placement_by_cell[feature_key.cell]
-            feature_metas[feature_key] = FeatureMeta(
+        regressor_metas: dict[FeatureKey, FeatureMeta] = {}
+        for regressor_key, bids in regressor_bids.items():
+            onset_tr, n_trs, repetition_time = placement_by_cell[regressor_key.cell]
+            regressor_metas[regressor_key] = FeatureMeta(
                 bids=bids,
                 n_trs=n_trs,
                 onset_tr=onset_tr,
                 repetition_time=repetition_time,
             )
-        return feature_metas
+        return regressor_metas
 
-    def _build_x(self, feature_metas: dict[FeatureKey, FeatureMeta]) -> XData:
-        """Assemble the X feature matrix and its row/column geometry, no target.
+    def _read_feature_array(self, meta: FeatureMeta, n_trs: int) -> np.ndarray:
+        """Read one feature file and downsample it onto the cell's TR grid."""
+        df = read_feature(meta.bids.path)
+        # Drop untimed rows — downsample needs TR alignment
+        df = df.filter(df.get_column("start_time").is_not_null())
+        return downsample(
+            stack_array_column(df.get_column("feature")),
+            start_times=df.get_column("start_time").to_numpy(),
+            n_trs=n_trs,
+            repetition_time=meta.repetition_time,
+            method=self._recipe.downsample,
+        )
+
+    def _read_confound_array(
+        self, meta: FeatureMeta, n_trs: int, entry: str, cell_key: CellKey
+    ) -> np.ndarray:
+        """Read one confound file, already at TR level, asserting its row count.
+
+        Unlike features there is no downsample step: confounds are written TR-level
+        and per-segment, so the file must already span the cell's `n_trs`. The check
+        is explicit rather than left to `downsample`'s pass-through, which would
+        silently bin instead of raise on a mismatched grid.
+        """
+        arr = stack_array_column(read_confound(meta.bids.path).get_column("confound"))
+        if arr.shape[0] != n_trs:
+            raise ValueError(
+                f"Confound conf={entry} at cell {cell_key} has {arr.shape[0]} "
+                f"TR row(s) but the cell spans {n_trs} — confounds must be saved "
+                f"at the BOLD TR grid for this segment"
+            )
+        return arr
+
+    def _build_x(self, regressor_metas: dict[FeatureKey, FeatureMeta]) -> XData:
+        """Assemble the X regressor matrix and its row/column geometry, no target.
 
         Reads `n_trs`/`repetition_time` off each cell's `FeatureMeta` — the
-        crossover with the BOLD timeline already happened in `_enrich_feature_metas`,
-        so X no longer touches `bold_metas` and no BOLD data enters X.
+        crossover with the BOLD timeline already happened in
+        `_enrich_regressor_metas`, so X no longer touches `bold_metas` and no BOLD
+        data enters X.
 
-        Cells are sorted deterministically so row positions are stable across
-        runs. Column layout is derived from the first cell and assumed invariant —
-        all cells must yield the same feature dimensionality.
+        `regressor_metas` is the merged feature+confound dict; the recipe's
+        `features`/`confounds` maps decide each entry's role. Cells are sorted
+        deterministically so row positions are stable across runs. Column layout is
+        derived from the first cell and assumed invariant — all cells must yield the
+        same regressor dimensionality.
+
+        Features each get their own ridge band; all confounds collapse into a single
+        trailing band keyed `_CONFOUND_BAND`, regardless of how many were configured.
         """
 
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
@@ -568,7 +694,7 @@ class _EncodingContext:
             return (ses is not None, ses or "", task, run is not None, run or "", *rest)
 
         cell_keys = sorted(
-            {feature_key.cell for feature_key in feature_metas}, key=_sort_key
+            {regressor_key.cell for regressor_key in regressor_metas}, key=_sort_key
         )
 
         X_parts: list[np.ndarray] = []
@@ -579,8 +705,8 @@ class _EncodingContext:
         col_slices_initialized = False
 
         for cell_key in cell_keys:
-            # Geometry is per-cell, shared across this cell's feature metas
-            cell_meta = feature_metas[
+            # Geometry is per-cell, shared across this cell's regressor metas
+            cell_meta = regressor_metas[
                 FeatureKey(cell_key, next(iter(self._recipe.features)))
             ]
             n_trs = cell_meta.n_trs
@@ -588,27 +714,31 @@ class _EncodingContext:
             row_offset += n_trs
 
             # Construct X for the given cell
-            feature_arrays: list[np.ndarray] = []
-            for feature_name in self._recipe.features:
-                meta = feature_metas[FeatureKey(cell_key, feature_name)]
-                df = read_feature(meta.bids.path)
-                # Drop untimed rows — downsample needs TR alignment
-                df = df.filter(df.get_column("start_time").is_not_null())
-                arr = downsample(
-                    stack_array_column(df.get_column("feature")),
-                    start_times=df.get_column("start_time").to_numpy(),
-                    n_trs=n_trs,
-                    repetition_time=meta.repetition_time,
-                    method=self._recipe.downsample,
+            feature_arrays = [
+                self._read_feature_array(
+                    regressor_metas[FeatureKey(cell_key, name)], n_trs
                 )
-                feature_arrays.append(arr)
+                for name in self._recipe.features
+            ]
+            # One band for all confounds: hstack each entry's already-TR-level vector
+            confound_arrays = [
+                self._read_confound_array(
+                    regressor_metas[FeatureKey(cell_key, entry)], n_trs, entry, cell_key
+                )
+                for entry in self._recipe.confounds
+            ]
+
             if not col_slices_initialized:
                 for feature_name, arr in zip(self._recipe.features, feature_arrays):
                     n_cols = arr.shape[1]
                     col_slices[feature_name] = slice(col_offset, col_offset + n_cols)
                     col_offset += n_cols
+                if confound_arrays:
+                    n_cols = sum(arr.shape[1] for arr in confound_arrays)
+                    col_slices[_CONFOUND_BAND] = slice(col_offset, col_offset + n_cols)
+                    col_offset += n_cols
                 col_slices_initialized = True  # col slices are invariant across cells
-            X_parts.append(np.hstack(feature_arrays))
+            X_parts.append(np.hstack([*feature_arrays, *confound_arrays]))
 
         X = np.concatenate(X_parts, axis=0)
         return XData(X=X, row_slices=row_slices, col_slices=col_slices)
