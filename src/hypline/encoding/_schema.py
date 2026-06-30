@@ -148,9 +148,15 @@ class TrainingData(XData):
     Subclassing appends `Y` as the last field — construction is kwargs-only at
     every site, so the positional reorder is inert. Do not switch any
     `TrainingData(...)` call to positional args without accounting for this.
+
+    `segment_entity` is the within-run BIDS entity (e.g. 'block') appended as the
+    finest level of `_inner_cv`'s structural fold chain (ses -> task -> run ->
+    segment); None when unsegmented. It determines the split only when no coarser
+    level varies in the train set.
     """
 
     Y: np.ndarray
+    segment_entity: str | None = None
 
 
 @dataclass(frozen=True)

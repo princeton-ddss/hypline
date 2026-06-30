@@ -15,7 +15,8 @@ from .conftest import SUB, TASK, _make_encoding
 class TestArtifactRoundTrip:
     """Write → load reproduces the recipe, cell set, and predictions exactly."""
 
-    def _trained(
+    @pytest.fixture
+    def train_setup(
         self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
     ) -> tuple[EncodingTrainer, TrainingData]:
         n_rows, n_voxels = 20, 5
@@ -30,22 +31,13 @@ class TestArtifactRoundTrip:
             col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
         )
         enc = _make_encoding(tree, ["phonemic-gpt3", "mfcc"])
-        for step in (
-            "_discover_features",
-            "_discover_bold",
-            "_resolve_cell_keys",
-            "_validate_coverage",
-        ):
-            monkeypatch.setattr(enc, step, lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: ({}, {}))
-        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
         return enc, data
 
-    def test_round_trip(self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch):
+    def test_round_trip(self, train_setup: tuple[EncodingTrainer, TrainingData]):
         from himalaya.backend import set_backend
 
-        enc, data = self._trained(tree, monkeypatch)
+        enc, data = train_setup
         X = data.X.astype(np.float32)
 
         artifact = enc.train(SUB)
@@ -72,11 +64,11 @@ class TestArtifactRoundTrip:
         assert loaded.universe is None
 
     def test_sidecar_mirrors_non_pipeline_fields(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, train_setup: tuple[EncodingTrainer, TrainingData]
     ):
         import json
 
-        enc, _ = self._trained(tree, monkeypatch)
+        enc, _ = train_setup
         artifact = enc.train(SUB)
 
         out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")

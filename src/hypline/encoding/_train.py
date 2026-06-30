@@ -285,24 +285,13 @@ class EncodingTrainer(_EncodingContext):
         to `write_artifact` to store it, and gate the fit on `skip_existing`
         before calling if a check-before-compute cache is wanted.
         """
-        feature_bids = self._discover_features(sub_id)
-        bold_metas = self._discover_bold(sub_id)
-        feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
-        feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
-        self._validate_coverage(sub_id, feature_bids, bold_metas)
-        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
-        data = self._build_training_data(feature_metas, bold_metas)
+        data = self._assemble_training_data(sub_id)
 
         # himalaya binds the backend at estimator construction, not at fit — set it
         # before building the pipeline or fitting silently falls back to CPU
         from himalaya.backend import set_backend
 
         set_backend("torch_cuda" if self._config.device is Device.CUDA else "torch")
-
-        # Segment entity is invariant across bold_metas (validated in _discover_bold),
-        # so any segmented meta answers it; None when runs are unsegmented
-        segmented_meta = next((m for m in bold_metas.values() if m.segments), None)
-        segment_entity = segmented_meta.segments[0].entity if segmented_meta else None
 
         # fold_by is the only FoldSpec field the inner CV consumes; n is outer-only
         fold_by = self._fold.by if self._fold is not None else None
@@ -320,7 +309,7 @@ class EncodingTrainer(_EncodingContext):
             cv = _inner_cv(
                 ordered_cells=ordered_cells,
                 cell_lengths=cell_lengths,
-                segment_entity=segment_entity,
+                segment_entity=data.segment_entity,
                 fold_by=fold_by,
             )
             pipeline = _build_pipeline(
@@ -361,6 +350,21 @@ class EncodingTrainer(_EncodingContext):
         return EncodingArtifact(
             recipe=recipe, fold=self._fold, models=models, universe=all_cells
         )
+
+    def _assemble_training_data(self, sub_id: str) -> TrainingData:
+        """Run the full discover -> validate -> build prep chain for a subject.
+
+        Orchestrates the constituent steps and hands `_build_training_data` the
+        filtered, coverage-checked metas; the returned `TrainingData` is the sole
+        input the fit in `train` needs.
+        """
+        feature_bids = self._discover_features(sub_id)
+        bold_metas = self._discover_bold(sub_id)
+        feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
+        feature_bids, bold_metas = self._apply_filters(sub_id, feature_bids, bold_metas)
+        self._validate_coverage(sub_id, feature_bids, bold_metas)
+        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
+        return self._build_training_data(feature_metas, bold_metas)
 
     def _apply_filters(
         self,
@@ -490,9 +494,16 @@ class EncodingTrainer(_EncodingContext):
         """
         x_data = self._build_x(feature_metas)
         Y = _align_y(bold_metas, x_data.row_slices)
+
+        # Segment entity is invariant across bold_metas (validated in _discover_bold),
+        # so any segmented meta answers it; None when runs are unsegmented
+        segmented_meta = next((m for m in bold_metas.values() if m.segments), None)
+        segment_entity = segmented_meta.segments[0].entity if segmented_meta else None
+
         return TrainingData(
             X=x_data.X,
             row_slices=x_data.row_slices,
             col_slices=x_data.col_slices,
             Y=Y,
+            segment_entity=segment_entity,
         )

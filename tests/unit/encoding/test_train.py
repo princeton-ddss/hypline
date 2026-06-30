@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Literal
 
 import numpy as np
@@ -21,6 +22,44 @@ from hypline.encoding._train import (
 
 from ..conftest import BIDSTree
 from .conftest import DYAD, SPACE, SUB, TASK, _make_encoding
+
+# make_train_setup return type: a stubbed trainer plus the data it fits on
+_TrainSetupFactory = Callable[..., tuple[EncodingTrainer, TrainingData]]
+
+
+def _add_block_segmented_run(tree: BIDSTree) -> None:
+    """Toy single-run BIDS whose events split BOLD into two blocks.
+
+    10-TR BOLD at TR=2.0 (20 s); two 10 s blocks (onsets 0 / 10) => 5 TRs each,
+    with per-block mfcc features carrying one distinct timed row per TR.
+    """
+    feature_df = pl.DataFrame(
+        {
+            "start_time": [0.0, 2.0, 4.0, 6.0, 8.0],
+            "feature": [[float(i)] for i in range(5)],
+        },
+        schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+    )
+    tree.add_participants({SUB: DYAD})
+    tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+    tree.add_events(
+        sub=SUB,
+        task=TASK,
+        run="1",
+        rows=[
+            {"trial_type": "block-1", "onset": 0.0, "duration": 10.0},
+            {"trial_type": "block-2", "onset": 10.0, "duration": 10.0},
+        ],
+    )
+    for block in ("1", "2"):
+        tree.add_feature(
+            dyad=DYAD,
+            task=TASK,
+            kind="mfcc",
+            run="1",
+            extra_entities={"block": block},
+            df=feature_df,
+        )
 
 
 class TestEncodingInit:
@@ -599,23 +638,20 @@ class TestInnerCv:
         assert cv.get_n_splits() == 3
 
 
-class TestBuildTrainingData:
-    """End-to-end `_build_training_data`: reads features, downsamples, assembles X."""
+class TestAssembleTrainingData:
+    """End-to-end `_assemble_training_data`: discovers, reads, downsamples, assembles X.
 
-    def _build_training_data(
-        self, tree: BIDSTree, feature_df: pl.DataFrame
-    ) -> TrainingData:
+    Drives the real `sub -> TrainingData` orchestration (the same method `train()`
+    calls) up to but excluding the fit, so a reordered or dropped step surfaces here
+    rather than passing against a stale hand-listed chain.
+    """
+
+    def _assemble(self, tree: BIDSTree, feature_df: pl.DataFrame) -> TrainingData:
         tree.add_participants({SUB: DYAD})
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1", df=feature_df)
         enc = _make_encoding(tree, ["mfcc"])
-        feature_bids = enc._discover_features(SUB)
-        bold_metas = enc._discover_bold(SUB)
-        feature_bids = enc._resolve_cell_keys(SUB, feature_bids, bold_metas)
-        feature_bids, bold_metas = enc._apply_filters(SUB, feature_bids, bold_metas)
-        enc._validate_coverage(SUB, feature_bids, bold_metas)
-        feature_metas = enc._enrich_feature_metas(feature_bids, bold_metas)
-        return enc._build_training_data(feature_metas, bold_metas)
+        return enc._assemble_training_data(SUB)
 
     def test_untimed_row_dropped_x_matches_all_timed(
         self, tree: BIDSTree, tmp_path_factory: pytest.TempPathFactory
@@ -638,9 +674,17 @@ class TestBuildTrainingData:
             schema=schema,
         )
         timed_tree = BIDSTree(tmp_path_factory.mktemp("timed"))
-        x_null = self._build_training_data(tree, null_df).X
-        x_timed = self._build_training_data(timed_tree, timed_df).X
+        x_null = self._assemble(tree, null_df).X
+        x_timed = self._assemble(timed_tree, timed_df).X
         np.testing.assert_array_equal(x_null, x_timed)
+
+    def test_segment_entity_derived_from_block_segmented_run(self, tree: BIDSTree):
+        # Localizes the derivation half: real key-value events => segmented BOLD =>
+        # segment_entity == 'block'. Points straight at the derivation if it breaks.
+        _add_block_segmented_run(tree)
+        enc = _make_encoding(tree, ["mfcc"])
+        data = enc._assemble_training_data(SUB)
+        assert data.segment_entity == "block"
 
 
 class TestTrainWiring:
@@ -662,16 +706,7 @@ class TestTrainWiring:
             col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
         )
         enc = _make_encoding(tree, ["phonemic-gpt3", "mfcc"])
-        for step in (
-            "_discover_features",
-            "_discover_bold",
-            "_resolve_cell_keys",
-            "_validate_coverage",
-        ):
-            monkeypatch.setattr(enc, step, lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: ({}, {}))
-        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
+        monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
 
         from sklearn.pipeline import Pipeline
 
@@ -694,46 +729,39 @@ class TestFoldedTrain:
     # Four runs, one cell each; rows are contiguous per cell in _sort_key order
     CELLS = [CellKey(task="a", run=str(i)) for i in range(1, 5)]
 
-    def _trained(
-        self,
-        tree: BIDSTree,
-        monkeypatch: pytest.MonkeyPatch,
-        *,
-        fold_by: str,
-        n_folds: int | Literal["loo"],
-        cells: list[CellKey] | None = None,
-    ) -> tuple[EncodingTrainer, TrainingData]:
-        cells = cells if cells is not None else self.CELLS
-        n_per, n_cols, n_voxels = 5, 7, 3
-        rng = np.random.RandomState(0)
-        n_rows = n_per * len(cells)
-        data = TrainingData(
-            X=rng.randn(n_rows, n_cols).astype(np.float64),
-            Y=rng.randn(n_rows, n_voxels).astype(np.float64),
-            row_slices={
-                cell: slice(i * n_per, (i + 1) * n_per) for i, cell in enumerate(cells)
-            },
-            col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
-        )
-        enc = _make_encoding(
-            tree, ["phonemic-gpt3", "mfcc"], fold_by=fold_by, n_folds=n_folds
-        )
-        for step in (
-            "_discover_features",
-            "_discover_bold",
-            "_resolve_cell_keys",
-            "_validate_coverage",
-        ):
-            monkeypatch.setattr(enc, step, lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_apply_filters", lambda *a, **k: ({}, {}))
-        monkeypatch.setattr(enc, "_enrich_feature_metas", lambda *a, **k: None)
-        monkeypatch.setattr(enc, "_build_training_data", lambda *a, **k: data)
-        return enc, data
-
-    def test_partition_correctness(
+    @pytest.fixture
+    def make_train_setup(
         self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
-    ):
-        enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+    ) -> _TrainSetupFactory:
+        def _build(
+            *,
+            fold_by: str,
+            n_folds: int | Literal["loo"],
+            cells: list[CellKey] | None = None,
+        ) -> tuple[EncodingTrainer, TrainingData]:
+            cells = cells if cells is not None else self.CELLS
+            n_per, n_cols, n_voxels = 5, 7, 3
+            rng = np.random.RandomState(0)
+            n_rows = n_per * len(cells)
+            data = TrainingData(
+                X=rng.randn(n_rows, n_cols).astype(np.float64),
+                Y=rng.randn(n_rows, n_voxels).astype(np.float64),
+                row_slices={
+                    cell: slice(i * n_per, (i + 1) * n_per)
+                    for i, cell in enumerate(cells)
+                },
+                col_slices={"phonemic-gpt3": slice(0, 3), "mfcc": slice(3, 7)},
+            )
+            enc = _make_encoding(
+                tree, ["phonemic-gpt3", "mfcc"], fold_by=fold_by, n_folds=n_folds
+            )
+            monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
+            return enc, data
+
+        return _build
+
+    def test_partition_correctness(self, make_train_setup: _TrainSetupFactory):
+        enc, data = make_train_setup(fold_by="run", n_folds=2)
         artifact = enc.train(SUB)
         universe = set(data.row_slices)
 
@@ -745,27 +773,23 @@ class TestFoldedTrain:
         assert held_out[0] | held_out[1] == universe
 
     def test_loo_one_group_held_out_per_model(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
-        enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds="loo")
+        enc, data = make_train_setup(fold_by="run", n_folds="loo")
         artifact = enc.train(SUB)
         universe = set(data.row_slices)
 
         assert len(artifact.models) == len(self.CELLS)
         assert all(len(universe - m.train_cells) == 1 for m in artifact.models)
 
-    def test_fold_records_fold_config(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
-    ):
-        enc, _ = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+    def test_fold_records_fold_config(self, make_train_setup: _TrainSetupFactory):
+        enc, _ = make_train_setup(fold_by="run", n_folds=2)
         artifact = enc.train(SUB)
         assert artifact.fold is not None
         assert artifact.fold.by == "run"
         assert artifact.fold.n == 2
 
-    def test_fold_by_descriptive_spans_runs(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
-    ):
+    def test_fold_by_descriptive_spans_runs(self, make_train_setup: _TrainSetupFactory):
         # two conds, each spanning two runs → folds=2 over cond holds out whole conds
         cells = [
             CellKey(task="a", run="1", cond="x"),
@@ -773,9 +797,7 @@ class TestFoldedTrain:
             CellKey(task="a", run="3", cond="y"),
             CellKey(task="a", run="4", cond="y"),
         ]
-        enc, data = self._trained(
-            tree, monkeypatch, fold_by="cond", n_folds=2, cells=cells
-        )
+        enc, data = make_train_setup(fold_by="cond", n_folds=2, cells=cells)
         artifact = enc.train(SUB)
         universe = set(data.row_slices)
         held_out = [universe - m.train_cells for m in artifact.models]
@@ -784,38 +806,32 @@ class TestFoldedTrain:
         assert all(len({c["cond"] for c in h}) == 1 for h in held_out)
 
     def test_missing_fold_by_key_raises_in_train(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
         # 'cond' is absent from every cell — late, data-dependent failure
-        enc, _ = self._trained(tree, monkeypatch, fold_by="cond", n_folds=2)
+        enc, _ = make_train_setup(fold_by="cond", n_folds=2)
         with pytest.raises(ValueError, match="no 'cond' axis"):
             enc.train(SUB)
 
     def test_n_folds_exceed_groups_raises_in_train(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
-        enc, _ = self._trained(
-            tree, monkeypatch, fold_by="run", n_folds=2, cells=[self.CELLS[0]]
-        )
+        enc, _ = make_train_setup(fold_by="run", n_folds=2, cells=[self.CELLS[0]])
         with pytest.raises(ValueError, match="exceeds"):
             enc.train(SUB)
 
     def test_loo_single_group_raises_in_train(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
-        enc, _ = self._trained(
-            tree, monkeypatch, fold_by="run", n_folds="loo", cells=[self.CELLS[0]]
-        )
+        enc, _ = make_train_setup(fold_by="run", n_folds="loo", cells=[self.CELLS[0]])
         with pytest.raises(ValueError, match="needs >= 2 groups"):
             enc.train(SUB)
 
     def test_runless_dataset_raises_in_train(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
         # run-less: 'run' uniformly absent → clear "no axis" error, not a collapse
-        enc, _ = self._trained(
-            tree,
-            monkeypatch,
+        enc, _ = make_train_setup(
             fold_by="run",
             n_folds=2,
             cells=[CellKey(task="a"), CellKey(task="b")],
@@ -824,11 +840,11 @@ class TestFoldedTrain:
             enc.train(SUB)
 
     def test_round_trip_preserves_models_and_cells(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
         from himalaya.backend import set_backend
 
-        enc, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+        enc, data = make_train_setup(fold_by="run", n_folds=2)
         artifact = enc.train(SUB)
         out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
         write_artifact(artifact, out.path)
@@ -851,12 +867,12 @@ class TestFoldedTrain:
             np.testing.assert_array_equal(np.asarray(got.pipeline.predict(X_fold)), ref)
 
     def test_per_fold_cells_follow_sort_order(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+        self, make_train_setup: _TrainSetupFactory
     ):
         # Guards the CellDelayer-boundary bug: _select_rows must return cells in
         # row_slices (_sort_key) order regardless of train_cells set iteration, so
         # per-cell row counts derived downstream stay aligned with the row layout
-        _, data = self._trained(tree, monkeypatch, fold_by="run", n_folds=2)
+        _, data = make_train_setup(fold_by="run", n_folds=2)
         universe = set(data.row_slices)
         held = _partition_groups(_group_cells_by(universe, "run"), 2)
         train_cells = universe - held[0]
@@ -864,20 +880,40 @@ class TestFoldedTrain:
         expected_order = [c for c in data.row_slices if c in train_cells]
         assert ordered_cells == expected_order
 
-    def test_inner_cv_set_per_model(
-        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
-    ):
+    def test_inner_cv_set_per_model(self, make_train_setup: _TrainSetupFactory):
         # Inner CV is rebuilt per model, confined to that model's train cells.
         from sklearn.model_selection import PredefinedSplit
 
         # loo over 5 runs → each model holds out one run, trains on 4 → 4 inner splits
         cells = [CellKey(task="a", run=str(i)) for i in range(1, 6)]
-        enc, _ = self._trained(
-            tree, monkeypatch, fold_by="run", n_folds="loo", cells=cells
-        )
+        enc, _ = make_train_setup(fold_by="run", n_folds="loo", cells=cells)
         artifact = enc.train(SUB)
         cvs = [m.pipeline.named_steps["model"].cv for m in artifact.models]
         assert all(isinstance(cv, PredefinedSplit) for cv in cvs)
         assert all(cv.get_n_splits() == 4 for cv in cvs)
         # distinct instances → rebuilt per model, not built once and shared
         assert cvs[0] is not cvs[1]
+
+
+class TestTrainIntegration:
+    """End-to-end train() over toy BIDS files — no monkeypatching.
+
+    Covers the disk -> _discover_bold -> bold_metas -> segment_entity -> _inner_cv
+    chain that the stubbed TestTrainWiring/TestFoldedTrain tests bypass: there
+    _apply_filters/_build_training_data are stubbed, forcing bold_metas empty and
+    segment_entity None.
+    """
+
+    def test_segmented_run_threads_segment_entity_into_inner_cv(self, tree: BIDSTree):
+        from sklearn.model_selection import PredefinedSplit
+
+        _add_block_segmented_run(tree)
+        enc = _make_encoding(tree, ["mfcc"])
+        artifact = enc.train(SUB)
+
+        # segment_entity='block' descended into the inner CV: a single run with
+        # two blocks yields leave-one-block-out (PredefinedSplit), not the
+        # contiguous KFold that segment_entity=None would have forced here
+        cv = artifact.models[0].pipeline.named_steps["model"].cv
+        assert isinstance(cv, PredefinedSplit)
+        assert cv.get_n_splits() == 2
