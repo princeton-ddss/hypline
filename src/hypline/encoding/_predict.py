@@ -13,7 +13,7 @@ from hypline.layout import BIDSLayout
 
 from ._artifact import EncodingArtifact, FittedModel, load_artifact
 from ._context import _EncodingContext
-from ._schema import CellDelayer, CellKey, FeatureKey, FeatureMeta, Prediction
+from ._schema import CellDelayer, CellKey, Prediction, RegressorKey, RegressorMeta
 
 
 def _rebind_cell_lengths(pipeline: Pipeline, cell_lengths: list[int]) -> None:
@@ -59,7 +59,7 @@ def _select_cells(
       never saw (e.g. a later run discovered only at predict time) aren't selected.
     - The bounded-OOS presence check exists because K-fold OOS cells come from the
       *train* subject's universe: one absent on this source would be silently dropped
-      downstream by the feature-subset filter — fewer predictions, no error. Raise.
+      downstream by the regressor-subset filter — fewer predictions, no error. Raise.
 
     Raises on an empty selection.
     """
@@ -149,15 +149,15 @@ class EncodingPredictor(_EncodingContext):
         source_sub_id: str,
         test_on: dict[str, str] | None = None,
     ) -> list[Prediction]:
-        """Predict each model's `Y_hat` from a source subject's features.
+        """Predict each model's `Y_hat` from a source subject's regressors.
 
-        Discovers and enriches the features for `source_sub_id` once (the per-model
+        Discovers and enriches the regressors for `source_sub_id` once (the per-model
         loop reuses one filesystem scan), then for each model in the artifact selects
         its cells (OOS by default, or `test_on`), subsets the enriched metas, and
         runs `_predict_model`. Returns one `Prediction` per model, in
         `artifact.models` order — a single-model artifact yields a length-1 list.
 
-        Predict-only: no target Y. `source_sub_id` provides features (X); the
+        Predict-only: no target Y. `source_sub_id` provides regressors (X); the
         model's weights are baked in at load (`EncodingPredictor.__init__`).
 
         Uses full discovery, not the recipe's `bids_filters`: `_select_cells`
@@ -193,7 +193,7 @@ class EncodingPredictor(_EncodingContext):
     def _predict_model(
         self,
         model: FittedModel,
-        regressor_metas: dict[FeatureKey, FeatureMeta],
+        regressor_metas: dict[RegressorKey, RegressorMeta],
     ) -> Prediction:
         """Run one model over a pre-selected cell set, returning its `Y_hat` (no Y).
 

@@ -25,7 +25,7 @@ class BoldKey(NamedTuple):
 
 
 class CellKey:
-    """Open-schema key identifying a single feature time window.
+    """Open-schema key identifying a single regressor time window.
 
     EXCLUDE defines which entities must never appear on a cell key:
     - sub, dyad: invariant identities across a training call (features are
@@ -90,9 +90,9 @@ class CellKey:
         return BoldKey(self.get("ses"), self["task"], self.get("run"))
 
 
-class FeatureKey(NamedTuple):
+class RegressorKey(NamedTuple):
     cell: CellKey
-    feature: str
+    entry: str
 
 
 class EncodingConfig(BaseModel):
@@ -102,8 +102,8 @@ class EncodingConfig(BaseModel):
 
 
 @dataclass(frozen=True)
-class FeatureMeta:
-    """One feature cell's TR-grid placement.
+class RegressorMeta:
+    """One regressor cell's TR-grid placement.
 
     Resolved once by `_enrich_regressor_metas` so `_build_x` never reads BOLD.
     `onset_tr` is currently unconsumed — X rows start at 0 per cell, and `_align_y`
@@ -118,11 +118,12 @@ class FeatureMeta:
 
 @dataclass(frozen=True)
 class XData:
-    """Assembled feature matrix and its row/column geometry, no target.
+    """Assembled regressor matrix and its row/column geometry, no target.
 
     `row_slices` maps each cell to its contiguous block of rows in X (in
-    `_sort_key` order); `col_slices` maps each feature name to its contiguous
-    block of columns. This is what predict needs — X alone — and what train
+    `_sort_key` order); `col_slices` maps each band key (a feature name, or the
+    reserved confound-band key) to its contiguous block of columns. This is what
+    predict needs — X alone — and what train
     extends with Y (see `TrainingData`).
     """
 
@@ -179,7 +180,7 @@ class CellDelayer(BaseEstimator, TransformerMixin):
     """Stack finite-impulse-response delays of X, one column block per delay.
 
     A row's delayed source `row - d` is zeroed when it falls before the start of
-    that row's cell, so a cell never sees feature values from the cell above it.
+    that row's cell, so a cell never sees regressor values from the cell above it.
     `cell_lengths` gives the per-cell row counts in the same cell order as
     `TrainingData.row_slices`; it is set per `train`/`predict` call rather than
     frozen, since cell lengths are per-subject.

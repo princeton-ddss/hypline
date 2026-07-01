@@ -331,7 +331,7 @@ class TestApplyFilters:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No feature files match"):
+        with pytest.raises(FileNotFoundError, match="No regressor files match"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
 
@@ -356,7 +356,7 @@ class TestValidateCoverage:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No feature files match"):
+        with pytest.raises(FileNotFoundError, match="No regressor files match"):
             enc._validate_coverage(SUB, {}, bold_metas)
 
     def test_empty_bold_after_filter_raises(self, tree: BIDSTree):
@@ -381,7 +381,7 @@ class TestValidateCoverage:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No feature files found for BOLD"):
+        with pytest.raises(FileNotFoundError, match="No regressor files found"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_features_without_bold_after_filter_raises(self, tree: BIDSTree):
@@ -411,7 +411,7 @@ class TestValidateCoverage:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No BOLD file found for features"):
+        with pytest.raises(FileNotFoundError, match="No BOLD file found for regressor"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_multiple_bold_gaps_reports_count(self, tree: BIDSTree):

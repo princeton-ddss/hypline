@@ -4,7 +4,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from hypline.encoding._context import _build_pipeline
-from hypline.encoding._schema import BoldKey, CellKey, FeatureKey, TrainingData
+from hypline.encoding._schema import BoldKey, CellKey, RegressorKey, TrainingData
 
 from ..conftest import BIDSTree
 from .conftest import DYAD, SPACE, SUB, TASK, _make_encoding
@@ -50,7 +50,7 @@ class TestDiscoverFeatures:
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
-        expected = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="mfcc")
+        expected = RegressorKey(cell=CellKey(task=TASK, run="1"), entry="mfcc")
         assert expected in feature_paths
 
     def test_no_files_raises(self, tree: BIDSTree):
@@ -60,7 +60,7 @@ class TestDiscoverFeatures:
             enc._discover_features(SUB)
 
     def test_duplicate_feature_file_raises(self, tree: BIDSTree):
-        # Two filenames with identical BIDS entities (reordered) collide on FeatureKey
+        # Two filenames with identical BIDS entities (reordered) collide on RegressorKey
         tree.add_participants({SUB: DYAD})
         original = tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         dup = original.parent / f"dyad-{DYAD}_run-1_task-{TASK}_feat-mfcc.parquet"
@@ -85,7 +85,7 @@ class TestDiscoverFeatures:
         tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1", desc="gpt3")
         enc = _make_encoding(tree, ["phonemic"])
         feature_paths = enc._discover_features(SUB)
-        key = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="phonemic")
+        key = RegressorKey(cell=CellKey(task=TASK, run="1"), entry="phonemic")
         assert feature_paths[key].path == bare
 
     def test_variant_reads_variant_folder_only(self, tree: BIDSTree):
@@ -96,7 +96,7 @@ class TestDiscoverFeatures:
         )
         enc = _make_encoding(tree, ["phonemic-gpt3"])
         feature_paths = enc._discover_features(SUB)
-        key = FeatureKey(cell=CellKey(task=TASK, run="1"), feature="phonemic-gpt3")
+        key = RegressorKey(cell=CellKey(task=TASK, run="1"), entry="phonemic-gpt3")
         assert feature_paths[key].path == variant
 
     def test_missing_variant_raises(self, tree: BIDSTree):
@@ -112,7 +112,7 @@ class TestDiscoverFeatures:
         tree.add_feature(dyad=DYAD, task=TASK, kind="semantic", run="1", desc="bert")
         enc = _make_encoding(tree, ["phonemic-gpt3", "semantic-bert"])
         feature_paths = enc._discover_features(SUB)
-        features = {fk.feature for fk in feature_paths}
+        features = {fk.entry for fk in feature_paths}
         assert features == {"phonemic-gpt3", "semantic-bert"}
 
     def test_unrequested_task_files_filtered_out(self, tree: BIDSTree):
@@ -143,7 +143,9 @@ class TestDiscoverFeatures:
         )
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
+        with pytest.raises(
+            ValueError, match="Inconsistent schemas across regressor files"
+        ):
             enc._discover_features(SUB)
 
     def test_schema_error_fires_before_coverage_error(self, tree: BIDSTree):
@@ -157,7 +159,9 @@ class TestDiscoverFeatures:
             dyad=DYAD, task=TASK, kind="clip", run="1", extra_entities={"block": "1"}
         )
         enc = _make_encoding(tree, ["mfcc", "clip"])
-        with pytest.raises(ValueError, match="Inconsistent feature file schemas"):
+        with pytest.raises(
+            ValueError, match="Inconsistent schemas across regressor files"
+        ):
             enc._discover_features(SUB)
 
     def test_file_without_hypline_metadata_raises(self, tree: BIDSTree, tmp_path):
@@ -616,7 +620,7 @@ class TestDiscoverBold:
 
 
 class TestResolveCellKeys:
-    # Orphan check (feature cell has no matching BOLD run)
+    # Orphan check (regressor cell has no matching BOLD run)
 
     def test_features_without_bold_raises(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})
@@ -626,7 +630,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(FileNotFoundError, match="No BOLD file found for features"):
+        with pytest.raises(FileNotFoundError, match="No BOLD file found for regressor"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_multiple_features_without_bold_reports_count(self, tree: BIDSTree):
@@ -666,7 +670,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="unsegmented but has 2 feature files"):
+        with pytest.raises(ValueError, match="unsegmented but has 2 regressor files"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_unsegmented_run_raises(self, tree: BIDSTree):

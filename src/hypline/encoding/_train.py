@@ -26,8 +26,8 @@ from ._schema import (
     CellKey,
     EncodingConfig,
     FeatureDownsampleMethod,
-    FeatureKey,
-    FeatureMeta,
+    RegressorKey,
+    RegressorMeta,
     TrainingData,
 )
 
@@ -403,12 +403,12 @@ class EncodingTrainer(_EncodingContext):
     def _apply_filters(
         self,
         sub_id: str,
-        feature_bids: dict[FeatureKey, BIDSPath],
+        regressor_bids: dict[RegressorKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
-    ) -> tuple[dict[FeatureKey, BIDSPath], dict[BoldKey, BoldMeta]]:
-        """Apply bids_filters to feature cells and BOLD runs.
+    ) -> tuple[dict[RegressorKey, BIDSPath], dict[BoldKey, BoldMeta]]:
+        """Apply bids_filters to regressor cells and BOLD runs.
 
-        Filters are applied against CellKey entities for features, and against
+        Filters are applied against CellKey entities for regressors, and against
         filename entities for BOLD. Same-entity filter values OR-match within a
         group; different entities AND-match across groups. A filter key absent from
         one side is skipped on that side rather than rejecting all rows. A filter
@@ -416,7 +416,7 @@ class EncodingTrainer(_EncodingContext):
         empty-result condition surfaces as a coverage error.
         """
         if not self._recipe.bids_filters:
-            return feature_bids, bold_metas
+            return regressor_bids, bold_metas
 
         # Group filter values by entity for matching later
         allowed_values_by_entity: dict[str, list[str]] = {}
@@ -427,8 +427,8 @@ class EncodingTrainer(_EncodingContext):
         # Collect entity key schema from both sides for typo detection
         cell_entity_keys = frozenset(
             entity_key
-            for feature_key in feature_bids
-            for entity_key in feature_key.cell.keys()
+            for regressor_key in regressor_bids
+            for entity_key in regressor_key.cell.keys()
         )
         bold_entity_keys = frozenset(
             entity_key
@@ -441,7 +441,7 @@ class EncodingTrainer(_EncodingContext):
             if entity_key not in known_entity_keys:
                 raise ValueError(
                     f"bids_filters entity {entity_key!r} not found on any "
-                    f"feature cell or BOLD file for sub={sub_id} — check for a typo"
+                    f"regressor cell or BOLD file for sub={sub_id} — check for a typo"
                 )
 
         def _cell_matches(cell: CellKey) -> bool:
@@ -458,10 +458,10 @@ class EncodingTrainer(_EncodingContext):
                 if entity_key in bold_entity_keys
             )
 
-        filtered_features = {
-            feature_key: bids
-            for feature_key, bids in feature_bids.items()
-            if _cell_matches(feature_key.cell)
+        filtered_regressors = {
+            regressor_key: bids
+            for regressor_key, bids in regressor_bids.items()
+            if _cell_matches(regressor_key.cell)
         }
         filtered_bold = {
             bold_key: meta
@@ -469,15 +469,15 @@ class EncodingTrainer(_EncodingContext):
             if _bold_matches(meta.bids)
         }
 
-        return filtered_features, filtered_bold
+        return filtered_regressors, filtered_bold
 
     def _validate_coverage(
         self,
         sub_id: str,
-        feature_bids: dict[FeatureKey, BIDSPath],
+        regressor_bids: dict[RegressorKey, BIDSPath],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> None:
-        """Validate bidirectional (ses, task, run) coverage between features and BOLD.
+        """Validate bidirectional (ses, task, run) coverage between regressors and BOLD.
 
         Raises if either side is empty — indicates filters selected nothing.
         """
@@ -491,34 +491,36 @@ class EncodingTrainer(_EncodingContext):
                 space=self._recipe.bold_space,
             )
 
-        if not feature_bids:
-            raise FileNotFoundError("No feature files match the given filters")
+        if not regressor_bids:
+            raise FileNotFoundError("No regressor files match the given filters")
         if not bold_metas:
             raise FileNotFoundError("No BOLD files match the given filters")
 
-        cell_keys = {feature_key.cell for feature_key in feature_bids}
+        cell_keys = {regressor_key.cell for regressor_key in regressor_bids}
         covered_bold_keys = {key.to_bold_key() for key in cell_keys}
 
-        bold_without_features = bold_metas.keys() - covered_bold_keys
-        if bold_without_features:
-            bold_key = next(iter(bold_without_features))
-            msg = f"No feature files found for BOLD at {_loc(bold_key)}"
-            if len(bold_without_features) > 1:
-                msg += f" ({len(bold_without_features) - 1} other coverage gaps exist)"
+        bold_without_regressors = bold_metas.keys() - covered_bold_keys
+        if bold_without_regressors:
+            bold_key = next(iter(bold_without_regressors))
+            msg = f"No regressor files found for BOLD at {_loc(bold_key)}"
+            others = len(bold_without_regressors) - 1
+            if others:
+                msg += f" ({others} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-        features_without_bold = covered_bold_keys - bold_metas.keys()
-        if features_without_bold:
-            bold_key = next(iter(features_without_bold))
-            msg = f"No BOLD file found for features at {_loc(bold_key)}"
-            if len(features_without_bold) > 1:
-                msg += f" ({len(features_without_bold) - 1} other coverage gaps exist)"
+        regressors_without_bold = covered_bold_keys - bold_metas.keys()
+        if regressors_without_bold:
+            bold_key = next(iter(regressors_without_bold))
+            msg = f"No BOLD file found for regressors at {_loc(bold_key)}"
+            others = len(regressors_without_bold) - 1
+            if others:
+                msg += f" ({others} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
     def _validate_confound_alignment(
         self,
         sub_id: str,
-        regressor_bids: dict[FeatureKey, BIDSPath],
+        regressor_bids: dict[RegressorKey, BIDSPath],
     ) -> None:
         """Assert confounds cover exactly the feature cells in the merged dict.
 
@@ -534,10 +536,10 @@ class EncodingTrainer(_EncodingContext):
 
         confound_names = set(self._recipe.confounds)
         feature_cells = {
-            key.cell for key in regressor_bids if key.feature not in confound_names
+            key.cell for key in regressor_bids if key.entry not in confound_names
         }
         confound_cells = {
-            key.cell for key in regressor_bids if key.feature in confound_names
+            key.cell for key in regressor_bids if key.entry in confound_names
         }
         orphans = feature_cells ^ confound_cells
         if orphans:
@@ -551,7 +553,7 @@ class EncodingTrainer(_EncodingContext):
 
     def _build_training_data(
         self,
-        regressor_metas: dict[FeatureKey, FeatureMeta],
+        regressor_metas: dict[RegressorKey, RegressorMeta],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> TrainingData:
         """Bundle X (from `_build_x`) with the aligned BOLD target Y onto its rows.
