@@ -36,9 +36,10 @@ from ._schema import (
 _SOLVER_N_ITER = 100
 _SOLVER_DIAGONALIZE_METHOD = "svd"
 
-# Reserved col_slices key for the single confound band. Feature/confound entries
-# match BIDS_ENTITY_VALUE_RE (alphanumeric only), so the surrounding underscores
-# make this key uncollidable with any feature name.
+# Reserved col_slices key for the single confound band. A feature name is a ref
+# (`<kind>` or `<kind>-<desc>`, each part alphanumeric per BIDS_ENTITY_VALUE_RE),
+# so it never contains an underscore — the surrounding underscores make this key
+# uncollidable with any feature name.
 _CONFOUND_BAND = "__confounds__"
 
 
@@ -87,52 +88,51 @@ def _require_consistent_metadata(
     read_meta: Callable[[Path], dict],
     label: str,
 ) -> None:
-    """Assert all files of one entry carry identical generator metadata.
+    """Assert all files of one regressor carry identical generator metadata.
 
     Keys prefixed with '_' are exempt — reserved for per-file metadata. `read_meta`
     parameterizes the data source (`read_feature_metadata`/`read_confound_metadata`),
     both of which return a plain dict, so the comparison stays source-agnostic.
     """
-    per_entry_meta: dict[str, tuple[dict, Path]] = {}
+    meta_by_regressor: dict[str, tuple[dict, Path]] = {}
     for regressor_key, bids in regressor_bids.items():
         meta = {
             key: val
             for key, val in read_meta(bids.path).items()
             if not key.startswith("_")
         }
-        entry = regressor_key.entry
-        if entry not in per_entry_meta:
-            per_entry_meta[entry] = (meta, bids.path)
-        elif per_entry_meta[entry][0] != meta:
-            ref_meta, ref_path = per_entry_meta[entry]
+        if regressor_key.name not in meta_by_regressor:
+            meta_by_regressor[regressor_key.name] = (meta, bids.path)
+        elif meta_by_regressor[regressor_key.name][0] != meta:
+            ref_meta, ref_path = meta_by_regressor[regressor_key.name]
             diff = "\n".join(f"    {line}" for line in _diff_meta(ref_meta, meta))
             raise ValueError(
-                f"Inconsistent metadata for {label}={entry}:\n"
+                f"Inconsistent metadata for {label}={regressor_key.name}:\n"
                 f"  {ref_path}\n  {bids.path}\n  differing keys:\n{diff}"
             )
 
 
-def _require_full_coverage(
+def _require_regressor_at_every_cell(
     regressor_bids: dict[RegressorKey, BIDSPath],
-    entries: dict[str, tuple[str, str | None]],
+    regressor_names: dict[str, tuple[str, str | None]],
     sub_id: str,
     label: str,
 ) -> None:
-    """Assert every entry is present at every discovered cell.
+    """Assert every regressor is present at every discovered cell.
 
-    A missing entry at any cell would silently produce an incomplete X, so it
+    A missing regressor at any cell would silently produce an incomplete X, so it
     raises instead.
     """
     expected = {
-        RegressorKey(cell_key, entry)
+        RegressorKey(cell_key, regressor_name)
         for cell_key in {key.cell for key in regressor_bids}
-        for entry in entries
+        for regressor_name in regressor_names
     }
     missing = expected - regressor_bids.keys()
     if missing:
         regressor_key = next(iter(missing))
         loc = _format_loc(sub=sub_id, **dict(regressor_key.cell.items()))
-        msg = f"Missing {label}={regressor_key.entry} at {loc}"
+        msg = f"Missing {label}={regressor_key.name} at {loc}"
         if len(missing) > 1:
             msg += f" ({len(missing) - 1} other coverage gaps exist)"
         raise FileNotFoundError(msg)
@@ -313,7 +313,7 @@ class _EncodingContext:
                         if key not in CellKey.EXCLUDE
                     }
                 )
-                feature_key = RegressorKey(cell=cell_key, entry=feature_name)
+                feature_key = RegressorKey(cell=cell_key, name=feature_name)
                 if feature_key in feature_bids:
                     loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
                     raise ValueError(
@@ -324,19 +324,19 @@ class _EncodingContext:
 
         _require_uniform_schema(feature_bids)
         _require_consistent_metadata(feature_bids, read_feature_metadata, "feat")
-        _require_full_coverage(feature_bids, self._recipe.features, sub_id, "feat")
+        _require_regressor_at_every_cell(
+            feature_bids, self._recipe.features, sub_id, "feat"
+        )
         return feature_bids
 
     def _discover_confounds(self, sub_id: str) -> dict[RegressorKey, BIDSPath]:
         """Discover and validate confound file paths for a subject.
 
-        Mirrors `_discover_features` so confound cells resolve to the same cell
-        schema and full per-cell coverage — they must line up on X's row axis with
-        the feature cells. The differences from features: files are read via
-        `find.confounds`/`read_confound_metadata`, and `RegressorKey.entry` holds
-        the confound name (the recipe's `confounds` key). The per-entry key is
-        incidental — confounds all collapse into one ridge band in `_build_x`, so it
-        only labels coverage and dedup here.
+        Mirrors `_discover_features` (same schema and per-cell coverage checks),
+        but reads via `find.confounds`/`read_confound_metadata` and stores the
+        confound name in `RegressorKey.name`. That per-entry key only labels
+        coverage and dedup here — confounds all collapse into one ridge band in
+        `_build_x`.
 
         Returns an empty dict when no confounds are configured.
         """
@@ -362,7 +362,7 @@ class _EncodingContext:
                         if key not in CellKey.EXCLUDE
                     }
                 )
-                confound_key = RegressorKey(cell=cell_key, entry=confound_name)
+                confound_key = RegressorKey(cell=cell_key, name=confound_name)
                 if confound_key in confound_bids:
                     loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
                     raise ValueError(
@@ -373,7 +373,9 @@ class _EncodingContext:
 
         _require_uniform_schema(confound_bids)
         _require_consistent_metadata(confound_bids, read_confound_metadata, "conf")
-        _require_full_coverage(confound_bids, self._recipe.confounds, sub_id, "conf")
+        _require_regressor_at_every_cell(
+            confound_bids, self._recipe.confounds, sub_id, "conf"
+        )
         return confound_bids
 
     def _discover_bold(self, sub_id: str) -> dict[BoldKey, BoldMeta]:
@@ -569,7 +571,7 @@ class _EncodingContext:
                 resolved_regressor_bids[regressor_key] = bids
             else:
                 resolved_regressor_bids[
-                    RegressorKey(cell=CellKey(**merged), entry=regressor_key.entry)
+                    RegressorKey(cell=CellKey(**merged), name=regressor_key.name)
                 ] = bids
 
         return resolved_regressor_bids
@@ -582,11 +584,11 @@ class _EncodingContext:
         """Enrich each regressor path into a `RegressorMeta` with its TR-grid placement.
 
         Role-neutral: features and confounds both flow through here, since placement
-        depends only on the cell's BOLD timeline, not the regressor's role. The
-        crossover between cells and the BOLD timeline happens here, once: derive
-        `(onset_tr, n_trs)` from the segment TR-slice for segmented runs, or from the
-        run's header `n_trs` for unsegmented runs, and stamp `repetition_time`.
-        `_build_x` then reads placement off the metas and never touches `bold_metas`.
+        depends only on the cell's BOLD timeline, not the regressor's role. It is
+        derived once, here: `(onset_tr, n_trs)` from the segment TR-slice for
+        segmented runs, or from the run's header `n_trs` for unsegmented runs, plus
+        `repetition_time`. `_build_x` then reads placement off the metas and never
+        touches `bold_metas`.
 
         No BOLD voxel data is read — placement comes from `bold_metas` alone.
         The header `n_trs` carried by each meta is trusted; `_align_y` reconciles
@@ -647,7 +649,7 @@ class _EncodingContext:
         )
 
     def _read_confound_array(
-        self, meta: RegressorMeta, n_trs: int, entry: str, cell_key: CellKey
+        self, meta: RegressorMeta, n_trs: int, confound_name: str, cell_key: CellKey
     ) -> np.ndarray:
         """Read one confound file, already at TR level, asserting its row count.
 
@@ -659,7 +661,7 @@ class _EncodingContext:
         arr = stack_array_column(read_confound(meta.bids.path).get_column("confound"))
         if arr.shape[0] != n_trs:
             raise ValueError(
-                f"Confound conf={entry} at cell {cell_key} has {arr.shape[0]} "
+                f"Confound conf={confound_name} at cell {cell_key} has {arr.shape[0]} "
                 f"TR row(s) but the cell spans {n_trs} — confounds must be saved "
                 f"at the BOLD TR grid for this segment"
             )
@@ -668,9 +670,9 @@ class _EncodingContext:
     def _build_x(self, regressor_metas: dict[RegressorKey, RegressorMeta]) -> XData:
         """Assemble the X regressor matrix and its row/column geometry, no target.
 
-        Reads `n_trs`/`repetition_time` off each cell's `RegressorMeta` — the
-        crossover with the BOLD timeline already happened in
-        `_enrich_regressor_metas`, so X no longer touches `bold_metas` and no BOLD
+        Reads `n_trs`/`repetition_time` off each cell's `RegressorMeta` — placement
+        was already read off the BOLD timeline in `_enrich_regressor_metas`, so X no
+        longer touches `bold_metas` and no BOLD
         data enters X.
 
         `regressor_metas` is the merged feature+confound dict; the recipe's

@@ -50,7 +50,7 @@ class TestDiscoverFeatures:
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
-        expected = RegressorKey(cell=CellKey(task=TASK, run="1"), entry="mfcc")
+        expected = RegressorKey(cell=CellKey(task=TASK, run="1"), name="mfcc")
         assert expected in feature_paths
 
     def test_no_files_raises(self, tree: BIDSTree):
@@ -85,7 +85,7 @@ class TestDiscoverFeatures:
         tree.add_feature(dyad=DYAD, task=TASK, kind="phonemic", run="1", desc="gpt3")
         enc = _make_encoding(tree, ["phonemic"])
         feature_paths = enc._discover_features(SUB)
-        key = RegressorKey(cell=CellKey(task=TASK, run="1"), entry="phonemic")
+        key = RegressorKey(cell=CellKey(task=TASK, run="1"), name="phonemic")
         assert feature_paths[key].path == bare
 
     def test_variant_reads_variant_folder_only(self, tree: BIDSTree):
@@ -96,7 +96,7 @@ class TestDiscoverFeatures:
         )
         enc = _make_encoding(tree, ["phonemic-gpt3"])
         feature_paths = enc._discover_features(SUB)
-        key = RegressorKey(cell=CellKey(task=TASK, run="1"), entry="phonemic-gpt3")
+        key = RegressorKey(cell=CellKey(task=TASK, run="1"), name="phonemic-gpt3")
         assert feature_paths[key].path == variant
 
     def test_missing_variant_raises(self, tree: BIDSTree):
@@ -112,7 +112,7 @@ class TestDiscoverFeatures:
         tree.add_feature(dyad=DYAD, task=TASK, kind="semantic", run="1", desc="bert")
         enc = _make_encoding(tree, ["phonemic-gpt3", "semantic-bert"])
         feature_paths = enc._discover_features(SUB)
-        features = {fk.entry for fk in feature_paths}
+        features = {fk.name for fk in feature_paths}
         assert features == {"phonemic-gpt3", "semantic-bert"}
 
     def test_unrequested_task_files_filtered_out(self, tree: BIDSTree):

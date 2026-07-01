@@ -538,10 +538,10 @@ class EncodingTrainer(_EncodingContext):
 
         confound_names = set(self._recipe.confounds)
         feature_cells = {
-            key.cell for key in regressor_bids if key.entry not in confound_names
+            key.cell for key in regressor_bids if key.name not in confound_names
         }
         confound_cells = {
-            key.cell for key in regressor_bids if key.entry in confound_names
+            key.cell for key in regressor_bids if key.name in confound_names
         }
         orphans = feature_cells ^ confound_cells
         if orphans:

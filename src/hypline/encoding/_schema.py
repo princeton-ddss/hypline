@@ -92,7 +92,7 @@ class CellKey:
 
 class RegressorKey(NamedTuple):
     cell: CellKey
-    entry: str
+    name: str
 
 
 class EncodingConfig(BaseModel):
