@@ -346,7 +346,7 @@ class _EncodingContext:
         # Confounds are dyad-keyed; resolve this subject's dyad via participants.tsv
         dyad_id = self._layout.dyad_of(sub_id)
         confound_bids: dict[RegressorKey, BIDSPath] = {}
-        for entry, (kind, desc) in self._recipe.confounds.items():
+        for confound_name, (kind, desc) in self._recipe.confounds.items():
             confound_files = self._layout.find.confounds(
                 dyad=dyad_id,
                 kind=kind,
@@ -362,11 +362,11 @@ class _EncodingContext:
                         if key not in CellKey.EXCLUDE
                     }
                 )
-                confound_key = RegressorKey(cell=cell_key, entry=entry)
+                confound_key = RegressorKey(cell=cell_key, entry=confound_name)
                 if confound_key in confound_bids:
                     loc = _format_loc(sub=sub_id, **dict(cell_key.items()))
                     raise ValueError(
-                        f"Multiple confound files for conf={entry}, {loc}:\n"
+                        f"Multiple confound files for conf={confound_name}, {loc}:\n"
                         f"  {confound_bids[confound_key].path}\n  {bids.path}"
                     )
                 confound_bids[confound_key] = bids
@@ -713,22 +713,17 @@ class _EncodingContext:
             row_slices[cell_key] = slice(row_offset, row_offset + n_trs)
             row_offset += n_trs
 
-            # Construct X for the given cell
             feature_arrays = [
                 self._read_feature_array(
                     regressor_metas[RegressorKey(cell_key, name)], n_trs
                 )
                 for name in self._recipe.features
             ]
-            # One band for all confounds: hstack each entry's already-TR-level vector
             confound_arrays = [
                 self._read_confound_array(
-                    regressor_metas[RegressorKey(cell_key, entry)],
-                    n_trs,
-                    entry,
-                    cell_key,
+                    regressor_metas[RegressorKey(cell_key, name)], n_trs, name, cell_key
                 )
-                for entry in self._recipe.confounds
+                for name in self._recipe.confounds
             ]
 
             if not col_slices_initialized:
@@ -741,7 +736,11 @@ class _EncodingContext:
                     col_slices[_CONFOUND_BAND] = slice(col_offset, col_offset + n_cols)
                     col_offset += n_cols
                 col_slices_initialized = True  # col slices are invariant across cells
+
             X_parts.append(np.hstack([*feature_arrays, *confound_arrays]))
 
-        X = np.concatenate(X_parts, axis=0)
-        return XData(X=X, row_slices=row_slices, col_slices=col_slices)
+        return XData(
+            X=np.concatenate(X_parts, axis=0),
+            row_slices=row_slices,
+            col_slices=col_slices,
+        )

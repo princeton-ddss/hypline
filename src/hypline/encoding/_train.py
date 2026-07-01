@@ -384,10 +384,12 @@ class EncodingTrainer(_EncodingContext):
         bold_metas = self._discover_bold(sub_id)
 
         # Each stream is independently validated (schema, metadata, per-stream
-        # coverage); merge into one regressor dict so resolve/filter/enrich/build
-        # run once over both. Resolve before merging: cell-key resolution merges
-        # segment metadata into the CellKey, so feature and confound cells only
-        # become comparable afterward.
+        # coverage), then merged so filter/enrich/build run once over both. Resolve
+        # before merging, and per-stream: resolution's unsegmented-run guard allows
+        # only one file per run, but a feature and confound legitimately share one,
+        # so resolving the merged dict would miscount and falsely reject. Resolution
+        # also folds segment metadata into the CellKey, making cells comparable only
+        # afterward — so the merge must come after.
         feature_bids = self._resolve_cell_keys(sub_id, feature_bids, bold_metas)
         confound_bids = self._resolve_cell_keys(sub_id, confound_bids, bold_metas)
         regressor_bids = {**feature_bids, **confound_bids}
