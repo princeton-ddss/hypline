@@ -275,6 +275,61 @@ class TestDiscoverFeatures:
         enc._discover_features(SUB)
 
 
+class TestDiscoverConfounds:
+    def test_empty_when_unconfigured(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        enc = _make_encoding(tree, ["mfcc"])
+        assert enc._discover_confounds(SUB) == {}
+
+    def test_returns_expected_keys(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
+        confound_paths = enc._discover_confounds(SUB)
+        expected = RegressorKey(cell=CellKey(task=TASK, run="1"), name="phonemic")
+        assert expected in confound_paths
+
+    def test_variant_keyed_by_name(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        variant = tree.add_confound(
+            dyad=DYAD, task=TASK, kind="phonemic", run="1", desc="onset"
+        )
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic-onset"])
+        confound_paths = enc._discover_confounds(SUB)
+        key = RegressorKey(cell=CellKey(task=TASK, run="1"), name="phonemic-onset")
+        assert confound_paths[key].path == variant
+
+    def test_duplicate_confound_file_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        original = tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        dup = original.parent / f"dyad-{DYAD}_run-1_task-{TASK}_conf-phonemic.parquet"
+        dup.write_bytes(original.read_bytes())
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
+        with pytest.raises(ValueError, match="Multiple confound files"):
+            enc._discover_confounds(SUB)
+
+    def test_missing_confound_at_one_cell_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="2")
+        tree.add_confound(dyad=DYAD, task=TASK, kind="motion", run="1")
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic", "motion"])
+        with pytest.raises(FileNotFoundError, match="Missing conf=motion"):
+            enc._discover_confounds(SUB)
+
+    def test_inconsistent_metadata_across_files_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_confound(
+            dyad=DYAD, task=TASK, kind="phonemic", run="1", metadata={"model": "v1"}
+        )
+        tree.add_confound(
+            dyad=DYAD, task=TASK, kind="phonemic", run="2", metadata={"model": "v2"}
+        )
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
+        with pytest.raises(ValueError, match="Inconsistent metadata for conf=phonemic"):
+            enc._discover_confounds(SUB)
+
+
 class TestDiscoverBold:
     def test_returns_expected_keys(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
