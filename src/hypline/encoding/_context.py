@@ -36,11 +36,14 @@ from ._schema import (
 _SOLVER_N_ITER = 100
 _SOLVER_DIAGONALIZE_METHOD = "svd"
 
-# Reserved col_slices key for the single confound band. A feature name is a ref
-# (`<kind>` or `<kind>-<desc>`, each part alphanumeric per BIDS_ENTITY_VALUE_RE),
-# so it never contains an underscore — the surrounding underscores make this key
-# uncollidable with any feature name.
-_CONFOUND_BAND = "__confounds__"
+# Reserved col_slices key for the single confound band. Two constraints:
+# - Uncollidable with any feature name: a feature name is a ref (`<kind>` or
+#   `<kind>-<desc>`, alphanumeric per BIDS_ENTITY_VALUE_RE) and never contains an
+#   underscore, so any underscore here rules out a collision.
+# - Valid as a sklearn transformer name: this key names a `ColumnKernelizer`
+#   transformer, and sklearn rejects `__` (its param-nesting delimiter).
+# A single underscore, no double, satisfies both.
+_CONFOUND_BAND = "confounds_band"
 
 
 def _format_loc(**entities: str | None) -> str:
