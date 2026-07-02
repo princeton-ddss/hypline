@@ -12,6 +12,7 @@ from hypline.encoding import (
     write_artifact,
 )
 from hypline.encoding._artifact import FoldSpec
+from hypline.encoding._context import _CONFOUND_BAND
 from hypline.encoding._schema import BoldKey, CellKey, TrainingData
 from hypline.encoding._train import (
     _group_cells_by,
@@ -20,7 +21,7 @@ from hypline.encoding._train import (
     _select_rows,
 )
 
-from ..conftest import BIDSTree
+from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree
 from .conftest import DYAD, SPACE, SUB, TASK, _make_encoding
 
 # make_train_setup return type: a stubbed trainer plus the data it fits on
@@ -78,6 +79,28 @@ class TestEncodingInit:
     def test_duplicate_kind_across_variants_raises(self, tree: BIDSTree):
         with pytest.raises(ValueError, match="Duplicate feature kind"):
             _make_encoding(tree, ["semantic", "semantic-gpt2"])
+
+    def test_confounds_default_empty(self, tree: BIDSTree):
+        enc = _make_encoding(tree, ["mfcc"])
+        assert enc._recipe.confounds == {}
+
+    def test_confounds_parsed(self, tree: BIDSTree):
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic-onset"])
+        assert enc._recipe.confounds == {"phonemic-onset": ("phonemic", "onset")}
+
+    def test_duplicate_confounds_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="Duplicate entries in confounds"):
+            _make_encoding(tree, ["mfcc"], confounds=["phonemic", "phonemic"])
+
+    def test_confound_variants_share_kind_allowed(self, tree: BIDSTree):
+        enc = _make_encoding(
+            tree, ["mfcc"], confounds=["phonemic-onset", "phonemic-rate"]
+        )
+        assert set(enc._recipe.confounds) == {"phonemic-onset", "phonemic-rate"}
+
+    def test_feature_confound_overlap_raises(self, tree: BIDSTree):
+        with pytest.raises(ValueError, match="appear in both features and confounds"):
+            _make_encoding(tree, ["mfcc"], confounds=["mfcc"])
 
     @pytest.mark.parametrize("entry", ["a_b", "a-", "-b", "a-b-c", ""])
     def test_malformed_feature_entry_raises(self, tree: BIDSTree, entry: str):
@@ -331,7 +354,7 @@ class TestApplyFilters:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No feature files match"):
+        with pytest.raises(FileNotFoundError, match="No regressor files match"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
 
@@ -356,7 +379,7 @@ class TestValidateCoverage:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No feature files match"):
+        with pytest.raises(FileNotFoundError, match="No regressor files match"):
             enc._validate_coverage(SUB, {}, bold_metas)
 
     def test_empty_bold_after_filter_raises(self, tree: BIDSTree):
@@ -381,7 +404,7 @@ class TestValidateCoverage:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No feature files found for BOLD"):
+        with pytest.raises(FileNotFoundError, match="No regressor files found"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_features_without_bold_after_filter_raises(self, tree: BIDSTree):
@@ -411,7 +434,7 @@ class TestValidateCoverage:
         bold_metas = enc._discover_bold(SUB)
         feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
-        with pytest.raises(FileNotFoundError, match="No BOLD file found for features"):
+        with pytest.raises(FileNotFoundError, match="No BOLD file found for regressor"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
     def test_multiple_bold_gaps_reports_count(self, tree: BIDSTree):
@@ -428,6 +451,46 @@ class TestValidateCoverage:
         feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
         with pytest.raises(FileNotFoundError, match="other coverage gaps"):
             enc._validate_coverage(SUB, feature_paths, bold_metas)
+
+
+class TestValidateConfoundAlignment:
+    def test_no_confounds_is_noop(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        enc = _make_encoding(tree, ["mfcc"])
+        feature_paths = enc._discover_features(SUB)
+        enc._validate_confound_alignment(SUB, feature_paths)
+
+    def test_aligned_cells_pass(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
+        regressor_bids = {
+            **enc._discover_features(SUB),
+            **enc._discover_confounds(SUB),
+        }
+        enc._validate_confound_alignment(SUB, regressor_bids)
+
+    def test_feature_cell_without_confound_raises(self, tree: BIDSTree):
+        # run-2 has a feature but no confound: the streams disagree on which cells
+        # they cover, which would misalign the confound band against X's rows
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2"):
+            tree.add_bold(sub=SUB, task=TASK, space=SPACE, run=run, desc="denoised")
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
+        regressor_bids = {
+            **enc._discover_features(SUB),
+            **enc._discover_confounds(SUB),
+        }
+        with pytest.raises(
+            FileNotFoundError, match="No confound coverage to match the other stream"
+        ):
+            enc._validate_confound_alignment(SUB, regressor_bids)
 
 
 class TestFoldHelpers:
@@ -653,6 +716,24 @@ class TestAssembleTrainingData:
         enc = _make_encoding(tree, ["mfcc"])
         return enc._assemble_training_data(SUB)
 
+    @staticmethod
+    def _feature_df() -> pl.DataFrame:
+        return pl.DataFrame(
+            {"start_time": [0.0, 4.0, 8.0], "feature": [[1.0], [2.0], [3.0]]},
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+        )
+
+    @staticmethod
+    def _confound_df(n_trs: int, width: int = 1) -> pl.DataFrame:
+        # Confounds are TR-level: one row per TR (spaced by the 2.0 TR), no downsample
+        return pl.DataFrame(
+            {
+                "start_time": [2.0 * i for i in range(n_trs)],
+                "confound": [[float(i)] * width for i in range(n_trs)],
+            },
+            schema={"start_time": pl.Float64, "confound": pl.Array(pl.Float64, width)},
+        )
+
     def test_untimed_row_dropped_x_matches_all_timed(
         self, tree: BIDSTree, tmp_path_factory: pytest.TempPathFactory
     ):
@@ -685,6 +766,58 @@ class TestAssembleTrainingData:
         enc = _make_encoding(tree, ["mfcc"])
         data = enc._assemble_training_data(SUB)
         assert data.segment_entity == "block"
+
+    def test_confounds_appended_as_single_trailing_band(self, tree: BIDSTree):
+        # Two confounds collapse into one band; the feature keeps its own named band
+        tree.add_participants({SUB: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        tree.add_confound(
+            dyad=DYAD,
+            task=TASK,
+            kind="phonemic",
+            run="1",
+            desc="onset",
+            df=self._confound_df(DEFAULT_BOLD_N_TRS),
+        )
+        tree.add_confound(
+            dyad=DYAD,
+            task=TASK,
+            kind="phonemic",
+            run="1",
+            desc="rate",
+            df=self._confound_df(DEFAULT_BOLD_N_TRS),
+        )
+        enc = _make_encoding(
+            tree, ["mfcc"], confounds=["phonemic-onset", "phonemic-rate"]
+        )
+        data = enc._assemble_training_data(SUB)
+        assert list(data.col_slices) == ["mfcc", _CONFOUND_BAND]
+        # One mfcc column plus two 1-wide confounds, all trailing in the band
+        assert data.col_slices["mfcc"] == slice(0, 1)
+        assert data.col_slices[_CONFOUND_BAND] == slice(1, 3)
+        assert data.X.shape == (DEFAULT_BOLD_N_TRS, 3)
+
+    def test_confound_wrong_tr_count_raises(self, tree: BIDSTree):
+        # Confounds must already span the cell's TRs; a short file raises rather
+        # than being silently binned
+        tree.add_participants({SUB: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        tree.add_confound(
+            dyad=DYAD,
+            task=TASK,
+            kind="phonemic",
+            run="1",
+            df=self._confound_df(DEFAULT_BOLD_N_TRS - 1),
+        )
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
+        with pytest.raises(ValueError, match="confounds must be saved"):
+            enc._assemble_training_data(SUB)
 
 
 class TestTrainWiring:

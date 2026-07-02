@@ -3,10 +3,15 @@
 What encoding training and inference operate on, what they require, and
 what assumptions could break them.
 
-The encoding pipeline fits a model from stimulus-derived features (X) to
-BOLD responses (Y) — typically banded ridge regression. Training (`EncodingTrainer`)
-and out-of-sample inference (`EncodingPredictor`) are separate roles over a shared
-X-build path; see [Predict](#predict--out-of-sample-inference-across-subjects).
+The encoding pipeline fits a model from stimulus-derived regressors (X) to
+BOLD responses (Y) — typically banded ridge regression. X carries two regressor
+streams: **features** (the signal of interest) plus optional **confounds**
+(stimulus-derived nuisance, partialled out in the same fit). Each feature gets
+its own ridge band; all confounds collapse into a single trailing band regardless
+of how many are configured. Confounds are optional — with none configured X is
+features only. Training (`EncodingTrainer`) and out-of-sample inference
+(`EncodingPredictor`) are separate roles over a shared X-build path; see
+[Predict](#predict--out-of-sample-inference-across-subjects).
 
 ## Scope of a single training run
 
@@ -30,6 +35,14 @@ A single `train(sub_id)` call is scoped to:
   no implicit fallback: a named variant missing on disk raises rather than
   reading the canonical folder. (Confound generators instead source all
   variants; see [../decisions/confound-files.md](../decisions/confound-files.md).)
+- **Confounds dedup differently from features.** `EncodingTrainer(confounds=[...])`
+  entries share **one** ridge band, so two variants of one kind (e.g.
+  `phonemic-onset` and `phonemic-rate`) may coexist in a single fit — they are
+  deduped on the full `<kind>-<desc>` ref, not on `kind`. This is the opposite of
+  features, which reject two entries sharing a kind. Order within the band is
+  irrelevant (one alpha). A ref may not appear in both `features` and `confounds`
+  of one fit — it resolves to one file in one role — so the overlap is rejected at
+  construction.
 - **Multiple cells per run: allowed.** The segment entity is inferred from
   events.tsv at discovery time. Each segment value is a separate row block,
   identified by a `CellKey` carrying all non-excluded entities (filename +
@@ -38,35 +51,51 @@ A single `train(sub_id)` call is scoped to:
 
 ## Pipeline
 
-`train(sub_id)` executes these steps in order:
+Features and confounds are two independent regressor streams. Each is discovered
+and validated on its own (schema, generator-metadata, per-stream cell coverage),
+resolved against BOLD **before** merging, then combined into one regressor dict
+that filter/enrich/build run over once. The per-stream resolve is load-bearing:
+resolution's unsegmented-run guard allows only one file per run, but a feature and
+a confound legitimately share one run — resolving the merged dict would miscount
+and falsely reject. `train(sub_id)` executes these steps in order:
 
 1. **`_discover_features`** — resolves `sub_id`'s dyad via `dyad_of`
    (participants.tsv; features are dyad-keyed — see
    [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)), then scans
-   dyad-keyed feature filenames; returns raw `dict[FeatureKey, Path]` with
+   dyad-keyed feature filenames; returns raw `dict[RegressorKey, Path]` with
    filename-only `CellKey`s. No events I/O. No user filters.
+   **`_discover_confounds`** mirrors it against `confounds/` (same schema and
+   per-cell coverage checks); returns an empty dict when no confounds are configured.
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
    (segment slices), and events.json `trial_type.Levels` (metadata) from the **raw** BIDS
    tree via `BIDSLayout.path.raw` (sidecars are identity-keyed, not per-variant). Returns
    `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
-3. **`_resolve_cell_keys`** — precondition: every feature's `(ses, run)` must map to a
+3. **`_resolve_cell_keys`** — precondition: every cell's `(ses, run)` must map to a
    `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
-   enrichment). Then merges `Segment.metadata` onto each feature cell's `CellKey`.
+   enrichment). Then merges `Segment.metadata` onto each cell's `CellKey`.
    Rejects illegal filename entities. Raises on value mismatch between filename and
-   sidecar. Returns resolved `dict[FeatureKey, Path]`.
-4. **`_apply_filters`** — applies user `bids_filters` to both enriched feature cells
+   sidecar. Applied to each stream separately (see above), then the two resolved dicts
+   are merged into one `dict[RegressorKey, Path]`.
+4. **`_apply_filters`** — applies user `bids_filters` to both enriched regressor cells
    and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns
-   filtered `(dict[FeatureKey, Path], dict[BoldKey, BoldMeta])`.
+   filtered `(dict[RegressorKey, Path], dict[BoldKey, BoldMeta])`.
 5. **`_validate_coverage`** — bidirectional `(ses, task, run)` coverage: every
-   filtered BOLD run must have feature coverage and vice versa. Raises if either
+   filtered BOLD run must have regressor coverage and vice versa. Raises if either
    filtered set is empty. Void-returning. **Train-only** — predict needs only the
-   feature→BOLD half (already enforced by `_resolve_cell_keys`), so it skips this.
-6. **`_enrich_feature_metas`** — the single feature↔BOLD-timeline crossover: derives
-   each cell's TR-grid placement (`onset_tr`, `n_trs`, `repetition_time`) from
-   `bold_metas` (segment TR-slice, or the run header for unsegmented runs). Reads no
-   BOLD voxel data. Once this runs, X-building never touches `bold_metas` again.
-7. **`_build_x`** — assembles the X feature matrix and its row/column geometry from
-   the enriched metas alone; no Y, no BOLD. Shared by train and predict.
+   regressor→BOLD half (already enforced by `_resolve_cell_keys`), so it skips this.
+   **`_validate_confound_alignment`** (train-only) then asserts the feature and
+   confound streams cover the same cell set — filters can narrow one stream and leave
+   the other with an orphan cell that would misalign the confound band against X's rows.
+6. **`_enrich_regressor_metas`** — the single regressor↔BOLD-timeline crossover, role-neutral
+   (placement depends only on the cell's BOLD timeline): derives each cell's TR-grid
+   placement (`onset_tr`, `n_trs`, `repetition_time`) from `bold_metas` (segment TR-slice,
+   or the run header for unsegmented runs). Reads no BOLD voxel data. Once this runs,
+   X-building never touches `bold_metas` again.
+7. **`_build_x`** — assembles the X regressor matrix and its row/column geometry from
+   the enriched metas alone; no Y, no BOLD. Shared by train and predict. Features are
+   downsampled onto the TR grid at read time; confounds are read TR-level and asserted
+   to already span the cell's `n_trs` (no downsample). Each feature is its own column
+   band; confounds share one trailing band.
 8. **`_build_training_data`** (train-only) — wraps `_build_x` and appends Y via
    `_align_y`, which slices each cell's BOLD onto X's row geometry and validates
    `n_trs` against the array (drift guard + bounds check) before assembling.
@@ -151,12 +180,20 @@ hypline's BOLD postprocessing outputs. `bold_desc` selects the variant flavor:
 postprocessing variant (e.g. hyperalignment) keyed by `desc-<flavor>`.
 
 Encoding never consumes fMRIPrep's raw `desc-preproc` BOLD; it reads BOLD that
-the upstream denoise step has already cleaned of nuisance signal. Nuisance
-denoising and encoding are disjoint concerns over different regressor sets:
-denoise removes signals of no interest (motion, aCompCor/tCompCor, WM/CSF, drift),
-while encoding predicts BOLD from stimulus features of interest (phonemic onsets,
-MFCC, etc.). The two never mix — cleaning BOLD is a prior, separate stage, not
-something the encoding fit does.
+the upstream denoise step has already cleaned of **run-level nuisance** signal
+(motion, aCompCor/tCompCor, WM/CSF, drift). That cleaning is a prior, separate
+stage — not something the encoding fit does.
+
+Encoding-time confounds are a distinct concern from denoise nuisance, split by
+what they model and when they act. Denoise removes run-level nuisance from BOLD
+before encoding ever sees it. Encoding-time confounds are **stimulus-derived**
+regressors (e.g. phonemic onsets/rate) that ride *in the encoding fit itself* —
+partialled out within the same ridge so a feature band cannot claim variance a
+confound explains. "Of interest vs. nuisance" is therefore a per-fit role split,
+not a denoise-vs-encoding split: a stimulus-derived ref is a feature band in one
+fit and a confound band in another, never intrinsically one or the other. Within
+a single fit a ref is one role only (features and confounds may not overlap).
+See [../decisions/confound-files.md](../decisions/confound-files.md).
 
 ## `bids_filters` routing
 

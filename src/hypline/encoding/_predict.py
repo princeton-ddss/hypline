@@ -13,7 +13,7 @@ from hypline.layout import BIDSLayout
 
 from ._artifact import EncodingArtifact, FittedModel, load_artifact
 from ._context import _EncodingContext
-from ._schema import CellDelayer, CellKey, FeatureKey, FeatureMeta, Prediction
+from ._schema import CellDelayer, CellKey, Prediction, RegressorKey, RegressorMeta
 
 
 def _rebind_cell_lengths(pipeline: Pipeline, cell_lengths: list[int]) -> None:
@@ -59,7 +59,7 @@ def _select_cells(
       never saw (e.g. a later run discovered only at predict time) aren't selected.
     - The bounded-OOS presence check exists because K-fold OOS cells come from the
       *train* subject's universe: one absent on this source would be silently dropped
-      downstream by the feature-subset filter — fewer predictions, no error. Raise.
+      downstream by the regressor-subset filter — fewer predictions, no error. Raise.
 
     Raises on an empty selection.
     """
@@ -149,15 +149,15 @@ class EncodingPredictor(_EncodingContext):
         source_sub_id: str,
         test_on: dict[str, str] | None = None,
     ) -> list[Prediction]:
-        """Predict each model's `Y_hat` from a source subject's features.
+        """Predict each model's `Y_hat` from a source subject's regressors.
 
-        Discovers and enriches the features for `source_sub_id` once (the per-model
+        Discovers and enriches the regressors for `source_sub_id` once (the per-model
         loop reuses one filesystem scan), then for each model in the artifact selects
         its cells (OOS by default, or `test_on`), subsets the enriched metas, and
         runs `_predict_model`. Returns one `Prediction` per model, in
         `artifact.models` order — a single-model artifact yields a length-1 list.
 
-        Predict-only: no target Y. `source_sub_id` provides features (X); the
+        Predict-only: no target Y. `source_sub_id` provides regressors (X); the
         model's weights are baked in at load (`EncodingPredictor.__init__`).
 
         Uses full discovery, not the recipe's `bids_filters`: `_select_cells`
@@ -167,18 +167,25 @@ class EncodingPredictor(_EncodingContext):
         `_validate_coverage` (a train coverage invariant) are deliberately skipped.
         """
         feature_bids = self._discover_features(source_sub_id)
+        confound_bids = self._discover_confounds(source_sub_id)
         bold_metas = self._discover_bold(source_sub_id)
         feature_bids = self._resolve_cell_keys(source_sub_id, feature_bids, bold_metas)
-        feature_metas = self._enrich_feature_metas(feature_bids, bold_metas)
-        available = {feature_key.cell for feature_key in feature_metas}
+        confound_bids = self._resolve_cell_keys(
+            source_sub_id, confound_bids, bold_metas
+        )
+        # Merge into one regressor dict; `_build_x` rebuilds X from features+confounds
+        # the same way train did. Cross-stream coverage is not re-checked here (predict
+        # trusts the stored cell sets, like _validate_coverage); a source cell missing
+        # a confound surfaces as a KeyError in `_build_x`, same as for features.
+        regressor_bids = {**feature_bids, **confound_bids}
+        regressor_metas = self._enrich_regressor_metas(regressor_bids, bold_metas)
+        available = {key.cell for key in feature_bids}
 
         results: list[Prediction] = []
         for model in self._artifact.models:
             cells = _select_cells(available, self._artifact, model, test_on=test_on)
             sub_metas = {
-                feature_key: meta
-                for feature_key, meta in feature_metas.items()
-                if feature_key.cell in cells
+                key: meta for key, meta in regressor_metas.items() if key.cell in cells
             }
             results.append(self._predict_model(model, sub_metas))
         return results
@@ -186,23 +193,23 @@ class EncodingPredictor(_EncodingContext):
     def _predict_model(
         self,
         model: FittedModel,
-        feature_metas: dict[FeatureKey, FeatureMeta],
+        regressor_metas: dict[RegressorKey, RegressorMeta],
     ) -> Prediction:
         """Run one model over a pre-selected cell set, returning its `Y_hat` (no Y).
 
-        Consumes pre-discovered, pre-enriched `feature_metas` already subset to the
-        selected cells (the analyze loop calls this K times; re-discovering per call
-        means K+1 filesystem scans). Rebuilds X via the same `_build_x` path as
-        train, asserts `col_slices` matches the recipe (rebuild guard), rebinds the
-        loaded pipeline's frozen train cell-lengths to this X's geometry, and
-        predicts on the numpy backend.
+        Consumes pre-discovered, pre-enriched `regressor_metas` (features +
+        confounds) already subset to the selected cells (the analyze loop calls this
+        K times; re-discovering per call means K+1 filesystem scans). Rebuilds X via
+        the same `_build_x` path as train, asserts `col_slices` matches the recipe
+        (rebuild guard), rebinds the loaded pipeline's frozen train cell-lengths to
+        this X's geometry, and predicts on the numpy backend.
 
         Returns a `Prediction` — per-model, no actual Y. The caller does
         `_align_y(target_bold, prediction.row_slices)` for Y to compare against.
         """
         from himalaya.backend import set_backend
 
-        data = self._build_x(feature_metas)
+        data = self._build_x(regressor_metas)
         if data.col_slices != self._recipe.col_slices:
             raise ValueError(
                 f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"

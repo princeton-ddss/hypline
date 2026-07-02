@@ -7,6 +7,14 @@ Hypline's own derivative type — TR-aligned regressors paired to BOLD runs,
 holding **stimulus-derived** confounds (e.g. phonemic onsets/rate). `confounds/`
 is the home for feature-granular confounds; it is **not** denoise's input.
 
+Consumer: confounds enter the **encoding** fit. `EncodingTrainer(confounds=[...])`
+places them in X as a single ridge band (all configured confounds collapse into
+one band regardless of count), partialled out alongside the feature bands within
+the same fit — see [../modules/encoding.md](../modules/encoding.md). A ref is one
+role per fit — feature xor confound, never both — enforced at construction. These
+are stimulus-derived nuisance modeled *in* the encoding regression, distinct from
+the run-level nuisance denoise strips from BOLD in a prior stage.
+
 Run-level nuisance regressors used for denoising (motion, physio, CompCor,
 fmriprep columns) live elsewhere: fmriprep's `desc-confounds_timeseries.tsv` is
 read natively by denoise, and custom/hypline-generated nuisance lives in the

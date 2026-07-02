@@ -45,6 +45,7 @@ AI agents alike. Agent-agnostic by design.
 | Checking which BIDS entities are rejected | `decisions/unsupported-entities.md`              |
 | Changing the feature file schema       | `decisions/feature-files.md`, `modules/encoding.md` |
 | Changing the confound file schema      | `decisions/confound-files.md`                       |
+| Adding confounds to an encoding fit    | `modules/encoding.md`, `decisions/confound-files.md` |
 | Changing the nuisance file schema      | `decisions/nuisance-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
 | Predicting out-of-sample / across subjects | `modules/encoding.md`, `decisions/dyad-keyed.md` |

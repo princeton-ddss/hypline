@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -6,6 +8,7 @@ from hypline.encoding import (
     load_artifact,
     write_artifact,
 )
+from hypline.encoding._context import _CONFOUND_BAND
 from hypline.encoding._schema import CellKey, TrainingData
 
 from ..conftest import BIDSTree
@@ -66,8 +69,6 @@ class TestArtifactRoundTrip:
     def test_sidecar_mirrors_non_pipeline_fields(
         self, train_setup: tuple[EncodingTrainer, TrainingData]
     ):
-        import json
-
         enc, _ = train_setup
         artifact = enc.train(SUB)
 
@@ -79,9 +80,39 @@ class TestArtifactRoundTrip:
             "phonemic-gpt3": [0, 3],
             "mfcc": [3, 7],
         }
+        assert sidecar["recipe"]["confounds"] == {}
         assert sidecar["universe"] is None
         assert sidecar["fold"] is None
         assert {frozenset(c.items()) for c in sidecar["models"][0]["train_cells"]} == {
             frozenset({("task", "a"), ("run", "1")}),
             frozenset({("task", "a"), ("run", "2")}),
+        }
+
+    def test_confounds_round_trip_through_sidecar(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        n_rows, n_voxels = 20, 5
+        rng = np.random.RandomState(0)
+        data = TrainingData(
+            X=rng.randn(n_rows, 5).astype(np.float64),
+            Y=rng.randn(n_rows, n_voxels).astype(np.float64),
+            row_slices={
+                CellKey(task="a", run="1"): slice(0, 10),
+                CellKey(task="a", run="2"): slice(10, 20),
+            },
+            col_slices={"mfcc": slice(0, 3), _CONFOUND_BAND: slice(3, 5)},
+        )
+        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic-onset"])
+        monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
+
+        artifact = enc.train(SUB)
+        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        write_artifact(artifact, out.path)
+
+        sidecar = json.loads(out.path.with_suffix(".json").read_text())
+        assert sidecar["recipe"]["confounds"] == {
+            "phonemic-onset": ["phonemic", "onset"]
+        }
+        assert load_artifact(out.path).recipe.confounds == {
+            "phonemic-onset": ("phonemic", "onset")
         }
