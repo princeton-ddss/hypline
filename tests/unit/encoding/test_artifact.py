@@ -116,3 +116,27 @@ class TestArtifactRoundTrip:
         assert load_artifact(out.path).recipe.confounds == {
             "phonemic-onset": ("phonemic", "onset")
         }
+
+    def test_split_round_trips_through_sidecar(
+        self, tree: BIDSTree, monkeypatch: pytest.MonkeyPatch
+    ):
+        # split lives on the recipe; a non-default value must survive both the
+        # joblib pickle (the load path) and the provenance sidecar
+        n_rows, n_voxels = 20, 5
+        rng = np.random.RandomState(0)
+        data = TrainingData(
+            X=rng.randn(n_rows, 5).astype(np.float64),
+            Y=rng.randn(n_rows, n_voxels).astype(np.float64),
+            row_slices={CellKey(task="a", run="1"): slice(0, n_rows)},
+            col_slices={"mfcc": slice(0, 5)},
+        )
+        enc = _make_encoding(tree, ["mfcc"], split=True)
+        monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
+
+        artifact = enc.train(SUB)
+        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        write_artifact(artifact, out.path)
+
+        sidecar = json.loads(out.path.with_suffix(".json").read_text())
+        assert sidecar["recipe"]["split"] is True
+        assert load_artifact(out.path).recipe.split is True

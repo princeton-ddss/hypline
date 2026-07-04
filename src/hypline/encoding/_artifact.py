@@ -36,6 +36,7 @@ class XRecipe:
     bids_filters: list[str]
     delays: list[int]
     alphas: list[float]
+    split: bool = True
     col_slices: dict[str, slice] = field(default_factory=dict)
 
     @property
@@ -166,6 +167,7 @@ def _sidecar(artifact: EncodingArtifact) -> dict:
             "bids_filters": recipe.bids_filters,
             "delays": recipe.delays,
             "alphas": recipe.alphas,
+            "split": recipe.split,
             "col_slices": {
                 name: [s.start, s.stop] for name, s in recipe.col_slices.items()
             },

@@ -12,8 +12,8 @@ from hypline.encoding import (
     write_artifact,
 )
 from hypline.encoding._artifact import FoldSpec
-from hypline.encoding._context import _CONFOUND_BAND
-from hypline.encoding._schema import BoldKey, CellKey, TrainingData
+from hypline.encoding._context import _CONFOUND_BAND, _SCREEN_BAND
+from hypline.encoding._schema import BoldKey, CellKey, RegressorMeta, TrainingData
 from hypline.encoding._train import (
     _group_cells_by,
     _inner_cv,
@@ -22,7 +22,7 @@ from hypline.encoding._train import (
 )
 
 from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree
-from .conftest import DYAD, SPACE, SUB, TASK, _make_encoding
+from .conftest import DYAD, PARTNER, SPACE, SUB, TASK, _add_dyad_turns, _make_encoding
 
 # make_train_setup return type: a stubbed trainer plus the data it fits on
 _TrainSetupFactory = Callable[..., tuple[EncodingTrainer, TrainingData]]
@@ -32,7 +32,11 @@ def _add_block_segmented_run(tree: BIDSTree) -> None:
     """Toy single-run BIDS whose events split BOLD into two blocks.
 
     10-TR BOLD at TR=2.0 (20 s); two 10 s blocks (onsets 0 / 10) => 5 TRs each,
-    with per-block mfcc features carrying one distinct timed row per TR.
+    with per-block mfcc features carrying one distinct timed row per TR. Both
+    subjects speak once per block (`SUB` first 5 s, `PARTNER` next 5 s), so each
+    block yields non-empty prod and comp masks. The turn rows share `SUB`'s events
+    file with the block rows in one write — a second `add_events` would clobber
+    them — so this fixture writes the pair itself rather than via `_add_dyad_turns`.
     """
     feature_df = pl.DataFrame(
         {
@@ -41,17 +45,26 @@ def _add_block_segmented_run(tree: BIDSTree) -> None:
         },
         schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
     )
-    tree.add_participants({SUB: DYAD})
+    tree.add_participants({SUB: DYAD, PARTNER: DYAD})
+    blocks = [
+        {"trial_type": "block-1", "onset": 0.0, "duration": 10.0},
+        {"trial_type": "block-2", "onset": 10.0, "duration": 10.0},
+    ]
+    sub_turns = [
+        {"trial_type": "turn_speaker", "onset": 0.0, "duration": 5.0},
+        {"trial_type": "turn_speaker", "onset": 10.0, "duration": 5.0},
+    ]
+    partner_turns = [
+        {"trial_type": "turn_speaker", "onset": 5.0, "duration": 5.0},
+        {"trial_type": "turn_speaker", "onset": 15.0, "duration": 5.0},
+    ]
+    # PARTNER needs its own turn_speaker rows — turns are complementary and
+    # load_turns reads every partner's file. The block rows in PARTNER's file are
+    # realism scaffolding, not load-bearing: segments resolve from
+    # subjects_of(dyad)[0] == SUB, so PARTNER's blocks are never read.
+    tree.add_events(sub=SUB, task=TASK, run="1", rows=[*sub_turns, *blocks])
+    tree.add_events(sub=PARTNER, task=TASK, run="1", rows=[*partner_turns, *blocks])
     tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-    tree.add_events(
-        sub=SUB,
-        task=TASK,
-        run="1",
-        rows=[
-            {"trial_type": "block-1", "onset": 0.0, "duration": 10.0},
-            {"trial_type": "block-2", "onset": 10.0, "duration": 10.0},
-        ],
-    )
     for block in ("1", "2"):
         tree.add_feature(
             dyad=DYAD,
@@ -710,7 +723,7 @@ class TestAssembleTrainingData:
     """
 
     def _assemble(self, tree: BIDSTree, feature_df: pl.DataFrame) -> TrainingData:
-        tree.add_participants({SUB: DYAD})
+        _add_dyad_turns(tree)
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1", df=feature_df)
         enc = _make_encoding(tree, ["mfcc"])
@@ -769,7 +782,7 @@ class TestAssembleTrainingData:
 
     def test_confounds_appended_as_single_trailing_band(self, tree: BIDSTree):
         # Two confounds collapse into one band; the feature keeps its own named band
-        tree.add_participants({SUB: DYAD})
+        _add_dyad_turns(tree)
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_feature(
             dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
@@ -794,11 +807,12 @@ class TestAssembleTrainingData:
             tree, ["mfcc"], confounds=["phonemic-onset", "phonemic-rate"]
         )
         data = enc._assemble_training_data(SUB)
-        assert list(data.col_slices) == ["mfcc", _CONFOUND_BAND]
-        # One mfcc column plus two 1-wide confounds, all trailing in the band
-        assert data.col_slices["mfcc"] == slice(0, 1)
-        assert data.col_slices[_CONFOUND_BAND] == slice(1, 3)
-        assert data.X.shape == (DEFAULT_BOLD_N_TRS, 3)
+        assert list(data.col_slices) == [_SCREEN_BAND, "mfcc", _CONFOUND_BAND]
+        assert data.col_slices[_SCREEN_BAND] == slice(0, 2)
+        # Two 1-wide confounds collapse into one trailing band
+        assert data.col_slices["mfcc"] == slice(2, 3)
+        assert data.col_slices[_CONFOUND_BAND] == slice(3, 5)
+        assert data.X.shape == (DEFAULT_BOLD_N_TRS, 5)
 
     def test_confound_wrong_tr_count_raises(self, tree: BIDSTree):
         # Confounds must already span the cell's TRs; a short file raises rather
@@ -817,6 +831,171 @@ class TestAssembleTrainingData:
         )
         enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
         with pytest.raises(ValueError, match="confounds must be saved"):
+            enc._assemble_training_data(SUB)
+
+
+class TestSplit:
+    """The prod/comp screens (always on) and the opt-in regressor split.
+
+    The fixture `_add_dyad_turns` gives a 10-TR run at TR=2.0 (so TR i covers
+    second 2*i) where SUB speaks over seconds [0, 10) and PARTNER over [10, 20).
+    SUB speaking is "production", the partner speaking is "comprehension", so:
+    SUB's prod mask is on for TRs 0..4, its comp mask is on for TRs 5..9. Every
+    assertion below rests on that 5-on/5-off layout, with no silent (unspoken) TRs.
+    """
+
+    @staticmethod
+    def _feature_df() -> pl.DataFrame:
+        # One distinct timed value per TR, so a mis-zeroed split column is visible
+        return pl.DataFrame(
+            {
+                "start_time": [2.0 * i for i in range(DEFAULT_BOLD_N_TRS)],
+                "feature": [[float(i + 1)] for i in range(DEFAULT_BOLD_N_TRS)],
+            },
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+        )
+
+    def _assemble(self, tree: BIDSTree, *, split: bool) -> TrainingData:
+        _add_dyad_turns(tree)
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        enc = _make_encoding(tree, ["mfcc"], split=split)
+        return enc._assemble_training_data(SUB)
+
+    def _one_meta(self, tree: BIDSTree) -> tuple[EncodingTrainer, RegressorMeta]:
+        # Run the real discover/enrich chain and hand back one dyad-keyed meta,
+        # so `_turn_masks` is exercised against genuine BIDSPath entities
+        _add_dyad_turns(tree)
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        enc = _make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(SUB)
+        feature_bids = enc._resolve_cell_keys(
+            SUB, enc._discover_features(SUB), bold_metas
+        )
+        metas = enc._enrich_regressor_metas(feature_bids, bold_metas)
+        return enc, next(iter(metas.values()))
+
+    # `_turn_masks` returns the per-TR prod and comp boolean masks. Both the screen
+    # band and the split are built from it, so these tests call it directly; the
+    # assemble-based tests further down exercise it through the full pipeline.
+
+    def test_turn_masks_are_subject_relative(self, tree: BIDSTree):
+        # Masks are subject-relative: SUB's prod is PARTNER's comp. The stakes:
+        # predict rebuilt against the wrong source subject would silently invert
+        # every split copy.
+        enc, meta = self._one_meta(tree)
+        sub_prod, sub_comp = enc._turn_masks(SUB, meta, DEFAULT_BOLD_N_TRS, {})
+        partner_prod, partner_comp = enc._turn_masks(
+            PARTNER, meta, DEFAULT_BOLD_N_TRS, {}
+        )
+        np.testing.assert_array_equal(sub_prod, partner_comp)
+        np.testing.assert_array_equal(sub_comp, partner_prod)
+        # And pin SUB's absolute layout: prod on TRs 0..4, comp on TRs 5..9
+        assert sub_prod.tolist() == [True] * 5 + [False] * 5
+        assert sub_comp.tolist() == [False] * 5 + [True] * 5
+
+    def test_turn_masks_subject_outside_dyad_raises(self, tree: BIDSTree):
+        # A sub_id can have discoverable files yet be missing from the dyad roster,
+        # and then its prod/comp are undefined. Assembly always discovers files for
+        # the sub it is given, so it never hits this path; exercise it directly.
+        enc, meta = self._one_meta(tree)
+        with pytest.raises(ValueError, match="is not in dyad"):
+            enc._turn_masks("999", meta, DEFAULT_BOLD_N_TRS, {})
+
+    # Screen band (always on): the two prod/comp boxcars the masks feed into.
+
+    def test_screen_band_always_present_when_unsplit(self, tree: BIDSTree):
+        # The screen band is always present; only feature and confound bands
+        # change with `split`
+        data = self._assemble(tree, split=False)
+        assert list(data.col_slices) == [_SCREEN_BAND, "mfcc"]
+        assert data.col_slices[_SCREEN_BAND] == slice(0, 2)
+        assert data.col_slices["mfcc"] == slice(2, 3)
+        assert data.X.shape == (DEFAULT_BOLD_N_TRS, 3)
+
+    def test_screen_columns_hold_prod_comp_boxcars(self, tree: BIDSTree):
+        # Screen col 0 = prod (SUB, TRs 0..4), col 1 = comp (PARTNER, TRs 5..9)
+        data = self._assemble(tree, split=False)
+        screens = data.X[:, data.col_slices[_SCREEN_BAND]]
+        expected = np.zeros((DEFAULT_BOLD_N_TRS, 2))
+        expected[:5, 0] = 1.0
+        expected[5:, 1] = 1.0
+        np.testing.assert_array_equal(screens, expected)
+
+    # Split (opt-in): duplicates each regressor into prod/comp copies via the masks.
+
+    def test_split_doubles_feature_band_not_screen_band(self, tree: BIDSTree):
+        # Split never touches the screen band; only feature/confound bands double
+        data = self._assemble(tree, split=True)
+        assert list(data.col_slices) == [_SCREEN_BAND, "mfcc"]
+        assert data.col_slices[_SCREEN_BAND] == slice(0, 2)
+        assert data.col_slices["mfcc"] == slice(2, 4)
+        assert data.X.shape == (DEFAULT_BOLD_N_TRS, 4)
+
+    def test_split_zeroes_each_copy_off_its_turn(self, tree: BIDSTree):
+        # Each copy keeps the feature only on its own turn's TRs. A TR where
+        # neither speaks would be zero in both copies, but this fixture has none.
+        data = self._assemble(tree, split=True)
+        feature = self._feature_df().get_column("feature").to_numpy().ravel()
+        prod_copy, comp_copy = data.X[:, 2], data.X[:, 3]
+        expected_prod = feature.copy()
+        expected_prod[5:] = 0.0
+        expected_comp = feature.copy()
+        expected_comp[:5] = 0.0
+        np.testing.assert_array_equal(prod_copy, expected_prod)
+        np.testing.assert_array_equal(comp_copy, expected_comp)
+
+    # Guards (through assembly): failure modes when the dyad or masks are unusable.
+
+    def test_non_dyad_of_two_raises(self, tree: BIDSTree):
+        # "the partner" (and thus comp) is undefined for a 1- or 3-subject dyad.
+        tree.add_participants({SUB: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "turn_speaker", "onset": 0.0, "duration": 20.0},
+            ],
+        )
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="requires a 2-subject dyad"):
+            enc._assemble_training_data(SUB)
+
+    def test_all_zero_screens_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD, PARTNER: DYAD})
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        # Both turns sit past the BOLD's last TR onset (18.0 s), so every mask is empty
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "turn_speaker", "onset": 100.0, "duration": 5.0},
+            ],
+        )
+        tree.add_events(
+            sub=PARTNER,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "turn_speaker", "onset": 105.0, "duration": 5.0},
+            ],
+        )
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="all-zero"):
             enc._assemble_training_data(SUB)
 
 

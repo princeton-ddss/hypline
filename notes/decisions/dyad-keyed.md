@@ -79,5 +79,14 @@ the *source*, *model*, and *target* subjects (defined in
 The dyad-keyed consequence: within one dyad, `source=self`/`partner` give identical X
 because features are dyad-shared, so source varies X only *across* dyads.
 
+The prod/comp split (see [../modules/encoding.md](../modules/encoding.md#prodcomp-turn-split))
+adds a second subject-relative axis on top of the source split: `_build_x`
+resolves each prod/comp mask against the subject whose data it is building — the
+*source* subject at predict, not the model subject. So a model trained on A
+scores B's production TRs correctly when predicting from source B, because both
+Xs encode the same column meaning ("prod copy = the fed subject speaking"). The
+split needs the dyad's *both* partners (it reads `subjects_of(dyad)` for the
+turn union and requires exactly two), so it raises on a non-2-subject dyad.
+
 See [bidspath-validation.md](bidspath-validation.md) for the `sub` xor `dyad`
 identity rule and `with_identity` re-keying.

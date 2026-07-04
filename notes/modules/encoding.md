@@ -100,6 +100,42 @@ and falsely reject. `train(sub_id)` executes these steps in order:
    `_align_y`, which slices each cell's BOLD onto X's row geometry and validates
    `n_trs` against the array (drift guard + bounds check) before assembling.
 
+## Prod/comp turn split
+
+In a dyadic conversation a subject alternates between **producing** speech (own
+turn) and **comprehending** the partner's, and one word feature can drive
+different responses in those states. `_build_x` supports splitting every
+regressor into a prod copy and a comp copy so the ridge learns separate weights.
+
+- **Screen band is always present, unscaled.** Two intercept-like task boxcars
+  (`prod`, `comp`) ride a reserved shared-alpha band that skips `StandardScaler`
+  — standardizing maps their off-state `0 -> -mean` and destroys the flat-zero
+  semantics that let them absorb the prod-vs-comp mean BOLD offset, keeping that
+  block-level task variance out of ridge-penalized feature weights. Present
+  regardless of `split`.
+- **`split` (on `XRecipe`, default true) gates only regressor duplication.**
+  When set, each feature array and the confound array is duplicated into a prod
+  copy (kept on the modeled subject's speaking TRs) and a comp copy (kept on the
+  partner's). The two copies share their regressor's band (one alpha), so each
+  feature band and the single confound band doubles in width; band *keys* in
+  `col_slices` are unchanged. Silence TRs are zero in both (implicit baseline).
+- **Three-state mask, not `comp = ~prod`.** The per-TR (prod, comp) boxcar is
+  re-derived from `load_turns`/`stamp_turns` on a synthetic TR-cadence grid — not
+  read off the feature files, whose per-word `turn_sub` is dropped at downsample.
+  `prod = turn_sub == sub`; `comp = turn_sub is not None and != sub`; silence
+  (`turn_sub is None`) is false in both. See
+  [events.md](events.md#speaking-turns).
+- **Subject-relative mask invariant.** `_build_x(sub_id, ...)` resolves prod/comp
+  against whichever subject's data is being built — the train subject at train,
+  the *source* subject at predict — so train and predict Xs stay identical in
+  column meaning ("prod copy = the fed subject speaking") and the `col_slices`
+  drift guard passes. The recipe stores only the boolean `split`, never a
+  subject-specific mask. See
+  [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
+- **Requires a 2-subject dyad.** The split raises if the dyad is not exactly two
+  subjects (partner/comp ambiguous) or the subject is not in it, and if the
+  screens are all-zero across every cell (no TR in any speaker window).
+
 ## Predict — out-of-sample inference across subjects
 
 Predict reuses the same discovery + `_build_x` path (no parallel builder) so the
@@ -233,6 +269,9 @@ before any empty-result `FileNotFoundError`.
   one shared study — see [Same-study assumption](#same-study-assumption-load-bearing).)
 - **Feature files mirror BOLD identity entities.** See
   [../decisions/feature-files.md](../decisions/feature-files.md).
+- **Prod/comp split relies on turn-derivable data for the dyad** — a 2-subject
+  dyad with non-degenerate `turn_speaker` windows. See
+  [Prod/comp turn split](#prodcomp-turn-split).
 - **Segment contract** (single entity, non-overlap, cross-run agreement, cell schema
   invariance): see [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 - **Segment metadata contract** (events.json `trial_type.Levels` format, enrichment, filtering):

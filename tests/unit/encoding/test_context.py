@@ -3,7 +3,7 @@ import polars as pl
 import pyarrow.parquet as pq
 import pytest
 
-from hypline.encoding._context import _build_pipeline
+from hypline.encoding._context import _SCREEN_BAND, _build_pipeline
 from hypline.encoding._schema import BoldKey, CellKey, RegressorKey, TrainingData
 
 from ..conftest import BIDSTree
@@ -42,6 +42,29 @@ class TestBuildPipeline:
         pipeline.fit(data.X, data.Y)
         pred = np.asarray(pipeline.predict(data.X))
         assert pred.shape == (n_rows, n_voxels)
+
+    def test_screen_band_skips_standard_scaler(self):
+        # The screen boxcars must stay unscaled: standardizing maps their off-state
+        # 0 to `-mean` and destroys the baseline the screens exist to carry. Assert on
+        # structure (no fit) so deleting the bypass fails here, not just numerically.
+        from sklearn.model_selection import KFold
+        from sklearn.preprocessing import StandardScaler
+
+        pipeline = _build_pipeline(
+            col_slices={_SCREEN_BAND: slice(0, 2), "f1": slice(2, 5)},
+            cell_lengths=[10, 10],
+            delays=[0, 1],
+            alphas=[1.0],
+            cv=KFold(n_splits=2, shuffle=False),
+        )
+        bands = {
+            name: sub
+            for name, sub, _ in pipeline.named_steps["kernelizer"].transformers
+        }
+        screen_steps = [type(s) for _, s in bands[_SCREEN_BAND].steps]
+        feature_steps = [type(s) for _, s in bands["f1"].steps]
+        assert StandardScaler not in screen_steps
+        assert StandardScaler in feature_steps
 
 
 class TestDiscoverFeatures:

@@ -200,6 +200,7 @@ class EncodingTrainer(_EncodingContext):
         bids_filters: list[str] | None = None,
         fold_by: str | None = None,
         n_folds: int | Literal["loo"] | None = None,
+        split: bool = True,
     ):
         import torch
 
@@ -296,6 +297,7 @@ class EncodingTrainer(_EncodingContext):
             bids_filters=normalized_bids_filters,
             delays=config.delays,
             alphas=config.alphas,
+            split=split,
         )
 
     def train(self, sub_id: str) -> EncodingArtifact:
@@ -400,7 +402,7 @@ class EncodingTrainer(_EncodingContext):
         self._validate_coverage(sub_id, regressor_bids, bold_metas)
         self._validate_confound_alignment(sub_id, regressor_bids)
         regressor_metas = self._enrich_regressor_metas(regressor_bids, bold_metas)
-        return self._build_training_data(regressor_metas, bold_metas)
+        return self._build_training_data(sub_id, regressor_metas, bold_metas)
 
     def _apply_filters(
         self,
@@ -555,6 +557,7 @@ class EncodingTrainer(_EncodingContext):
 
     def _build_training_data(
         self,
+        sub_id: str,
         regressor_metas: dict[RegressorKey, RegressorMeta],
         bold_metas: dict[BoldKey, BoldMeta],
     ) -> TrainingData:
@@ -563,8 +566,11 @@ class EncodingTrainer(_EncodingContext):
         The X+Y carrier is train-only — predict stops at X (`_build_x`) and never
         builds Y. Segment coverage vs. actual BOLD array length is checked in
         `_align_y`; a mismatch raises rather than producing a silently truncated Y.
+
+        `sub_id` is the train subject; `_build_x` resolves the prod/comp split mask
+        against it (subject-relative).
         """
-        x_data = self._build_x(regressor_metas)
+        x_data = self._build_x(sub_id, regressor_metas)
         Y = _align_y(bold_metas, x_data.row_slices)
 
         # Segment entity is invariant across bold_metas (validated in _discover_bold),

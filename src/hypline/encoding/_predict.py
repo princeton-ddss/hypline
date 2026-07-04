@@ -187,11 +187,12 @@ class EncodingPredictor(_EncodingContext):
             sub_metas = {
                 key: meta for key, meta in regressor_metas.items() if key.cell in cells
             }
-            results.append(self._predict_model(model, sub_metas))
+            results.append(self._predict_model(source_sub_id, model, sub_metas))
         return results
 
     def _predict_model(
         self,
+        source_sub_id: str,
         model: FittedModel,
         regressor_metas: dict[RegressorKey, RegressorMeta],
     ) -> Prediction:
@@ -206,10 +207,15 @@ class EncodingPredictor(_EncodingContext):
 
         Returns a `Prediction` — per-model, no actual Y. The caller does
         `_align_y(target_bold, prediction.row_slices)` for Y to compare against.
+
+        `source_sub_id` is the subject whose regressors these are; `_build_x`
+        resolves the prod/comp split mask against it, so the rebuilt X carries the
+        same subject-relative column meaning the model was trained under. The
+        `col_slices` drift guard below rejects any mismatch.
         """
         from himalaya.backend import set_backend
 
-        data = self._build_x(regressor_metas)
+        data = self._build_x(source_sub_id, regressor_metas)
         if data.col_slices != self._recipe.col_slices:
             raise ValueError(
                 f"col_slices drift: {data.col_slices} != {self._recipe.col_slices}"

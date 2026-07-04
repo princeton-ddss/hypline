@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
+import polars as pl
 
 if TYPE_CHECKING:
     from sklearn.model_selection import BaseCrossValidator
@@ -13,7 +14,14 @@ if TYPE_CHECKING:
 from hypline.bids import BIDSPath
 from hypline.bold import BOLD_EXTENSIONS, BoldMeta, load_bold_meta
 from hypline.downsample import downsample
-from hypline.events import merge_filename_and_sidecar, segment_tr_slice
+from hypline.events import (
+    Turn,
+    frame_onset,
+    load_turns,
+    merge_filename_and_sidecar,
+    segment_tr_slice,
+    stamp_turns,
+)
 from hypline.io import (
     read_confound,
     read_confound_metadata,
@@ -44,6 +52,13 @@ _SOLVER_DIAGONALIZE_METHOD = "svd"
 #   transformer, and sklearn rejects `__` (its param-nesting delimiter).
 # A single underscore, no double, satisfies both.
 _CONFOUND_BAND = "confounds_band"
+
+# Reserved col_slices key for the prod/comp screen band (always present). Holds
+# the two intercept-like task boxcars in one shared-alpha band, unscaled (see
+# `_build_pipeline`). Same two constraints as
+# `_CONFOUND_BAND`: uncollidable with any feature name (an underscore rules out a
+# ref collision) and sklearn-safe (no `__`).
+_SCREEN_BAND = "screens_band"
 
 
 def _format_loc(**entities: str | None) -> str:
@@ -212,6 +227,16 @@ def _align_y(
     return np.concatenate(Y_parts)
 
 
+def _split_regressor(arr: np.ndarray, prod: np.ndarray, comp: np.ndarray) -> np.ndarray:
+    """Duplicate a regressor into prod and comp copies, adjacent in one band.
+
+    `arr` is (n_trs, k). Returns (n_trs, 2k): the prod copy (rows zeroed off prod
+    TRs) followed by the comp copy. Both copies share the regressor's ridge band —
+    order within the band is immaterial (one alpha). Silence TRs are zero in both.
+    """
+    return np.hstack([arr * prod[:, None], arr * comp[:, None]])
+
+
 def _build_pipeline(
     *,
     col_slices: dict[str, slice],
@@ -229,6 +254,11 @@ def _build_pipeline(
     `MultipleKernelRidgeCV`. The caller must have set the himalaya backend before
     calling this — estimators bind the backend at construction.
 
+    The `_SCREEN_BAND` is the sole exception: it skips `StandardScaler`. Its
+    columns are intercept-like task boxcars whose off-state must stay a flat zero;
+    standardizing maps 0 -> -mean, destroying the baseline semantics that let the
+    screens absorb the prod-vs-comp mean BOLD offset.
+
     A single feature still goes through `MultipleKernelRidgeCV` over one band,
     not plain `KernelRidge`, to pin the shape later phases extend.
     """
@@ -240,16 +270,15 @@ def _build_pipeline(
     from sklearn.pipeline import Pipeline, make_pipeline
     from sklearn.preprocessing import StandardScaler
 
+    def _band_pipeline(band_name: str):
+        delayer = CellDelayer(delays=delays, cell_lengths=cell_lengths)
+        kernelizer = Kernelizer(kernel="linear")
+        if band_name == _SCREEN_BAND:
+            return make_pipeline(delayer, kernelizer)
+        return make_pipeline(StandardScaler(), delayer, kernelizer)
+
     transformers = [
-        (
-            band_name,
-            make_pipeline(
-                StandardScaler(),
-                CellDelayer(delays=delays, cell_lengths=cell_lengths),
-                Kernelizer(kernel="linear"),
-            ),
-            col_slice,
-        )
+        (band_name, _band_pipeline(band_name), col_slice)
         for band_name, col_slice in col_slices.items()
     ]
     column_kernelizer = ColumnKernelizer(transformers)
@@ -670,7 +699,69 @@ class _EncodingContext:
             )
         return arr
 
-    def _build_x(self, regressor_metas: dict[RegressorKey, RegressorMeta]) -> XData:
+    def _turn_masks(
+        self,
+        sub_id: str,
+        meta: RegressorMeta,
+        n_trs: int,
+        turns_cache: dict[BoldKey, list[Turn]],
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return per-TR (prod, comp) boolean masks for `sub_id` on one cell.
+
+        prod TRs are those whose onset falls in `sub_id`'s speaking window; comp
+        TRs are those held by any other named speaker; silence TRs (no floor-holder)
+        are False in both — the implicit baseline. A TR straddling a turn boundary is
+        assigned by its onset (`start_time = tr_index * repetition_time`), matching
+        the source study's per-TR boxcar.
+
+        The per-word `turn_sub` stamped into feature files is dropped at downsample,
+        so the per-TR boxcar is re-derived here from the same `load_turns`/
+        `stamp_turns` primitives against a synthetic TR-cadence grid.
+
+        Turns are per-run, so they are cached by (ses, task, run) across a run's
+        segments. `meta.bids` is dyad-keyed (features/confounds are discovered by
+        dyad), so it serves directly as the `load_turns`/`frame_onset` source.
+
+        Raises if the dyad is not exactly two subjects — "the partner" (and thus
+        comp) would be ambiguous — or if `sub_id` is not in the dyad, since
+        `subjects_of` (participants.tsv) and file discovery are separate sources
+        that can drift.
+        """
+        dyad_id = meta.bids.entities["dyad"]
+        subjects = self._layout.subjects_of(dyad_id)
+        if len(subjects) != 2:
+            raise ValueError(
+                f"prod/comp split requires a 2-subject dyad; dyad-{dyad_id} has "
+                f"{len(subjects)}: {subjects}"
+            )
+        if sub_id not in subjects:
+            raise ValueError(
+                f"sub-{sub_id} is not in dyad-{dyad_id} {subjects}; "
+                f"prod/comp masks would be undefined"
+            )
+
+        cache_key = BoldKey(  # turns are per-run; cache across a run's segments
+            ses=meta.bids.entities.get("ses"),
+            task=meta.bids.entities["task"],
+            run=meta.bids.entities.get("run"),
+        )
+        if cache_key not in turns_cache:
+            turns_cache[cache_key] = load_turns(self._layout, meta.bids)
+        turns = turns_cache[cache_key]
+
+        onset = frame_onset(self._layout, meta.bids)
+        tr_starts = np.arange(n_trs) * meta.repetition_time
+        tr_grid = pl.DataFrame({"start_time": tr_starts})
+        stamped, _ = stamp_turns(tr_grid, turns, frame_onset=onset)
+        turn_sub = stamped.get_column("turn_sub").to_list()
+
+        prod = np.array([t == sub_id for t in turn_sub], dtype=bool)
+        comp = np.array([t is not None and t != sub_id for t in turn_sub], dtype=bool)
+        return prod, comp
+
+    def _build_x(
+        self, sub_id: str, regressor_metas: dict[RegressorKey, RegressorMeta]
+    ) -> XData:
         """Assemble the X regressor matrix and its row/column geometry, no target.
 
         Reads `n_trs`/`repetition_time` off each cell's `RegressorMeta` — placement
@@ -686,6 +777,17 @@ class _EncodingContext:
 
         Features each get their own ridge band; all confounds collapse into a single
         trailing band keyed `_CONFOUND_BAND`, regardless of how many were configured.
+
+        Two intercept-like task boxcars (`prod`/`comp`) are always added as the
+        unscaled `_SCREEN_BAND` — they absorb the prod-vs-comp mean BOLD offset so it
+        does not leak into ridge-penalized feature weights. When `self._recipe.split`,
+        every regressor is additionally duplicated into a prod copy (kept on TRs where
+        `sub_id` speaks, zero elsewhere) and a comp copy (kept on TRs where the partner
+        speaks); the two copies share their regressor's band (one alpha), so each
+        band's width doubles. Silence TRs are zero in both. `sub_id` is whichever
+        subject's data is being built — the train subject at train, the source subject
+        at predict — so the masks are always subject-relative and train/predict Xs
+        stay identical in meaning.
         """
 
         # None sorts before any value; empty string is a stable tiebreaker for ses/run
@@ -701,6 +803,10 @@ class _EncodingContext:
         cell_keys = sorted(
             {regressor_key.cell for regressor_key in regressor_metas}, key=_sort_key
         )
+
+        split = self._recipe.split
+        turns_cache: dict[BoldKey, list[Turn]] = {}
+        screen_parts: list[np.ndarray] = []  # per-cell screens, for the activity check
 
         X_parts: list[np.ndarray] = []
         row_slices: dict[CellKey, slice] = {}
@@ -731,7 +837,21 @@ class _EncodingContext:
                 for name in self._recipe.confounds
             ]
 
+            prod, comp = self._turn_masks(sub_id, cell_meta, n_trs, turns_cache)
+            screen_array = np.column_stack([prod, comp]).astype(float)
+            screen_parts.append(screen_array)
+            if split:
+                feature_arrays = [
+                    _split_regressor(arr, prod, comp) for arr in feature_arrays
+                ]
+                confound_arrays = [
+                    _split_regressor(arr, prod, comp) for arr in confound_arrays
+                ]
+
             if not col_slices_initialized:
+                n_cols = screen_array.shape[1]
+                col_slices[_SCREEN_BAND] = slice(col_offset, col_offset + n_cols)
+                col_offset += n_cols
                 for feature_name, arr in zip(self._recipe.features, feature_arrays):
                     n_cols = arr.shape[1]
                     col_slices[feature_name] = slice(col_offset, col_offset + n_cols)
@@ -742,7 +862,14 @@ class _EncodingContext:
                     col_offset += n_cols
                 col_slices_initialized = True  # col slices are invariant across cells
 
-            X_parts.append(np.hstack([*feature_arrays, *confound_arrays]))
+            X_parts.append(np.hstack([screen_array, *feature_arrays, *confound_arrays]))
+
+        if not np.concatenate(screen_parts).any():
+            raise ValueError(
+                f"prod/comp screens for sub-{sub_id} are all-zero across every cell — "
+                f"no TR falls in any speaker's turn window. The dataset carries no "
+                f"usable turn_speaker windows for this subject's dyad."
+            )
 
         return XData(
             X=np.concatenate(X_parts, axis=0),

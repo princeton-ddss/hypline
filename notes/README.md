@@ -49,11 +49,12 @@ AI agents alike. Agent-agnostic by design.
 | Changing the nuisance file schema      | `decisions/nuisance-files.md`                       |
 | Editing encoding / regression logic    | `modules/encoding.md`                               |
 | Predicting out-of-sample / across subjects | `modules/encoding.md`, `decisions/dyad-keyed.md` |
+| Splitting encoding regressors by prod/comp turn | `modules/encoding.md`, `modules/events.md`, `decisions/dyad-keyed.md` |
 | Editing denoise / nuisance regression logic | `modules/denoise.md`, `decisions/nuisance-files.md` |
 | Placing a hypline imaging derivative (denoised BOLD) | `decisions/layout.md`, `external/fmriprep.md` |
 | Selecting confound columns (`--columns`/`--custom-columns`) | `modules/denoise.md`, `external/fmriprep.md` |
 | Handling null / un-timed transcript tokens | `modules/transcriber.md`, `modules/phonemic.md`, `modules/semantic.md`, `modules/syntactic.md` |
-| Handling speaker turns (`turn_sub` column)  | `modules/events.md`, `modules/transcriber.md`, `decisions/dyad-keyed.md` |
+| Handling speaker turns (`turn_sub` column)  | `modules/events.md`, `modules/transcriber.md`, `modules/encoding.md`, `decisions/dyad-keyed.md` |
 | Consuming fMRIPrep outputs             | `external/fmriprep.md`                              |
 | Introducing a new segment entity       | `decisions/semantic-entity.md`, `external/bids.md`, `modules/events.md` |
 | Changing segment metadata convention   | `decisions/segment-metadata.md`, `modules/events.md`, `modules/encoding.md` |

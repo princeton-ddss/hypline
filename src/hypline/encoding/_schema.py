@@ -121,10 +121,10 @@ class XData:
     """Assembled regressor matrix and its row/column geometry, no target.
 
     `row_slices` maps each cell to its contiguous block of rows in X (in
-    `_sort_key` order); `col_slices` maps each band key (a feature name, or the
-    reserved confound-band key) to its contiguous block of columns. This is what
-    predict needs — X alone — and what train
-    extends with Y (see `TrainingData`).
+    `_sort_key` order); `col_slices` maps each band key (a feature name, the
+    reserved confound-band key, or the reserved screen-band key) to its contiguous
+    block of columns. This is what predict needs — X alone — and what train extends
+    with Y (see `TrainingData`).
     """
 
     X: np.ndarray

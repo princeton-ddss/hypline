@@ -43,7 +43,10 @@ unsegmented runs.
 ## Speaking turns
 
 `hypline.events` also owns speaking-turn parsing (`load_turns`,
-`stamp_turns`), consumed only by `transcribe`. Turns use the flat
+`stamp_turns`), consumed by `transcribe` and by encoding's prod/comp split,
+which re-derives a per-TR turn-label boxcar from these primitives on a synthetic
+TR-cadence grid (see
+[../modules/encoding.md](../modules/encoding.md#prodcomp-turn-split)). Turns use the flat
 `turn_speaker` `trial_type` label, which stays outside `BIDS_ENTITY_RE` and so
 never enters the Segment/encoding path. Unlike segment loading — which picks
 the dyad's first partner — `load_turns` reads *every* partner and unions their
