@@ -69,4 +69,5 @@ AI agents alike. Agent-agnostic by design.
 | Reasoning about X/Y temporal alignment | `decisions/feature-files.md`, `modules/encoding.md` |
 | Selecting a feature variant in encoding | `modules/encoding.md`, `decisions/feature-files.md` |
 | Extracting TR or volume count for a run | `modules/bold.md`                                   |
+| Mapping a surface run to its hemi files | `external/fmriprep.md`, `modules/encoding.md`       |
 | Audio formats / transcription decode path | `modules/transcriber.md`                          |

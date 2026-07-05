@@ -25,6 +25,28 @@ def minimal_nifti_gz(n_trs: int = DEFAULT_BOLD_N_TRS) -> bytes:
     return gzip.compress(nib.Nifti1Image(data, np.eye(4)).to_bytes())
 
 
+@cache
+def minimal_gii(
+    n_trs: int = DEFAULT_BOLD_N_TRS, n_vertices: int = 3, base: float = 0.0
+) -> bytes:
+    """One surface `.func.gii`: `n_trs` time-point darrays of `n_vertices` each.
+
+    `base` offsets every value so a caller can give the two hemispheres distinct
+    fill values and assert the load joins them in the right column order.
+    """
+    import numpy as np
+    from nibabel.gifti import GiftiDataArray, GiftiImage
+
+    darrays = [
+        GiftiDataArray(
+            data=(base + tr * n_vertices + np.arange(n_vertices)).astype(np.float32),
+            intent="NIFTI_INTENT_TIME_SERIES",
+        )
+        for tr in range(n_trs)
+    ]
+    return GiftiImage(darrays=darrays).to_bytes()
+
+
 class BIDSTree:
     """Minimal on-disk fixture mirroring the hypline BIDS tree.
 
@@ -490,6 +512,54 @@ class BIDSTree:
             sidecar_json={"RepetitionTime": tr},
             extra_entities={"space": space, "desc": desc, **extras},
         )
+
+    def add_surface_bold(
+        self,
+        *,
+        sub: str,
+        ses: str | None = None,
+        task: str | None = None,
+        run: str | None = None,
+        space: str,
+        desc: str = "denoised",
+        tr: float = 2.0,
+        n_trs: int = DEFAULT_BOLD_N_TRS,
+        n_vertices: int = 3,
+        hemis: tuple[str, ...] = ("L", "R"),
+        write_raw: bool = True,
+    ) -> list[Path]:
+        """Write one surface run: a raw volume (for TR/n_trs) plus per-hemi `.func.gii`.
+
+        Each hemi's gifti is filled from a distinct base so a load-order test can
+        tell L from R. Returns the hemi image paths in `hemis` order.
+        """
+        if write_raw:
+            self._add_raw(
+                sub=sub,
+                ses=ses,
+                task=task,
+                run=run,
+                suffix="bold",
+                ext=".nii.gz",
+                content=minimal_nifti_gz(n_trs),
+                sidecar_json={"RepetitionTime": tr},
+            )
+        _add_func = self._add_fmriprep if desc == "preproc" else self._add_hypline
+        paths = []
+        for i, hemi in enumerate(hemis):
+            paths.append(
+                _add_func(
+                    sub=sub,
+                    ses=ses,
+                    task=task,
+                    run=run,
+                    suffix="bold",
+                    ext=".func.gii",
+                    content=minimal_gii(n_trs, n_vertices, base=1000.0 * (i + 1)),
+                    extra_entities={"space": space, "desc": desc, "hemi": hemi},
+                )
+            )
+        return paths
 
     def add_events(
         self,

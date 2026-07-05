@@ -814,6 +814,26 @@ class TestAssembleTrainingData:
         assert data.col_slices[_CONFOUND_BAND] == slice(3, 5)
         assert data.X.shape == (DEFAULT_BOLD_N_TRS, 5)
 
+    def test_surface_y_joins_both_hemis_on_voxel_axis(self, tree: BIDSTree):
+        # End-to-end surface path: `_align_y` must load both hemis and join them,
+        # so Y spans 2 * n_vertices columns over the run's TR rows.
+        n_vertices = 4
+        _add_dyad_turns(tree)
+        tree.add_surface_bold(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            space="fsaverage6",
+            desc="denoised",
+            n_vertices=n_vertices,
+        )
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        enc = _make_encoding(tree, ["mfcc"], bold_space="fsaverage6")
+        data = enc._assemble_training_data(SUB)
+        assert data.Y.shape == (DEFAULT_BOLD_N_TRS, 2 * n_vertices)
+
     def test_confound_wrong_tr_count_raises(self, tree: BIDSTree):
         # Confounds must already span the cell's TRs; a short file raises rather
         # than being silently binned

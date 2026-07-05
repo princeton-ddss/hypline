@@ -193,15 +193,106 @@ def get_n_trs(bids: BIDSPath) -> int:
     raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
 
+# One run's voxel-bearing file(s): a lone volume, or the ordered (L, R) surface
+# pair fmriprep emits per hemisphere. The two arities are the two BOLD spaces —
+# a tuple never holds a volume, a bare path never holds one hemisphere.
+VoxelSource = BIDSPath | tuple[BIDSPath, BIDSPath]
+
+
+def resolve_voxel_source(images: list[BIDSPath]) -> VoxelSource:
+    """Validate one run's discovered BOLD files and resolve them to a `VoxelSource`.
+
+    `images` is whatever discovery grouped under one run's `BoldKey`; this returns
+    the single `VoxelSource` those voxels live in, or raises if the files do not
+    form a valid one.
+
+    fmriprep emits surface BOLD per hemisphere, so one run has two `.func.gii`
+    files differing only by `hemi`; a joint encoding model needs their voxels in a
+    fixed column order across train and predict, or `Y`/`Y_hat` columns scramble
+    silently, so the surface pair is returned ordered `(L, R)`. Volume BOLD is one
+    file per run and returns as a bare `BIDSPath`.
+
+    Dispatches on `hemi` presence, not extension: a file carries `hemi` iff it is
+    surface. Requires exactly `{L, R}` for a surface run — a missing or repeated
+    hemi raises rather than fitting on half a brain.
+    """
+    hemis = [img.entities.get("hemi") for img in images]
+    if all(h is None for h in hemis):
+        if len(images) != 1:
+            raise ValueError(
+                f"Expected one volume BOLD file per run; got {len(images)}: "
+                f"{sorted(img.path.name for img in images)}"
+            )
+        return images[0]
+
+    by_hemi = {h: img for h, img in zip(hemis, images)}
+    if set(by_hemi) != {"L", "R"} or len(by_hemi) != len(images):
+        raise ValueError(
+            f"Surface run must have exactly one hemi-L and one hemi-R file; got "
+            f"hemis {sorted(str(h) for h in hemis)}: "
+            f"{sorted(img.path.name for img in images)}"
+        )
+
+    # The hemis get hstacked into one Y, so a variant mismatch (res, desc, ...)
+    # would silently concatenate incompatible columns; require identical paths
+    # modulo `hemi`. Equality holds only if entities share insertion order, which
+    # they do here — both hemis come from one `find_bids_files` parse pass.
+    if by_hemi["L"].without_entity("hemi") != by_hemi["R"].without_entity("hemi"):
+        raise ValueError(
+            f"Surface hemis must differ only in `hemi`; got "
+            f"{by_hemi['L'].path.name} vs {by_hemi['R'].path.name}"
+        )
+
+    return (by_hemi["L"], by_hemi["R"])
+
+
 class BoldMeta(NamedTuple):
-    bids: BIDSPath
+    """Run-level BOLD metadata plus the image file(s) carrying its voxels.
+
+    `source` is the run's voxel files: a lone volume `BIDSPath`, or the ordered
+    `(hemi-L, hemi-R)` surface pair. TR, n_trs, and
+    segments are run-level (hemi-invariant), resolved once from
+    `representative_file()`; a voxel loader iterates `voxel_files()`.
+    """
+
+    source: VoxelSource
     repetition_time: float
     n_trs: int
     segments: list[Segment]
 
+    def voxel_files(self) -> list[BIDSPath]:
+        """Files in load order — `[volume]`, or `[L, R]`."""
+        return [self.source] if isinstance(self.source, BIDSPath) else list(self.source)
 
-def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
+    def representative_file(self) -> BIDSPath:
+        """The run-identity file: the volume, or `hemi-L`.
+
+        Carries the run's TR, n_trs, and segments; only voxel loading needs both
+        hemis. Its entities are the run's filter axes except `hemi`, which is
+        this file's own (`hemi-L`) and not run-level — filter on `run_entities`,
+        not this file's raw entities.
+        """
+        return self.voxel_files()[0]
+
+    def run_entities(self) -> dict[str, str]:
+        """Run-level filter axes: the representative file's entities minus `hemi`.
+
+        `hemi` is a per-file axis (this meta spans both hemis), so it is never a
+        run-level filter target — see `representative_file`.
+        """
+        return {
+            k: v for k, v in self.representative_file().entities.items() if k != "hemi"
+        }
+
+
+def load_bold_meta(layout: BIDSLayout, source: VoxelSource) -> BoldMeta:
     """Load TR, segments, and segment metadata for a BOLD run.
+
+    `source` is the run's voxel files: a lone volume `BIDSPath`, or the ordered
+    `(hemi-L, hemi-R)` surface pair. Run-level metadata
+    is hemi-invariant, so it is read once from the representative (first) file.
+    A surface pair is asserted to share the run's
+    `n_trs` — an hstack over hemis with mismatched TR counts would misalign `Y`.
 
     Segment metadata comes from events.json `trial_type.Levels`: entries whose
     keys match the BIDS entity-value pattern are merged into `Segment.metadata`;
@@ -211,15 +302,18 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
     Sidecars (events.tsv, events.json) are resolved canonically from the raw
     BIDS tree via `layout.path.raw`; misnamed siblings are not inspected.
 
-    When `bids` is a derivative, its volume count must match the raw BOLD —
-    events.tsv onsets are raw-relative and hypline does not shift them.
+    When the representative file is a derivative, its volume count must match the
+    raw BOLD — events.tsv onsets are raw-relative and hypline does not shift them.
 
-    Raises ValueError if `bids` lacks a `task` entity (events sidecars are
-    resolved by task), if a derivative `bids` has a different volume count
-    than its raw counterpart, if events.tsv or events.json is invalid, if
-    events.json declares segment entries that events.tsv does not, or if a
-    `task` segment value disagrees with the filename's task entity.
+    Raises ValueError if the representative file lacks a `task` entity (events
+    sidecars are resolved by task), if a derivative representative file has a
+    different volume count than its raw counterpart, if the two surface hemis
+    disagree on `n_trs`, if events.tsv or events.json is invalid, if events.json
+    declares segment entries that events.tsv does not, or if a `task` segment
+    value disagrees with the filename's task entity.
     """
+    files = [source] if isinstance(source, BIDSPath) else list(source)
+    bids = files[0]
     _validate_bold(bids)
 
     if "task" not in bids.entities:
@@ -229,6 +323,15 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
 
     repetition_time = get_repetition_time(layout, bids)
     n_trs = get_n_trs(bids)
+
+    # Hemis share a TR grid; an hstack on mismatched rows would misalign Y
+    for img in files[1:]:
+        if get_n_trs(img) != n_trs:
+            raise ValueError(
+                f"BOLD images for one run disagree on volume count: "
+                f"{bids.path.name!r} has {n_trs}, {img.path.name!r} has "
+                f"{get_n_trs(img)}"
+            )
 
     # BOLD_EXTENSIONS pins volumetric raw to .nii.gz; surface derivatives
     # (.func.gii) inherit any trim applied during volumetric preprocessing.
@@ -252,7 +355,7 @@ def load_bold_meta(layout: BIDSLayout, bids: BIDSPath) -> BoldMeta:
             )
 
     return BoldMeta(
-        bids=bids,
+        source=source,
         repetition_time=repetition_time,
         n_trs=n_trs,
         segments=segments,

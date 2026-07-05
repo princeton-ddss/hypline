@@ -12,7 +12,12 @@ if TYPE_CHECKING:
     from sklearn.pipeline import Pipeline
 
 from hypline.bids import BIDSPath
-from hypline.bold import BOLD_EXTENSIONS, BoldMeta, load_bold_meta
+from hypline.bold import (
+    BOLD_EXTENSIONS,
+    BoldMeta,
+    load_bold_meta,
+    resolve_voxel_source,
+)
 from hypline.downsample import downsample
 from hypline.events import (
     Turn,
@@ -156,18 +161,28 @@ def _require_regressor_at_every_cell(
         raise FileNotFoundError(msg)
 
 
-def _load_bold_array(path: Path) -> np.ndarray:
-    """Load a BOLD file into a 2D array of shape (n_trs, n_voxels)."""
+def _load_bold_array(paths: list[Path]) -> np.ndarray:
+    """Load a run's BOLD image(s) into one (n_trs, n_voxels) array.
+
+    `paths` is the run's ordered voxel files: one for volume, `[hemi-L, hemi-R]`
+    for surface. Per-file arrays are joined on the voxel (column) axis, so the two
+    surface hemispheres become one Y spanning the whole surface — the same shape
+    contract as a single volume, which falls out as the length-1 case.
+    """
     import nibabel as nib
 
-    img = nib.load(path)
-    data = np.asarray(img.dataobj)  # type: ignore
-    if isinstance(img, nib.Nifti1Image):
-        return data.reshape(-1, data.shape[-1]).T
-    elif isinstance(img, nib.GiftiImage):
-        return np.column_stack([d.data for d in img.darrays]).T
-    else:
-        raise ValueError(f"Unsupported image format: {type(img).__name__}")
+    arrays: list[np.ndarray] = []
+    for path in paths:
+        img = nib.load(path)
+        if isinstance(img, nib.Nifti1Image):
+            data = np.asarray(img.dataobj)
+            arrays.append(data.reshape(-1, data.shape[-1]).T)
+        elif isinstance(img, nib.GiftiImage):
+            arrays.append(np.column_stack([d.data for d in img.darrays]).T)
+        else:
+            raise ValueError(f"Unsupported image format: {type(img).__name__}")
+
+    return np.hstack(arrays)
 
 
 def _align_y(
@@ -193,7 +208,9 @@ def _align_y(
             raise ValueError(f"No BOLD run for cell {cell_key} (bold_key {bold_key})")
         bold_meta = bold_metas[bold_key]
         if bold_key not in arrays:
-            arrays[bold_key] = _load_bold_array(bold_meta.bids.path)
+            arrays[bold_key] = _load_bold_array(
+                [f.path for f in bold_meta.voxel_files()]
+            )
         bold_data = arrays[bold_key]
 
         if not bold_meta.segments:
@@ -218,8 +235,8 @@ def _align_y(
         if onset_tr + n_trs > bold_data.shape[0]:
             raise ValueError(
                 f"Segment for cell {cell_key} extends to TR {onset_tr + n_trs} "
-                f"but BOLD at {bold_meta.bids.path.name} has only "
-                f"{bold_data.shape[0]} TRs"
+                f"but BOLD at {bold_meta.representative_file().path.name} "
+                f"has only {bold_data.shape[0]} TRs"
             )
 
         Y_parts.append(bold_data[onset_tr : onset_tr + n_trs])
@@ -418,6 +435,11 @@ class _EncodingContext:
         is inferred from the colocated events TSV when present. All runs are guaranteed
         to share the same TR, BOLD-level entity invariants, and segment entity (or all
         unsegmented).
+
+        Surface fmriprep emits one file per hemisphere, so a run maps to two files
+        differing only by `hemi`; both are grouped under the run's `BoldKey` and
+        ordered `[L, R]` so their voxels concatenate into one Y. Volume runs map to
+        a single file. `resolve_voxel_source` enforces exactly `{L, R}` for surface.
         """
         bold_ext = BOLD_EXTENSIONS[type(self._recipe.bold_space)]
         # Encoding consumes hypline postprocessing outputs, not fmriprep's raw preproc
@@ -432,33 +454,27 @@ class _EncodingContext:
             ],
         )
 
-        bold_metas: dict[BoldKey, BoldMeta] = {}
+        files_by_key: dict[BoldKey, list[BIDSPath]] = {}
         for bids in bold_files:
             bold_key = BoldKey(
                 ses=bids.entities.get("ses"),
                 task=bids.entities["task"],
                 run=bids.entities.get("run"),
             )
-            if bold_key in bold_metas:
-                loc = _format_loc(
-                    sub=sub_id,
-                    ses=bold_key.ses,
-                    task=bold_key.task,
-                    run=bold_key.run,
-                )
-                raise ValueError(
-                    f"Duplicate BOLD file at {loc}:\n"
-                    f"  {bold_metas[bold_key].bids.path}\n  {bids.path}"
-                )
+            files_by_key.setdefault(bold_key, []).append(bids)
+
+        bold_metas: dict[BoldKey, BoldMeta] = {}
+        for bold_key, files in files_by_key.items():
+            loc = _format_loc(
+                sub=sub_id,
+                ses=bold_key.ses,
+                task=bold_key.task,
+                run=bold_key.run,
+            )
             try:
-                bold_metas[bold_key] = load_bold_meta(self._layout, bids)
+                source = resolve_voxel_source(files)
+                bold_metas[bold_key] = load_bold_meta(self._layout, source)
             except ValueError as e:
-                loc = _format_loc(
-                    sub=sub_id,
-                    ses=bold_key.ses,
-                    task=bold_key.task,
-                    run=bold_key.run,
-                )
                 raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e
 
         # Validate: TR is invariant across all runs
@@ -476,7 +492,7 @@ class _EncodingContext:
         }
         if len(segment_entities) > 1:
             run_labels = sorted(
-                f"{meta.bids.path.name} ("
+                f"{meta.representative_file().path.name} ("
                 f"{meta.segments[0].entity if meta.segments else 'unsegmented'})"
                 for meta in bold_metas.values()
             )
@@ -492,7 +508,7 @@ class _EncodingContext:
         }
         if len(metadata_key_sets) > 1:
             run_labels = sorted(
-                f"{meta.bids.path.name} "
+                f"{meta.representative_file().path.name} "
                 f"({sorted(meta.segments[0].metadata) or 'no metadata'})"
                 for meta in segmented_metas
             )

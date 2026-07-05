@@ -69,7 +69,10 @@ and falsely reject. `train(sub_id)` executes these steps in order:
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
    (segment slices), and events.json `trial_type.Levels` (metadata) from the **raw** BIDS
    tree via `BIDSLayout.path.raw` (sidecars are identity-keyed, not per-variant). Returns
-   `dict[BoldKey, BoldMeta]`. Validates within-run and cross-run segment invariants. No user filters.
+   `dict[BoldKey, BoldMeta]`. A surface run maps two files to one `BoldKey`;
+   `resolve_voxel_source` orders the hemis `(L, R)` so their voxels concatenate into one Y,
+   while a volume run stays one file (see [../external/fmriprep.md](../external/fmriprep.md#surface-vs-volume)).
+   Validates within-run and cross-run segment invariants. No user filters.
 3. **`_resolve_cell_keys`** — precondition: every cell's `(ses, run)` must map to a
    `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
    enrichment). Then merges `Segment.metadata` onto each cell's `CellKey`.

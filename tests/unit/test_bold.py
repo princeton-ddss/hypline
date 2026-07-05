@@ -1,7 +1,12 @@
 import pytest
 
 from hypline.bids import BIDSPath
-from hypline.bold import get_repetition_time, load_bold_meta, resolve_bold_image
+from hypline.bold import (
+    get_repetition_time,
+    load_bold_meta,
+    resolve_bold_image,
+    resolve_voxel_source,
+)
 from hypline.layout import BIDSLayout
 
 from .conftest import DEFAULT_BOLD_N_TRS, HEADER_TR, BIDSTree, minimal_nifti_gz
@@ -123,6 +128,48 @@ class TestResolveBoldImage:
         source = BIDSPath(SUB_FEATURE_SOURCE)
         with pytest.raises(FileNotFoundError, match="No BOLD image found"):
             resolve_bold_image(BIDSLayout(tree.root), source)
+
+
+class TestResolveVoxelSource:
+    def _surf(self, hemi: str, **extra: str) -> BIDSPath:
+        stem = f"sub-{SUB}_task-{TASK}_run-1_space-fsaverage6_hemi-{hemi}"
+        for k, v in extra.items():
+            stem += f"_{k}-{v}"
+        return BIDSPath(f"{stem}_desc-denoised_bold.func.gii")
+
+    def _vol(self, **extra: str) -> BIDSPath:
+        stem = f"sub-{SUB}_task-{TASK}_run-1_space-{SPACE}"
+        for k, v in extra.items():
+            stem += f"_{k}-{v}"
+        return BIDSPath(f"{stem}_desc-denoised_bold.nii.gz")
+
+    def test_orders_surface_l_then_r(self):
+        source = resolve_voxel_source([self._surf("R"), self._surf("L")])
+        assert not isinstance(source, BIDSPath)
+        left, right = source
+        assert [left.entities["hemi"], right.entities["hemi"]] == ["L", "R"]
+
+    def test_volume_passes_through(self):
+        vol = self._vol()
+        assert resolve_voxel_source([vol]) == vol
+
+    def test_two_volumes_raise(self):
+        with pytest.raises(ValueError, match="one volume BOLD file per run"):
+            resolve_voxel_source([self._vol(), self._vol(res="2")])
+
+    def test_missing_hemi_raises(self):
+        with pytest.raises(ValueError, match="exactly one hemi-L and one hemi-R"):
+            resolve_voxel_source([self._surf("L")])
+
+    def test_duplicate_hemi_raises(self):
+        with pytest.raises(ValueError, match="exactly one hemi-L and one hemi-R"):
+            resolve_voxel_source([self._surf("L"), self._surf("L")])
+
+    def test_hemis_differing_in_variant_raise(self):
+        # `res` distinguishes only the two hemis; hstack would concatenate
+        # incompatible columns, so the pair must be rejected.
+        with pytest.raises(ValueError, match="differ only in `hemi`"):
+            resolve_voxel_source([self._surf("L"), self._surf("R", res="2")])
 
 
 class TestLoadBoldMeta:

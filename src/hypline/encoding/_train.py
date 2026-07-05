@@ -437,7 +437,7 @@ class EncodingTrainer(_EncodingContext):
         bold_entity_keys = frozenset(
             entity_key
             for meta in bold_metas.values()
-            for entity_key in meta.bids.entities
+            for entity_key in meta.run_entities()
         )
         known_entity_keys = cell_entity_keys | bold_entity_keys
 
@@ -470,7 +470,7 @@ class EncodingTrainer(_EncodingContext):
         filtered_bold = {
             bold_key: meta
             for bold_key, meta in bold_metas.items()
-            if _bold_matches(meta.bids)
+            if _bold_matches(meta.representative_file())
         }
 
         return filtered_regressors, filtered_bold

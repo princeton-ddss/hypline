@@ -3,10 +3,14 @@ import polars as pl
 import pyarrow.parquet as pq
 import pytest
 
-from hypline.encoding._context import _SCREEN_BAND, _build_pipeline
+from hypline.encoding._context import (
+    _SCREEN_BAND,
+    _build_pipeline,
+    _load_bold_array,
+)
 from hypline.encoding._schema import BoldKey, CellKey, RegressorKey, TrainingData
 
-from ..conftest import BIDSTree
+from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree, minimal_gii, minimal_nifti_gz
 from .conftest import DYAD, SPACE, SUB, TASK, _make_encoding
 
 
@@ -65,6 +69,27 @@ class TestBuildPipeline:
         feature_steps = [type(s) for _, s in bands["f1"].steps]
         assert StandardScaler not in screen_steps
         assert StandardScaler in feature_steps
+
+
+class TestLoadBoldArray:
+    def test_joins_surface_hemis_on_voxel_axis(self, tmp_path):
+        # L filled from base 0, R from base 1000; join must place all L columns
+        # before all R columns, sharing the TR rows.
+        n_trs, n_vertices = 4, 3
+        left = tmp_path / "hemi-L_bold.func.gii"
+        right = tmp_path / "hemi-R_bold.func.gii"
+        left.write_bytes(minimal_gii(n_trs, n_vertices, base=0.0))
+        right.write_bytes(minimal_gii(n_trs, n_vertices, base=1000.0))
+
+        joined = _load_bold_array([left, right])
+        assert joined.shape == (n_trs, 2 * n_vertices)
+        np.testing.assert_array_equal(joined[0], [0, 1, 2, 1000, 1001, 1002])
+
+    def test_single_volume_loads_2d(self, tmp_path):
+        vol = tmp_path / "bold.nii.gz"
+        vol.write_bytes(minimal_nifti_gz(n_trs=5))
+        arr = _load_bold_array([vol])
+        assert arr.shape == (5, 1)
 
 
 class TestDiscoverFeatures:
@@ -365,9 +390,10 @@ class TestDiscoverBold:
         with pytest.raises(FileNotFoundError, match="hypline"):
             enc._discover_bold(SUB)
 
-    def test_duplicate_bold_raises(self, tree: BIDSTree):
-        # Two BOLDs sharing identity entities but distinguished by a variant
-        # entity (`res`) collide on BoldKey.
+    def test_duplicate_volume_bold_raises(self, tree: BIDSTree):
+        # Two volume BOLDs sharing identity entities but distinguished by a
+        # variant entity (`res`) group under one BoldKey; volume runs admit only
+        # one file, so the run is rejected.
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
         tree.add_bold(
             sub=SUB,
@@ -378,7 +404,42 @@ class TestDiscoverBold:
             extra_entities={"res": "2"},
         )
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Duplicate BOLD"):
+        with pytest.raises(ValueError, match="Expected one volume BOLD file per run"):
+            enc._discover_bold(SUB)
+
+    def test_surface_run_groups_both_hemis(self, tree: BIDSTree):
+        tree.add_surface_bold(
+            sub=SUB, task=TASK, run="1", space="fsaverage6", desc="denoised"
+        )
+        enc = _make_encoding(tree, ["mfcc"], bold_space="fsaverage6")
+        bold_metas = enc._discover_bold(SUB)
+        meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
+        assert [img.entities["hemi"] for img in meta.voxel_files()] == ["L", "R"]
+
+    def test_surface_missing_hemi_raises(self, tree: BIDSTree):
+        tree.add_surface_bold(
+            sub=SUB, task=TASK, run="1", space="fsaverage6", hemis=("L",)
+        )
+        enc = _make_encoding(tree, ["mfcc"], bold_space="fsaverage6")
+        with pytest.raises(ValueError, match="exactly one hemi-L and one hemi-R"):
+            enc._discover_bold(SUB)
+
+    def test_surface_hemi_n_trs_mismatch_raises(self, tree: BIDSTree):
+        # L keeps the run's TR count; R is written one volume short
+        tree.add_surface_bold(
+            sub=SUB, task=TASK, run="1", space="fsaverage6", hemis=("L",)
+        )
+        tree.add_surface_bold(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            space="fsaverage6",
+            hemis=("R",),
+            n_trs=DEFAULT_BOLD_N_TRS - 1,
+            write_raw=False,
+        )
+        enc = _make_encoding(tree, ["mfcc"], bold_space="fsaverage6")
+        with pytest.raises(ValueError, match="disagree on volume count"):
             enc._discover_bold(SUB)
 
     def test_cross_session_runs_distinguished(self, tree: BIDSTree):
