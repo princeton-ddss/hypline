@@ -44,7 +44,7 @@ class TestArtifactRoundTrip:
         X = data.X.astype(np.float32)
 
         artifact = enc.train(SUB)
-        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
         write_artifact(artifact, out.path)
 
         # Predictions compare numpy-vs-numpy: write_artifact already forced the
@@ -72,7 +72,7 @@ class TestArtifactRoundTrip:
         enc, _ = train_setup
         artifact = enc.train(SUB)
 
-        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
         write_artifact(artifact, out.path)
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
         assert sidecar["recipe"]["tasks"] == [TASK]
@@ -106,7 +106,7 @@ class TestArtifactRoundTrip:
         monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
 
         artifact = enc.train(SUB)
-        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
         write_artifact(artifact, out.path)
 
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
@@ -134,7 +134,7 @@ class TestArtifactRoundTrip:
         monkeypatch.setattr(enc, "_assemble_training_data", lambda *a, **k: data)
 
         artifact = enc.train(SUB)
-        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
         write_artifact(artifact, out.path)
 
         sidecar = json.loads(out.path.with_suffix(".json").read_text())

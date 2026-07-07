@@ -1178,7 +1178,7 @@ class TestFoldedTrain:
 
         enc, data = make_train_setup(fold_by="run", n_folds=2)
         artifact = enc.train(SUB)
-        out = enc._layout.path.result(sub=SUB, kind="encoding", desc="v1")
+        out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
         write_artifact(artifact, out.path)
 
         loaded = load_artifact(out.path)

@@ -4,6 +4,12 @@ import numpy as np
 
 DownsampleMethod = Literal["mean", "sum", "max", "min", "any", "count"]
 
+FeatureDownsampleMethod = Literal["mean", "sum"]
+
+# Public Encoding-facing methods must be a subset of all methods
+if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
+    raise RuntimeError("FeatureDownsampleMethod must be a subset of DownsampleMethod")
+
 
 def downsample(
     values: np.ndarray,

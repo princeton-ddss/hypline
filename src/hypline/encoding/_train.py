@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, get_args
 
 import numpy as np
+from loguru import logger
 
 if TYPE_CHECKING:
     from sklearn.model_selection import BaseCrossValidator
@@ -16,6 +17,7 @@ from hypline.bids import (
     parse_kind_desc,
 )
 from hypline.bold import BoldMeta, parse_bold_space
+from hypline.downsample import FeatureDownsampleMethod
 from hypline.enums import Device
 from hypline.layout import BIDSLayout
 
@@ -25,7 +27,6 @@ from ._schema import (
     BoldKey,
     CellKey,
     EncodingConfig,
-    FeatureDownsampleMethod,
     RegressorKey,
     RegressorMeta,
     TrainingData,
@@ -349,9 +350,11 @@ class EncodingTrainer(_EncodingContext):
         recipe = replace(self._recipe, col_slices=data.col_slices)
 
         if self._fold is None:
+            logger.info("Fitting starting: sub-{}", sub_id)
             # cell order tracks data.row_slices (= _build_x / _sort_key order)
             ordered_cells = list(data.row_slices)
             pipeline = _fit_model(data.X, data.Y, ordered_cells)
+            logger.info("Fitting complete: sub-{}", sub_id)
             return EncodingArtifact(
                 recipe=recipe,
                 fold=None,
@@ -365,11 +368,13 @@ class EncodingTrainer(_EncodingContext):
         groups = _group_cells_by(all_cells, self._fold.by)
         held_out = _partition_groups(groups, self._fold.n)
         models = []
-        for held in held_out:
+        for i, held in enumerate(held_out, start=1):
+            logger.info("Fitting starting: sub-{} fold {}/{}", sub_id, i, len(held_out))
             train_cells = all_cells - held
             X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
             pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
             models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
+        logger.info("Fitting complete: sub-{} ({} folds)", sub_id, len(held_out))
         return EncodingArtifact(
             recipe=recipe, fold=self._fold, models=models, universe=all_cells
         )

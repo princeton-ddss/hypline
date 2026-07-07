@@ -136,12 +136,12 @@ class EncodingPredictor(_EncodingContext):
     ) -> EncodingPredictor:
         """Load a persisted artifact by `(sub_id, desc)` and wrap it for predict.
 
-        `(sub_id, kind="encoding", desc)` fully determines the file. `sub_id` is the
-        *model* subject (whose trained weights); the source subject is passed to
+        `(sub_id, kind="encodingModel", desc)` fully determines the file. `sub_id`
+        is the *model* subject (whose trained weights); the source subject is passed to
         `predict`, and may differ.
         """
         layout = BIDSLayout(bids_root)
-        out = layout.path.result(sub=sub_id, kind="encoding", desc=desc)
+        out = layout.path.result(sub=sub_id, kind="encodingModel", desc=desc)
         return cls(bids_root=bids_root, artifact=load_artifact(out.path))
 
     def predict(

@@ -12,9 +12,10 @@ if TYPE_CHECKING:
     from sklearn.pipeline import Pipeline
 
 from hypline._version import __version__
+from hypline.downsample import FeatureDownsampleMethod
 from hypline.enums import SurfaceSpace, VolumeSpace
 
-from ._schema import CellKey, FeatureDownsampleMethod
+from ._schema import CellKey
 
 
 @dataclass(frozen=True)

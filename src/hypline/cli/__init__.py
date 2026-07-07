@@ -6,6 +6,7 @@ from loguru import logger
 
 from .confoundgen import app as confoundgen_app
 from .denoise import denoise as denoise_func
+from .encoding import app as encoding_app
 from .featuregen import app as featuregen_app
 from .transcribe import transcribe as transcribe_func
 
@@ -14,6 +15,7 @@ app.command(name="denoise")(denoise_func)
 app.command(name="transcribe")(transcribe_func)
 app.add_typer(featuregen_app, name="featuregen")
 app.add_typer(confoundgen_app, name="confoundgen")
+app.add_typer(encoding_app, name="encoding")
 
 
 def _version_callback(value: bool):

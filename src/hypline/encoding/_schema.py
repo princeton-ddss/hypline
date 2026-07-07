@@ -1,21 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator, Literal, NamedTuple, get_args
+from typing import Iterator, NamedTuple
 
 import numpy as np
 from pydantic import BaseModel
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from hypline.bids import BIDSPath
-from hypline.downsample import DownsampleMethod
 from hypline.enums import Device
-
-FeatureDownsampleMethod = Literal["mean", "sum"]
-
-# Public Encoding-facing methods must be a subset of all methods
-if not set(get_args(FeatureDownsampleMethod)) <= set(get_args(DownsampleMethod)):
-    raise RuntimeError("FeatureDownsampleMethod must be a subset of DownsampleMethod")
 
 
 class BoldKey(NamedTuple):
