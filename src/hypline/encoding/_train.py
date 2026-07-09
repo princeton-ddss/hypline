@@ -357,6 +357,7 @@ class EncodingTrainer(_EncodingContext):
             logger.info("Fitting complete: sub-{}", sub_id)
             return EncodingArtifact(
                 recipe=recipe,
+                sub_id=sub_id,
                 fold=None,
                 models=[
                     FittedModel(pipeline=pipeline, train_cells=set(data.row_slices))
@@ -376,7 +377,11 @@ class EncodingTrainer(_EncodingContext):
             models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
         logger.info("Fitting complete: sub-{} ({} folds)", sub_id, len(held_out))
         return EncodingArtifact(
-            recipe=recipe, fold=self._fold, models=models, universe=all_cells
+            recipe=recipe,
+            sub_id=sub_id,
+            fold=self._fold,
+            models=models,
+            universe=all_cells,
         )
 
     def _assemble_training_data(self, sub_id: str) -> TrainingData:

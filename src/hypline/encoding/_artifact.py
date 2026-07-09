@@ -83,6 +83,7 @@ class EncodingArtifact:
     """
 
     recipe: XRecipe
+    sub_id: str
     fold: FoldSpec | None
     models: list[FittedModel]
     universe: set[CellKey] | None
@@ -158,6 +159,7 @@ def _sidecar(artifact: EncodingArtifact) -> dict:
     recipe = artifact.recipe
     return {
         "hypline_version": __version__,
+        "sub_id": artifact.sub_id,
         "recipe": {
             "features": {name: list(spec) for name, spec in recipe.features.items()},
             "confounds": {name: list(spec) for name, spec in recipe.confounds.items()},

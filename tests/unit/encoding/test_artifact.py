@@ -63,6 +63,7 @@ class TestArtifactRoundTrip:
         assert isinstance(model.dual_coef_, np.ndarray)
 
         assert loaded.recipe == artifact.recipe
+        assert loaded.sub_id == SUB
         assert loaded.models[0].train_cells == artifact.models[0].train_cells
         assert loaded.universe is None
 
@@ -75,6 +76,7 @@ class TestArtifactRoundTrip:
         out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
         write_artifact(artifact, out.path)
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
+        assert sidecar["sub_id"] == SUB
         assert sidecar["recipe"]["tasks"] == [TASK]
         assert sidecar["recipe"]["col_slices"] == {
             "phonemic-gpt3": [0, 3],
