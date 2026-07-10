@@ -17,7 +17,7 @@ from hypline.bold import (
     load_bold_meta,
     resolve_voxel_source,
 )
-from hypline.downsample import downsample
+from hypline.downsample import FeatureDownsampleMethod, downsample
 from hypline.events import (
     Turn,
     merge_filename_and_sidecar,
@@ -180,6 +180,42 @@ def _load_bold_array(paths: list[Path]) -> np.ndarray:
             raise ValueError(f"Unsupported image format: {type(img).__name__}")
 
     return np.hstack(arrays)
+
+
+def _read_feature_array(
+    meta: RegressorMeta, n_trs: int, method: FeatureDownsampleMethod
+) -> np.ndarray:
+    """Read one feature file and downsample it onto the cell's TR grid."""
+    df = read_feature(meta.bids.path)
+    # Drop untimed rows — downsample needs TR alignment
+    df = df.filter(df.get_column("start_time").is_not_null())
+    return downsample(
+        stack_array_column(df.get_column("feature")),
+        start_times=df.get_column("start_time").to_numpy(),
+        n_trs=n_trs,
+        repetition_time=meta.repetition_time,
+        method=method,
+    )
+
+
+def _read_confound_array(
+    meta: RegressorMeta, n_trs: int, confound_name: str, cell_key: CellKey
+) -> np.ndarray:
+    """Read one confound file, already at TR level, asserting its row count.
+
+    Unlike features there is no downsample step: confounds are written TR-level
+    and per-segment, so the file must already span the cell's `n_trs`. The check
+    is explicit rather than left to `downsample`'s pass-through, which would
+    silently bin instead of raise on a mismatched grid.
+    """
+    arr = stack_array_column(read_confound(meta.bids.path).get_column("confound"))
+    if arr.shape[0] != n_trs:
+        raise ValueError(
+            f"Confound conf={confound_name} at cell {cell_key} has {arr.shape[0]} "
+            f"TR row(s) but the cell spans {n_trs} — confounds must be saved "
+            f"at the BOLD TR grid for this segment"
+        )
+    return arr
 
 
 def _align_y(
@@ -680,38 +716,6 @@ class _EncodingContext:
             )
         return regressor_metas
 
-    def _read_feature_array(self, meta: RegressorMeta, n_trs: int) -> np.ndarray:
-        """Read one feature file and downsample it onto the cell's TR grid."""
-        df = read_feature(meta.bids.path)
-        # Drop untimed rows — downsample needs TR alignment
-        df = df.filter(df.get_column("start_time").is_not_null())
-        return downsample(
-            stack_array_column(df.get_column("feature")),
-            start_times=df.get_column("start_time").to_numpy(),
-            n_trs=n_trs,
-            repetition_time=meta.repetition_time,
-            method=self._recipe.downsample,
-        )
-
-    def _read_confound_array(
-        self, meta: RegressorMeta, n_trs: int, confound_name: str, cell_key: CellKey
-    ) -> np.ndarray:
-        """Read one confound file, already at TR level, asserting its row count.
-
-        Unlike features there is no downsample step: confounds are written TR-level
-        and per-segment, so the file must already span the cell's `n_trs`. The check
-        is explicit rather than left to `downsample`'s pass-through, which would
-        silently bin instead of raise on a mismatched grid.
-        """
-        arr = stack_array_column(read_confound(meta.bids.path).get_column("confound"))
-        if arr.shape[0] != n_trs:
-            raise ValueError(
-                f"Confound conf={confound_name} at cell {cell_key} has {arr.shape[0]} "
-                f"TR row(s) but the cell spans {n_trs} — confounds must be saved "
-                f"at the BOLD TR grid for this segment"
-            )
-        return arr
-
     def _build_x(
         self, sub_id: str, regressor_metas: dict[RegressorKey, RegressorMeta]
     ) -> XData:
@@ -778,13 +782,15 @@ class _EncodingContext:
             row_offset += n_trs
 
             feature_arrays = [
-                self._read_feature_array(
-                    regressor_metas[RegressorKey(cell_key, name)], n_trs
+                _read_feature_array(
+                    regressor_metas[RegressorKey(cell_key, name)],
+                    n_trs,
+                    self._recipe.downsample,
                 )
                 for name in self._recipe.features
             ]
             confound_arrays = [
-                self._read_confound_array(
+                _read_confound_array(
                     regressor_metas[RegressorKey(cell_key, name)], n_trs, name, cell_key
                 )
                 for name in self._recipe.confounds
