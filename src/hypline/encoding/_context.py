@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
-import polars as pl
 
 if TYPE_CHECKING:
     from sklearn.model_selection import BaseCrossValidator
@@ -21,11 +20,8 @@ from hypline.bold import (
 from hypline.downsample import downsample
 from hypline.events import (
     Turn,
-    frame_onset,
-    load_turns,
     merge_filename_and_sidecar,
     segment_tr_slice,
-    stamp_turns,
 )
 from hypline.io import (
     read_confound,
@@ -45,6 +41,7 @@ from ._schema import (
     RegressorMeta,
     XData,
 )
+from ._turns import _turn_masks
 
 _SOLVER_N_ITER = 100
 _SOLVER_DIAGONALIZE_METHOD = "svd"
@@ -715,66 +712,6 @@ class _EncodingContext:
             )
         return arr
 
-    def _turn_masks(
-        self,
-        sub_id: str,
-        meta: RegressorMeta,
-        n_trs: int,
-        turns_cache: dict[BoldKey, list[Turn]],
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Return per-TR (prod, comp) boolean masks for `sub_id` on one cell.
-
-        prod TRs are those whose onset falls in `sub_id`'s speaking window; comp
-        TRs are those held by any other named speaker; silence TRs (no floor-holder)
-        are False in both — the implicit baseline. A TR straddling a turn boundary is
-        assigned by its onset (`start_time = tr_index * repetition_time`), matching
-        the source study's per-TR boxcar.
-
-        The per-word `turn_sub` stamped into feature files is dropped at downsample,
-        so the per-TR boxcar is re-derived here from the same `load_turns`/
-        `stamp_turns` primitives against a synthetic TR-cadence grid.
-
-        Turns are per-run, so they are cached by (ses, task, run) across a run's
-        segments. `meta.bids` is dyad-keyed (features/confounds are discovered by
-        dyad), so it serves directly as the `load_turns`/`frame_onset` source.
-
-        Raises if the dyad is not exactly two subjects — "the partner" (and thus
-        comp) would be ambiguous — or if `sub_id` is not in the dyad, since
-        `subjects_of` (participants.tsv) and file discovery are separate sources
-        that can drift.
-        """
-        dyad_id = meta.bids.entities["dyad"]
-        subjects = self._layout.subjects_of(dyad_id)
-        if len(subjects) != 2:
-            raise ValueError(
-                f"prod/comp split requires a 2-subject dyad; dyad-{dyad_id} has "
-                f"{len(subjects)}: {subjects}"
-            )
-        if sub_id not in subjects:
-            raise ValueError(
-                f"sub-{sub_id} is not in dyad-{dyad_id} {subjects}; "
-                f"prod/comp masks would be undefined"
-            )
-
-        cache_key = BoldKey(  # turns are per-run; cache across a run's segments
-            ses=meta.bids.entities.get("ses"),
-            task=meta.bids.entities["task"],
-            run=meta.bids.entities.get("run"),
-        )
-        if cache_key not in turns_cache:
-            turns_cache[cache_key] = load_turns(self._layout, meta.bids)
-        turns = turns_cache[cache_key]
-
-        onset = frame_onset(self._layout, meta.bids)
-        tr_starts = np.arange(n_trs) * meta.repetition_time
-        tr_grid = pl.DataFrame({"start_time": tr_starts})
-        stamped, _ = stamp_turns(tr_grid, turns, frame_onset=onset)
-        turn_sub = stamped.get_column("turn_sub").to_list()
-
-        prod = np.array([t == sub_id for t in turn_sub], dtype=bool)
-        comp = np.array([t is not None and t != sub_id for t in turn_sub], dtype=bool)
-        return prod, comp
-
     def _build_x(
         self, sub_id: str, regressor_metas: dict[RegressorKey, RegressorMeta]
     ) -> XData:
@@ -853,7 +790,9 @@ class _EncodingContext:
                 for name in self._recipe.confounds
             ]
 
-            prod, comp = self._turn_masks(sub_id, cell_meta, n_trs, turns_cache)
+            prod, comp = _turn_masks(
+                self._layout, sub_id=sub_id, meta=cell_meta, turns_cache=turns_cache
+            )
             screen_array = np.column_stack([prod, comp]).astype(float)
             screen_parts.append(screen_array)
             if split:

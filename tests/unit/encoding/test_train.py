@@ -13,7 +13,7 @@ from hypline.encoding import (
 )
 from hypline.encoding._artifact import FoldSpec
 from hypline.encoding._context import _CONFOUND_BAND, _SCREEN_BAND
-from hypline.encoding._schema import BoldKey, CellKey, RegressorMeta, TrainingData
+from hypline.encoding._schema import BoldKey, CellKey, TrainingData
 from hypline.encoding._train import (
     _group_cells_by,
     _inner_cv,
@@ -883,49 +883,6 @@ class TestSplit:
         )
         enc = _make_encoding(tree, ["mfcc"], split=split)
         return enc._assemble_training_data(SUB)
-
-    def _one_meta(self, tree: BIDSTree) -> tuple[EncodingTrainer, RegressorMeta]:
-        # Run the real discover/enrich chain and hand back one dyad-keyed meta,
-        # so `_turn_masks` is exercised against genuine BIDSPath entities
-        _add_dyad_turns(tree)
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        bold_metas = enc._discover_bold(SUB)
-        feature_bids = enc._resolve_cell_keys(
-            SUB, enc._discover_features(SUB), bold_metas
-        )
-        metas = enc._enrich_regressor_metas(feature_bids, bold_metas)
-        return enc, next(iter(metas.values()))
-
-    # `_turn_masks` returns the per-TR prod and comp boolean masks. Both the screen
-    # band and the split are built from it, so these tests call it directly; the
-    # assemble-based tests further down exercise it through the full pipeline.
-
-    def test_turn_masks_are_subject_relative(self, tree: BIDSTree):
-        # Masks are subject-relative: SUB's prod is PARTNER's comp. The stakes:
-        # predict rebuilt against the wrong source subject would silently invert
-        # every split copy.
-        enc, meta = self._one_meta(tree)
-        sub_prod, sub_comp = enc._turn_masks(SUB, meta, DEFAULT_BOLD_N_TRS, {})
-        partner_prod, partner_comp = enc._turn_masks(
-            PARTNER, meta, DEFAULT_BOLD_N_TRS, {}
-        )
-        np.testing.assert_array_equal(sub_prod, partner_comp)
-        np.testing.assert_array_equal(sub_comp, partner_prod)
-        # And pin SUB's absolute layout: prod on TRs 0..4, comp on TRs 5..9
-        assert sub_prod.tolist() == [True] * 5 + [False] * 5
-        assert sub_comp.tolist() == [False] * 5 + [True] * 5
-
-    def test_turn_masks_subject_outside_dyad_raises(self, tree: BIDSTree):
-        # A sub_id can have discoverable files yet be missing from the dyad roster,
-        # and then its prod/comp are undefined. Assembly always discovers files for
-        # the sub it is given, so it never hits this path; exercise it directly.
-        enc, meta = self._one_meta(tree)
-        with pytest.raises(ValueError, match="is not in dyad"):
-            enc._turn_masks("999", meta, DEFAULT_BOLD_N_TRS, {})
 
     # Screen band (always on): the two prod/comp boxcars the masks feed into.
 
