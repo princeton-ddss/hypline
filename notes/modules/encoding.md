@@ -164,6 +164,58 @@ three durable ways:
 The package predicts per-model and never stitches the K predictions — consolidating
 them is the consumer's concern.
 
+## Analyze — scoring a prediction against a target brain
+
+`EncodingPredictor.analyze` compares a source-driven prediction against a *target*
+subject's actual BOLD, producing per-fold, per-band, per-role, per-voxel correlations.
+It wraps `predict` (so the source builds X and the loaded model supplies weights), then
+recovers the target's Y and turns to score. All three subject roles are orthogonal;
+which triples are *scientifically* meaningful depends on whether the source and
+target share a conversation:
+
+- **Same person** (source == target) — X and Y are one conversation, one brain: a
+  genuine within-subject fit.
+- **Partners in one dyad** — shared conversation, different brains. Self and partner
+  build *different* X (subject-relative screens/split — see
+  [Prod/comp turn split](#prodcomp-turn-split)) over the same stimulus, so the
+  row-wise pairing stays coherent.
+- **Different dyads** — X and Y are different conversations, paired by run index
+  only: a scramble / null control, mechanically valid but not a fit. `analyze` only
+  **warns** here; `_align_y`'s length-drift guard is the hard net if runs mismatch.
+
+### Prod/comp/both roles
+
+Correlations are computed over three row subsets, all derived from the **target's**
+turns (the target's own dyad, not the source's — the source's conversation may never
+give the target the floor). Each role's raw per-TR mask is FIR-smeared with the
+model's `delays` before selecting rows:
+
+- **`prod`** / **`comp`** — *exclusive* pure-production / pure-comprehension rows.
+  Raw prod/comp are already disjoint (one floor-holder per TR). The exclusive AND-NOT
+  matters only because smearing spills each mask onto boundary rows; it drops those
+  delay-contaminated rows.
+- **`both`** — the smeared *union*: any speech-active row, re-including the boundary
+  rows exclusive drops. Pure-silence rows (no speech within the delay window) stay
+  excluded — hypline conversations have silence TRs, so `both` is not the whole run.
+
+The *inclusive* prod/comp (smeared without the AND-NOT) are intentionally not
+computed. A role with zero rows scores **NaN**, not zero — a correlation over zero
+varying pairs is undefined, and NaN is skipped by `nanmean` across folds instead of
+masquerading as a real low correlation.
+
+### Eval-result persistence
+
+Analyze returns a pure in-memory `xr.Dataset` (`corr` over `fold`/`band`/`role`/
+`voxel`) and writes nothing — persistence is the caller's job, mirroring `train`'s
+write-free `EncodingArtifact` return. `save_eval`/`load_eval` are the storage seam:
+each takes a raw `path`, not a layout `(sub, kind, desc)` triple — there is no analyze
+CLI or layout kind yet, so nothing binds an eval to a result path today. An eval
+result is **archival scientific data**, not a Python-runtime object like the fitted
+model, so it is stored as self-contained **netCDF-4** any tool can read — not
+joblib/pickle. Provenance (`model_sub`, `source_sub`, `target_sub`, `delays`,
+`bold_space`, `test_on`, `fold_cells`, `hypline_version`) rides in the Dataset
+`attrs`, so the file is self-describing regardless of where the caller writes it.
+
 ## Same-study assumption (load-bearing)
 
 Predict and analyze run across subjects *within one study* sharing the design

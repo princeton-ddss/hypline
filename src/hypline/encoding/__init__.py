@@ -6,6 +6,7 @@ from ._artifact import (
     load_artifact,
     write_artifact,
 )
+from ._eval import load_eval, save_eval
 from ._predict import EncodingPredictor
 from ._schema import CellKey, EncodingConfig, Prediction
 from ._train import EncodingTrainer
@@ -21,5 +22,7 @@ __all__ = [
     "Prediction",
     "XRecipe",
     "load_artifact",
+    "load_eval",
+    "save_eval",
     "write_artifact",
 ]

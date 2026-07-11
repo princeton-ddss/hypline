@@ -158,15 +158,23 @@ class TrainingData(XData):
 
 @dataclass(frozen=True)
 class Prediction:
-    """One model's predicted BOLD and the row geometry it sits on.
+    """One model's predicted BOLD and the row/band geometry it sits on.
+
+    `Y_hat` is 3-D `(band, row, voxel)` from himalaya's `split=True`: each band is
+    that kernel's *share* of the joint-model prediction, and the shares sum to the
+    combined prediction (`Y_hat.sum(0)`).
 
     `row_slices` maps each predicted cell to its contiguous block of rows in
     `Y_hat` (`_build_x` order). Predict-only: there is no actual Y — `analyze`
     recovers it from a target subject via `_align_y` on this same geometry.
+
+    `band_names` labels the band axis, in `col_slices` build order (screens,
+    features, confounds), so band `i` is `band_names[i]`.
     """
 
-    row_slices: dict[CellKey, slice]
     Y_hat: np.ndarray
+    row_slices: dict[CellKey, slice]
+    band_names: list[str]
 
 
 class CellDelayer(BaseEstimator, TransformerMixin):

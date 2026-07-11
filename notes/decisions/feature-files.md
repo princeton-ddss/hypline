@@ -241,10 +241,9 @@ TR-level X (encoding) downsample:
 **Bin boundary convention**: `floor(start_time / TR)` maps each event to the
 TR whose window starts at or before the event — i.e. TR `t` covers
 `[t*TR, (t+1)*TR)`. An event at `start_time=0.0` lands in TR 0; an event at
-`start_time=k*TR` lands in TR `k`, not TR `k-1`. The legacy
-`hyperscanning/fconv` codebase used `(t*TR, (t+1)*TR]` (right-inclusive),
-silently dropping events at `start_time=0.0`. Hypline uses the standard
-left-inclusive convention.
+`start_time=k*TR` lands in TR `k`, not TR `k-1`. Hypline uses this standard
+left-inclusive convention deliberately: a right-inclusive `(t*TR, (t+1)*TR]`
+binning would silently drop events at `start_time=0.0`.
 
 **Pass-through detection**: data evenly spaced at TR cadence but phase-shifted
 (e.g. sampled at mid-TR) also triggers pass-through, since it is already at
