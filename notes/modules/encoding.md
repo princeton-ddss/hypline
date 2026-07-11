@@ -153,7 +153,10 @@ three durable ways:
   study. See [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
 - **Cell selection, not coverage.** Each model predicts on its out-of-sample cells
   by default; an explicit `test_on` selector overrides (honored even for trained-on
-  cells, with a warning, never rejected). OOS is `available − train` for a single
+  cells, with a warning, never rejected). `test_on` is a list of `<entity>-<value>`
+  refs sharing the `bids_filters` AND/OR grammar (same-entity OR, cross-entity AND —
+  see [../decisions/layout.md](../decisions/layout.md#bids_filters--structural-vs-descriptive));
+  a named entity absent from the cell schema raises. OOS is `available − train` for a single
   model (unbounded — a new subject's extra runs are fair game) but `universe − train`
   for a K-fold model (bounded to the train corpus). Empty selection is an error,
   not a silent no-op.

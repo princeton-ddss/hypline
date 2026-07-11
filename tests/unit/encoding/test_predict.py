@@ -100,9 +100,27 @@ class TestSelectCells:
         }
         model = self._model(set())
         selected = _select_cells(
-            avail, self._artifact(None), model, test_on={"task": "a"}
+            avail, self._artifact(None), model, test_on=["task-a"]
         )
         assert selected == {CellKey(task="a", run="1"), CellKey(task="a", run="2")}
+
+    def test_test_on_ors_within_entity(self):
+        # Same-entity values OR-match: `run-1,run-2` selects both runs, the run-3
+        # cell is excluded. This is the AND/OR grammar shared with `bids_filters`.
+        avail = {self._cell("1"), self._cell("2"), self._cell("3")}
+        model = self._model(set())
+        selected = _select_cells(
+            avail, self._artifact(None), model, test_on=["run-1", "run-2"]
+        )
+        assert selected == {self._cell("1"), self._cell("2")}
+
+    def test_test_on_unknown_entity_raises(self):
+        # A typo'd entity (cells carry task/run, not `rn`) is caught up front rather
+        # than silently matching nothing and surfacing as the empty-set error.
+        avail = {self._cell("1")}
+        model = self._model(set())
+        with pytest.raises(ValueError, match="not found on any available cell"):
+            _select_cells(avail, self._artifact(None), model, test_on=["rn-1"])
 
     def test_test_on_overrides_train_and_universe(self):
         # test_on outranks both the universe and the train set: run 2 is selected even
@@ -113,7 +131,7 @@ class TestSelectCells:
         universe = {self._cell("1")}
         model = self._model({self._cell("3")})
         selected = _select_cells(
-            avail, self._artifact(universe), model, test_on={"run": "2"}
+            avail, self._artifact(universe), model, test_on=["run-2"]
         )
         assert selected == {self._cell("2")}
 
@@ -121,7 +139,7 @@ class TestSelectCells:
         avail = {self._cell("1")}
         model = self._model(set())
         with pytest.raises(ValueError, match="test_on matched no available cells"):
-            _select_cells(avail, self._artifact(None), model, test_on={"run": "9"})
+            _select_cells(avail, self._artifact(None), model, test_on=["run-9"])
 
     def test_test_on_overlap_with_train_warns(self):
         # Predicting on trained-on cells is usually a leak, so overlap only warns.
@@ -135,7 +153,7 @@ class TestSelectCells:
         )
         try:
             selected = _select_cells(
-                avail, self._artifact(None), model, test_on={"run": "1"}
+                avail, self._artifact(None), model, test_on=["run-1"]
             )
         finally:
             loguru.logger.remove(handler_id)
@@ -308,7 +326,7 @@ class TestPredict:
         # The public passthrough of test_on into _select_cells (unit-tested there):
         # naming one run yields exactly that run's cell in each Prediction.
         predictor = self._predictor(tree)
-        preds = predictor.predict(source_sub_id=SUB, test_on={"run": "1"})
+        preds = predictor.predict(source_sub_id=SUB, test_on=["run-1"])
 
         for pred in preds:
             assert all(cell["run"] == "1" for cell in pred.row_slices)

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from sklearn.pipeline import Pipeline
 
 from hypline import __version__
+from hypline.bids import parse_filter_groups, validate_bids_entities
 from hypline.layout import BIDSLayout
 
 from ._artifact import EncodingArtifact, FittedModel, load_artifact
@@ -67,7 +68,7 @@ def _select_cells(
     artifact: EncodingArtifact,
     model: FittedModel,
     *,
-    test_on: dict[str, str] | None = None,
+    test_on: list[str] | None = None,
 ) -> set[CellKey]:
     """Choose which cells `model` predicts on — out-of-sample by default, or `test_on`.
 
@@ -75,6 +76,11 @@ def _select_cells(
     are deliberately not replayed: the stored `train`/`universe` sets are trusted,
     and `test_on` is allowed to name cells outside the train corpus, so narrowing
     `available` up front would wrongly exclude valid targets.
+
+    `test_on` is a list of `<entity>-<value>` refs (the codebase-wide filter shape,
+    like `bids_filters`): same-entity values OR-match within a group, different
+    entities AND-match across groups (via `parse_filter_groups`). A named entity
+    absent from the cell schema is a typo — raise, mirroring `_apply_filters`.
 
     The mode (read off the code below) is the easy part; the subtle bits:
 
@@ -99,10 +105,21 @@ def _select_cells(
         )
 
     if test_on:
+        validate_bids_entities(*test_on)
+        groups = parse_filter_groups(test_on)
+        # `available` shares one schema here — the mismatch guard above collapsed
+        # it to a single frozenset, so any element gives the cell entity keys.
+        cell_entity_keys = next(iter(schemas))
+        unknown = set(groups) - cell_entity_keys
+        if unknown:
+            raise ValueError(
+                f"test_on entities {sorted(unknown)} not found on any available "
+                f"cell (schema: {sorted(cell_entity_keys)}) — check for a typo"
+            )
         selected = {
             cell
             for cell in available
-            if all(cell.get(entity) == value for entity, value in test_on.items())
+            if all(cell.get(entity) in values for entity, values in groups.items())
         }
         if selected & model.train_cells:
             logger.warning(
@@ -174,7 +191,7 @@ class EncodingPredictor(_EncodingContext):
         self,
         *,
         source_sub_id: str,
-        test_on: dict[str, str] | None = None,
+        test_on: list[str] | None = None,
     ) -> list[Prediction]:
         """Predict each model's `Y_hat` from a source subject's regressors.
 
@@ -222,7 +239,7 @@ class EncodingPredictor(_EncodingContext):
         *,
         source_sub_id: str,
         target_sub_id: str,
-        test_on: dict[str, str] | None = None,
+        test_on: list[str] | None = None,
     ) -> xr.Dataset:
         """Score a source-driven prediction against a target subject's actual BOLD.
 
