@@ -4,7 +4,7 @@ from ._artifact import (
     FoldSpec,
     XRecipe,
     load_artifact,
-    write_artifact,
+    save_artifact,
 )
 from ._eval import load_eval, save_eval
 from ._predict import EncodingPredictor
@@ -23,6 +23,6 @@ __all__ = [
     "XRecipe",
     "load_artifact",
     "load_eval",
+    "save_artifact",
     "save_eval",
-    "write_artifact",
 ]

@@ -232,7 +232,7 @@ def train(
     ] = False,
 ):
     """Fit a voxelwise ridge encoding model per subject, writing to results/."""
-    from hypline.encoding import EncodingConfig, EncodingTrainer, write_artifact
+    from hypline.encoding import EncodingConfig, EncodingTrainer, save_artifact
     from hypline.layout import BIDSLayout
 
     _fold_by = _parse_fold_by(fold_by)
@@ -293,7 +293,7 @@ def train(
             logger.info("sub-{} result exists — skipping", sub_id)
             return
         artifact = trainer.train(sub_id)
-        write_artifact(artifact, out.path)
+        save_artifact(artifact, out.path)
 
     run_per_id(
         bids_root,
@@ -398,7 +398,7 @@ def analyze(
         ds = predictor.analyze(
             source_sub_id=source_sub_id, target_sub_id=sub_id, test_on=_test_on
         )
-        # save_eval writes straight to `path` (unlike write_artifact, it does not
+        # save_eval writes straight to `path` (unlike save_artifact, it does not
         # create parents), so make the encodingEval-<desc>/ dir here
         out.path.parent.mkdir(parents=True, exist_ok=True)
         save_eval(ds, out.path)

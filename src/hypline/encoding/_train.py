@@ -306,7 +306,7 @@ class EncodingTrainer(_EncodingContext):
 
         Pure compute: discovers, builds X/Y, fits, and returns the
         `EncodingArtifact`. Persistence is the caller's concern — pass the result
-        to `write_artifact` to store it, and gate the fit on `skip_existing`
+        to `save_artifact` to store it, and gate the fit on `skip_existing`
         before calling if a check-before-compute cache is wanted.
         """
         data = self._assemble_training_data(sub_id)

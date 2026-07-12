@@ -9,7 +9,7 @@ from hypline.encoding import (
     EncodingArtifact,
     EncodingTrainer,
     load_artifact,
-    write_artifact,
+    save_artifact,
 )
 from hypline.encoding._artifact import FoldSpec
 from hypline.encoding._context import _CONFOUND_BAND, _SCREEN_BAND
@@ -1136,7 +1136,7 @@ class TestFoldedTrain:
         enc, data = make_train_setup(fold_by="run", n_folds=2)
         artifact = enc.train(SUB)
         out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
-        write_artifact(artifact, out.path)
+        save_artifact(artifact, out.path)
 
         loaded = load_artifact(out.path)
         assert len(loaded.models) == len(artifact.models)

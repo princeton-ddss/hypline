@@ -131,7 +131,7 @@ def _numpyfy_fitted(obj: object, _seen: set[int] | None = None) -> None:
         setattr(obj, attr, _convert(value))
 
 
-def write_artifact(artifact: EncodingArtifact, path: Path) -> None:
+def save_artifact(artifact: EncodingArtifact, path: Path) -> None:
     """Dump `artifact` to `path` (.joblib) plus a non-pipeline JSON sidecar.
 
     Forces fitted weights to numpy before the joblib dump (see `_numpyfy_fitted`)

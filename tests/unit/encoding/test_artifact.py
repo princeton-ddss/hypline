@@ -6,7 +6,7 @@ import pytest
 from hypline.encoding import (
     EncodingTrainer,
     load_artifact,
-    write_artifact,
+    save_artifact,
 )
 from hypline.encoding._context import _CONFOUND_BAND
 from hypline.encoding._schema import CellKey, TrainingData
@@ -16,7 +16,7 @@ from .conftest import SUB, TASK, _make_encoding
 
 
 class TestArtifactRoundTrip:
-    """Write → load reproduces the recipe, cell set, and predictions exactly."""
+    """Save → load reproduces the recipe, cell set, and predictions exactly."""
 
     @pytest.fixture
     def train_setup(
@@ -45,9 +45,9 @@ class TestArtifactRoundTrip:
 
         artifact = enc.train(SUB)
         out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
-        write_artifact(artifact, out.path)
+        save_artifact(artifact, out.path)
 
-        # Predictions compare numpy-vs-numpy: write_artifact already forced the
+        # Predictions compare numpy-vs-numpy: save_artifact already forced the
         # in-memory pipeline to the numpy backend during the dump, so a plain
         # predict here is the numpy reference for the reloaded pipeline.
         set_backend("numpy")
@@ -74,7 +74,7 @@ class TestArtifactRoundTrip:
         artifact = enc.train(SUB)
 
         out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
-        write_artifact(artifact, out.path)
+        save_artifact(artifact, out.path)
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
         assert sidecar["sub_id"] == SUB
         assert sidecar["recipe"]["tasks"] == [TASK]
@@ -109,7 +109,7 @@ class TestArtifactRoundTrip:
 
         artifact = enc.train(SUB)
         out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
-        write_artifact(artifact, out.path)
+        save_artifact(artifact, out.path)
 
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
         assert sidecar["recipe"]["confounds"] == {
@@ -137,7 +137,7 @@ class TestArtifactRoundTrip:
 
         artifact = enc.train(SUB)
         out = enc._layout.path.result(sub=SUB, kind="encodingModel", desc="v1")
-        write_artifact(artifact, out.path)
+        save_artifact(artifact, out.path)
 
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
         assert sidecar["recipe"]["split"] is True

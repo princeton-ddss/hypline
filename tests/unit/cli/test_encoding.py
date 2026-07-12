@@ -16,7 +16,7 @@ REQUIRED = ["--tasks", "conv", "--features", "semantic-test", "--desc", "v1"]
 
 
 def _patch_trainer(monkeypatch):
-    """Patch train + write_artifact, returning a manager recording calls.
+    """Patch train + save_artifact, returning a manager recording calls.
 
     The real EncodingTrainer still constructs (its __init__ validation runs),
     but the fit and the disk write are stubbed so the CLI wiring is tested
@@ -28,9 +28,9 @@ def _patch_trainer(monkeypatch):
     manager = Mock()
     manager.train.return_value = object()  # stand-in artifact
     monkeypatch.setattr(EncodingTrainer, "train", manager.train)
-    # The command does `from hypline.encoding import write_artifact` at call
+    # The command does `from hypline.encoding import save_artifact` at call
     # time, so patch the name on the package it is imported from
-    monkeypatch.setattr(enc_pkg, "write_artifact", manager.write)
+    monkeypatch.setattr(enc_pkg, "save_artifact", manager.write)
     return manager
 
 
