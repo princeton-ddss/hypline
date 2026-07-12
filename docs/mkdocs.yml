@@ -88,9 +88,12 @@ nav:
     - The hypline dataset layout: concepts/layout.md
     - Segments and metadata: concepts/segments.md
   - Reference:
-    - hypline transcribe: reference/transcribe.md
-    - hypline featuregen: reference/featuregen.md
-    - hypline confoundgen: reference/confoundgen.md
-    - hypline denoise: reference/denoise.md
-    - hypline encoding: reference/encoding.md
-    - Python API: reference/python-api.md
+    - CLI:
+      - hypline transcribe: reference/transcribe.md
+      - hypline featuregen: reference/featuregen.md
+      - hypline confoundgen: reference/confoundgen.md
+      - hypline denoise: reference/denoise.md
+      - hypline encoding: reference/encoding.md
+    - Python API:
+      - Features & confounds: reference/python-api.md
+      - Encoding results: reference/encoding-results.md

@@ -26,8 +26,8 @@ layout](../concepts/layout.md) and the file formats; a malformed DataFrame or
 path raises rather than writing something the CLI can't later consume.
 
 Encoding results — fitted models and evals — have their own loaders under
-`hypline.encoding` (not top-level), covered in [Loading results in
-Python](encoding.md#loading-results-in-python).
+`hypline.encoding` (not top-level), covered in [Encoding
+results](encoding-results.md).
 
 ## Plugging in a custom feature
 

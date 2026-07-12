@@ -117,7 +117,7 @@ hypline encoding train data/ \
 After this, `data/` holds phonemic features plus `desc-denoised` BOLD — the two
 sides the encoding model needs — and a fitted model under `results/`. Load an
 encoding result back into Python for downstream analysis with
-[`load_eval` / `load_artifact`](reference/encoding.md#loading-results-in-python).
+[`load_eval` / `load_artifact`](reference/encoding-results.md).
 You can also start with `transcribe` alone and follow the table above step by
 step. Re-run any single step with `--force` to overwrite its outputs; without
 it, hypline skips work it has already done.
