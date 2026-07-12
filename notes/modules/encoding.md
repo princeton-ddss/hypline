@@ -162,7 +162,9 @@ three durable ways:
   not a silent no-op.
 - **No train-time filters replayed.** Predict discovers the source's *full* cell
   set; recipe `bids_filters` (the train-corpus bound) are deliberately not re-applied,
-  so `test_on` can name cells outside the original corpus.
+  so `test_on` can name cells outside the original corpus. A same-subject default
+  predict then targets the filtered-out cells — a within-subject holdout when the
+  filter is a proper subset.
 
 The package predicts per-model and never stitches the K predictions — consolidating
 them is the consumer's concern.
