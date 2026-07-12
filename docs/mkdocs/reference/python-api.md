@@ -58,7 +58,8 @@ df = pl.DataFrame(
 path = save_feature(
     df,
     bids_root="data/",
-    dyad="101",
+    dyad="030",
+    ses="1",
     feat="embed",
     task="conv",
     run="1",

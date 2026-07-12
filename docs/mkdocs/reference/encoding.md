@@ -77,7 +77,7 @@ dyad](../concepts/layout.md#subject-vs-dyad).
 | `--alphas`       | Comma-separated ridge alphas to search                                                           | `1`–`1e12` log grid (13 points) |
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
 | `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
-| `--sub-ids`      | Comma-separated subject IDs to train (e.g. `01,02`); omit for all                               | all                  |
+| `--sub-ids`      | Comma-separated subject IDs to train (e.g. `031,032`); omit for all                               | all                  |
 | `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus — see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
@@ -157,7 +157,7 @@ any speech-active row. A role with no rows scores `NaN`, not zero.
 
 ### Example
 
-Score subject `01`'s own model against its own BOLD (a within-subject fit). With
+Score subject `031`'s own model against its own BOLD (a within-subject fit). With
 default `--test-on`, `analyze` scores each model's out-of-sample cells, so the
 model must be **folded** — a `--fold-by none` model trained on every cell has no
 held-out cells and raises here (name cells with `--test-on`, or use a folded
@@ -165,22 +165,22 @@ model as below):
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 01 \
+  --target-sub 031 \
   --model-sub self \
   --model-desc cv5 \
-  --desc self-eval
+  --desc selfeval
 ```
 
-Score subject `01`'s BOLD using the **partner's** model and features (a
+Score subject `031`'s BOLD using the **partner's** model and features (a
 cross-brain, shared-conversation eval) on run 6:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 01 \
+  --target-sub 031 \
   --model-sub partner \
   --source-sub partner \
   --model-desc v1 \
-  --desc cross-eval \
+  --desc crosseval \
   --test-on run-6
 ```
 
@@ -192,11 +192,11 @@ source-run or session entity):
 
 ```
 <dataset-root>/results/
-├── sub-01/encodingModel-v1/
-│   ├── sub-01_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
-│   └── sub-01_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
-└── sub-01/encodingEval-self-eval/
-    └── sub-01_result-encodingEval_desc-self-eval.nc # analyze: per-voxel correlations (netCDF-4)
+├── sub-031/encodingModel-v1/
+│   ├── sub-031_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
+│   └── sub-031_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
+└── sub-031/encodingEval-selfeval/
+    └── sub-031_result-encodingEval_desc-selfeval.nc # analyze: per-voxel correlations (netCDF-4)
 ```
 
 - **`encodingModel-<desc>/`** (`train`) — the fitted model as a `.joblib` blob,
@@ -216,7 +216,7 @@ source-run or session entity):
 | `No regressor files match the given filters` / `No BOLD files match the given filters` (`train`) | `--tasks`, `--features`, `--data-filters`, `--bold-space`, or `--bold-desc` selected nothing. | Confirm the features and `desc-denoised` BOLD exist and that the filters are not too narrow. |
 | `empty out-of-sample set — pass test_on to name cells` (`analyze`) | The model was trained unfolded (`--fold-by none`), so it has no held-out cells to score. | Score a folded model, or name cells explicitly with `--test-on`. |
 | `test_on matched no available cells: …` (`analyze`) | `--test-on` names cells the source subject does not have. | Check the `--test-on` filter against the runs/conditions that exist. |
-| `test_on entities […] not found on any available cell … check for a typo` (`analyze`) | A `--test-on` filter uses an entity that no cell carries. | Fix the entity name (e.g. `run-6`, not `ses-6`). |
+| `test_on entities […] not found on any available cell … check for a typo` (`analyze`) | A `--test-on` filter uses an entity that no cell carries. | Fix the entity name (e.g. `run-6`, not `ses-1`). |
 | Log warns `source (…) and target (…) are different dyads` (`analyze`) | The model/source and target belong to different dyads — a scramble/null control. | Expected for a null control; otherwise fix `--source-sub` / `--model-sub` so they share the target's dyad. |
 | `No subjects found` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` excluded them all. | Confirm denoised BOLD exists and that filters are not too narrow. |
 

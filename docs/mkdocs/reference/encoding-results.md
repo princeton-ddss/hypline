@@ -14,7 +14,7 @@ from hypline.encoding import load_eval, load_artifact
 since it holds the per-voxel correlations you analyze:
 
 ```python
-ds = load_eval("data/results/sub-01/encodingEval-self-eval/sub-01_result-encodingEval_desc-self-eval.nc")
+ds = load_eval("data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc")
 
 # corr is indexed by fold / band / role / voxel — subset by name:
 prod_corr = ds["corr"].sel(role="prod")
@@ -27,7 +27,7 @@ ds.attrs["model_sub"], ds.attrs["target_sub"], ds.attrs["delays"]
 fitted weights and the recipe, for reusing or inspecting the model:
 
 ```python
-artifact = load_artifact("data/results/sub-01/encodingModel-v1/sub-01_result-encodingModel_desc-v1.joblib")
+artifact = load_artifact("data/results/sub-031/encodingModel-v1/sub-031_result-encodingModel_desc-v1.joblib")
 
 artifact.recipe      # the XRecipe: features, confounds, delays, alphas, split, …
 artifact.models      # one FittedModel per fold (its pipeline + the cells it was fit on)

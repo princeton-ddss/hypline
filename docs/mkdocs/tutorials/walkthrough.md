@@ -351,7 +351,7 @@ hypline encoding analyze data/ \
   --target-sub 031 \
   --model-sub self \
   --model-desc v1 \
-  --desc self-eval
+  --desc selfeval
 ```
 
 ```text
@@ -360,7 +360,7 @@ Analysis complete: target sub-031 — scored 2 folds
 ```
 
 `--model-desc v1` names the model from [step 6](#6-fit-the-encoding-model), and
-`--desc self-eval` tags this eval. We passed no `--test-on`, so `analyze` scores
+`--desc selfeval` tags this eval. We passed no `--test-on`, so `analyze` scores
 each fold's **held-out** run — the run that fold did not train on. This is why
 step 6 folded: a single unfolded model has no held-out data to score against
 itself.
@@ -373,8 +373,8 @@ model predicts the brain during production, comprehension, and overall.
 The eval lands in its own `results/` subdirectory, keyed by the target subject:
 
 ```text
-data/results/sub-031/encodingEval-self-eval/
-└── sub-031_result-encodingEval_desc-self-eval.nc   # per-voxel scores (netCDF-4)
+data/results/sub-031/encodingEval-selfeval/
+└── sub-031_result-encodingEval_desc-selfeval.nc   # per-voxel scores (netCDF-4)
 ```
 
 It is a self-describing **netCDF-4** file — load it back as an
@@ -384,7 +384,7 @@ It is a self-describing **netCDF-4** file — load it back as an
 from hypline.encoding import load_eval
 
 ds = load_eval(
-    "data/results/sub-031/encodingEval-self-eval/sub-031_result-encodingEval_desc-self-eval.nc"
+    "data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc"
 )
 ds["corr"].sel(role="prod")   # scores during the target's own speech
 ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
@@ -399,7 +399,7 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 
 !!! success "Check"
 
-    `results/sub-031/` gains an `encodingEval-self-eval/` directory with one
+    `results/sub-031/` gains an `encodingEval-selfeval/` directory with one
     `.nc` file, and the log reads `scored 2 folds`. An `empty out-of-sample set`
     error means the model wasn't folded — re-run step 6 with `--fold-by run
     --n-folds loo`.
@@ -417,7 +417,7 @@ hypline encoding analyze data/ \
   --model-sub partner \
   --source-sub partner \
   --model-desc v1 \
-  --desc cross-eval
+  --desc crosseval
 ```
 
 ```text
@@ -428,7 +428,7 @@ Analysis complete: target sub-031 — scored 2 folds
 `--target-sub 031` keeps `sub-031`'s brain as the comparison, but `--model-sub
 partner` and `--source-sub partner` swap in `sub-032`'s model and features (hypline
 resolves `partner` through `participants.tsv`). The output structure is identical
-to step 7 — a `.nc` under `encodingEval-cross-eval/` — so `load_eval` reads it the
+to step 7 — a `.nc` under `encodingEval-crosseval/` — so `load_eval` reads it the
 same way.
 
 !!! info "What this step shows — and doesn't"
@@ -442,7 +442,7 @@ same way.
 
 !!! success "Check"
 
-    `results/sub-031/` now also holds `encodingEval-cross-eval/`, and the log
+    `results/sub-031/` now also holds `encodingEval-crosseval/`, and the log
     shows `model sub-032, source sub-032` — the partner's model and features
     scored against `sub-031`'s brain.
 

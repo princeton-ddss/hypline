@@ -111,11 +111,14 @@ See [Regenerate outputs after a fix](regenerate.md) for the rerun workflow.
 
 Two outcomes look similar but mean different things:
 
-- **`No dyads found`** / **`No subjects found`** — the input location is empty, or
-  your `--dyad-ids` / `--sub-ids` / `--data-filters` excluded everything. Widen the
-  filter, or confirm the files are in place. (Stimulus commands report dyads;
-  `denoise` reports subjects.)
-- **An error naming an unknown entity** — a filter token names an entity that
-  exists *nowhere*, neither on filenames nor in `events.json` metadata. Hypline
-  treats this as a typo and raises, rather than silently matching nothing. Check
-  the spelling against your filenames and sidecars.
+- **`No dyads found`** / **`No subjects found`** — no ids were *discovered* at all:
+  the input location is empty, or your `--dyad-ids` / `--sub-ids` excluded
+  everything. `--data-filters` does **not** trigger this — id discovery ignores it.
+  Widen the id list, or confirm the files are in place. (Stimulus commands report
+  dyads; `denoise` reports subjects.)
+- **A per-id failure: `{id} failed: Files found but none matched user filters …`**
+  (and the command exits `1`) — ids were found, but a `--data-filters` token
+  matched nothing for that id, whether because it names an entity that exists
+  *nowhere* or a value present on no file. Hypline treats an empty match as a typo
+  and raises rather than silently skipping. Check the spelling against your
+  filenames and `events.json` sidecars.
