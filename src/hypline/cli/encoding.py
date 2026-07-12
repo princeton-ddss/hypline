@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import typer
 from loguru import logger
@@ -8,6 +10,9 @@ from hypline.downsample import FeatureDownsampleMethod
 from hypline.enums import BoldSpace, Device
 
 from ._utils import run_per_id, split_csv
+
+if TYPE_CHECKING:
+    from hypline.layout import BIDSLayout
 
 app = typer.Typer()
 
@@ -48,6 +53,39 @@ def _parse_float_csv(value: str | None, *, param_hint: str) -> list[float] | Non
         return [float(v) for v in items]
     except ValueError:
         raise typer.BadParameter("must be numbers", param_hint=param_hint) from None
+
+
+def _parse_test_on(value: str | None) -> list[str] | None:
+    """Parse `--test-on` into a bids-filter list.
+
+    Same grammar as `--data-filters` (same-entity OR, different-entity AND), but
+    no entities are reserved — analyze has no dedicated selector flags, so
+    `--test-on task-opinion` is a legitimate cell selector.
+    """
+    from hypline.bids import normalize_bids_filters
+
+    items = split_csv(value, param_hint="--test-on")
+    if items is None:
+        return None
+    try:
+        return normalize_bids_filters(items)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="--test-on") from None
+
+
+def _resolve_sub(value: str, *, target_sub_id: str, layout: BIDSLayout) -> str:
+    """Resolve a `self`/`partner` keyword (relative to `target_sub_id`) or pass through.
+
+    `partner` goes via `layout.partner_of`, which owns the clean-pair invariant.
+    """
+    if value == "self":
+        return target_sub_id
+    if value == "partner":
+        try:
+            return layout.partner_of(target_sub_id)
+        except (KeyError, ValueError) as exc:
+            raise typer.BadParameter(str(exc)) from None
+    return value
 
 
 @app.command(name="train")
@@ -277,4 +315,118 @@ def train(
         id_key="sub",
         id_values=_sub_ids,
         task=_train_sub,
+    )
+
+
+@app.command(name="analyze")
+def analyze(
+    bids_root: Annotated[
+        Path,
+        typer.Argument(
+            help="BIDS dataset root (contains derivatives/, features/, results/)",
+            show_default=False,
+        ),
+    ],
+    target_sub: Annotated[
+        str,
+        typer.Option(
+            "--target-sub",
+            help="Subject whose actual BOLD and prod/comp turns are scored against",
+            show_default=False,
+        ),
+    ],
+    model_sub: Annotated[
+        str,
+        typer.Option(
+            "--model-sub",
+            help="""
+            Subject whose trained model is loaded: an ID, or 'self'/'partner'
+            (relative to --target-sub)
+            """,
+            show_default=False,
+        ),
+    ],
+    model_desc: Annotated[
+        str,
+        typer.Option(
+            "--model-desc",
+            help="The --desc passed to `encoding train` (its encodingModel-<desc> tag)",
+            show_default=False,
+        ),
+    ],
+    desc: Annotated[
+        str,
+        typer.Option(
+            "--desc",
+            help="""
+            Variant label for this eval (alphanumeric); output lands under
+            results/sub-<target>/encodingEval-<desc>/ (e.g., --desc v1)
+            """,
+            show_default=False,
+        ),
+    ],
+    source_sub: Annotated[
+        str,
+        typer.Option(
+            "--source-sub",
+            help="""
+            Subject whose regressors drive the prediction: an ID, or 'self'/'partner'
+            (relative to --target-sub)
+            """,
+        ),
+    ] = "self",
+    test_on: Annotated[
+        str | None,
+        typer.Option(
+            "--test-on",
+            help="""
+            Comma-separated BIDS entity filters naming which cells to score (e.g.,
+            run-6, or run-6,run-8); same-entity values OR'd, different entities
+            AND'd. Omit to score each model's out-of-sample cells
+            """,
+            show_default=False,
+        ),
+    ] = None,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Overwrite existing outputs (default skips them)",
+        ),
+    ] = False,
+):
+    """Score a model's cross-subject predictions against a target's BOLD, per role."""
+    from hypline.encoding import EncodingPredictor, save_eval
+    from hypline.layout import BIDSLayout
+
+    _test_on = _parse_test_on(test_on)
+
+    layout = BIDSLayout(bids_root)
+
+    def _analyze_target(sub_id: str) -> None:
+        out = layout.path.result(sub=sub_id, kind="encodingEval", desc=desc, ext=".nc")
+        if not force and out.path.exists():
+            logger.info("sub-{} result exists — skipping", sub_id)
+            return
+        # `self`/`partner` are relative to this target, so resolve inside the loop
+        model_sub_id = _resolve_sub(model_sub, target_sub_id=sub_id, layout=layout)
+        source_sub_id = _resolve_sub(source_sub, target_sub_id=sub_id, layout=layout)
+        predictor = EncodingPredictor.load(
+            bids_root=bids_root, sub_id=model_sub_id, desc=model_desc
+        )
+        ds = predictor.analyze(
+            source_sub_id=source_sub_id, target_sub_id=sub_id, test_on=_test_on
+        )
+        # save_eval writes straight to `path` (unlike write_artifact, it does not
+        # create parents), so make the encodingEval-<desc>/ dir here
+        out.path.parent.mkdir(parents=True, exist_ok=True)
+        save_eval(ds, out.path)
+
+    run_per_id(
+        bids_root,
+        "encoding",
+        "analyze",
+        id_key="sub",
+        id_values=[target_sub],
+        task=_analyze_target,
     )

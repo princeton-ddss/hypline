@@ -340,3 +340,258 @@ class TestEncodingTrainConfig:
 
         assert captured["config"].delays == [0, 1, 2]
         assert captured["config"].alphas == [1.0, 10.0]
+
+
+def _patch_predictor(monkeypatch):
+    """Patch EncodingPredictor.load + save_eval, returning a call recorder.
+
+    `load` returns a mock predictor whose `analyze` records its kwargs; `save_eval`
+    records the path it was handed. The CLI wiring (resolution, load args, output
+    path) is exercised without an artifact, data, or a solver.
+    """
+    import hypline.encoding as enc_pkg
+    from hypline.encoding import EncodingPredictor
+
+    manager = Mock()
+    manager.load.return_value.analyze.return_value = object()  # stand-in Dataset
+    monkeypatch.setattr(EncodingPredictor, "load", manager.load)
+    # analyze does `from hypline.encoding import save_eval` at call time, so patch
+    # the name on the package it is imported from
+    monkeypatch.setattr(enc_pkg, "save_eval", manager.save)
+    return manager
+
+
+# Dyad 01 pairs subjects 01 and 02; the extra dyad keeps resolution non-trivial
+DYAD_MAP = {"01": "01", "02": "01", "03": "02"}
+
+
+class TestEncodingAnalyzeWiring:
+    def test_loads_scores_and_saves(self, tree, monkeypatch):
+        tree.add_participants(DYAD_MAP)
+        manager = _patch_predictor(monkeypatch)
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "01",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        manager.load.assert_called_once()
+        manager.load.return_value.analyze.assert_called_once()
+        saved = manager.save.call_args.args[1]
+        assert "encodingEval-e1" in str(saved)
+        assert saved.parent.parent.name == "sub-01"
+
+    def test_skips_when_result_present(self, tree, monkeypatch):
+        tree.add_participants(DYAD_MAP)
+        manager = _patch_predictor(monkeypatch)
+        from hypline.layout import BIDSLayout
+
+        out = BIDSLayout(tree.root).path.result(
+            sub="01", kind="encodingEval", desc="e1", ext=".nc"
+        )
+        out.path.parent.mkdir(parents=True, exist_ok=True)
+        out.path.touch()
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "01",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        manager.load.assert_not_called()
+        manager.save.assert_not_called()
+
+    def test_force_overwrites_existing_result(self, tree, monkeypatch):
+        tree.add_participants(DYAD_MAP)
+        manager = _patch_predictor(monkeypatch)
+        from hypline.layout import BIDSLayout
+
+        out = BIDSLayout(tree.root).path.result(
+            sub="01", kind="encodingEval", desc="e1", ext=".nc"
+        )
+        out.path.parent.mkdir(parents=True, exist_ok=True)
+        out.path.touch()
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "01",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+                "--force",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        manager.load.assert_called_once()
+        manager.save.assert_called_once()
+
+    def test_keywords_resolve_independently_to_target(self, tree, monkeypatch):
+        # model=partner and source=self are each resolved relative to --target-sub:
+        # load gets sub-02 (01's partner), analyze gets source=01 (self).
+        tree.add_participants(DYAD_MAP)
+        manager = _patch_predictor(monkeypatch)
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "partner",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+                "--source-sub",
+                "self",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert manager.load.call_args.kwargs["sub_id"] == "02"
+        analyze_kwargs = manager.load.return_value.analyze.call_args.kwargs
+        assert analyze_kwargs["source_sub_id"] == "01"
+        assert analyze_kwargs["target_sub_id"] == "01"
+
+    def test_partner_keyword_on_solo_dyad_rejected(self, tree, monkeypatch):
+        tree.add_participants({"01": "01"})
+        manager = _patch_predictor(monkeypatch)
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "partner",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "no unique partner" in result.output
+        manager.load.assert_not_called()
+
+    def test_source_sub_defaults_to_self(self, tree, monkeypatch):
+        tree.add_participants(DYAD_MAP)
+        manager = _patch_predictor(monkeypatch)
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "02",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert (
+            manager.load.return_value.analyze.call_args.kwargs["source_sub_id"] == "01"
+        )
+
+    def test_test_on_parsed_to_filter_list(self, tree, monkeypatch):
+        tree.add_participants(DYAD_MAP)
+        manager = _patch_predictor(monkeypatch)
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "01",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+                "--test-on",
+                "run-6,run-8",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert manager.load.return_value.analyze.call_args.kwargs["test_on"] == [
+            "run-6",
+            "run-8",
+        ]
+
+    def test_malformed_test_on_rejected(self, tree, monkeypatch):
+        tree.add_participants(DYAD_MAP)
+        _patch_predictor(monkeypatch)
+
+        result = runner.invoke(
+            app,
+            [
+                "encoding",
+                "analyze",
+                str(tree.root),
+                "--target-sub",
+                "01",
+                "--model-sub",
+                "01",
+                "--model-desc",
+                "m1",
+                "--desc",
+                "e1",
+                "--test-on",
+                "run6",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "--test-on" in result.output

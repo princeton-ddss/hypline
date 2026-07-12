@@ -1046,6 +1046,24 @@ class TestParticipants:
         layout = BIDSLayout(tree.root)
         assert layout.subjects_of("001") == ["001", "002"]
 
+    def test_partner_of_returns_other_member(self, tree: BIDSTree):
+        tree.add_participants({"001": "001", "002": "001"})
+        layout = BIDSLayout(tree.root)
+        assert layout.partner_of("001") == "002"
+        assert layout.partner_of("002") == "001"
+
+    def test_partner_of_solo_dyad_raises(self, tree: BIDSTree):
+        tree.add_participants({"001": "001"})
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="no unique partner"):
+            layout.partner_of("001")
+
+    def test_partner_of_three_member_dyad_raises(self, tree: BIDSTree):
+        tree.add_participants({"001": "001", "002": "001", "003": "001"})
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="no unique partner"):
+            layout.partner_of("001")
+
     def test_dyad_of_unknown_sub_raises(self, tree: BIDSTree):
         tree.add_participants({"001": "001"})
         layout = BIDSLayout(tree.root)

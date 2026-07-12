@@ -957,6 +957,20 @@ class BIDSLayout:
             raise KeyError(f"dyad-{dyad} not in {PARTICIPANTS_TSV}")
         return subs
 
+    def partner_of(self, sub: str) -> str:
+        """Return the other member of `sub`'s dyad, via `participants.tsv`.
+
+        Raises KeyError if `sub` has no row, and ValueError if the dyad is not a
+        clean pair — a dyad with only `sub`, or with more than one partner, is
+        malformed, so surface it rather than pick arbitrarily.
+        """
+        others = [s for s in self.subjects_of(self.dyad_of(sub)) if s != sub]
+        if len(others) != 1:
+            raise ValueError(
+                f"sub-{sub} has no unique partner in its dyad — others: {others}"
+            )
+        return others[0]
+
     def bids_uri(self, bold: BIDSPath, *, area: Area) -> str:
         """Render `bold` (living under `area`) as a `bids:<area>:<rel path>` URI.
 

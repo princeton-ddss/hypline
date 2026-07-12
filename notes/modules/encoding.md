@@ -211,8 +211,9 @@ masquerading as a real low correlation.
 Analyze returns a pure in-memory `xr.Dataset` (`corr` over `fold`/`band`/`role`/
 `voxel`) and writes nothing — persistence is the caller's job, mirroring `train`'s
 write-free `EncodingArtifact` return. `save_eval`/`load_eval` are the storage seam:
-each takes a raw `path`, not a layout `(sub, kind, desc)` triple — there is no analyze
-CLI or layout kind yet, so nothing binds an eval to a result path today. An eval
+each takes a raw `path`, not a layout `(sub, kind, desc)` triple. The `analyze` CLI
+binds evals to `results/sub-<target>/encodingEval-<desc>/…nc`, but the seam stays
+path-based so an eval file is self-describing wherever it is written. An eval
 result is **archival scientific data**, not a Python-runtime object like the fitted
 model, so it is stored as self-contained **netCDF-4** any tool can read — not
 joblib/pickle. Provenance (`model_sub`, `source_sub`, `target_sub`, `delays`,
