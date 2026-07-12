@@ -115,7 +115,8 @@ Add CompCor components, and a custom physiological regressor from `nuisance/`:
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
   --compcor a:CSF:5,a:WM:5 \
-  --custom-sources physio-v1 --custom-columns resp,cardiac
+  --custom-sources physio-v1 \
+  --custom-columns resp,cardiac
 ```
 
 Clean only run 1 of subjects 031 and 032:

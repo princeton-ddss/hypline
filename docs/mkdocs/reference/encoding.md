@@ -106,8 +106,11 @@ Cross-validate by run, five folds, on a GPU:
 
 ```bash
 hypline encoding train data/ \
-  --tasks conv --features semantic-gpt3 --desc cv5 \
-  --fold-by run --n-folds 5 \
+  --tasks conv \
+  --features semantic-gpt3 \
+  --desc cv5 \
+  --fold-by run \
+  --n-folds 5 \
   --device cuda
 ```
 
@@ -162,7 +165,10 @@ model as below):
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 01 --model-sub self --model-desc cv5 --desc self-eval
+  --target-sub 01 \
+  --model-sub self \
+  --model-desc cv5 \
+  --desc self-eval
 ```
 
 Score subject `01`'s BOLD using the **partner's** model and features (a
@@ -170,8 +176,12 @@ cross-brain, shared-conversation eval) on run 6:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 01 --model-sub partner --source-sub partner \
-  --model-desc v1 --desc cross-eval --test-on run-6
+  --target-sub 01 \
+  --model-sub partner \
+  --source-sub partner \
+  --model-desc v1 \
+  --desc cross-eval \
+  --test-on run-6
 ```
 
 ## Outputs

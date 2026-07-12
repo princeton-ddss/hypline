@@ -242,7 +242,8 @@ two go together:
 ```bash
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
-  --custom-sources demo --custom-columns demo_regressor1,demo_regressor2 \
+  --custom-sources demo \
+  --custom-columns demo_regressor1,demo_regressor2 \
   --force
 ```
 
@@ -267,8 +268,11 @@ per subject:
 
 ```bash
 hypline encoding train data/ \
-  --tasks conv --features phonemic --desc v1 \
-  --fold-by run --n-folds loo
+  --tasks conv \
+  --features phonemic \
+  --desc v1 \
+  --fold-by run \
+  --n-folds loo
 ```
 
 ```text
@@ -344,7 +348,10 @@ scored against `sub-031`'s own brain.
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 --model-sub self --model-desc v1 --desc self-eval
+  --target-sub 031 \
+  --model-sub self \
+  --model-desc v1 \
+  --desc self-eval
 ```
 
 ```text
@@ -406,8 +413,11 @@ drive one partner's model with the **partner's** speech and score it against the
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 --model-sub partner --source-sub partner \
-  --model-desc v1 --desc cross-eval
+  --target-sub 031 \
+  --model-sub partner \
+  --source-sub partner \
+  --model-desc v1 \
+  --desc cross-eval
 ```
 
 ```text
