@@ -23,7 +23,6 @@ def denoise(
     columns: Annotated[
         str | None,
         typer.Option(
-            "--columns",
             help="""
             Comma-separated fmriprep confound columns: exact tsv names (e.g.,
             trans_x,rot_x) plus group prefixes that expand to all matches
@@ -47,7 +46,6 @@ def denoise(
     custom_sources: Annotated[
         str | None,
         typer.Option(
-            "--custom-sources",
             help="""
             Comma-separated nuisance/ sources as <kind>[-<desc>] (e.g.,
             physio-v1,resp); selects run-level regressor files from nuisance/.
@@ -59,7 +57,6 @@ def denoise(
     custom_columns: Annotated[
         str | None,
         typer.Option(
-            "--custom-columns",
             help="""
             Comma-separated column names to select from the --custom-sources
             sources (selected from the horizontal concat of all sources)
@@ -70,7 +67,6 @@ def denoise(
     space: Annotated[
         BoldSpace,
         typer.Option(
-            "--space",
             help="BOLD data space to denoise",
         ),
     ] = BoldSpace.MNI_152_NLIN_2009_C_ASYM,

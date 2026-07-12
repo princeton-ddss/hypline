@@ -48,7 +48,6 @@ def generate_phonemic_feature(
     desc: Annotated[
         str | None,
         typer.Option(
-            "--desc",
             help="""
             Label to tag outputs (alphanumeric), e.g., --desc v2;
             appears as desc-<label> in filenames
@@ -127,7 +126,6 @@ def generate_semantic_feature(
     model: Annotated[
         str,
         typer.Option(
-            "--model",
             help="Hugging Face causal-LM id (e.g., gpt2-xl, meta-llama/Llama-3.2-1B)",
             show_default=False,
         ),
@@ -135,7 +133,6 @@ def generate_semantic_feature(
     model_dir: Annotated[
         Path | None,
         typer.Option(
-            "--model-dir",
             help="Cache dir for downloaded weights",
             show_default="~/.cache/hypline/huggingface",
         ),
@@ -149,7 +146,6 @@ def generate_semantic_feature(
     layer: Annotated[
         int | None,
         typer.Option(
-            "--layer",
             help="Hidden layer index in 0..num_hidden_layers; omit for middle layer",
             show_default=False,
         ),
@@ -175,7 +171,6 @@ def generate_semantic_feature(
     desc: Annotated[
         str | None,
         typer.Option(
-            "--desc",
             help="""
             Label to tag outputs (alphanumeric), e.g., --desc v2;
             appears as desc-<label> in filenames
@@ -263,7 +258,6 @@ def generate_spectral_feature(
     audio_ext: Annotated[
         str,
         typer.Option(
-            "--audio-ext",
             help="Extension of the audio files (e.g., .wav)",
             show_default=False,
         ),
@@ -271,14 +265,12 @@ def generate_spectral_feature(
     model: Annotated[
         WhisperModel,
         typer.Option(
-            "--model",
             help="Whisper model that produces the spectrogram",
         ),
     ] = WhisperModel.TINY,
     model_dir: Annotated[
         Path | None,
         typer.Option(
-            "--model-dir",
             help="Cache dir for downloaded weights",
             show_default="~/.cache/hypline/huggingface",
         ),
@@ -304,7 +296,6 @@ def generate_spectral_feature(
     desc: Annotated[
         str | None,
         typer.Option(
-            "--desc",
             help="""
             Label to tag outputs (alphanumeric), e.g., --desc v2;
             appears as desc-<label> in filenames
@@ -388,7 +379,6 @@ def generate_syntactic_feature(
     desc: Annotated[
         str | None,
         typer.Option(
-            "--desc",
             help="""
             Label to tag outputs (alphanumeric), e.g., --desc v2;
             appears as desc-<label> in filenames

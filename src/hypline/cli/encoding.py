@@ -100,7 +100,6 @@ def train(
     tasks: Annotated[
         str,
         typer.Option(
-            "--tasks",
             help="Comma-separated task labels to train on (e.g., neutral,opinion)",
             show_default=False,
         ),
@@ -108,7 +107,6 @@ def train(
     features: Annotated[
         str,
         typer.Option(
-            "--features",
             help="""
             Comma-separated feature refs as <kind>[-<desc>] (e.g.,
             semantic-gpt3,phonemic-noArt); each ref becomes its own ridge band
@@ -119,7 +117,6 @@ def train(
     desc: Annotated[
         str,
         typer.Option(
-            "--desc",
             help="""
             Variant label for this model (alphanumeric); output lands under
             results/sub-XX/encodingModel-<desc>/ (e.g., --desc v1)
@@ -130,7 +127,6 @@ def train(
     fold_by: Annotated[
         str,
         typer.Option(
-            "--fold-by",
             help="""
             Cross-validation grouping axis: a BIDS entity to fold on (e.g.,
             run), or 'none' to fit a single model without folding
@@ -141,7 +137,6 @@ def train(
     n_folds: Annotated[
         str | None,
         typer.Option(
-            "--n-folds",
             help="""
             Number of cross-validation folds: an integer (>=2) or 'loo'.
             Required with --fold-by <entity>; omit when --fold-by none
@@ -152,7 +147,6 @@ def train(
     confounds: Annotated[
         str | None,
         typer.Option(
-            "--confounds",
             help="""
             Comma-separated confound refs as <kind>[-<desc>] (e.g.,
             phonemic-onset,phonemic-rate); all share one ridge band. Must be
@@ -164,28 +158,24 @@ def train(
     bold_space: Annotated[
         BoldSpace,
         typer.Option(
-            "--bold-space",
             help="BOLD data space to train on",
         ),
     ] = BoldSpace.MNI_152_NLIN_2009_C_ASYM,
     bold_desc: Annotated[
         str,
         typer.Option(
-            "--bold-desc",
             help="BOLD desc entity to select the input runs",
         ),
     ] = "denoised",
     downsample: Annotated[
         FeatureDownsampleMethod,
         typer.Option(
-            "--downsample",
             help="Feature-to-TR downsampling method",
         ),
     ] = "mean",
     delays: Annotated[
         str | None,
         typer.Option(
-            "--delays",
             help="""
             Comma-separated FIR delays in TRs; omit for the default 0,1,2,3,4,5
             """,
@@ -195,7 +185,6 @@ def train(
     alphas: Annotated[
         str | None,
         typer.Option(
-            "--alphas",
             help="""
             Comma-separated ridge alphas to search (e.g., 1,10,100); omit for the
             default 1-1e12 log grid (13 points)
@@ -206,14 +195,12 @@ def train(
     device: Annotated[
         Device,
         typer.Option(
-            "--device",
             help="Compute device for the fit",
         ),
     ] = Device.CPU,
     sub_ids: Annotated[
         str | None,
         typer.Option(
-            "--sub-ids",
             help="Comma-separated subject IDs to train (e.g., 01,02); omit for all",
             show_default=False,
         ),
@@ -330,7 +317,6 @@ def analyze(
     target_sub: Annotated[
         str,
         typer.Option(
-            "--target-sub",
             help="Subject whose actual BOLD and prod/comp turns are scored against",
             show_default=False,
         ),
@@ -338,7 +324,6 @@ def analyze(
     model_sub: Annotated[
         str,
         typer.Option(
-            "--model-sub",
             help="""
             Subject whose trained model is loaded: an ID, or 'self'/'partner'
             (relative to --target-sub)
@@ -349,7 +334,6 @@ def analyze(
     model_desc: Annotated[
         str,
         typer.Option(
-            "--model-desc",
             help="The --desc passed to `encoding train` (its encodingModel-<desc> tag)",
             show_default=False,
         ),
@@ -357,7 +341,6 @@ def analyze(
     desc: Annotated[
         str,
         typer.Option(
-            "--desc",
             help="""
             Variant label for this eval (alphanumeric); output lands under
             results/sub-<target>/encodingEval-<desc>/ (e.g., --desc v1)
@@ -368,7 +351,6 @@ def analyze(
     source_sub: Annotated[
         str,
         typer.Option(
-            "--source-sub",
             help="""
             Subject whose regressors drive the prediction: an ID, or 'self'/'partner'
             (relative to --target-sub)
@@ -378,7 +360,6 @@ def analyze(
     test_on: Annotated[
         str | None,
         typer.Option(
-            "--test-on",
             help="""
             Comma-separated BIDS entity filters naming which cells to score (e.g.,
             run-6, or run-6,run-8); same-entity values OR'd, different entities
