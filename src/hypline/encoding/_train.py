@@ -370,9 +370,16 @@ class EncodingTrainer(_EncodingContext):
         held_out = _partition_groups(groups, self._fold.n)
         models = []
         for i, held in enumerate(held_out, start=1):
-            logger.info("Fitting starting: sub-{} fold {}/{}", sub_id, i, len(held_out))
             train_cells = all_cells - held
             X_sub, Y_sub, ordered_cells = _select_rows(data, train_cells)
+            logger.info(
+                "Fitting starting: sub-{} fold {}/{} — training on {} cells / {} rows",
+                sub_id,
+                i,
+                len(held_out),
+                len(ordered_cells),
+                len(X_sub),
+            )
             pipeline = _fit_model(X_sub, Y_sub, ordered_cells)
             models.append(FittedModel(pipeline=pipeline, train_cells=train_cells))
         logger.info("Fitting complete: sub-{} ({} folds)", sub_id, len(held_out))

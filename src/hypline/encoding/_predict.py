@@ -260,6 +260,13 @@ class EncodingPredictor(_EncodingContext):
                 source_sub_id,
                 target_sub_id,
             )
+        logger.info(
+            "Analyzing: target sub-{}, model sub-{}, source sub-{} ({})",
+            target_sub_id,
+            self._artifact.sub_id,
+            source_sub_id,
+            "OOS" if test_on is None else ",".join(test_on),
+        )
         source_preds = self.predict(source_sub_id=source_sub_id, test_on=test_on)
         target_bold = self._discover_bold(target_sub_id)
 
@@ -293,6 +300,15 @@ class EncodingPredictor(_EncodingContext):
             fold_scores = _score_roles(Y_true=Y_true, Y_hat=pred.Y_hat, masks=masks)
             corr_folds.append(fold_scores)
             fold_cells.append(list(pred.row_slices.keys()))
+
+        if self._artifact.fold is None:
+            logger.info("Analysis complete: target sub-{}", target_sub_id)
+        else:
+            logger.info(
+                "Analysis complete: target sub-{} — scored {} folds",
+                target_sub_id,
+                len(source_preds),
+            )
 
         # xarray is optional at module load, so import it lazily here (mirrors the
         # `TYPE_CHECKING`-only import at the top)
