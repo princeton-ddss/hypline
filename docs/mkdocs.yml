@@ -92,4 +92,5 @@ nav:
     - hypline featuregen: reference/featuregen.md
     - hypline confoundgen: reference/confoundgen.md
     - hypline denoise: reference/denoise.md
+    - hypline encoding: reference/encoding.md
     - Python API: reference/python-api.md

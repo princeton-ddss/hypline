@@ -25,6 +25,10 @@ usually already have a file in hand. Both enforce the [dataset
 layout](../concepts/layout.md) and the file formats; a malformed DataFrame or
 path raises rather than writing something the CLI can't later consume.
 
+Encoding results — fitted models and evals — have their own loaders under
+`hypline.encoding` (not top-level), covered in [Loading results in
+Python](encoding.md#loading-results-in-python).
+
 ## Plugging in a custom feature
 
 The CLI generates `feat-phonemic`, `feat-semantic`, `feat-spectral`, and

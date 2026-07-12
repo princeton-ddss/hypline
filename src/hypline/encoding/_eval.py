@@ -148,8 +148,18 @@ def load_eval(path: str | Path) -> xr.Dataset:
     `fold_cells` back from its JSON string to `list[list[CellKey]]` — reconstructing
     each cell via `CellKey(**cell)` so loaded keys hash and compare against live
     ones (a plain dict never would, since `CellKey.__eq__` rejects non-`CellKey`).
-    `corr` is subsettable by `.sel(band=…, role=…)`. Kept thin — no analysis logic —
-    so the storage boundary stays in exactly these two functions.
+    Kept thin — no analysis logic — so the storage boundary stays in exactly these
+    two functions.
+
+    Parameters
+    ----------
+    path
+        Path to a saved eval netCDF file.
+
+    Returns
+    -------
+    xr.Dataset
+        The eval dataset; `corr` is subsettable by `.sel(band=…, role=…)`.
     """
     import xarray as xr
 

@@ -1,9 +1,10 @@
 # A full run on the example dataset
 
 This walkthrough takes a real example dataset — stimulus audio and fMRIPrep
-outputs — to the two products an encoding model needs: **phonemic features** and
-**denoised BOLD**, using one command per step. By the end you will have run the
-whole hypline pipeline and seen exactly what each step reads and writes.
+outputs — through the whole hypline pipeline: **phonemic features** and
+**denoised BOLD**, then a fitted **encoding model** joining the two, using one
+command per step. By the end you will have run hypline end to end and seen
+exactly what each step reads and writes.
 
 It assumes you have hypline installed (see [Installation](../index.md#installation),
 including FFmpeg for transcription). No prior hypline experience is needed, but
@@ -11,9 +12,12 @@ skim [The hypline dataset layout](../concepts/layout.md) first if a path or
 filename below is ever unclear — this tutorial shows the layout in action rather
 than re-explaining it.
 
-**What to expect:** about 15 minutes start to finish — most of it the one-time
-~2.8 GB dataset download. Of the compute, transcription is the slow step —
-roughly a minute on a laptop CPU; the rest run in seconds.
+**What to expect:** about 25 minutes start to finish. Two steps dominate: the
+one-time ~2.8 GB dataset download, and the encoding fit ([step 6](#6-fit-the-encoding-model))
+— a whole-brain ridge model that runs ~4–5 minutes per subject on CPU. Every
+other step runs in seconds to about a minute (transcription). The fit is CPU-only
+by design so the tutorial runs anywhere; if you have a GPU, `--device cuda` makes
+it far faster.
 
 ## 1. Get the example dataset
 
@@ -255,14 +259,193 @@ result stays reproducible.
     `Nuisance column name collision across channels` error means a custom column
     name collides with a selected fMRIPrep column — rename or drop one.
 
+## 6. Fit the encoding model
+
+Both sides are now in place — phonemic features (the predictors) and denoised
+BOLD (the target). `encoding train` joins them, fitting a voxelwise ridge model
+per subject:
+
+```bash
+hypline encoding train data/ \
+  --tasks conv --features phonemic --desc v1 \
+  --fold-by run --n-folds loo
+```
+
+```text
+Fitting starting: sub-031 fold 1/2 — training on 1 cells / … rows
+Fitting starting: sub-031 fold 2/2 — training on 1 cells / … rows
+Fitting complete: sub-031 (2 folds)
+Fitting starting: sub-032 fold 1/2 — training on 1 cells / … rows
+Fitting starting: sub-032 fold 2/2 — training on 1 cells / … rows
+Fitting complete: sub-032 (2 folds)
+```
+
+`--features phonemic` uses the features from step 3 as the model's predictors,
+and `--tasks conv` scopes the fit to the `conv` task. `--fold-by run --n-folds
+loo` cross-validates by run, leaving one run out per fold — the common setup, and
+the one that lets you score held-out data in [step 7](#7-score-a-model-within-a-subject).
+With two runs, `loo` yields two folds. `--desc v1` tags this model variant so its
+output lands in its own subdirectory.
+
+!!! note "This is the slow step — and it's working, not stuck"
+
+    The fit is the tutorial's one compute-heavy step: a whole-brain ridge over a
+    grid of regularization strengths, ~4–5 minutes per subject on CPU. The
+    `Fitting starting/complete` lines above mark each fold's progress, so a
+    long pause is expected, not a hang. It runs on CPU so the tutorial works
+    anywhere; pass `--device cuda` if you have a GPU.
+
+The step is **sub-keyed** like `denoise` — one model per brain. Outputs go to a
+new `results/` area:
+
+```text
+data/results/sub-031/encodingModel-v1/
+├── sub-031_result-encodingModel_desc-v1.joblib   # the fitted model
+└── sub-031_result-encodingModel_desc-v1.json     # provenance sidecar
+```
+
+!!! success "Check"
+
+    `results/` now holds an `encodingModel-v1/` directory for `sub-031` and
+    `sub-032`, each with a `.joblib` + `.json` pair. If the command logged
+    `No subjects found`, check that step 4 wrote `desc-denoised` BOLD.
+
+### Load the result back
+
+The model is a Python object, not a table — load it back for downstream
+analysis, the same way [`read_feature`](../reference/python-api.md) reads a
+feature file:
+
+```python
+from hypline.encoding import load_artifact
+
+artifact = load_artifact(
+    "data/results/sub-031/encodingModel-v1/sub-031_result-encodingModel_desc-v1.joblib"
+)
+artifact.recipe   # the features, delays, alphas, and split the model was fit with
+artifact.models   # the fitted pipeline(s)
+```
+
+A fitted model is a means, not an end — the next two steps *use* it, scoring its
+predictions against a real brain.
+
+## 7. Score a model within a subject
+
+`encoding analyze` scores a model's predictions against a subject's actual BOLD.
+It takes three subject roles, independent by design:
+
+- **target** (`--target-sub`) — whose real BOLD is the comparison, and whose
+  speaking turns define the roles below.
+- **model** (`--model-sub`) — whose trained weights are loaded.
+- **source** (`--source-sub`) — whose features build the prediction inputs.
+
+Start with the simplest case: all three the same subject — `sub-031`'s own model,
+scored against `sub-031`'s own brain.
+
+```bash
+hypline encoding analyze data/ \
+  --target-sub 031 --model-sub self --model-desc v1 --desc self-eval
+```
+
+```text
+Analyzing: target sub-031, model sub-031, source sub-031 (OOS)
+Analysis complete: target sub-031 — scored 2 folds
+```
+
+`--model-desc v1` names the model from [step 6](#6-fit-the-encoding-model), and
+`--desc self-eval` tags this eval. We passed no `--test-on`, so `analyze` scores
+each fold's **held-out** run — the run that fold did not train on. This is why
+step 6 folded: a single unfolded model has no held-out data to score against
+itself.
+
+Each score is broken out by **role**, derived from the target's turns in the
+conversation: `prod` (the target is speaking), `comp` (the partner is speaking,
+the target listening), and `both` (either). So one eval reports how well the
+model predicts the brain during production, comprehension, and overall.
+
+The eval lands in its own `results/` subdirectory, keyed by the target subject:
+
+```text
+data/results/sub-031/encodingEval-self-eval/
+└── sub-031_result-encodingEval_desc-self-eval.nc   # per-voxel scores (netCDF-4)
+```
+
+It is a self-describing **netCDF-4** file — load it back as an
+[`xarray.Dataset`](https://docs.xarray.dev/):
+
+```python
+from hypline.encoding import load_eval
+
+ds = load_eval(
+    "data/results/sub-031/encodingEval-self-eval/sub-031_result-encodingEval_desc-self-eval.nc"
+)
+ds["corr"].sel(role="prod")   # scores during the target's own speech
+ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
+```
+
+!!! note "These scores are not `[-1, 1]` correlations"
+
+    `corr` holds himalaya *split* scores — each feature band's own contribution
+    to the joint prediction — so a value is not a plain Pearson correlation and
+    can fall outside `[-1, 1]`. Treat them as relative encoding scores, not
+    accuracy fractions.
+
+!!! success "Check"
+
+    `results/sub-031/` gains an `encodingEval-self-eval/` directory with one
+    `.nc` file, and the log reads `scored 2 folds`. An `empty out-of-sample set`
+    error means the model wasn't folded — re-run step 6 with `--fold-by run
+    --n-folds loo`.
+
+## 8. Score across brains
+
+The within-subject eval is the warm-up. What hypline is *built* for is the
+**cross-brain** case: because the two partners shared one conversation, you can
+drive one partner's model with the **partner's** speech and score it against the
+**other** partner's brain. Same command, different subject wiring:
+
+```bash
+hypline encoding analyze data/ \
+  --target-sub 031 --model-sub partner --source-sub partner \
+  --model-desc v1 --desc cross-eval
+```
+
+```text
+Analyzing: target sub-031, model sub-032, source sub-032 (OOS)
+Analysis complete: target sub-031 — scored 2 folds
+```
+
+`--target-sub 031` keeps `sub-031`'s brain as the comparison, but `--model-sub
+partner` and `--source-sub partner` swap in `sub-032`'s model and features (hypline
+resolves `partner` through `participants.tsv`). The output structure is identical
+to step 7 — a `.nc` under `encodingEval-cross-eval/` — so `load_eval` reads it the
+same way.
+
+!!! info "What this step shows — and doesn't"
+
+    This is how you *run* the cross-brain analysis that motivates hypline — the
+    mechanics of pointing one partner's model at the other's brain. It is not a
+    demonstration of the *effect*: two runs of `--model tiny` transcripts are far
+    too little data for the cross-brain scores to mean anything. On a full study
+    they carry the shared-representation signal; here they only confirm the
+    command runs end to end.
+
+!!! success "Check"
+
+    `results/sub-031/` now also holds `encodingEval-cross-eval/`, and the log
+    shows `model sub-032, source sub-032` — the partner's model and features
+    scored against `sub-031`'s brain.
+
 ## What you have now
 
-`data/` now holds both sides an encoding model joins:
+`data/` now holds a full encoding run, end to end:
 
-| Side       | Where                              | From          |
-| ---------- | ---------------------------------- | ------------- |
-| Predictors | `features/dyad-030/…/phonemic/`    | steps 2–3     |
-| Target     | `derivatives/hypline/sub-*/…/func/`| step 4        |
+| Side       | Where                                  | From          |
+| ---------- | -------------------------------------- | ------------- |
+| Predictors | `features/dyad-030/…/phonemic/`        | steps 2–3     |
+| Target     | `derivatives/hypline/sub-*/…/func/`    | step 4        |
+| Model      | `results/sub-*/encodingModel-v1/`      | step 6        |
+| Eval       | `results/sub-031/encodingEval-*/`      | steps 7–8     |
 
 Each command read only what the previous steps wrote — no file paths, just the
 dataset root. To regenerate a step after changing an option, re-run it with
@@ -273,4 +456,9 @@ dataset root. To regenerate a step after changing an option, re-run it with
 - **Process only some runs or conditions** — [Filter to specific runs or
   conditions](../how-to/filter.md).
 - **Regenerate outputs after a fix** — [Regenerate outputs](../how-to/regenerate.md).
-- **Per-command options** — the [Reference](../reference/transcribe.md) pages.
+- **Per-command options** — the Reference pages:
+  [transcribe](../reference/transcribe.md) ·
+  [featuregen](../reference/featuregen.md) ·
+  [confoundgen](../reference/confoundgen.md) ·
+  [denoise](../reference/denoise.md) ·
+  [encoding](../reference/encoding.md).

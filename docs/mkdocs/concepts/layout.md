@@ -23,6 +23,7 @@ a few extra areas. A complete tree looks like this:
 ├── stimuli/dyad-030/ses-1/audio/            # stimulus audio, transcripts
 ├── features/dyad-030/ses-1/phonemic/        # generated features
 ├── confounds/dyad-030/ses-1/phonemic/       # generated confounds
+├── results/sub-031/encodingModel-v1/        # encoding models and evals
 └── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
 ```
 
@@ -35,6 +36,10 @@ a few extra areas. A complete tree looks like this:
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by **dyad**
   (`dyad-030/`), not subject — see [Subject vs. dyad](#subject-vs-dyad) below.
+- **`results/`** is where [`encoding`](../reference/encoding.md) writes its
+  analysis outputs — fitted models (`encodingModel-<desc>/`) and evals
+  (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
+  consumes many runs across sessions.
 - **`nuisance/`** is optional and *you* fill it — run-level regressors (e.g.
   physiological recordings) for [`denoise`](../reference/denoise.md) to regress
   out alongside fMRIPrep's confounds.
@@ -70,7 +75,8 @@ Hypline is a hyperscanning pipeline: two partners hold one conversation while
 both are scanned. An artifact is keyed by **what it is derived from**:
 
 - **`sub`-keyed** — derived from one *brain*: raw BOLD, `derivatives/fmriprep/`,
-  `derivatives/hypline/` (denoised), `nuisance/`.
+  `derivatives/hypline/` (denoised), `nuisance/`, and `results/` (a subject's
+  fitted encoding model, whose weights tie to that brain's voxel grid).
 - **`dyad`-keyed** — derived from the *shared conversation* between two partners:
   `stimuli/`, `features/`, `confounds/`. One conversation → one dyad → one set of
   stimuli/features/confounds, later consumed by *each* partner's per-subject
@@ -112,12 +118,15 @@ what kind of derivative it is:
 
 | Entity        | Area          | Example                         |
 | ------------- | ------------- | ------------------------------- |
-| `feat-<kind>` | `features/`   | `feat-phonemic`, `feat-semantic`, `feat-spectral`, `feat-syntactic` |
-| `conf-<kind>` | `confounds/`  | `conf-phonemic`, `conf-semantic` |
-| `nuis-<kind>` | `nuisance/`   | `nuis-physio`                   |
+| `feat-<kind>`   | `features/`   | `feat-phonemic`, `feat-semantic`, `feat-spectral`, `feat-syntactic` |
+| `conf-<kind>`   | `confounds/`  | `conf-phonemic`, `conf-semantic` |
+| `nuis-<kind>`   | `nuisance/`   | `nuis-physio`                   |
+| `result-<kind>` | `results/`    | `result-encodingModel`, `result-encodingEval` |
 
 The `<kind>` matches the subdirectory the file lives in. A phonemic feature
-(`feat-phonemic`) lives under `features/dyad-030/ses-1/phonemic/`.
+(`feat-phonemic`) lives under `features/dyad-030/ses-1/phonemic/`. A result's
+`<kind>-<desc>` subdirectory pairs the entity with its `--desc` variant tag —
+`result-encodingModel_desc-v1` under `results/sub-031/encodingModel-v1/`.
 
 Stimuli carry no category entity. Their kind is a trailing filename suffix
 (`_audio`, `_transcript`) instead — e.g. `dyad-030_ses-1_task-conv_run-1_audio.wav`

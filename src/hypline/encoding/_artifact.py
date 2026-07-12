@@ -26,6 +26,42 @@ class XRecipe:
     predict-time rebuilder cannot drift. `device` is excluded — it is a
     runtime/hardware choice, not part of X identity, and stays on
     `EncodingConfig`.
+
+    Attributes
+    ----------
+    features
+        Feature ref name -> its `(kind, desc)` selector. Iteration order fixes
+        X's feature-band column layout, so it is load-bearing, not incidental.
+    confounds
+        Confound ref name -> its `(kind, desc)` selector. All confounds collapse
+        into one shared ridge band, so within-band order is irrelevant (a single
+        alpha covers them).
+    tasks
+        Cell axis: multiple tasks make cells from different tasks distinct
+        rows in X/Y. A single-task call holds `task` constant on every cell.
+    bold_space
+        Target BOLD space; surface (e.g. `fsaverage6`) or volume.
+    bold_desc
+        `desc` entity of the target BOLD (e.g. `denoised`) — selects which
+        derivative the model is fit against.
+    downsample
+        Method mapping feature time series onto the BOLD TR grid.
+    bids_filters
+        Extra BIDS filters constraining the cell set — the sole record of
+        which runs/conditions shaped X (the `sub`/`task`/`space`/`feat`/`desc`
+        entities are reserved and cannot appear here).
+    delays
+        FIR delays (in TRs) stacked per regressor, giving the model its HRF
+        lag basis.
+    alphas
+        Ridge penalties searched per band during inner-CV.
+    split
+        Whether himalaya keeps per-band prediction shares (`split=True`)
+        rather than only the summed prediction.
+    col_slices
+        Band key -> its column block in X. Empty at construction; `train`
+        fills it from the assembled data. Build order is screens, features,
+        confounds — the band axis labels downstream must match this order.
     """
 
     features: dict[str, tuple[str, str | None]]
@@ -49,8 +85,15 @@ class XRecipe:
 class FittedModel:
     """One fitted model and the cell set it was fit on.
 
-    `train_cells` is the post-filter `row_slices` key set — the cells actually
-    fit on.
+    Attributes
+    ----------
+    pipeline
+        The fitted banded-ridge pipeline: a `ColumnKernelizer` that delays and
+        linear-kernelizes each band (`StandardScaler -> CellDelayer ->
+        Kernelizer`, screens skipping the scaler), scored by
+        `MultipleKernelRidgeCV`.
+    train_cells
+        Post-filter `row_slices` key set — the cells actually fit on.
     """
 
     pipeline: Pipeline
@@ -62,7 +105,14 @@ class FoldSpec:
     """One fold configuration: the cell axis to fold over and the fold count.
 
     Internal carrier for the paired `fold_by`/`n_folds` constructor args; the
-    public surface stays flat. `n` is a count or the `"loo"` sentinel.
+    public surface stays flat.
+
+    Attributes
+    ----------
+    by
+        Cell axis to fold over (e.g. `run`).
+    n
+        Fold count, or the `"loo"` sentinel for leave-one-out.
     """
 
     by: str
@@ -73,13 +123,23 @@ class FoldSpec:
 class EncodingArtifact:
     """On-disk encoding result: a shared `recipe` plus one-or-more fitted `models`.
 
-    `fold` records the fold configuration these models were produced under, or
-    `None` when unfolded (a single model). `universe` bounds the OOS cell set for
-    fold groups; it is `None` for a single model, whose OOS is just the target
-    subject's available cells minus its train set.
-
     Filters that shaped the cell set live on `recipe.bids_filters` (X identity),
     not here.
+
+    Attributes
+    ----------
+    recipe
+        Shared X identity; every model here was built from it.
+    sub_id
+        Subject the models were fit on.
+    fold
+        Fold configuration these models were produced under, or `None` when
+        unfolded (a single model).
+    models
+        The fitted models: one when unfolded, one per fold otherwise.
+    universe
+        Bounds the OOS cell set for fold groups; `None` for a single model,
+        whose OOS is the target subject's available cells minus its train set.
     """
 
     recipe: XRecipe
@@ -197,6 +257,18 @@ def load_artifact(path: Path) -> EncodingArtifact:
 
     Logs a warning (does not fail) on a `hypline_version` mismatch read from the
     sidecar — a version skew is a provenance signal, not a hard incompatibility here.
+    A missing sidecar silently skips the version check.
+
+    Parameters
+    ----------
+    path
+        Path to the artifact `.joblib` blob.
+
+    Returns
+    -------
+    EncodingArtifact
+        The artifact with fitted weights as numpy arrays (converted at save
+        time), so it loads and predicts without torch or CUDA.
     """
     import joblib
 
