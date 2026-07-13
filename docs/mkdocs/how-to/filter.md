@@ -1,6 +1,6 @@
 # Filter to specific runs or conditions
 
-Most hypline commands run over *everything* they discover by convention — every
+Most hypline commands run over everything they discover by convention: every
 run and segment, and every dyad or subject. When you want a command to touch only
 part of your dataset — one dyad, two runs, a single condition — you narrow it with
 two options that appear on nearly every command:
@@ -12,7 +12,7 @@ two options that appear on nearly every command:
   dyad](../concepts/layout.md#subject-vs-dyad).
 - **`--data-filters`** — pick which runs and conditions within them.
 
-This guide shows the common selections. For *why* segments and conditions work
+This guide shows the common selections. For why segments and conditions work
 the way they do, see [Segments and metadata](../concepts/segments.md); for the
 full option list of any single command, see its [Reference](../reference/transcribe.md)
 page.
@@ -36,7 +36,7 @@ command looks for its inputs.
 ## Select runs and conditions with `--data-filters`
 
 `--data-filters` accepts comma-separated `entity-value` tokens. A token matches
-against **both** filename entities (like `run`) and the metadata you defined in
+against both filename entities (like `run`) and the metadata you defined in
 `events.json` (like `cond`), so the same option filters structural and
 descriptive attributes alike.
 
@@ -67,7 +67,7 @@ hypline denoise data/ --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z --data
 
 ### Runs AND a condition
 
-Mixing *different* entities narrows the match — every named entity must hold:
+Mixing different entities narrows the match — every named entity must hold:
 
 ```bash
 # (run 1 or run 2) AND condition R
@@ -76,12 +76,12 @@ hypline denoise data/ \
   --data-filters run-1,run-2,cond-R
 ```
 
-## The matching rule, in one line
+## The matching rule at a glance
 
 | Tokens | Reads as |
 | ------ | -------- |
-| Same entity, multiple values | **OR** — `run-1,run-2` → run 1 *or* 2 |
-| Different entities | **AND** — `run-1,cond-R` → run 1 *and* condition R |
+| Same entity, multiple values | **OR** — `run-1,run-2` → run 1 or 2 |
+| Different entities | **AND** — `run-1,cond-R` → run 1 and condition R |
 
 So `run-1,run-2,cond-G` means *(run 1 or run 2) and condition G*. Combine the
 identity option (`--dyad-ids` / `--sub-ids`) with `--data-filters` to slice on
@@ -98,8 +98,9 @@ hypline denoise data/ \
 ## Combining with `--force`
 
 The identity option (`--dyad-ids` / `--sub-ids`) and `--data-filters` decide
-*what is considered*; `--force` decides whether already-generated outputs are
-overwritten. They compose — scope a rerun to one run and force just that one:
+what is considered; `--force` decides whether already-generated outputs are
+overwritten. They compose, so you can scope a rerun to one run and force just
+that one:
 
 ```bash
 hypline featuregen phonemic data/ --data-filters run-1 --force
@@ -111,14 +112,14 @@ See [Regenerate outputs after a fix](regenerate.md) for the rerun workflow.
 
 Two outcomes look similar but mean different things:
 
-- **`No dyads found`** / **`No subjects found`** — no ids were *discovered* at all:
+- **`No dyads found`** / **`No subjects found`** — no ids were discovered at all:
   the input location is empty, or your `--dyad-ids` / `--sub-ids` excluded
-  everything. `--data-filters` does **not** trigger this — id discovery ignores it.
+  everything. `--data-filters` does not trigger this — id discovery ignores it.
   Widen the id list, or confirm the files are in place. (Stimulus commands report
   dyads; `denoise` reports subjects.)
 - **A per-id failure: `{id} failed: Files found but none matched user filters …`**
   (and the command exits `1`) — ids were found, but a `--data-filters` token
   matched nothing for that id, whether because it names an entity that exists
-  *nowhere* or a value present on no file. Hypline treats an empty match as a typo
+  nowhere, or a value present on no file. Hypline treats an empty match as a typo
   and raises rather than silently skipping. Check the spelling against your
   filenames and `events.json` sidecars.

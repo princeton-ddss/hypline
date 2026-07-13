@@ -21,9 +21,9 @@ Each confound file is a Parquet table already aligned to the BOLD TR grid.
     [`denoise --columns` / `--compcor`](denoise.md). `confounds/` holds only
     stimulus-derived, feature-granular confounds.
 
-!!! note "Why there is no `desc` option"
+!!! note "No `desc` option, and why"
 
-    Generated confounds capture *when* speech occurred, not its content — they
+    Generated confounds capture when speech occurred, not its content: they
     depend only on feature timing, never the feature values. So semantic features
     from two different models, `semantic-gpt2xl` and `semantic-llama`, yield the
     same `semantic-onset` and `semantic-rate`; there is no variant to choose.
@@ -37,8 +37,8 @@ Each confound file is a Parquet table already aligned to the BOLD TR grid.
 
 ## `confoundgen phonemic`
 
-Generate phonemic confounds from phonemic feature files. These capture *when*
-speech occurred, not its content — an **onset** indicator and a speech **rate**
+Generate phonemic confounds from phonemic feature files. These capture when
+speech occurred, not its content: an **onset** indicator and a speech **rate**
 regressor, derived purely from phoneme timing.
 
 !!! tip "Usually automatic"
@@ -93,8 +93,8 @@ regressors come from fMRIPrep and the `nuisance/` area instead.
 
 ## `confoundgen semantic`
 
-Generate semantic confounds from semantic feature files — the same **onset**
-indicator and speech **rate** regressor as `phonemic`, derived from semantic
+Generate semantic confounds from semantic feature files — the same onset
+indicator and speech rate regressor as `phonemic`, derived from semantic
 feature timing rather than phoneme timing.
 
 !!! tip "Usually automatic"

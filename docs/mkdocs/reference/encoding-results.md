@@ -10,7 +10,7 @@ from hypline.encoding import load_eval, load_artifact
 ```
 
 **An eval** (`analyze`'s output) loads as an
-[`xarray.Dataset`](https://docs.xarray.dev/) — the usual downstream target,
+[`xarray.Dataset`](https://docs.xarray.dev/), the usual downstream target,
 since it holds the per-voxel correlations you analyze:
 
 ```python
@@ -23,7 +23,7 @@ prod_corr = ds["corr"].sel(role="prod")
 ds.attrs["model_sub"], ds.attrs["target_sub"], ds.attrs["delays"]
 ```
 
-**A model artifact** (`train`'s output) loads as an `EncodingArtifact` — the
+**A model artifact** (`train`'s output) loads as an `EncodingArtifact`, holding the
 fitted weights and the recipe, for reusing or inspecting the model:
 
 ```python

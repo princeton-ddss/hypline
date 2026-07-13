@@ -1,9 +1,9 @@
 # Regenerate outputs after a fix
 
-You ran part of the pipeline, then something upstream changed — you re-recorded
+You ran part of the pipeline, then something upstream changed: you re-recorded
 audio, fixed an `events.tsv`, or chose different confound columns. This guide
 shows how to redo just the affected work without recomputing the whole dataset,
-and — importantly — which **downstream** steps you must also rerun.
+and, importantly, which **downstream** steps you must also rerun.
 
 ## Why a plain rerun does nothing
 
@@ -13,8 +13,8 @@ are still there, so every step is skipped.
 
 To overwrite, pass **`--force`**. Skipping is decided per output file, so
 `--force` combined with [the identity option (`--dyad-ids` / `--sub-ids`) /
-`--data-filters`](filter.md) regenerates **only** the subset you select —
-everything else is left untouched.
+`--data-filters`](filter.md) regenerates only the subset you select, leaving
+everything else untouched.
 
 ```bash
 # regenerate features for run 1 only; all other runs stay as they were
@@ -23,7 +23,7 @@ hypline featuregen phonemic data/ --data-filters run-1 --force
 
 !!! warning "Skipping is existence-only — there is no staleness detection"
 
-    Hypline decides to skip by asking *“does this output file exist?”* — **not**
+    Hypline decides to skip by asking *“does this output file exist?”*, never
     *“is this output older than its inputs?”* It never compares timestamps. So
     regenerating an input does **not** mark anything downstream as stale.
 
@@ -49,20 +49,19 @@ wrote, so a gap leaves stale output behind.
 
 [^meta]: `events.json` metadata (like `cond`) is matched by `--data-filters` when
     a command runs; it is never written into a filename or output. Changing it
-    changes *which* files a future filter selects, not the contents of files
+    changes which files a future filter selects, not the contents of files
     already generated. (Segment onsets/durations in `events.tsv`, by contrast,
-    *do* change generated confounds — so that row regenerates.)
+    do change generated confounds — so that row regenerates.)
 
 !!! note "Why `featuregen phonemic`, not `confoundgen phonemic`, in those rows"
 
-    `featuregen phonemic` emits both the features **and** the matching
+    `featuregen phonemic` emits both the features and the matching
     `conf-phonemic` confounds in one step, so `--force` refreshes both — no
     separate `confoundgen phonemic` call needed after an audio or `events.tsv`
     fix. The catch worth knowing: segment onsets and durations affect only the
-    **confound** half. `feat-phonemic` carries per-word timing and is
-    segment-agnostic, so re-emitting it is harmless rework, not a correctness
-    fix; the segmenting that `events.tsv` drives happens when the confounds are
-    built.
+    confound half. `feat-phonemic` carries per-word timing and is
+    segment-agnostic, so re-emitting it is harmless rework; the segmenting that
+    `events.tsv` drives happens when the confounds are built.
 
 !!! note "Stimulus fixes do not propagate to `denoise`"
 
@@ -75,8 +74,8 @@ wrote, so a gap leaves stale output behind.
 ## Worked example: you decided to add CompCor regressors
 
 You already cleaned the dataset, then decided the motion model needs CompCor
-components. The `desc-denoised` BOLD on disk was built without them and is now stale
-— but a plain rerun skips, because the output already exists.
+components. The `desc-denoised` BOLD on disk was built without them and is now
+stale, but a plain rerun skips, because the output already exists.
 
 ```bash
 hypline denoise data/ \
@@ -93,5 +92,5 @@ applies after editing any `nuisance/` file you regress out.
 
     If you are unsure how far a change propagates, rerun every step from the
     fix onward with `--force`. Hypline recomputes from scratch each time, so a
-    broader `--force` is never *wrong* — only more expensive. Scope it with
+    broader `--force` is never wrong — only more expensive. Scope it with
     `--dyad-ids` / `--sub-ids` / `--data-filters` to keep the cost down.

@@ -15,12 +15,12 @@ from hypline import (
 )
 ```
 
-The two halves are deliberately asymmetric. **Saves are entity-based** —
+The two halves are deliberately asymmetric. **Saves are entity-based**:
 you pass `bids_root` plus BIDS entities (`dyad`, `feat`/`conf`, `run`, …) and
 hypline derives the canonical output path for you, so writes always land where
 the pipeline expects. Features and confounds describe the shared conversation, so
 they are keyed by `dyad`, not `sub` — see [Subject vs.
-dyad](../concepts/layout.md#subject-vs-dyad). **Reads are path-based** — you
+dyad](../concepts/layout.md#subject-vs-dyad). **Reads are path-based**, since you
 usually already have a file in hand. Both enforce the [dataset
 layout](../concepts/layout.md) and the file formats; a malformed DataFrame or
 path raises rather than writing something the CLI can't later consume.
@@ -33,7 +33,7 @@ results](encoding-results.md).
 
 The CLI generates `feat-phonemic`, `feat-semantic`, `feat-spectral`, and
 `feat-syntactic` features. To drive an
-encoding model on a feature hypline doesn't compute — prosody, anything else you
+encoding model on a feature hypline doesn't compute — say prosody, or anything else you
 can align to the stimulus — build the DataFrame yourself and `save_feature` it into
 the dataset. From then on it is a first-class feature: it sits under
 `features/`, carries the right entities, and any downstream step that reads
@@ -76,7 +76,7 @@ Pass `desc="..."` to tag a variant into its own
     `save_confound` is the confound-side parallel, but a confound is regressed
     out of the BOLD, so its rows must align to the BOLD's TR grid: `start_time`
     must begin at `0.0` and step by `repetition_time`, which you pass
-    **explicitly** (a single-row table carries no spacing to infer it from).
+    explicitly (a single-row table carries no spacing to infer it from).
     See [Segments and metadata](../concepts/segments.md) for how TR-aligned
     confounds relate to the run.
 

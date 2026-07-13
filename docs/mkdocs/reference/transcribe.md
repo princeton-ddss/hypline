@@ -96,7 +96,7 @@ If your `events.tsv` files annotate speaking turns, each transcript gains a
 `turn_sub` column naming which subject held the floor when each word began.
 
 Mark turns in each subject's raw `events.tsv` with the flat `trial_type` label
-`turn_speaker` — one row per window where **that subject** is the assigned
+`turn_speaker` — one row per window where that subject is the assigned
 speaker:
 
 ```tsv
@@ -106,8 +106,8 @@ onset   duration   trial_type
 ```
 
 - The label records **whose turn it is by study design**, not who was observed
-  speaking — a turn window may still contain a word uttered by the other partner.
-- Mark only your own turns (`turn_speaker`); transcribe reads **both** partners'
+  speaking, so a turn window may still contain a word uttered by the other partner.
+- Mark only your own turns (`turn_speaker`); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.
 - Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows

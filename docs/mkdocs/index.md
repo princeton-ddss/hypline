@@ -1,15 +1,15 @@
 # Hypline
 
 Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. Its commands are modular:
-each does one job — transcribe audio, generate features, denoise
+hyperscanning studies involving dyadic conversations. Its commands are modular.
+Each does one job — transcribe audio, generate features, denoise
 [fMRIPrep](https://fmriprep.org/en/stable/index.html) BOLD, fit an **encoding
-model** — and runs on its own, all organized in one
+model** — and runs on its own, all inside one
 [BIDS](https://bids.neuroimaging.io/)-style dataset. An encoding model predicts
-the brain's BOLD response from features of the speech a participant heard;
-hypline prepares both sides of that fit — the stimulus features (the predictors)
-and the denoised BOLD (the target) — and then fits and scores the model itself
-with [`encoding`](reference/encoding.md).
+the brain's BOLD response from features of the speech a participant heard.
+Hypline prepares both sides of that fit: the stimulus features (the predictors)
+and the denoised BOLD (the target). It then fits and scores the model with
+[`encoding`](reference/encoding.md).
 
 Hypline implements the encoding-model approach of Zada et al. (2026),[^zada]
 which used fMRI hyperscanning and language-model features to study the shared
@@ -58,7 +58,7 @@ hypline --help
 
 Hypline's commands compose into a pipeline. Each one reads from a shared dataset
 root and writes its outputs back into the same tree. Most steps fall into two
-independent branches — a **stimulus branch** and an **fMRIPrep branch** — that
+independent branches, a **stimulus branch** and an **fMRIPrep branch**, that
 prepare the two sides the **encoding branch** then joins:
 
 | Command                | Branch   | Reads                                  | Writes                          |
@@ -74,7 +74,7 @@ prepare the two sides the **encoding branch** then joins:
 | `encoding train`       | encoding | features, confounds, denoised BOLD     | fitted models (`results/`)      |
 | `encoding analyze`     | encoding | fitted models, features, denoised BOLD | eval correlations (`results/`)  |
 
-The stimulus and fMRIPrep branches never meet each other: stimulus commands
+The stimulus and fMRIPrep branches never meet each other. Stimulus commands
 build the encoding model's predictors, while `denoise` cleans the BOLD target
 from fMRIPrep's own confounds table (and any custom `nuisance/` regressors). The
 two sides come together only in the encoding branch, where
@@ -95,7 +95,7 @@ clean fMRIPrep BOLD without ever transcribing audio.
 
 Once your files sit where hypline expects (see
 [the dataset layout](concepts/layout.md)), every command takes the dataset root
-and discovers its inputs from there — you never pass file paths. End to end, the
+and discovers its inputs from there; you never pass file paths. End to end, the
 whole pipeline is four commands. Each reads what the previous ones wrote, so
 order matters only where one step's output is the next step's input:
 
@@ -125,13 +125,13 @@ You can also start with `transcribe` alone and follow the table above step by
 step. Re-run any single step with `--force` to overwrite its outputs; without
 it, hypline skips work it has already done.
 
-!!! tip "If a command seems to do nothing"
+!!! tip "When a command produces no output"
 
-    Two harmless cases look like failures. **`No dyads found`** (stimulus
-    commands) or **`No subjects found`** (`denoise`, `encoding`) means the area
-    that command reads is empty or your `--dyad-ids` / `--sub-ids` excluded
-    everything — widen the id list or check the files are in place. (A
-    `--data-filters` that matches nothing is *not* harmless: it fails the
+    Two cases look like failures but usually aren't. `No dyads found` (stimulus
+    commands) or `No subjects found` (`denoise`, `encoding`) means the area
+    that command reads is empty, or your `--dyad-ids` / `--sub-ids` excluded
+    everything; widen the id list or check the files are in place. (A
+    `--data-filters` that matches nothing is different: it fails the
     affected id and exits `1` — see [Filter to specific runs or
     conditions](how-to/filter.md#when-a-filter-matches-nothing).) A command that
     exits instantly with no log means its outputs already exist and were skipped;

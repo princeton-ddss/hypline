@@ -1,6 +1,6 @@
 # The hypline dataset layout
 
-Every hypline command takes a single argument — the **dataset root** — and finds
+Every hypline command takes a single argument, the **dataset root**, and finds
 its inputs and writes its outputs by following a fixed directory convention.
 Understanding that convention is the key to using hypline: you never pass file
 paths, you organize your files where hypline expects them.
@@ -40,7 +40,7 @@ a few extra areas. A complete tree looks like this:
   analysis outputs — fitted models (`encodingModel-<desc>/`) and evals
   (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
   consumes many runs across sessions.
-- **`nuisance/`** is optional and *you* fill it — run-level regressors (e.g.
+- **`nuisance/`** is optional and you fill it — run-level regressors (e.g.
   physiological recordings) for [`denoise`](../reference/denoise.md) to regress
   out alongside fMRIPrep's confounds.
 - **`participants.tsv`** is a standard BIDS table at the dataset root, required
@@ -63,8 +63,8 @@ sub-031_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
                    entities                   suffix   ext
 ```
 
-The **identity entities** at the front name *which recording* a file belongs to.
-A file leads with exactly one of `sub` **or** `dyad` (never both), followed by
+The **identity entities** at the front name which recording a file belongs to.
+A file leads with exactly one of `sub` or `dyad` (never both), followed by
 the BOLD-identity entities `ses`, `task`, `run`. A `sub`-keyed file belongs to
 one brain; a `dyad`-keyed file belongs to one shared conversation. Generated
 files mirror the identity entities of the source they came from.
@@ -79,7 +79,7 @@ both are scanned. An artifact is keyed by **what it is derived from**:
   fitted encoding model, whose weights tie to that brain's voxel grid).
 - **`dyad`-keyed** — derived from the *shared conversation* between two partners:
   `stimuli/`, `features/`, `confounds/`. One conversation → one dyad → one set of
-  stimuli/features/confounds, later consumed by *each* partner's per-subject
+  stimuli/features/confounds, later consumed by each partner's per-subject
   encoding model. A `dyad-030` audio file is the dyad's shared recording, not
   either partner's.
 
@@ -93,7 +93,7 @@ sub-031          dyad-030
 sub-032          dyad-030
 ```
 
-This is the single source of truth for which subjects make up which dyad — here
+This is the single source of truth for which subjects make up which dyad. Here
 subjects `031` and `032` are partners in `dyad-030` (a real study has many such
 pairs). It is read lazily: a purely `sub`-keyed workflow (e.g. `denoise`
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
@@ -106,7 +106,7 @@ a sub-keyed BOLD requires it and errors if it is missing.
     spaces. Hypline splits on tabs, so a space-separated row collapses into one
     column and fails with a misleading "missing column" error.
 
-So a `dyad-030` feature file does **not** match a BOLD file by sharing `sub` —
+So a `dyad-030` feature file does not match a BOLD file by sharing `sub`;
 the two carry different identity entities. The join goes through
 `participants.tsv`: a subject's encoding model looks up its dyad, then reads that
 dyad's features.
@@ -149,8 +149,8 @@ between them later by name.
 
 ## Selecting subjects and runs
 
-Because commands discover files by convention, you select *what to process* with
-options rather than paths — an identity option plus `--data-filters` for runs and
+Because commands discover files by convention, you select what to process with
+options rather than paths: an identity option plus `--data-filters` for runs and
 conditions, both interpreted against the entities described above. The identity
 option follows the area the command writes: dyad-keyed stimulus commands
 (`transcribe`, `featuregen`, `confoundgen`) take **`--dyad-ids`**, while the
@@ -162,9 +162,9 @@ For how to combine these, see [Filter to specific runs or
 conditions](../how-to/filter.md); for what `--data-filters` can match, see
 [Segments and metadata](segments.md).
 
-## Why this design
+## The payoff
 
 Centralizing discovery in one convention means commands compose cleanly: each
 reads what earlier steps wrote, with no configuration file wiring inputs to
-outputs. It also keeps your dataset self-describing — the directory tree itself
+outputs. It also keeps your dataset self-describing, since the directory tree itself
 records what has been generated and from what.

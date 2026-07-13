@@ -1,6 +1,6 @@
 # `hypline featuregen`
 
-Generate stimulus-derived **features** — the predictors (X) an encoding model
+Generate stimulus-derived **features**, the predictors (X) an encoding model
 maps onto the BOLD signal. `featuregen` is a group of subcommands, one per
 feature kind.
 
@@ -39,7 +39,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 | ------------------- | ---------------------------------------------------------------- | ------- |
 | `--no-articulatory` | Use a plain phoneme identity vector instead of articulatory features | off |
 | `--desc`            | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
-| `--skip-confoundgen`| Write features only; do **not** also generate phonemic confounds | off     |
+| `--skip-confoundgen`| Write features only; do not also generate phonemic confounds | off     |
 | `--dyad-ids`        | Comma-separated dyad IDs to process; omit for all                | all     |
 | `--data-filters`    | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`           | Overwrite existing outputs (default skips them)                  | off     |
@@ -104,7 +104,7 @@ A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
 Derive **contextual word embeddings** from any Hugging Face causal (decoder) LM.
 The transcript is tokenized and run through the model; each sub-word token's
 hidden state at a chosen `--layer` becomes its `feature` vector. The model id is
-passed verbatim to `from_pretrained`, so the hub is open and unbounded — any
+passed verbatim to `from_pretrained`, so the hub is open and unbounded: any
 causal LM with a fast (Rust) tokenizer and a BOS token works.
 
 ### Inputs
@@ -116,7 +116,7 @@ but carry their null timing into the output; null-`word` rows are skipped.
 The whole transcript is encoded in one forward pass, so it must fit the model's
 context window (tokens + a BOS prefix ≤ `max_position_embeddings`). A long
 transcript on a short-context model (gpt-2 caps at 1024) raises rather than
-truncating — reach for a longer-context LM instead.
+truncating; reach for a longer-context LM instead.
 
 ### Options
 
@@ -127,7 +127,7 @@ truncating — reach for a longer-context LM instead.
 | `--device`           | Hardware target (`cpu` or `cuda`)                                | `cpu`   |
 | `--layer`            | Hidden-layer index in `0..num_hidden_layers`; omit for the middle layer | middle |
 | `--desc`             | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
-| `--skip-confoundgen` | Write features only; do **not** also generate semantic confounds | off     |
+| `--skip-confoundgen` | Write features only; do not also generate semantic confounds | off     |
 | `--dyad-ids`         | Comma-separated dyad IDs to process; omit for all                | all     |
 | `--data-filters`     | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`            | Overwrite existing outputs (default skips them)                  | off     |
@@ -171,8 +171,8 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 !!! note "Causal LMs only"
 
     The model must be a causal/decoder LM with a fast tokenizer and a BOS token.
-    Encoder checkpoints (BERT and the like) are rejected up front — `from_pretrained`
-    would silently load them and emit garbage.
+    Encoder checkpoints (BERT and the like) are rejected up front, because
+    `from_pretrained` would otherwise load them silently and emit garbage.
 
 !!! note "Gated models"
 
@@ -193,7 +193,7 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 ## `featuregen spectral`
 
 Derive a **log-Mel spectrogram** from the stimulus audio using a
-[Whisper](https://github.com/openai/whisper) feature extractor — the same
+[Whisper](https://github.com/openai/whisper) feature extractor, the same
 front-end that turns audio into the input Whisper's encoder sees. Unlike
 `phonemic` and `semantic`, this reads audio directly (no transcript needed) and
 its output is **pre-aligned to the run's BOLD TR grid**: one log-Mel vector per
@@ -229,7 +229,7 @@ it. A dyad with no resolvable BOLD raises.
 
     The Whisper feature extractor is a CPU Mel transform with no forward pass, so
     there is no `--device` option. And unlike `phonemic` and `semantic`, spectral
-    has no chained `confoundgen` step — it writes features only.
+    has no chained `confoundgen` step; it writes features only.
 
 ### Example
 
@@ -268,8 +268,8 @@ A `--desc` label lands as `desc-<label>` in its own subdirectory
 Derive **per-token syntactic-function features** from word-level transcripts with
 [spaCy](https://spacy.io/). Each token's feature is a fixed-width one-hot of its
 POS tag concatenated with its dependency relation, plus a final 0/1 stopword
-dimension. The model is fixed (`en_core_web_lg`) and auto-downloaded on first use
-— there is no `--model` option.
+dimension. The model is fixed (`en_core_web_lg`) and auto-downloaded on first use,
+so there is no `--model` option.
 
 Words are tokenized and tagged **one conversational turn at a time**: the
 dependency parser needs coherent utterances, so words are grouped by `turn_sub`
@@ -298,7 +298,7 @@ their null timing into the output. Null-`word` rows are dropped and warned.
 
     The spaCy model is fixed (`en_core_web_lg`), so there is no `--model` option;
     the parse runs on CPU, so there is no `--device` either. And unlike `phonemic`
-    and `semantic`, syntactic has no chained `confoundgen` step — it writes
+    and `semantic`, syntactic has no chained `confoundgen` step; it writes
     features only.
 
 ### Example

@@ -1,6 +1,6 @@
 # `hypline encoding`
 
-Fit and score **voxelwise ridge encoding models** — the step that joins the two
+Fit and score **voxelwise ridge encoding models**, the step that joins the two
 sides the rest of the pipeline prepares. `train` maps stimulus features (X) onto
 denoised BOLD (Y) per subject; `analyze` scores one subject's model against
 another subject's brain, across production and comprehension turns. `encoding`
@@ -16,8 +16,8 @@ hypline encoding <command> <dataset-root> [OPTIONS]
 | `analyze`  | Score a model's cross-subject predictions against a target's BOLD   |
 
 Both read from the dataset root and write to a new **`results/`** area (see
-[Outputs](#outputs)). Results are Python objects, not tables — load them back
-for downstream analysis with the [encoding results API](encoding-results.md).
+[Outputs](#outputs)). Results load back as live Python objects rather than flat
+tables; read them for downstream analysis with the [encoding results API](encoding-results.md).
 
 !!! note "The banded ridge model"
 
@@ -127,8 +127,8 @@ role (production / comprehension / both). Three subject roles are independent:
 
 Any combination is valid within one study: `source == target` is a
 within-subject fit; partners in one dyad share a conversation across different
-brains; different dyads are a scramble/null control (`analyze` warns). `self`
-and `partner` are accepted as `--model-sub` / `--source-sub` values, resolved
+brains; different dyads are a scramble/null control (`analyze` warns). The values
+`self` and `partner` are accepted for `--model-sub` / `--source-sub`, resolved
 relative to `--target-sub` via `participants.tsv`.
 
 ```bash
@@ -151,17 +151,17 @@ hypline encoding analyze <dataset-root> \
 The output is per-fold, per-band, per-role, per-voxel scores. These are himalaya
 *split* scores — each band's own contribution to the joint prediction — so a
 band's value is not a plain Pearson correlation and need not fall in `[-1, 1]`.
-Roles are derived from the **target's** turns: `prod` and `comp` are the
+Roles are derived from the target's turns: `prod` and `comp` are the
 exclusive pure-production / pure-comprehension rows, and `both` is the union of
-any speech-active row. A role with no rows scores `NaN`, not zero.
+any speech-active row. A role with no rows scores `NaN` rather than zero.
 
 ### Example
 
 Score subject `031`'s own model against its own BOLD (a within-subject fit). With
 default `--test-on`, `analyze` scores each model's out-of-sample cells, so the
-model must be **folded** — a `--fold-by none` model trained on every cell has no
-held-out cells and raises here (name cells with `--test-on`, or use a folded
-model as below):
+model must be folded. A `--fold-by none` model trained on every cell has no
+held-out cells and raises here; name cells with `--test-on`, or use a folded
+model as below:
 
 ```bash
 hypline encoding analyze data/ \
@@ -171,7 +171,7 @@ hypline encoding analyze data/ \
   --desc selfeval
 ```
 
-Score subject `031`'s BOLD using the **partner's** model and features (a
+Score subject `031`'s BOLD using the partner's model and features (a
 cross-brain, shared-conversation eval) on run 6:
 
 ```bash
@@ -202,7 +202,7 @@ source-run or session entity):
 - **`encodingModel-<desc>/`** (`train`) — the fitted model as a `.joblib` blob,
   plus a JSON sidecar mirroring the recipe and provenance without unpickling.
 - **`encodingEval-<desc>/`** (`analyze`) — the eval as a self-describing
-  **netCDF-4** file any tool can read, with provenance (`model_sub`,
+  netCDF-4 file any tool can read, carrying provenance (`model_sub`,
   `source_sub`, `target_sub`, `delays`, `bold_space`, `test_on`, …) in its
   attributes.
 
@@ -223,5 +223,5 @@ source-run or session entity):
 ## Loading results in Python
 
 Both commands write Python objects, not tables. Load them back for downstream
-analysis — `load_eval` for an eval, `load_artifact` for a fitted model — with
-the [encoding results API](encoding-results.md).
+analysis with the [encoding results API](encoding-results.md): `load_eval` for
+an eval, `load_artifact` for a fitted model.

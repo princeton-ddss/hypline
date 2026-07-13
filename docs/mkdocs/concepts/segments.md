@@ -1,8 +1,8 @@
 # Segments and metadata
 
-A single BOLD run often contains several distinct stretches you care about —
-trials, blocks, conditions. Hypline calls these **segments**, and it reads them
-from your `events.tsv` files. Segments are what let you generate per-trial
+A single BOLD run often contains several distinct stretches you care about, such
+as trials, blocks, or conditions. Hypline calls these **segments**, and it reads
+them from your `events.tsv` files. Segments are what let you generate per-trial
 features and filter your data down to specific conditions with `--data-filters`.
 
 This page explains where segments come from and how `--data-filters` uses them.
@@ -23,7 +23,7 @@ resolves them through [`participants.tsv`](layout.md#subject-vs-dyad) and reads
 either partner's events — segments are shared across a dyad by construction.
 
 Hypline infers segments from the `trial_type` column. A row whose `trial_type`
-is an `entity-value` pair (like `trial-1`) **declares a segment** — a named time
+is an `entity-value` pair (like `trial-1`) **declares a segment**: a named time
 window within the run:
 
 ```tsv
@@ -33,8 +33,8 @@ onset   duration   trial_type
 70.0    30.0       trial-3
 ```
 
-This run has three segments. Plain labels (e.g. `rest`, `fixation`) are *not*
-segments — they are ignored for segmentation, so you can keep standard
+This run has three segments. Plain labels (e.g. `rest`, `fixation`) are not
+segments; they are ignored for segmentation, so you can keep standard
 annotations in the same file.
 
 !!! info "One segment entity per run"
@@ -52,14 +52,14 @@ annotations in the same file.
 | **Segmented**        | one or more `entity-value` rows             | one window per segment          |
 | **Single-window**    | exactly one `task-<name>` row               | trims padding / holds metadata  |
 
-The last case is an escape hatch: when a run has no internal structure but you
+The last case is an escape hatch. When a run has no internal structure but you
 still want to trim leading instructions or attach run-level metadata, add a
 single row whose `trial_type` repeats the run's task name (e.g. `task-conv`).
 
 ## Attaching metadata: `events.json`
 
 Segment names like `trial-1` carry no meaning on their own. Descriptive
-attributes — condition, stimulus item, counterbalance group — live in the
+attributes such as condition, stimulus item, or counterbalance group live in the
 companion `events.json` sidecar, under the BIDS `trial_type.Levels` field:
 
 ```json title="sub-031_ses-1_task-conv_run-1_events.json"
@@ -88,8 +88,8 @@ this metadata onto each segment when it processes the run, so you can filter on
 ## How segments reach `--data-filters`
 
 The segments and metadata defined here are what `--data-filters` selects on. A
-token like `cond-R` matches against **both** filename entities and the
-`events.json` metadata — so the segment entity (`trial`) and its descriptive
+token like `cond-R` matches against both filename entities and the
+`events.json` metadata, so the segment entity (`trial`) and its descriptive
 attributes (`cond`, `item`) all become things you can filter by, even though only
 the structural ones appear in filenames.
 
@@ -97,11 +97,11 @@ For how tokens combine (OR within an entity, AND across entities) and the full
 set of recipes, see [Filter to specific runs or
 conditions](../how-to/filter.md).
 
-## Why segments are explicit
+## Why you declare segments by hand
 
 Hypline requires you to declare segment onsets and durations directly in
 `events.tsv` rather than inferring them from trial-level columns. Encoding
 models bin BOLD timepoints into segments, and inferring those boundaries from
-indirect cues would quietly change which timepoint lands in which segment — a
-scientific decision. Making the windows explicit keeps that decision yours and
+indirect cues would quietly change which timepoint lands in which segment. That
+is a scientific decision, so making the windows explicit keeps it yours and
 reviewable.

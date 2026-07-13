@@ -141,14 +141,14 @@ source:
 └── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 ```
 
-The output keeps the input's dimensions — only the signal values change. Each run
+The output keeps the input's dimensions; only the signal values change. Each run
 gets a per-file `.json` sidecar recording its `Sources` (a `bids:` URI to the
 source BOLD), the resolved cleaning settings, and the hypline version.
 On first output, hypline stamps a `derivatives/hypline/dataset_description.json`
 (written once, left alone thereafter).
 
 Denoised BOLD lives in its own tree rather than beside its fMRIPrep source
-because denoising is hypline's own pipeline, not a continuation of fMRIPrep — a
+because denoising is hypline's own pipeline, not a continuation of fMRIPrep. A
 separate tree carries an honest `GeneratedBy: hypline` provenance instead of
 inheriting fMRIPrep's.
 
@@ -160,5 +160,5 @@ inheriting fMRIPrep's.
 | `--custom-sources and --custom-columns must be given together` | One of the custom-nuisance options was passed without the other. | Supply both, or neither. |
 | A `--custom-sources` source resolves to 0 (or multiple) files | A source names a `nuisance/<kind>[-<desc>]/` directory that does not exist (or matches more than one file per run). | Check the source spelling against your `nuisance/` directories. |
 | `Unequal number of TRs between BOLD and nuisance` | A regressor channel has a different row count than the BOLD it is paired with. | Confirm the fMRIPrep confounds table and any custom nuisance files span every TR of the run. |
-| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is **absent** from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
+| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is absent from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
 | `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` / `--data-filters` excluded them all. | Confirm fMRIPrep outputs exist and that your filters are not too narrow. |
