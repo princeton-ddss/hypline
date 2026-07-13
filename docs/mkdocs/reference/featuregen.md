@@ -2,7 +2,8 @@
 
 Generate stimulus-derived **features**, the predictors (X) an encoding model
 maps onto the BOLD signal. `featuregen` is a group of subcommands, one per
-feature kind.
+feature kind. For what each kind captures and how to choose among them, see
+[Feature families](../concepts/feature-families.md).
 
 ```bash
 hypline featuregen <kind> <dataset-root> [OPTIONS]

@@ -407,8 +407,8 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 
 ## 8. Score across brains
 
-The within-subject eval is the warm-up. What hypline is built for is the
-**cross-brain** case: because the two partners shared one conversation, you can
+The within-subject eval is the warm-up. What hypline is built for is
+**cross-brain** analysis: because the two partners shared one conversation, you can
 drive one partner's model with the partner's speech and score it against the
 other partner's brain. Same command, different subject wiring:
 
@@ -431,6 +431,13 @@ partner` and `--source-sub partner` swap in `sub-032`'s model and features (hypl
 resolves `partner` through `participants.tsv`). The output structure is identical
 to step 7 — a `.nc` under `encodingEval-crosseval/` — so `load_eval` reads it the
 same way.
+
+This pairs the partner's model *and* speech, the cross-brain form used in Zada et
+al. (2026). It is not the only one: pairing your own speech with the partner's
+model (`--source-sub self --model-sub partner`) is often preferred, since it holds
+the stimulus fixed and varies only the model. [How the encoding model
+works](../concepts/how-encoding-works.md#choosing-source-and-model) lays out the
+choices side by side.
 
 !!! info "What this step demonstrates"
 

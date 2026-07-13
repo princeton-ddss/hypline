@@ -11,7 +11,9 @@ from hypline.encoding import load_eval, load_artifact
 
 **An eval** (`analyze`'s output) loads as an
 [`xarray.Dataset`](https://docs.xarray.dev/), the usual downstream target,
-since it holds the per-voxel correlations you analyze:
+since it holds the per-voxel correlations you analyze. For what its `fold` /
+`band` / `role` / `voxel` axes mean and how to subset them, see [Reading an
+encoding result](../concepts/reading-an-eval.md):
 
 ```python
 ds = load_eval("data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc")

@@ -82,11 +82,17 @@ nav:
   - Tutorials:
     - A full run on the example dataset: tutorials/walkthrough.md
   - How-to guides:
+    - Prepare your own dataset: how-to/prepare-dataset.md
     - Filter to specific runs or conditions: how-to/filter.md
     - Regenerate outputs after a fix: how-to/regenerate.md
+    - Test the cross-brain effect from evals: how-to/analyze-evals.md
   - Concepts:
     - The hypline dataset layout: concepts/layout.md
     - Segments and metadata: concepts/segments.md
+    - Feature families: concepts/feature-families.md
+    - How the encoding model works: concepts/how-encoding-works.md
+    - Reading an encoding result: concepts/reading-an-eval.md
+    - Glossary: concepts/glossary.md
   - Reference:
     - CLI:
       - hypline transcribe: reference/transcribe.md

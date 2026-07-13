@@ -6,7 +6,8 @@ Understanding that convention is the key to using hypline: you never pass file
 paths, you organize your files where hypline expects them.
 
 This page describes the layout once. The [reference pages](../reference/transcribe.md)
-assume it.
+assume it. To build a dataset in this shape from your own recordings, follow
+[Prepare your own dataset](../how-to/prepare-dataset.md).
 
 ## The root tree
 

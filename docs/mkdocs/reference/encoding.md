@@ -30,7 +30,8 @@ tables; read them for downstream analysis with the [encoding results API](encodi
     weights for each (`--no-split` keeps one shared copy). Either way, two
     intercept-like production/comprehension task boxcars always ride a reserved
     band that absorbs the mean BOLD offset between the two states — `--no-split`
-    drops the per-regressor duplication, not this band.
+    drops the per-regressor duplication, not this band. [How the encoding model
+    works](../concepts/how-encoding-works.md) unpacks this at more length.
 
 ---
 
@@ -129,7 +130,9 @@ Any combination is valid within one study: `source == target` is a
 within-subject fit; partners in one dyad share a conversation across different
 brains; different dyads are a scramble/null control (`analyze` warns). The values
 `self` and `partner` are accepted for `--model-sub` / `--source-sub`, resolved
-relative to `--target-sub` via `participants.tsv`.
+relative to `--target-sub` via `participants.tsv`. For how these pairings map to
+within-brain, cross-brain, and pseudo-dyad analyses, see [Choosing source and
+model](../concepts/how-encoding-works.md#choosing-source-and-model).
 
 ```bash
 hypline encoding analyze <dataset-root> \
