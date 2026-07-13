@@ -265,7 +265,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -520,6 +520,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../how-to/prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../how-to/filter/" class="md-nav__link">
         
   
@@ -549,6 +572,29 @@
   
   <span class="md-ellipsis">
     Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
     
   </span>
   
@@ -645,6 +691,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1348,7 +1486,9 @@ top-level <code>hypline</code>), which pulls in the encoding stack:</p>
 </code></pre></div>
 <p><strong>An eval</strong> (<code>analyze</code>'s output) loads as an
 <a href="https://docs.xarray.dev/"><code>xarray.Dataset</code></a>, the usual downstream target,
-since it holds the per-voxel correlations you analyze:</p>
+since it holds the per-voxel correlations you analyze. For what its <code>fold</code> /
+<code>band</code> / <code>role</code> / <code>voxel</code> axes mean and how to subset them, see <a href="../../concepts/reading-an-eval/">Reading an
+encoding result</a>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">ds</span> <span class="o">=</span> <span class="n">load_eval</span><span class="p">(</span><span class="s2">&quot;data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc&quot;</span><span class="p">)</span>
 
 <span class="c1"># corr is indexed by fold / band / role / voxel — subset by name:</span>

@@ -12,7 +12,7 @@
         <link rel="prev" href="../..">
       
       
-        <link rel="next" href="../../how-to/filter/">
+        <link rel="next" href="../../how-to/prepare-dataset/">
       
       
       <link rel="icon" href="../../images/favicon.svg">
@@ -269,7 +269,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -672,6 +672,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../how-to/prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../how-to/filter/" class="md-nav__link">
         
   
@@ -701,6 +724,29 @@
   
   <span class="md-ellipsis">
     Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
     
   </span>
   
@@ -797,6 +843,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1599,8 +1737,8 @@ error means the model wasn't folded; re-run step 6 with <code>--fold-by run
 --n-folds loo</code>.</p>
 </div>
 <h2 id="8-score-across-brains">8. Score across brains<a class="headerlink" href="#8-score-across-brains" title="Permanent link">&para;</a></h2>
-<p>The within-subject eval is the warm-up. What hypline is built for is the
-<strong>cross-brain</strong> case: because the two partners shared one conversation, you can
+<p>The within-subject eval is the warm-up. What hypline is built for is
+<strong>cross-brain</strong> analysis: because the two partners shared one conversation, you can
 drive one partner's model with the partner's speech and score it against the
 other partner's brain. Same command, different subject wiring:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>analyze<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
@@ -1618,6 +1756,12 @@ partner</code> and <code>--source-sub partner</code> swap in <code>sub-032</code
 resolves <code>partner</code> through <code>participants.tsv</code>). The output structure is identical
 to step 7 — a <code>.nc</code> under <code>encodingEval-crosseval/</code> — so <code>load_eval</code> reads it the
 same way.</p>
+<p>This pairs the partner's model <em>and</em> speech, the cross-brain form used in Zada et
+al. (2026). It is not the only one: pairing your own speech with the partner's
+model (<code>--source-sub self --model-sub partner</code>) is often preferred, since it holds
+the stimulus fixed and varies only the model. <a href="../../concepts/how-encoding-works/#choosing-source-and-model">How the encoding model
+works</a> lays out the
+choices side by side.</p>
 <div class="admonition info">
 <p class="admonition-title">What this step demonstrates</p>
 <p>This is how you run the cross-brain analysis that motivates hypline: the
@@ -1735,13 +1879,13 @@ dataset root. To regenerate a step after changing an option, re-run it with
         
         
           
-          <a href="../../how-to/filter/" class="md-footer__link md-footer__link--next" aria-label="Next: Filter to specific runs or conditions">
+          <a href="../../how-to/prepare-dataset/" class="md-footer__link md-footer__link--next" aria-label="Next: Prepare your own dataset">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Filter to specific runs or conditions
+                Prepare your own dataset
               </div>
             </div>
             <div class="md-footer__button md-icon">
