@@ -308,6 +308,13 @@
   
     
     
+      
+  
+  
+  
+  
+    
+    
       <li class="md-tabs__item">
         <a href="../../reference/transcribe/" class="md-tabs__link">
           
@@ -317,6 +324,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -775,6 +785,49 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../reference/transcribe/" class="md-nav__link">
         
@@ -868,8 +921,55 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/python-api/" class="md-nav__link">
+      <a href="../../reference/encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -878,7 +978,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -964,24 +1122,24 @@
 
 
 <h1 id="regenerate-outputs-after-a-fix">Regenerate outputs after a fix<a class="headerlink" href="#regenerate-outputs-after-a-fix" title="Permanent link">&para;</a></h1>
-<p>You ran part of the pipeline, then something upstream changed — you re-recorded
+<p>You ran part of the pipeline, then something upstream changed: you re-recorded
 audio, fixed an <code>events.tsv</code>, or chose different confound columns. This guide
 shows how to redo just the affected work without recomputing the whole dataset,
-and — importantly — which <strong>downstream</strong> steps you must also rerun.</p>
+and, importantly, which <strong>downstream</strong> steps you must also rerun.</p>
 <h2 id="why-a-plain-rerun-does-nothing">Why a plain rerun does nothing<a class="headerlink" href="#why-a-plain-rerun-does-nothing" title="Permanent link">&para;</a></h2>
 <p>By default, hypline <strong>skips any output that already exists</strong>. This makes reruns
 cheap, but it means a second run after a fix appears to do nothing: the outputs
 are still there, so every step is skipped.</p>
 <p>To overwrite, pass <strong><code>--force</code></strong>. Skipping is decided per output file, so
 <code>--force</code> combined with <a href="../filter/">the identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) /
-<code>--data-filters</code></a> regenerates <strong>only</strong> the subset you select —
-everything else is left untouched.</p>
+<code>--data-filters</code></a> regenerates only the subset you select, leaving
+everything else untouched.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># regenerate features for run 1 only; all other runs stay as they were</span>
 hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
 </code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Skipping is existence-only — there is no staleness detection</p>
-<p>Hypline decides to skip by asking <em>“does this output file exist?”</em> — <strong>not</strong>
+<p>Hypline decides to skip by asking <em>“does this output file exist?”</em>, never
 <em>“is this output older than its inputs?”</em> It never compares timestamps. So
 regenerating an input does <strong>not</strong> mark anything downstream as stale.</p>
 <p>If a later step's output already exists, that step will <strong>skip and leave its
@@ -1029,14 +1187,13 @@ wrote, so a gap leaves stale output behind.</p>
 </table>
 <div class="admonition note">
 <p class="admonition-title">Why <code>featuregen phonemic</code>, not <code>confoundgen phonemic</code>, in those rows</p>
-<p><code>featuregen phonemic</code> emits both the features <strong>and</strong> the matching
+<p><code>featuregen phonemic</code> emits both the features and the matching
 <code>conf-phonemic</code> confounds in one step, so <code>--force</code> refreshes both — no
 separate <code>confoundgen phonemic</code> call needed after an audio or <code>events.tsv</code>
 fix. The catch worth knowing: segment onsets and durations affect only the
-<strong>confound</strong> half. <code>feat-phonemic</code> carries per-word timing and is
-segment-agnostic, so re-emitting it is harmless rework, not a correctness
-fix; the segmenting that <code>events.tsv</code> drives happens when the confounds are
-built.</p>
+confound half. <code>feat-phonemic</code> carries per-word timing and is
+segment-agnostic, so re-emitting it is harmless rework; the segmenting that
+<code>events.tsv</code> drives happens when the confounds are built.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Stimulus fixes do not propagate to <code>denoise</code></p>
@@ -1048,8 +1205,8 @@ confounds but leaves <code>desc-denoised</code> BOLD untouched: there is no stim
 </div>
 <h2 id="worked-example-you-decided-to-add-compcor-regressors">Worked example: you decided to add CompCor regressors<a class="headerlink" href="#worked-example-you-decided-to-add-compcor-regressors" title="Permanent link">&para;</a></h2>
 <p>You already cleaned the dataset, then decided the motion model needs CompCor
-components. The <code>desc-denoised</code> BOLD on disk was built without them and is now stale
-— but a plain rerun skips, because the output already exists.</p>
+components. The <code>desc-denoised</code> BOLD on disk was built without them and is now
+stale, but a plain rerun skips, because the output already exists.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
@@ -1062,7 +1219,7 @@ applies after editing any <code>nuisance/</code> file you regress out.</p>
 <p class="admonition-title">When in doubt, force the whole tail</p>
 <p>If you are unsure how far a change propagates, rerun every step from the
 fix onward with <code>--force</code>. Hypline recomputes from scratch each time, so a
-broader <code>--force</code> is never <em>wrong</em> — only more expensive. Scope it with
+broader <code>--force</code> is never wrong — only more expensive. Scope it with
 <code>--dyad-ids</code> / <code>--sub-ids</code> / <code>--data-filters</code> to keep the cost down.</p>
 </div>
 <div class="footnote">
@@ -1071,9 +1228,9 @@ broader <code>--force</code> is never <em>wrong</em> — only more expensive. Sc
 <li id="fn:meta">
 <p><code>events.json</code> metadata (like <code>cond</code>) is matched by <code>--data-filters</code> when
 a command runs; it is never written into a filename or output. Changing it
-changes <em>which</em> files a future filter selects, not the contents of files
+changes which files a future filter selects, not the contents of files
 already generated. (Segment onsets/durations in <code>events.tsv</code>, by contrast,
-<em>do</em> change generated confounds — so that row regenerates.)&#160;<a class="footnote-backref" href="#fnref:meta" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+do change generated confounds — so that row regenerates.)&#160;<a class="footnote-backref" href="#fnref:meta" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>

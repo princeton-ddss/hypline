@@ -308,6 +308,13 @@
   
     
     
+      
+  
+  
+  
+  
+    
+    
       <li class="md-tabs__item">
         <a href="../../reference/transcribe/" class="md-tabs__link">
           
@@ -317,6 +324,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -721,9 +731,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-this-design" class="md-nav__link">
+  <a href="#the-payoff" class="md-nav__link">
     <span class="md-ellipsis">
-      Why this design
+      The payoff
     </span>
   </a>
   
@@ -808,6 +818,49 @@
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -910,8 +963,55 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/python-api/" class="md-nav__link">
+      <a href="../../reference/encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -920,7 +1020,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1020,9 +1178,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-this-design" class="md-nav__link">
+  <a href="#the-payoff" class="md-nav__link">
     <span class="md-ellipsis">
-      Why this design
+      The payoff
     </span>
   </a>
   
@@ -1048,7 +1206,7 @@
 
 
 <h1 id="the-hypline-dataset-layout">The hypline dataset layout<a class="headerlink" href="#the-hypline-dataset-layout" title="Permanent link">&para;</a></h1>
-<p>Every hypline command takes a single argument — the <strong>dataset root</strong> — and finds
+<p>Every hypline command takes a single argument, the <strong>dataset root</strong>, and finds
 its inputs and writes its outputs by following a fixed directory convention.
 Understanding that convention is the key to using hypline: you never pass file
 paths, you organize your files where hypline expects them.</p>
@@ -1066,6 +1224,7 @@ a few extra areas. A complete tree looks like this:</p>
 ├── stimuli/dyad-030/ses-1/audio/            # stimulus audio, transcripts
 ├── features/dyad-030/ses-1/phonemic/        # generated features
 ├── confounds/dyad-030/ses-1/phonemic/       # generated confounds
+├── results/sub-031/encodingModel-v1/        # encoding models and evals
 └── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
 </code></pre></div>
 <ul>
@@ -1078,7 +1237,11 @@ a few extra areas. A complete tree looks like this:</p>
 <li><strong><code>stimuli/</code>, <code>features/</code>, <code>confounds/</code></strong> are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by <strong>dyad</strong>
   (<code>dyad-030/</code>), not subject — see <a href="#subject-vs-dyad">Subject vs. dyad</a> below.</li>
-<li><strong><code>nuisance/</code></strong> is optional and <em>you</em> fill it — run-level regressors (e.g.
+<li><strong><code>results/</code></strong> is where <a href="../../reference/encoding/"><code>encoding</code></a> writes its
+  analysis outputs — fitted models (<code>encodingModel-&lt;desc&gt;/</code>) and evals
+  (<code>encodingEval-&lt;desc&gt;/</code>). It is keyed by <strong>subject</strong>, since one output
+  consumes many runs across sessions.</li>
+<li><strong><code>nuisance/</code></strong> is optional and you fill it — run-level regressors (e.g.
   physiological recordings) for <a href="../../reference/denoise/"><code>denoise</code></a> to regress
   out alongside fMRIPrep's confounds.</li>
 <li><strong><code>participants.tsv</code></strong> is a standard BIDS table at the dataset root, required
@@ -1097,8 +1260,8 @@ sessions omit the level entirely (<code>sub-031/func/</code>). Hypline handles b
 \____________________________________________/ \__/ \_____/
                    entities                   suffix   ext
 </code></pre></div>
-<p>The <strong>identity entities</strong> at the front name <em>which recording</em> a file belongs to.
-A file leads with exactly one of <code>sub</code> <strong>or</strong> <code>dyad</code> (never both), followed by
+<p>The <strong>identity entities</strong> at the front name which recording a file belongs to.
+A file leads with exactly one of <code>sub</code> or <code>dyad</code> (never both), followed by
 the BOLD-identity entities <code>ses</code>, <code>task</code>, <code>run</code>. A <code>sub</code>-keyed file belongs to
 one brain; a <code>dyad</code>-keyed file belongs to one shared conversation. Generated
 files mirror the identity entities of the source they came from.</p>
@@ -1107,10 +1270,11 @@ files mirror the identity entities of the source they came from.</p>
 both are scanned. An artifact is keyed by <strong>what it is derived from</strong>:</p>
 <ul>
 <li><strong><code>sub</code>-keyed</strong> — derived from one <em>brain</em>: raw BOLD, <code>derivatives/fmriprep/</code>,
-  <code>derivatives/hypline/</code> (denoised), <code>nuisance/</code>.</li>
+  <code>derivatives/hypline/</code> (denoised), <code>nuisance/</code>, and <code>results/</code> (a subject's
+  fitted encoding model, whose weights tie to that brain's voxel grid).</li>
 <li><strong><code>dyad</code>-keyed</strong> — derived from the <em>shared conversation</em> between two partners:
   <code>stimuli/</code>, <code>features/</code>, <code>confounds/</code>. One conversation → one dyad → one set of
-  stimuli/features/confounds, later consumed by <em>each</em> partner's per-subject
+  stimuli/features/confounds, later consumed by each partner's per-subject
   encoding model. A <code>dyad-030</code> audio file is the dyad's shared recording, not
   either partner's.</li>
 </ul>
@@ -1121,7 +1285,7 @@ the required <code>participant_id</code> column plus a custom <strong><code>dyad
 sub-031          dyad-030
 sub-032          dyad-030
 </code></pre></div>
-<p>This is the single source of truth for which subjects make up which dyad — here
+<p>This is the single source of truth for which subjects make up which dyad. Here
 subjects <code>031</code> and <code>032</code> are partners in <code>dyad-030</code> (a real study has many such
 pairs). It is read lazily: a purely <code>sub</code>-keyed workflow (e.g. <code>denoise</code>
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
@@ -1133,7 +1297,7 @@ a sub-keyed BOLD requires it and errors if it is missing.</p>
 spaces. Hypline splits on tabs, so a space-separated row collapses into one
 column and fails with a misleading "missing column" error.</p>
 </div>
-<p>So a <code>dyad-030</code> feature file does <strong>not</strong> match a BOLD file by sharing <code>sub</code> —
+<p>So a <code>dyad-030</code> feature file does not match a BOLD file by sharing <code>sub</code>;
 the two carry different identity entities. The join goes through
 <code>participants.tsv</code>: a subject's encoding model looks up its dyad, then reads that
 dyad's features.</p>
@@ -1164,10 +1328,17 @@ what kind of derivative it is:</p>
 <td><code>nuisance/</code></td>
 <td><code>nuis-physio</code></td>
 </tr>
+<tr>
+<td><code>result-&lt;kind&gt;</code></td>
+<td><code>results/</code></td>
+<td><code>result-encodingModel</code>, <code>result-encodingEval</code></td>
+</tr>
 </tbody>
 </table>
 <p>The <code>&lt;kind&gt;</code> matches the subdirectory the file lives in. A phonemic feature
-(<code>feat-phonemic</code>) lives under <code>features/dyad-030/ses-1/phonemic/</code>.</p>
+(<code>feat-phonemic</code>) lives under <code>features/dyad-030/ses-1/phonemic/</code>. A result's
+<code>&lt;kind&gt;-&lt;desc&gt;</code> subdirectory pairs the entity with its <code>--desc</code> variant tag —
+<code>result-encodingModel_desc-v1</code> under <code>results/sub-031/encodingModel-v1/</code>.</p>
 <p>Stimuli carry no category entity. Their kind is a trailing filename suffix
 (<code>_audio</code>, <code>_transcript</code>) instead — e.g. <code>dyad-030_ses-1_task-conv_run-1_audio.wav</code>
 under <code>stimuli/dyad-030/ses-1/audio/</code>.</p>
@@ -1182,8 +1353,8 @@ separate:</p>
 <p>This lets you keep several derivations of the same source side by side and pick
 between them later by name.</p>
 <h2 id="selecting-subjects-and-runs">Selecting subjects and runs<a class="headerlink" href="#selecting-subjects-and-runs" title="Permanent link">&para;</a></h2>
-<p>Because commands discover files by convention, you select <em>what to process</em> with
-options rather than paths — an identity option plus <code>--data-filters</code> for runs and
+<p>Because commands discover files by convention, you select what to process with
+options rather than paths: an identity option plus <code>--data-filters</code> for runs and
 conditions, both interpreted against the entities described above. The identity
 option follows the area the command writes: dyad-keyed stimulus commands
 (<code>transcribe</code>, <code>featuregen</code>, <code>confoundgen</code>) take <strong><code>--dyad-ids</code></strong>, while the
@@ -1193,10 +1364,10 @@ generated, so reruns are cheap).</p>
 <p>For how to combine these, see <a href="../../how-to/filter/">Filter to specific runs or
 conditions</a>; for what <code>--data-filters</code> can match, see
 <a href="../segments/">Segments and metadata</a>.</p>
-<h2 id="why-this-design">Why this design<a class="headerlink" href="#why-this-design" title="Permanent link">&para;</a></h2>
+<h2 id="the-payoff">The payoff<a class="headerlink" href="#the-payoff" title="Permanent link">&para;</a></h2>
 <p>Centralizing discovery in one convention means commands compose cleanly: each
 reads what earlier steps wrote, with no configuration file wiring inputs to
-outputs. It also keeps your dataset self-describing — the directory tree itself
+outputs. It also keeps your dataset self-describing, since the directory tree itself
 records what has been generated and from what.</p>
 
 

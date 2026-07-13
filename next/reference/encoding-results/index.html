@@ -9,10 +9,8 @@
       
       
       
-        <link rel="prev" href="../encoding/">
+        <link rel="prev" href="../python-api/">
       
-      
-        <link rel="next" href="../encoding-results/">
       
       
       <link rel="icon" href="../../images/favicon.svg">
@@ -20,7 +18,7 @@
     
     
       
-        <title>Features & confounds - Hypline</title>
+        <title>Encoding results - Hypline</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#python-api" class="md-skip">
+        <a href="#encoding-results" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +111,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Features & confounds
+              Encoding results
             
           </span>
         </div>
@@ -933,6 +931,29 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -950,7 +971,7 @@
   
   
   <span class="md-ellipsis">
-    Features & confounds
+    Encoding results
     
   </span>
   
@@ -963,7 +984,7 @@
   
   
   <span class="md-ellipsis">
-    Features & confounds
+    Encoding results
     
   </span>
   
@@ -986,24 +1007,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#plugging-in-a-custom-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      Plugging in a custom feature
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#round-tripping" class="md-nav__link">
-    <span class="md-ellipsis">
-      Round-tripping
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       Reference
@@ -1014,28 +1017,28 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#writing" class="md-nav__link">
+  <a href="#loading" class="md-nav__link">
     <span class="md-ellipsis">
-      Writing
+      Loading
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Writing">
+    <nav class="md-nav" aria-label="Loading">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypline.save_feature" class="md-nav__link">
+  <a href="#hypline.encoding.load_eval" class="md-nav__link">
     <span class="md-ellipsis">
-      save_feature
+      load_eval
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#hypline.save_confound" class="md-nav__link">
+  <a href="#hypline.encoding.load_artifact" class="md-nav__link">
     <span class="md-ellipsis">
-      save_confound
+      load_artifact
     </span>
   </a>
   
@@ -1047,28 +1050,46 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#reading" class="md-nav__link">
+  <a href="#result-types" class="md-nav__link">
     <span class="md-ellipsis">
-      Reading
+      Result types
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Reading">
+    <nav class="md-nav" aria-label="Result types">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypline.read_feature" class="md-nav__link">
+  <a href="#hypline.encoding.EncodingArtifact" class="md-nav__link">
     <span class="md-ellipsis">
-      read_feature
+      EncodingArtifact
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#hypline.read_confound" class="md-nav__link">
+  <a href="#hypline.encoding.XRecipe" class="md-nav__link">
     <span class="md-ellipsis">
-      read_confound
+      XRecipe
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hypline.encoding.FittedModel" class="md-nav__link">
+    <span class="md-ellipsis">
+      FittedModel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hypline.encoding.FoldSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      FoldSpec
     </span>
   </a>
   
@@ -1080,28 +1101,28 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#metadata" class="md-nav__link">
+  <a href="#saving" class="md-nav__link">
     <span class="md-ellipsis">
-      Metadata
+      Saving
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Metadata">
+    <nav class="md-nav" aria-label="Saving">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypline.read_feature_metadata" class="md-nav__link">
+  <a href="#hypline.encoding.save_eval" class="md-nav__link">
     <span class="md-ellipsis">
-      read_feature_metadata
+      save_eval
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#hypline.read_confound_metadata" class="md-nav__link">
+  <a href="#hypline.encoding.save_artifact" class="md-nav__link">
     <span class="md-ellipsis">
-      read_confound_metadata
+      save_artifact
     </span>
   </a>
   
@@ -1121,29 +1142,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../encoding-results/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Encoding results
-    
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -1191,24 +1189,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#plugging-in-a-custom-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      Plugging in a custom feature
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#round-tripping" class="md-nav__link">
-    <span class="md-ellipsis">
-      Round-tripping
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#reference" class="md-nav__link">
     <span class="md-ellipsis">
       Reference
@@ -1219,28 +1199,28 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#writing" class="md-nav__link">
+  <a href="#loading" class="md-nav__link">
     <span class="md-ellipsis">
-      Writing
+      Loading
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Writing">
+    <nav class="md-nav" aria-label="Loading">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypline.save_feature" class="md-nav__link">
+  <a href="#hypline.encoding.load_eval" class="md-nav__link">
     <span class="md-ellipsis">
-      save_feature
+      load_eval
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#hypline.save_confound" class="md-nav__link">
+  <a href="#hypline.encoding.load_artifact" class="md-nav__link">
     <span class="md-ellipsis">
-      save_confound
+      load_artifact
     </span>
   </a>
   
@@ -1252,28 +1232,46 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#reading" class="md-nav__link">
+  <a href="#result-types" class="md-nav__link">
     <span class="md-ellipsis">
-      Reading
+      Result types
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Reading">
+    <nav class="md-nav" aria-label="Result types">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypline.read_feature" class="md-nav__link">
+  <a href="#hypline.encoding.EncodingArtifact" class="md-nav__link">
     <span class="md-ellipsis">
-      read_feature
+      EncodingArtifact
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#hypline.read_confound" class="md-nav__link">
+  <a href="#hypline.encoding.XRecipe" class="md-nav__link">
     <span class="md-ellipsis">
-      read_confound
+      XRecipe
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hypline.encoding.FittedModel" class="md-nav__link">
+    <span class="md-ellipsis">
+      FittedModel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hypline.encoding.FoldSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      FoldSpec
     </span>
   </a>
   
@@ -1285,28 +1283,28 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#metadata" class="md-nav__link">
+  <a href="#saving" class="md-nav__link">
     <span class="md-ellipsis">
-      Metadata
+      Saving
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Metadata">
+    <nav class="md-nav" aria-label="Saving">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#hypline.read_feature_metadata" class="md-nav__link">
+  <a href="#hypline.encoding.save_eval" class="md-nav__link">
     <span class="md-ellipsis">
-      read_feature_metadata
+      save_eval
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#hypline.read_confound_metadata" class="md-nav__link">
+  <a href="#hypline.encoding.save_artifact" class="md-nav__link">
     <span class="md-ellipsis">
-      read_confound_metadata
+      save_artifact
     </span>
   </a>
   
@@ -1341,105 +1339,60 @@
   
 
 
-<h1 id="python-api">Python API<a class="headerlink" href="#python-api" title="Permanent link">&para;</a></h1>
-<p>Most of hypline is the command-line pipeline, but a small Python API is
-re-exported at the top level for reading and writing hypline's Parquet files
-directly:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hypline</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">read_feature</span><span class="p">,</span>
-    <span class="n">read_feature_metadata</span><span class="p">,</span>
-    <span class="n">read_confound</span><span class="p">,</span>
-    <span class="n">read_confound_metadata</span><span class="p">,</span>
-    <span class="n">save_feature</span><span class="p">,</span>
-    <span class="n">save_confound</span><span class="p">,</span>
-<span class="p">)</span>
+<h1 id="encoding-results">Encoding results<a class="headerlink" href="#encoding-results" title="Permanent link">&para;</a></h1>
+<p>The <a href="../encoding/"><code>encoding</code></a> CLI writes results; hypline's <code>encoding</code> package
+reads them back for downstream analysis — the encoding-side parallel to
+<a href="../python-api/"><code>read_feature</code></a>. Imports come from <code>hypline.encoding</code> (not
+top-level <code>hypline</code>), which pulls in the encoding stack:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hypline.encoding</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_eval</span><span class="p">,</span> <span class="n">load_artifact</span>
 </code></pre></div>
-<p>The two halves are deliberately asymmetric. <strong>Saves are entity-based</strong>:
-you pass <code>bids_root</code> plus BIDS entities (<code>dyad</code>, <code>feat</code>/<code>conf</code>, <code>run</code>, …) and
-hypline derives the canonical output path for you, so writes always land where
-the pipeline expects. Features and confounds describe the shared conversation, so
-they are keyed by <code>dyad</code>, not <code>sub</code> — see <a href="../../concepts/layout/#subject-vs-dyad">Subject vs.
-dyad</a>. <strong>Reads are path-based</strong>, since you
-usually already have a file in hand. Both enforce the <a href="../../concepts/layout/">dataset
-layout</a> and the file formats; a malformed DataFrame or
-path raises rather than writing something the CLI can't later consume.</p>
-<p>Encoding results — fitted models and evals — have their own loaders under
-<code>hypline.encoding</code> (not top-level), covered in <a href="../encoding-results/">Encoding
-results</a>.</p>
-<h2 id="plugging-in-a-custom-feature">Plugging in a custom feature<a class="headerlink" href="#plugging-in-a-custom-feature" title="Permanent link">&para;</a></h2>
-<p>The CLI generates <code>feat-phonemic</code>, <code>feat-semantic</code>, <code>feat-spectral</code>, and
-<code>feat-syntactic</code> features. To drive an
-encoding model on a feature hypline doesn't compute — say prosody, or anything else you
-can align to the stimulus — build the DataFrame yourself and <code>save_feature</code> it into
-the dataset. From then on it is a first-class feature: it sits under
-<code>features/</code>, carries the right entities, and any downstream step that reads
-features by name will find it.</p>
-<p>A feature DataFrame needs two columns: <code>start_time</code> (seconds from the start of
-the stimulus) and <code>feature</code> (one equal-width vector per row). Match the
-<code>start_time</code> convention hypline already uses — see the
-<a href="../featuregen/#outputs">feature file format</a>.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">hypline</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_feature</span>
+<p><strong>An eval</strong> (<code>analyze</code>'s output) loads as an
+<a href="https://docs.xarray.dev/"><code>xarray.Dataset</code></a>, the usual downstream target,
+since it holds the per-voxel correlations you analyze:</p>
+<div class="highlight"><pre><span></span><code><span class="n">ds</span> <span class="o">=</span> <span class="n">load_eval</span><span class="p">(</span><span class="s2">&quot;data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc&quot;</span><span class="p">)</span>
 
-<span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-    <span class="p">{</span>
-        <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.48</span><span class="p">,</span> <span class="mf">0.91</span><span class="p">],</span>
-        <span class="s2">&quot;feature&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]],</span>
-    <span class="p">}</span>
-<span class="p">)</span>
+<span class="c1"># corr is indexed by fold / band / role / voxel — subset by name:</span>
+<span class="n">prod_corr</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;corr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;prod&quot;</span><span class="p">)</span>
 
-<span class="n">path</span> <span class="o">=</span> <span class="n">save_feature</span><span class="p">(</span>
-    <span class="n">df</span><span class="p">,</span>
-    <span class="n">bids_root</span><span class="o">=</span><span class="s2">&quot;data/&quot;</span><span class="p">,</span>
-    <span class="n">dyad</span><span class="o">=</span><span class="s2">&quot;030&quot;</span><span class="p">,</span>
-    <span class="n">ses</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
-    <span class="n">feat</span><span class="o">=</span><span class="s2">&quot;embed&quot;</span><span class="p">,</span>
-    <span class="n">task</span><span class="o">=</span><span class="s2">&quot;conv&quot;</span><span class="p">,</span>
-    <span class="n">run</span><span class="o">=</span><span class="s2">&quot;1&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="c1"># provenance rides in the dataset attributes:</span>
+<span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;model_sub&quot;</span><span class="p">],</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;target_sub&quot;</span><span class="p">],</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;delays&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p>This writes <code>data/features/dyad-030/ses-1/embed/dyad-030_ses-1_task-conv_run-1_feat-embed.parquet</code>.
-Pass <code>desc="..."</code> to tag a variant into its own
-<a href="../../concepts/layout/#variants-with-desc"><code>embed-&lt;desc&gt;/</code> subdirectory</a>, and
-<code>metadata={...}</code> to stash extra keys in the Parquet footer.</p>
-<div class="admonition note">
-<p class="admonition-title">Custom confounds need TR alignment</p>
-<p><code>save_confound</code> is the confound-side parallel, but a confound is regressed
-out of the BOLD, so its rows must align to the BOLD's TR grid: <code>start_time</code>
-must begin at <code>0.0</code> and step by <code>repetition_time</code>, which you pass
-explicitly (a single-row table carries no spacing to infer it from).
-See <a href="../../concepts/segments/">Segments and metadata</a> for how TR-aligned
-confounds relate to the run.</p>
-</div>
-<h2 id="round-tripping">Round-tripping<a class="headerlink" href="#round-tripping" title="Permanent link">&para;</a></h2>
-<p>Read a feature back into a DataFrame, or peek at its footer metadata without
-loading the data:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">hypline</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_feature</span><span class="p">,</span> <span class="n">read_feature_metadata</span>
+<p><strong>A model artifact</strong> (<code>train</code>'s output) loads as an <code>EncodingArtifact</code>, holding the
+fitted weights and the recipe, for reusing or inspecting the model:</p>
+<div class="highlight"><pre><span></span><code><span class="n">artifact</span> <span class="o">=</span> <span class="n">load_artifact</span><span class="p">(</span><span class="s2">&quot;data/results/sub-031/encodingModel-v1/sub-031_result-encodingModel_desc-v1.joblib&quot;</span><span class="p">)</span>
 
-<span class="n">df</span> <span class="o">=</span> <span class="n">read_feature</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-<span class="n">meta</span> <span class="o">=</span> <span class="n">read_feature_metadata</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>   <span class="c1"># feature_name, feature_dim, hypline_version, …</span>
+<span class="n">artifact</span><span class="o">.</span><span class="n">recipe</span>      <span class="c1"># the XRecipe: features, confounds, delays, alphas, split, …</span>
+<span class="n">artifact</span><span class="o">.</span><span class="n">models</span>      <span class="c1"># one FittedModel per fold (its pipeline + the cells it was fit on)</span>
+<span class="n">artifact</span><span class="o">.</span><span class="n">fold</span>        <span class="c1"># the FoldSpec, or None for a single unfolded model</span>
 </code></pre></div>
-<p>The reads validate the path and cross-check the footer against the path
-entities, so a file that round-trips through <code>read_feature</code> is one the pipeline
-will accept.</p>
+<p><code>load_artifact</code> warns (does not fail) if the artifact was written by a different
+hypline version — a provenance signal, not a hard incompatibility.</p>
 <h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>
-<h3 id="writing">Writing<a class="headerlink" href="#writing" title="Permanent link">&para;</a></h3>
+<p>Full signatures and docstrings for the encoding results API — the loaders above,
+the types an artifact is made of, and the write seams behind them.</p>
+<h3 id="loading">Loading<a class="headerlink" href="#loading" title="Permanent link">&para;</a></h3>
 
 
 <div class="doc doc-object doc-function">
 
 
-<h4 id="hypline.save_feature" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">hypline.save_feature</span>
+<h4 id="hypline.encoding.load_eval" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">hypline.encoding.load_eval</span>
 
 
-<a href="#hypline.save_feature" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_feature</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">bids_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">dyad</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">feat</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">entities</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
+<a href="#hypline.encoding.load_eval" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">load_eval</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
 
-        <p>Save a feature DataFrame to its canonical layout location.</p>
+        <p>Open a saved eval netCDF and return the subsettable <code>xr.Dataset</code>.</p>
+<p>The controlled read path (mirrors <code>save_eval</code>): pins the engine and parses
+<code>fold_cells</code> back from its JSON string to <code>list[list[CellKey]]</code> — reconstructing
+each cell via <code>CellKey(**cell)</code> so loaded keys hash and compare against live
+ones (a plain dict never would, since <code>CellKey.__eq__</code> rejects non-<code>CellKey</code>).
+Kept thin — no analysis logic — so the storage boundary stays in exactly these
+two functions.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1455,127 +1408,18 @@ will accept.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>df</code>
-            </td>
-            <td>
-                  <code><span title="polars.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Must contain <code>start_time</code> (numeric, source-relative seconds) and
-<code>feature</code> (Array or List of equal width per row). The <code>feature</code>
-column is normalized to fixed-width <code>Array(Float64)</code> on write;
-other columns are preserved.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>bids_root</code>
+                <code>path</code>
             </td>
             <td>
                   <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Project root; the file lands under
-<code>&lt;bids_root&gt;/features/dyad-&lt;dyad&gt;/[ses-&lt;ses&gt;/]&lt;feat&gt;[-&lt;desc&gt;]/</code>.</p>
+                <p>Path to a saved eval netCDF file.</p>
               </div>
             </td>
             <td>
                 <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>dyad</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Required dyad and feature-kind labels. Features describe the shared
-conversation, so they are keyed by dyad, not subject.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>feat</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Required dyad and feature-kind labels. Features describe the shared
-conversation, so they are keyed by dyad, not subject.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>desc</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Optional variant tag landing as a <code>desc-&lt;desc&gt;</code> entity, placing the
-file under a <code>&lt;feat&gt;-&lt;desc&gt;/</code> subdirectory. Omit for the canonical
-(variant-free) feature.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>metadata</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>] | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Extra keys merged into the Parquet footer's <code>hypline</code> blob. The
-reserved keys <code>feature_name</code>, <code>feature_dim</code>, and <code>hypline_version</code>
-are auto-injected and must not be supplied. Keys prefixed with <code>_</code>
-are exempt from cross-file equality checks at encoding time.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>**entities</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Additional BIDS entities (<code>ses</code>, <code>task</code>, <code>run</code>, custom
-descriptors). Entity ordering and validation are handled by
-<code>BIDSPath</code>.</p>
-              </div>
-            </td>
-            <td>
-                  <code>{}</code>
             </td>
           </tr>
       </tbody>
@@ -1592,20 +1436,74 @@ descriptors). Entity ordering and validation are handled by
       </thead>
       <tbody>
           <tr class="doc-section-item">
+            <td>
+                  <code><span title="xarray.Dataset">Dataset</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The eval dataset; <code>corr</code> is subsettable by <code>.sel(band=…, role=…)</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="hypline.encoding.load_artifact" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">hypline.encoding.load_artifact</span>
+
+
+<a href="#hypline.encoding.load_artifact" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">load_artifact</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EncodingArtifact</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Load an encoding artifact from its <code>.joblib</code> blob.</p>
+<p>Logs a warning (does not fail) on a <code>hypline_version</code> mismatch read from the
+sidecar — a version skew is a provenance signal, not a hard incompatibility here.
+A missing sidecar silently skips the version check.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
             <td>
                   <code><span title="pathlib.Path">Path</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Resolved output path.</p>
+                <p>Path to the artifact <code>.joblib</code> blob.</p>
               </div>
+            </td>
+            <td>
+                <em>required</em>
             </td>
           </tr>
       </tbody>
     </table>
 
 
-<p><span class="doc-section-title">Raises:</span></p>
+    <p><span class="doc-section-title">Returns:</span></p>
     <table>
       <thead>
         <tr>
@@ -1616,17 +1514,571 @@ descriptors). Entity ordering and validation are handled by
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="ValueError">ValueError</span></code>
+                  <code><a class="autorefs autorefs-internal" title="hypline.encoding.EncodingArtifact
+
+
+  
+      dataclass
+   (hypline.encoding._artifact.EncodingArtifact)" href="#hypline.encoding.EncodingArtifact">EncodingArtifact</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If required columns are missing, <code>feature</code> widths are ragged, or
-<code>metadata</code> supplies a reserved key.</p>
+                <p>The artifact with fitted weights as numpy arrays (converted at save
+time), so it loads and predicts without torch or CUDA.</p>
               </div>
             </td>
           </tr>
       </tbody>
     </table>
+
+
+    </div>
+
+</div><h3 id="result-types">Result types<a class="headerlink" href="#result-types" title="Permanent link">&para;</a></h3>
+<p>The artifact structure and its parts.</p>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="hypline.encoding.EncodingArtifact" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">hypline.encoding.EncodingArtifact</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#hypline.encoding.EncodingArtifact" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>On-disk encoding result: a shared <code>recipe</code> plus one-or-more fitted <code>models</code>.</p>
+<p>Filters that shaped the cell set live on <code>recipe.bids_filters</code> (X identity),
+not here.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.EncodingArtifact.recipe">recipe</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="hypline.encoding.XRecipe
+
+
+  
+      dataclass
+   (hypline.encoding._artifact.XRecipe)" href="#hypline.encoding.XRecipe">XRecipe</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shared X identity; every model here was built from it.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.EncodingArtifact.sub_id">sub_id</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Subject the models were fit on.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.EncodingArtifact.fold">fold</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="hypline.encoding.FoldSpec
+
+
+  
+      dataclass
+   (hypline.encoding._artifact.FoldSpec)" href="#hypline.encoding.FoldSpec">FoldSpec</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Fold configuration these models were produced under, or <code>None</code> when
+unfolded (a single model).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.EncodingArtifact.models">models</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="hypline.encoding.FittedModel
+
+
+  
+      dataclass
+   (hypline.encoding._artifact.FittedModel)" href="#hypline.encoding.FittedModel">FittedModel</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The fitted models: one when unfolded, one per fold otherwise.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.EncodingArtifact.universe">universe</span></code></td>
+            <td>
+                  <code><span title="set">set</span>[<span title="hypline.encoding._schema.CellKey">CellKey</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Bounds the OOS cell set for fold groups; <code>None</code> for a single model,
+whose OOS is the target subject's available cells minus its train set.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="hypline.encoding.XRecipe" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">hypline.encoding.XRecipe</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#hypline.encoding.XRecipe" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>Everything needed to rebuild X identically on another subject.</p>
+<p>One source of truth for X identity so the train-time writer and the
+predict-time rebuilder cannot drift. <code>device</code> is excluded — it is a
+runtime/hardware choice, not part of X identity, and stays on
+<code>EncodingConfig</code>.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.features">features</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="tuple">tuple</span>[<span title="str">str</span>, <span title="str">str</span> | None]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Feature ref name -&gt; its <code>(kind, desc)</code> selector. Iteration order fixes
+X's feature-band column layout, so it is load-bearing, not incidental.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.confounds">confounds</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="tuple">tuple</span>[<span title="str">str</span>, <span title="str">str</span> | None]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Confound ref name -&gt; its <code>(kind, desc)</code> selector. All confounds collapse
+into one shared ridge band, so within-band order is irrelevant (a single
+alpha covers them).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.tasks">tasks</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Cell axis: multiple tasks make cells from different tasks distinct
+rows in X/Y. A single-task call holds <code>task</code> constant on every cell.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.bold_space">bold_space</span></code></td>
+            <td>
+                  <code><span title="hypline.enums.SurfaceSpace">SurfaceSpace</span> | <span title="hypline.enums.VolumeSpace">VolumeSpace</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target BOLD space; surface (e.g. <code>fsaverage6</code>) or volume.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.bold_desc">bold_desc</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>desc</code> entity of the target BOLD (e.g. <code>denoised</code>) — selects which
+derivative the model is fit against.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.downsample">downsample</span></code></td>
+            <td>
+                  <code><span title="hypline.downsample.FeatureDownsampleMethod">FeatureDownsampleMethod</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Method mapping feature time series onto the BOLD TR grid.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.bids_filters">bids_filters</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Extra BIDS filters constraining the cell set — the sole record of
+which runs/conditions shaped X (the <code>sub</code>/<code>task</code>/<code>space</code>/<code>feat</code>/<code>desc</code>
+entities are reserved and cannot appear here).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.delays">delays</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>FIR delays (in TRs) stacked per regressor, giving the model its HRF
+lag basis.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.alphas">alphas</span></code></td>
+            <td>
+                  <code><span title="list">list</span>[<span title="float">float</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Ridge penalties searched per band during inner-CV.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.split">split</span></code></td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether himalaya keeps per-band prediction shares (<code>split=True</code>)
+rather than only the summed prediction.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.XRecipe.col_slices">col_slices</span></code></td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="slice">slice</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Band key -&gt; its column block in X. Empty at construction; <code>train</code>
+fills it from the assembled data. Build order is screens, features,
+confounds — the band axis labels downstream must match this order.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="hypline.encoding.FittedModel" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">hypline.encoding.FittedModel</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#hypline.encoding.FittedModel" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>One fitted model and the cell set it was fit on.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.FittedModel.pipeline">pipeline</span></code></td>
+            <td>
+                  <code><span title="sklearn.pipeline.Pipeline">Pipeline</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The fitted banded-ridge pipeline: a <code>ColumnKernelizer</code> that delays and
+linear-kernelizes each band (<code>StandardScaler -&gt; CellDelayer -&gt;
+Kernelizer</code>, screens skipping the scaler), scored by
+<code>MultipleKernelRidgeCV</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.FittedModel.train_cells">train_cells</span></code></td>
+            <td>
+                  <code><span title="set">set</span>[<span title="hypline.encoding._schema.CellKey">CellKey</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Post-filter <code>row_slices</code> key set — the cells actually fit on.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="hypline.encoding.FoldSpec" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">hypline.encoding.FoldSpec</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#hypline.encoding.FoldSpec" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents first">
+
+
+
+        <p>One fold configuration: the cell axis to fold over and the fold count.</p>
+<p>Internal carrier for the paired <code>fold_by</code>/<code>n_folds</code> constructor args; the
+public surface stays flat.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.FoldSpec.by">by</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Cell axis to fold over (e.g. <code>run</code>).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="hypline.encoding.FoldSpec.n">n</span></code></td>
+            <td>
+                  <code><span title="int">int</span> | <span title="typing.Literal">Literal</span>[&#39;loo&#39;]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Fold count, or the <code>"loo"</code> sentinel for leave-one-out.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="saving">Saving<a class="headerlink" href="#saving" title="Permanent link">&para;</a></h3>
+<p>The CLI commands write results for you; these are the underlying seams, in case
+you produce an eval or artifact yourself.</p>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="hypline.encoding.save_eval" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">hypline.encoding.save_eval</span>
+
+
+<a href="#hypline.encoding.save_eval" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_eval</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Write an analyze <code>Dataset</code> to self-contained netCDF-4 at <code>path</code>.</p>
+<p>The single storage seam (with <code>load_eval</code>): serializes the one nested value
+<code>fold_cells</code> to a JSON string (netCDF attrs hold only scalars/strings/numeric
+arrays), leaving the rest of <code>ds</code> — which <code>analyze</code> already built with
+attr-safe values — untouched. Does not mutate the caller's <code>ds</code>.</p>
+<p>Each <code>CellKey</code> serializes via <code>dict(cell.items())</code>; <code>load_eval</code> inverts this
+with <code>CellKey(**cell)</code>, so the round-trip is lossless and both sides stay live
+<code>CellKey</code>s (entity values are uniformly str — filename entities by parse,
+sidecar metadata by <code>_validate_segment_records</code> — so JSON preserves them
+exactly).</p>
 
 
     </div>
@@ -1636,651 +2088,21 @@ descriptors). Entity ordering and validation are handled by
 <div class="doc doc-object doc-function">
 
 
-<h4 id="hypline.save_confound" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">hypline.save_confound</span>
+<h4 id="hypline.encoding.save_artifact" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">hypline.encoding.save_artifact</span>
 
 
-<a href="#hypline.save_confound" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_confound</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">bids_root</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">dyad</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">conf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">repetition_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tr_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">entities</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span>
+<a href="#hypline.encoding.save_artifact" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_artifact</span><span class="p">(</span><span class="n">artifact</span><span class="p">:</span> <span class="n">EncodingArtifact</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
 
-        <p>Save a confound DataFrame to its canonical layout location.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>df</code>
-            </td>
-            <td>
-                  <code><span title="polars.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Must contain <code>start_time</code> (numeric, beginning at <code>0.0</code> with
-intervals equal to <code>repetition_time</code>) and <code>confound</code> (Array or
-List of equal width per row). The <code>confound</code> column is normalized
-to fixed-width <code>Array(Float64)</code> on write.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>bids_root</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Project root; the file lands under
-<code>&lt;bids_root&gt;/confounds/dyad-&lt;dyad&gt;/[ses-&lt;ses&gt;/]&lt;conf&gt;[-&lt;desc&gt;]/</code>.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>dyad</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Required dyad and confound-kind labels. Confounds describe the shared
-conversation, so they are keyed by dyad, not subject.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>conf</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Required dyad and confound-kind labels. Confounds describe the shared
-conversation, so they are keyed by dyad, not subject.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>repetition_time</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>TR of the target BOLD acquisition, in seconds. Must be passed
-explicitly: a single-row DataFrame carries no spacing, and
-inferring TR from row spacing would silently disagree with the
-BOLD's true TR.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>tr_method</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Free-form label for how TR-aligned rows were produced
-(downsampling/upsampling method, or a marker for native-TR
-computation). Pass <code>None</code> if not applicable. Recorded verbatim;
-must be equal across files sharing the same <code>(conf, desc)</code> pair
-for downstream consistency checks to pass.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>desc</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Names which derivation of the kind's source this file holds, landing
-as a <code>desc-&lt;desc&gt;</code> entity under a <code>&lt;conf&gt;-&lt;desc&gt;/</code> subdirectory. Omit
-for the kind's unnamed default derivation.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>metadata</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>] | None</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Extra keys merged into the Parquet footer's <code>hypline</code> blob.
-Reserved keys (<code>confound_kind</code>, <code>confound_variant</code>, <code>tr_method</code>,
-<code>repetition_time</code>, <code>n_trs</code>, <code>confound_dim</code>, <code>hypline_version</code>)
-are auto-injected and must not be supplied. Keys prefixed with
-<code>_</code> are exempt from cross-file equality checks.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>**entities</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Additional BIDS entities (<code>ses</code>, <code>task</code>, <code>run</code>, custom
-descriptors).</p>
-              </div>
-            </td>
-            <td>
-                  <code>{}</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Resolved output path.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If required columns are missing, <code>start_time</code> is not TR-aligned,
-<code>confound</code> widths are ragged, or <code>metadata</code> supplies a reserved
-key.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div><h3 id="reading">Reading<a class="headerlink" href="#reading" title="Permanent link">&para;</a></h3>
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="hypline.read_feature" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">hypline.read_feature</span>
-
-
-<a href="#hypline.read_feature" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">read_feature</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span>
-</code></pre></div>
-
-    <div class="doc doc-contents first">
-
-        <p>Read a feature DataFrame from a hypline-format Parquet file.</p>
-<p>Validates that the path carries a <code>feat</code> entity, <code>.parquet</code> extension,
-and no BIDS suffix; checks the footer's <code>feature_name</code> matches the
-<code>feat</code> entity; normalizes the <code>feature</code> column to fixed-width
-<code>Array(Float64)</code>.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to a hypline feature Parquet file.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="polars.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The stored feature DataFrame.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If the path is not a valid hypline feature path, the footer lacks
-a <code>hypline</code> metadata blob, or <code>feature_name</code> disagrees with the
-path entity.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="hypline.read_confound" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">hypline.read_confound</span>
-
-
-<a href="#hypline.read_confound" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">read_confound</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span>
-</code></pre></div>
-
-    <div class="doc doc-contents first">
-
-        <p>Read a confound DataFrame from a hypline-format Parquet file.</p>
-<p>Validates that the path carries a <code>conf</code> entity, <code>.parquet</code> extension,
-and no BIDS suffix; checks that the footer's <code>confound_kind</code> and
-<code>confound_variant</code> match the path's <code>conf</code> and <code>desc</code> entities;
-normalizes the <code>confound</code> column to fixed-width <code>Array(Float64)</code>.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to a hypline confound Parquet file.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="polars.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The stored confound DataFrame.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If the path is not a valid hypline confound path, the footer lacks
-a <code>hypline</code> metadata blob, or <code>confound_kind</code>/<code>confound_variant</code>
-disagrees with the path entities.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div><h3 id="metadata">Metadata<a class="headerlink" href="#metadata" title="Permanent link">&para;</a></h3>
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="hypline.read_feature_metadata" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">hypline.read_feature_metadata</span>
-
-
-<a href="#hypline.read_feature_metadata" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">read_feature_metadata</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-</code></pre></div>
-
-    <div class="doc doc-contents first">
-
-        <p>Read footer metadata from a hypline feature file without loading data.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to a hypline feature Parquet file.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The <code>hypline</code> JSON blob from the Parquet footer, including the
-auto-injected <code>feature_name</code>, <code>feature_dim</code>, and <code>hypline_version</code>
-keys alongside any caller-supplied keys.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Same conditions as <code>read_feature</code>.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="hypline.read_confound_metadata" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">hypline.read_confound_metadata</span>
-
-
-<a href="#hypline.read_confound_metadata" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">read_confound_metadata</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-</code></pre></div>
-
-    <div class="doc doc-contents first">
-
-        <p>Read footer metadata from a hypline confound file without loading data.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>path</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to a hypline confound Parquet file.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The <code>hypline</code> JSON blob from the Parquet footer, including the
-auto-injected <code>confound_kind</code>, <code>confound_variant</code>, <code>tr_method</code>,
-<code>repetition_time</code>, <code>n_trs</code>, <code>confound_dim</code>, and <code>hypline_version</code>
-keys alongside any caller-supplied keys.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Same conditions as <code>read_confound</code>.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
+        <p>Dump <code>artifact</code> to <code>path</code> (.joblib) plus a non-pipeline JSON sidecar.</p>
+<p>Forces fitted weights to numpy before the joblib dump (see <code>_numpyfy_fitted</code>)
+so the blob loads without torch. The sidecar mirrors everything except the
+pipeline — recipe, per-model <code>train</code> cell sets, <code>fold</code>, <code>universe</code>, and
+<code>hypline_version</code> — making provenance greppable without unpickling.</p>
 
 
     </div>
@@ -2323,7 +2145,7 @@ keys alongside any caller-supplied keys.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../encoding/" class="md-footer__link md-footer__link--prev" aria-label="Previous: hypline encoding">
+          <a href="../python-api/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Features &amp; confounds">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2333,27 +2155,11 @@ keys alongside any caller-supplied keys.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                hypline encoding
+                Features & confounds
               </div>
             </div>
           </a>
         
-        
-          
-          <a href="../encoding-results/" class="md-footer__link md-footer__link--next" aria-label="Next: Encoding results">
-            <div class="md-footer__title">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              <div class="md-ellipsis">
-                Encoding results
-              </div>
-            </div>
-            <div class="md-footer__button md-icon">
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
-            </div>
-          </a>
         
       </nav>
     

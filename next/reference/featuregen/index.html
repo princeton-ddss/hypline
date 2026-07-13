@@ -308,6 +308,15 @@
   
     
     
+      
+  
+  
+  
+    
+  
+  
+    
+    
       <li class="md-tabs__item md-tabs__item--active">
         <a href="../transcribe/" class="md-tabs__link">
           
@@ -317,6 +326,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -704,6 +716,54 @@
                 
   
   
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
   
   
     <li class="md-nav__item">
@@ -1045,8 +1105,58 @@
   
   
     <li class="md-nav__item">
-      <a href="../python-api/" class="md-nav__link">
+      <a href="../encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
@@ -1055,7 +1165,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1318,7 +1486,7 @@
 
 
 <h1 id="hypline-featuregen"><code>hypline featuregen</code><a class="headerlink" href="#hypline-featuregen" title="Permanent link">&para;</a></h1>
-<p>Generate stimulus-derived <strong>features</strong> — the predictors (X) an encoding model
+<p>Generate stimulus-derived <strong>features</strong>, the predictors (X) an encoding model
 maps onto the BOLD signal. <code>featuregen</code> is a group of subcommands, one per
 feature kind.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>&lt;kind&gt;<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
@@ -1382,7 +1550,7 @@ manner, voicing, …).</p>
 </tr>
 <tr>
 <td><code>--skip-confoundgen</code></td>
-<td>Write features only; do <strong>not</strong> also generate phonemic confounds</td>
+<td>Write features only; do not also generate phonemic confounds</td>
 <td>off</td>
 </tr>
 <tr>
@@ -1448,7 +1616,7 @@ audio alignment, so phonemes within a word share that word's onset.</p>
 <p>Derive <strong>contextual word embeddings</strong> from any Hugging Face causal (decoder) LM.
 The transcript is tokenized and run through the model; each sub-word token's
 hidden state at a chosen <code>--layer</code> becomes its <code>feature</code> vector. The model id is
-passed verbatim to <code>from_pretrained</code>, so the hub is open and unbounded — any
+passed verbatim to <code>from_pretrained</code>, so the hub is open and unbounded: any
 causal LM with a fast (Rust) tokenizer and a BOS token works.</p>
 <h3 id="inputs_1">Inputs<a class="headerlink" href="#inputs_1" title="Permanent link">&para;</a></h3>
 <p>The same transcripts as <a href="#featuregen-phonemic"><code>featuregen phonemic</code></a>, under
@@ -1457,7 +1625,7 @@ but carry their null timing into the output; null-<code>word</code> rows are ski
 <p>The whole transcript is encoded in one forward pass, so it must fit the model's
 context window (tokens + a BOS prefix ≤ <code>max_position_embeddings</code>). A long
 transcript on a short-context model (gpt-2 caps at 1024) raises rather than
-truncating — reach for a longer-context LM instead.</p>
+truncating; reach for a longer-context LM instead.</p>
 <h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1495,7 +1663,7 @@ truncating — reach for a longer-context LM instead.</p>
 </tr>
 <tr>
 <td><code>--skip-confoundgen</code></td>
-<td>Write features only; do <strong>not</strong> also generate semantic confounds</td>
+<td>Write features only; do not also generate semantic confounds</td>
 <td>off</td>
 </tr>
 <tr>
@@ -1546,8 +1714,8 @@ confounds appear too (see <a href="../confoundgen/"><code>confoundgen</code></a>
 <div class="admonition note">
 <p class="admonition-title">Causal LMs only</p>
 <p>The model must be a causal/decoder LM with a fast tokenizer and a BOS token.
-Encoder checkpoints (BERT and the like) are rejected up front — <code>from_pretrained</code>
-would silently load them and emit garbage.</p>
+Encoder checkpoints (BERT and the like) are rejected up front, because
+<code>from_pretrained</code> would otherwise load them silently and emit garbage.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Gated models</p>
@@ -1563,7 +1731,7 @@ granted to the same account that issued the token, or the download fails.</p>
 <hr />
 <h2 id="featuregen-spectral"><code>featuregen spectral</code><a class="headerlink" href="#featuregen-spectral" title="Permanent link">&para;</a></h2>
 <p>Derive a <strong>log-Mel spectrogram</strong> from the stimulus audio using a
-<a href="https://github.com/openai/whisper">Whisper</a> feature extractor — the same
+<a href="https://github.com/openai/whisper">Whisper</a> feature extractor, the same
 front-end that turns audio into the input Whisper's encoder sees. Unlike
 <code>phonemic</code> and <code>semantic</code>, this reads audio directly (no transcript needed) and
 its output is <strong>pre-aligned to the run's BOLD TR grid</strong>: one log-Mel vector per
@@ -1628,7 +1796,7 @@ it. A dyad with no resolvable BOLD raises.</p>
 <p class="admonition-title">No <code>--device</code>, no confounds</p>
 <p>The Whisper feature extractor is a CPU Mel transform with no forward pass, so
 there is no <code>--device</code> option. And unlike <code>phonemic</code> and <code>semantic</code>, spectral
-has no chained <code>confoundgen</code> step — it writes features only.</p>
+has no chained <code>confoundgen</code> step; it writes features only.</p>
 </div>
 <h3 id="example_2">Example<a class="headerlink" href="#example_2" title="Permanent link">&para;</a></h3>
 <p>Generate spectral features for all dyads with the default <code>tiny</code> extractor:</p>
@@ -1656,8 +1824,8 @@ of Mel bands). The Parquet footer records the <code>model</code>, <code>sampling
 <p>Derive <strong>per-token syntactic-function features</strong> from word-level transcripts with
 <a href="https://spacy.io/">spaCy</a>. Each token's feature is a fixed-width one-hot of its
 POS tag concatenated with its dependency relation, plus a final 0/1 stopword
-dimension. The model is fixed (<code>en_core_web_lg</code>) and auto-downloaded on first use
-— there is no <code>--model</code> option.</p>
+dimension. The model is fixed (<code>en_core_web_lg</code>) and auto-downloaded on first use,
+so there is no <code>--model</code> option.</p>
 <p>Words are tokenized and tagged <strong>one conversational turn at a time</strong>: the
 dependency parser needs coherent utterances, so words are grouped by <code>turn_sub</code>
 (which subject held the floor) and each maximal run is parsed as one document.
@@ -1705,7 +1873,7 @@ their null timing into the output. Null-<code>word</code> rows are dropped and w
 <p class="admonition-title">Fixed model, no <code>--device</code>, no confounds</p>
 <p>The spaCy model is fixed (<code>en_core_web_lg</code>), so there is no <code>--model</code> option;
 the parse runs on CPU, so there is no <code>--device</code> either. And unlike <code>phonemic</code>
-and <code>semantic</code>, syntactic has no chained <code>confoundgen</code> step — it writes
+and <code>semantic</code>, syntactic has no chained <code>confoundgen</code> step; it writes
 features only.</p>
 </div>
 <h3 id="example_3">Example<a class="headerlink" href="#example_3" title="Permanent link">&para;</a></h3>
