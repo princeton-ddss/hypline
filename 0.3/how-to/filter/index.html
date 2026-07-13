@@ -308,6 +308,13 @@
   
     
     
+      
+  
+  
+  
+  
+    
+    
       <li class="md-tabs__item">
         <a href="../../reference/transcribe/" class="md-tabs__link">
           
@@ -317,6 +324,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -625,9 +635,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-matching-rule-in-one-line" class="md-nav__link">
+  <a href="#the-matching-rule-at-a-glance" class="md-nav__link">
     <span class="md-ellipsis">
-      The matching rule, in one line
+      The matching rule at a glance
     </span>
   </a>
   
@@ -835,6 +845,49 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../reference/transcribe/" class="md-nav__link">
         
@@ -928,8 +981,55 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/python-api/" class="md-nav__link">
+      <a href="../../reference/encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -938,7 +1038,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1038,9 +1196,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-matching-rule-in-one-line" class="md-nav__link">
+  <a href="#the-matching-rule-at-a-glance" class="md-nav__link">
     <span class="md-ellipsis">
-      The matching rule, in one line
+      The matching rule at a glance
     </span>
   </a>
   
@@ -1084,7 +1242,7 @@
 
 
 <h1 id="filter-to-specific-runs-or-conditions">Filter to specific runs or conditions<a class="headerlink" href="#filter-to-specific-runs-or-conditions" title="Permanent link">&para;</a></h1>
-<p>Most hypline commands run over <em>everything</em> they discover by convention — every
+<p>Most hypline commands run over everything they discover by convention: every
 run and segment, and every dyad or subject. When you want a command to touch only
 part of your dataset — one dyad, two runs, a single condition — you narrow it with
 two options that appear on nearly every command:</p>
@@ -1096,7 +1254,7 @@ two options that appear on nearly every command:</p>
   dyad</a>.</li>
 <li><strong><code>--data-filters</code></strong> — pick which runs and conditions within them.</li>
 </ul>
-<p>This guide shows the common selections. For <em>why</em> segments and conditions work
+<p>This guide shows the common selections. For why segments and conditions work
 the way they do, see <a href="../../concepts/segments/">Segments and metadata</a>; for the
 full option list of any single command, see its <a href="../../reference/transcribe/">Reference</a>
 page.</p>
@@ -1113,7 +1271,7 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 command looks for its inputs.</p>
 <h2 id="select-runs-and-conditions-with-data-filters">Select runs and conditions with <code>--data-filters</code><a class="headerlink" href="#select-runs-and-conditions-with-data-filters" title="Permanent link">&para;</a></h2>
 <p><code>--data-filters</code> accepts comma-separated <code>entity-value</code> tokens. A token matches
-against <strong>both</strong> filename entities (like <code>run</code>) and the metadata you defined in
+against both filename entities (like <code>run</code>) and the metadata you defined in
 <code>events.json</code> (like <code>cond</code>), so the same option filters structural and
 descriptive attributes alike.</p>
 <h3 id="one-run">One run<a class="headerlink" href="#one-run" title="Permanent link">&para;</a></h3>
@@ -1131,13 +1289,13 @@ you filter on it the same way:</p>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span>--data-filters<span class="w"> </span>cond-R
 </code></pre></div>
 <h3 id="runs-and-a-condition">Runs AND a condition<a class="headerlink" href="#runs-and-a-condition" title="Permanent link">&para;</a></h3>
-<p>Mixing <em>different</em> entities narrows the match — every named entity must hold:</p>
+<p>Mixing different entities narrows the match — every named entity must hold:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># (run 1 or run 2) AND condition R</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--data-filters<span class="w"> </span>run-1,run-2,cond-R
 </code></pre></div>
-<h2 id="the-matching-rule-in-one-line">The matching rule, in one line<a class="headerlink" href="#the-matching-rule-in-one-line" title="Permanent link">&para;</a></h2>
+<h2 id="the-matching-rule-at-a-glance">The matching rule at a glance<a class="headerlink" href="#the-matching-rule-at-a-glance" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1148,11 +1306,11 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 <tbody>
 <tr>
 <td>Same entity, multiple values</td>
-<td><strong>OR</strong> — <code>run-1,run-2</code> → run 1 <em>or</em> 2</td>
+<td><strong>OR</strong> — <code>run-1,run-2</code> → run 1 or 2</td>
 </tr>
 <tr>
 <td>Different entities</td>
-<td><strong>AND</strong> — <code>run-1,cond-R</code> → run 1 <em>and</em> condition R</td>
+<td><strong>AND</strong> — <code>run-1,cond-R</code> → run 1 and condition R</td>
 </tr>
 </tbody>
 </table>
@@ -1167,22 +1325,26 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 </code></pre></div>
 <h2 id="combining-with-force">Combining with <code>--force</code><a class="headerlink" href="#combining-with-force" title="Permanent link">&para;</a></h2>
 <p>The identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) and <code>--data-filters</code> decide
-<em>what is considered</em>; <code>--force</code> decides whether already-generated outputs are
-overwritten. They compose — scope a rerun to one run and force just that one:</p>
+what is considered; <code>--force</code> decides whether already-generated outputs are
+overwritten. They compose, so you can scope a rerun to one run and force just
+that one:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--data-filters<span class="w"> </span>run-1<span class="w"> </span>--force
 </code></pre></div>
 <p>See <a href="../regenerate/">Regenerate outputs after a fix</a> for the rerun workflow.</p>
 <h2 id="when-a-filter-matches-nothing">When a filter matches nothing<a class="headerlink" href="#when-a-filter-matches-nothing" title="Permanent link">&para;</a></h2>
 <p>Two outcomes look similar but mean different things:</p>
 <ul>
-<li><strong><code>No dyads found</code></strong> / <strong><code>No subjects found</code></strong> — the input location is empty, or
-  your <code>--dyad-ids</code> / <code>--sub-ids</code> / <code>--data-filters</code> excluded everything. Widen the
-  filter, or confirm the files are in place. (Stimulus commands report dyads;
-  <code>denoise</code> reports subjects.)</li>
-<li><strong>An error naming an unknown entity</strong> — a filter token names an entity that
-  exists <em>nowhere</em>, neither on filenames nor in <code>events.json</code> metadata. Hypline
-  treats this as a typo and raises, rather than silently matching nothing. Check
-  the spelling against your filenames and sidecars.</li>
+<li><strong><code>No dyads found</code></strong> / <strong><code>No subjects found</code></strong> — no ids were discovered at all:
+  the input location is empty, or your <code>--dyad-ids</code> / <code>--sub-ids</code> excluded
+  everything. <code>--data-filters</code> does not trigger this — id discovery ignores it.
+  Widen the id list, or confirm the files are in place. (Stimulus commands report
+  dyads; <code>denoise</code> reports subjects.)</li>
+<li><strong>A per-id failure: <code>{id} failed: Files found but none matched user filters …</code></strong>
+  (and the command exits <code>1</code>) — ids were found, but a <code>--data-filters</code> token
+  matched nothing for that id, whether because it names an entity that exists
+  nowhere, or a value present on no file. Hypline treats an empty match as a typo
+  and raises rather than silently skipping. Check the spelling against your
+  filenames and <code>events.json</code> sidecars.</li>
 </ul>
 
 

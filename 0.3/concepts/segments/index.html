@@ -308,6 +308,13 @@
   
     
     
+      
+  
+  
+  
+  
+    
+    
       <li class="md-tabs__item">
         <a href="../../reference/transcribe/" class="md-tabs__link">
           
@@ -317,6 +324,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -726,9 +736,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-segments-are-explicit" class="md-nav__link">
+  <a href="#why-you-declare-segments-by-hand" class="md-nav__link">
     <span class="md-ellipsis">
-      Why segments are explicit
+      Why you declare segments by hand
     </span>
   </a>
   
@@ -790,6 +800,49 @@
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -892,8 +945,55 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/python-api/" class="md-nav__link">
+      <a href="../../reference/encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -902,7 +1002,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -984,9 +1142,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-segments-are-explicit" class="md-nav__link">
+  <a href="#why-you-declare-segments-by-hand" class="md-nav__link">
     <span class="md-ellipsis">
-      Why segments are explicit
+      Why you declare segments by hand
     </span>
   </a>
   
@@ -1012,9 +1170,9 @@
 
 
 <h1 id="segments-and-metadata">Segments and metadata<a class="headerlink" href="#segments-and-metadata" title="Permanent link">&para;</a></h1>
-<p>A single BOLD run often contains several distinct stretches you care about —
-trials, blocks, conditions. Hypline calls these <strong>segments</strong>, and it reads them
-from your <code>events.tsv</code> files. Segments are what let you generate per-trial
+<p>A single BOLD run often contains several distinct stretches you care about, such
+as trials, blocks, or conditions. Hypline calls these <strong>segments</strong>, and it reads
+them from your <code>events.tsv</code> files. Segments are what let you generate per-trial
 features and filter your data down to specific conditions with <code>--data-filters</code>.</p>
 <p>This page explains where segments come from and how <code>--data-filters</code> uses them.
 You only need it if your runs have internal structure; whole-run datasets can
@@ -1028,15 +1186,15 @@ beside each run in the raw tree:</p>
 resolves them through <a href="../layout/#subject-vs-dyad"><code>participants.tsv</code></a> and reads
 either partner's events — segments are shared across a dyad by construction.</p>
 <p>Hypline infers segments from the <code>trial_type</code> column. A row whose <code>trial_type</code>
-is an <code>entity-value</code> pair (like <code>trial-1</code>) <strong>declares a segment</strong> — a named time
+is an <code>entity-value</code> pair (like <code>trial-1</code>) <strong>declares a segment</strong>: a named time
 window within the run:</p>
 <div class="highlight"><pre><span></span><code>onset   duration   trial_type
 0.0     30.0       trial-1
 35.0    30.0       trial-2
 70.0    30.0       trial-3
 </code></pre></div>
-<p>This run has three segments. Plain labels (e.g. <code>rest</code>, <code>fixation</code>) are <em>not</em>
-segments — they are ignored for segmentation, so you can keep standard
+<p>This run has three segments. Plain labels (e.g. <code>rest</code>, <code>fixation</code>) are not
+segments; they are ignored for segmentation, so you can keep standard
 annotations in the same file.</p>
 <div class="admonition info">
 <p class="admonition-title">One segment entity per run</p>
@@ -1072,12 +1230,12 @@ in metadata, described below.</p>
 </tr>
 </tbody>
 </table>
-<p>The last case is an escape hatch: when a run has no internal structure but you
+<p>The last case is an escape hatch. When a run has no internal structure but you
 still want to trim leading instructions or attach run-level metadata, add a
 single row whose <code>trial_type</code> repeats the run's task name (e.g. <code>task-conv</code>).</p>
 <h2 id="attaching-metadata-eventsjson">Attaching metadata: <code>events.json</code><a class="headerlink" href="#attaching-metadata-eventsjson" title="Permanent link">&para;</a></h2>
 <p>Segment names like <code>trial-1</code> carry no meaning on their own. Descriptive
-attributes — condition, stimulus item, counterbalance group — live in the
+attributes such as condition, stimulus item, or counterbalance group live in the
 companion <code>events.json</code> sidecar, under the BIDS <code>trial_type.Levels</code> field:</p>
 <div class="highlight"><span class="filename">sub-031_ses-1_task-conv_run-1_events.json</span><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;trial_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1101,19 +1259,19 @@ from being recorded in two places that could disagree.</p>
 </div>
 <h2 id="how-segments-reach-data-filters">How segments reach <code>--data-filters</code><a class="headerlink" href="#how-segments-reach-data-filters" title="Permanent link">&para;</a></h2>
 <p>The segments and metadata defined here are what <code>--data-filters</code> selects on. A
-token like <code>cond-R</code> matches against <strong>both</strong> filename entities and the
-<code>events.json</code> metadata — so the segment entity (<code>trial</code>) and its descriptive
+token like <code>cond-R</code> matches against both filename entities and the
+<code>events.json</code> metadata, so the segment entity (<code>trial</code>) and its descriptive
 attributes (<code>cond</code>, <code>item</code>) all become things you can filter by, even though only
 the structural ones appear in filenames.</p>
 <p>For how tokens combine (OR within an entity, AND across entities) and the full
 set of recipes, see <a href="../../how-to/filter/">Filter to specific runs or
 conditions</a>.</p>
-<h2 id="why-segments-are-explicit">Why segments are explicit<a class="headerlink" href="#why-segments-are-explicit" title="Permanent link">&para;</a></h2>
+<h2 id="why-you-declare-segments-by-hand">Why you declare segments by hand<a class="headerlink" href="#why-you-declare-segments-by-hand" title="Permanent link">&para;</a></h2>
 <p>Hypline requires you to declare segment onsets and durations directly in
 <code>events.tsv</code> rather than inferring them from trial-level columns. Encoding
 models bin BOLD timepoints into segments, and inferring those boundaries from
-indirect cues would quietly change which timepoint lands in which segment — a
-scientific decision. Making the windows explicit keeps that decision yours and
+indirect cues would quietly change which timepoint lands in which segment. That
+is a scientific decision, so making the windows explicit keeps it yours and
 reviewable.</p>
 
 

@@ -306,6 +306,13 @@
   
     
     
+      
+  
+  
+  
+  
+    
+    
       <li class="md-tabs__item">
         <a href="reference/transcribe/" class="md-tabs__link">
           
@@ -315,6 +322,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -777,6 +787,49 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="reference/transcribe/" class="md-nav__link">
         
@@ -870,8 +923,55 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/python-api/" class="md-nav__link">
+      <a href="reference/encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
   
   
   <span class="md-ellipsis">
@@ -880,7 +980,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -976,15 +1134,15 @@
 
 <h1 id="hypline">Hypline<a class="headerlink" href="#hypline" title="Permanent link">&para;</a></h1>
 <p>Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. Its commands are modular:
-each does one job — transcribe audio, generate features, denoise
-<a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> BOLD — and runs on its own.
-Run end to end, they prepare everything an <strong>encoding model</strong> needs —
-transcripts, features, confounds, and denoised BOLD — all organized in one
+hyperscanning studies involving dyadic conversations. Its commands are modular.
+Each does one job — transcribe audio, generate features, denoise
+<a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> BOLD, fit an <strong>encoding
+model</strong> — and runs on its own, all inside one
 <a href="https://bids.neuroimaging.io/">BIDS</a>-style dataset. An encoding model predicts
-the brain's BOLD response from features of the speech a participant heard;
-hypline prepares both sides of that fit, the stimulus features (the predictors)
-and the denoised BOLD (the target).</p>
+the brain's BOLD response from features of the speech a participant heard.
+Hypline prepares both sides of that fit: the stimulus features (the predictors)
+and the denoised BOLD (the target). It then fits and scores the model with
+<a href="reference/encoding/"><code>encoding</code></a>.</p>
 <p>Hypline implements the encoding-model approach of Zada et al. (2026),<sup id="fnref:zada"><a class="footnote-ref" href="#fn:zada">1</a></sup>
 which used fMRI hyperscanning and language-model features to study the shared
 neural systems for speech production and comprehension in real-time dyadic
@@ -1017,9 +1175,9 @@ commands do not need it.</p>
 </div>
 <h2 id="the-pipeline">The pipeline<a class="headerlink" href="#the-pipeline" title="Permanent link">&para;</a></h2>
 <p>Hypline's commands compose into a pipeline. Each one reads from a shared dataset
-root and writes its outputs back into the same tree. The steps fall into two
-independent branches — a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong> — that
-prepare the two sides an encoding model later joins:</p>
+root and writes its outputs back into the same tree. Most steps fall into two
+independent branches, a <strong>stimulus branch</strong> and an <strong>fMRIPrep branch</strong>, that
+prepare the two sides the <strong>encoding branch</strong> then joins:</p>
 <table>
 <thead>
 <tr>
@@ -1078,12 +1236,26 @@ prepare the two sides an encoding model later joins:</p>
 <td>preprocessed BOLD, fMRIPrep confounds</td>
 <td>denoised BOLD (<code>desc-denoised</code>)</td>
 </tr>
+<tr>
+<td><code>encoding train</code></td>
+<td>encoding</td>
+<td>features, confounds, denoised BOLD</td>
+<td>fitted models (<code>results/</code>)</td>
+</tr>
+<tr>
+<td><code>encoding analyze</code></td>
+<td>encoding</td>
+<td>fitted models, features, denoised BOLD</td>
+<td>eval correlations (<code>results/</code>)</td>
+</tr>
 </tbody>
 </table>
-<p>The branches never meet inside hypline: stimulus commands build the encoding
-model's predictors, while <code>denoise</code> cleans the BOLD target from fMRIPrep's own
-confounds table (and any custom <code>nuisance/</code> regressors). The encoding model joins
-them downstream.</p>
+<p>The stimulus and fMRIPrep branches never meet each other. Stimulus commands
+build the encoding model's predictors, while <code>denoise</code> cleans the BOLD target
+from fMRIPrep's own confounds table (and any custom <code>nuisance/</code> regressors). The
+two sides come together only in the encoding branch, where
+<a href="reference/encoding/"><code>encoding</code></a> fits the model and scores it against the
+brain.</p>
 <div class="admonition tip">
 <p class="admonition-title">Features and their confounds in one step</p>
 <p><code>featuregen phonemic</code> also generates the matching phonemic confounds by
@@ -1096,8 +1268,8 @@ clean fMRIPrep BOLD without ever transcribing audio.</p>
 <h2 id="run-the-pipeline">Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permanent link">&para;</a></h2>
 <p>Once your files sit where hypline expects (see
 <a href="concepts/layout/">the dataset layout</a>), every command takes the dataset root
-and discovers its inputs from there — you never pass file paths. End to end, the
-whole pipeline is three commands. Each reads what the previous ones wrote, so
+and discovers its inputs from there; you never pass file paths. End to end, the
+whole pipeline is four commands. Each reads what the previous ones wrote, so
 order matters only where one step's output is the next step's input:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># stimulus branch: audio → transcripts → features (+ phonemic confounds, auto)</span>
 hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav
@@ -1107,17 +1279,30 @@ hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span c
 <span class="c1"># from fMRIPrep&#39;s confounds table</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
+
+<span class="c1"># encoding branch: fit the model that maps features onto the denoised BOLD</span>
+hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--features<span class="w"> </span>phonemic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold-by<span class="w"> </span>none
 </code></pre></div>
 <p>After this, <code>data/</code> holds phonemic features plus <code>desc-denoised</code> BOLD — the two
-sides an encoding model needs. You can also start with <code>transcribe</code> alone and
-follow the table above step by step. Re-run any single step with <code>--force</code> to
-overwrite its outputs; without it, hypline skips work it has already done.</p>
+sides the encoding model needs — and a fitted model under <code>results/</code>. Load an
+encoding result back into Python for downstream analysis with
+<a href="reference/encoding-results/"><code>load_eval</code> / <code>load_artifact</code></a>.
+You can also start with <code>transcribe</code> alone and follow the table above step by
+step. Re-run any single step with <code>--force</code> to overwrite its outputs; without
+it, hypline skips work it has already done.</p>
 <div class="admonition tip">
-<p class="admonition-title">If a command seems to do nothing</p>
-<p>Two harmless cases look like failures. <strong><code>No dyads found</code></strong> (stimulus
-commands) or <strong><code>No subjects found</code></strong> (<code>denoise</code>) means the area that command
-reads is empty or your <code>--dyad-ids</code> / <code>--sub-ids</code> / <code>--data-filters</code> excluded
-everything — widen the filter or check the files are in place. A command that
+<p class="admonition-title">When a command produces no output</p>
+<p>Two cases look like failures but usually aren't. <code>No dyads found</code> (stimulus
+commands) or <code>No subjects found</code> (<code>denoise</code>, <code>encoding</code>) means the area
+that command reads is empty, or your <code>--dyad-ids</code> / <code>--sub-ids</code> excluded
+everything; widen the id list or check the files are in place. (A
+<code>--data-filters</code> that matches nothing is different: it fails the
+affected id and exits <code>1</code> — see <a href="how-to/filter/#when-a-filter-matches-nothing">Filter to specific runs or
+conditions</a>.) A command that
 exits instantly with no log means its outputs already exist and were skipped;
 re-run with <code>--force</code> to regenerate. Per-command failure modes are listed
 under <strong>Common errors</strong> on each reference page.</p>

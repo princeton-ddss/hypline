@@ -12,7 +12,7 @@
         <link rel="prev" href="../confoundgen/">
       
       
-        <link rel="next" href="../python-api/">
+        <link rel="next" href="../encoding/">
       
       
       <link rel="icon" href="../../images/favicon.svg">
@@ -308,6 +308,15 @@
   
     
     
+      
+  
+  
+  
+    
+  
+  
+    
+    
       <li class="md-tabs__item md-tabs__item--active">
         <a href="../transcribe/" class="md-tabs__link">
           
@@ -317,6 +326,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -704,6 +716,54 @@
                 
   
   
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
   
   
     <li class="md-nav__item">
@@ -886,8 +946,58 @@
   
   
     <li class="md-nav__item">
-      <a href="../python-api/" class="md-nav__link">
+      <a href="../encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
@@ -896,7 +1006,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1159,7 +1327,8 @@ defaults to the volumetric <code>MNI152NLin2009cAsym</code>, so it can be omitte
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--compcor<span class="w"> </span>a:CSF:5,a:WM:5<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--custom-sources<span class="w"> </span>physio-v1<span class="w"> </span>--custom-columns<span class="w"> </span>resp,cardiac
+<span class="w">  </span>--custom-sources<span class="w"> </span>physio-v1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--custom-columns<span class="w"> </span>resp,cardiac
 </code></pre></div>
 <p>Clean only run 1 of subjects 031 and 032:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
@@ -1176,13 +1345,13 @@ source:</p>
 ├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # output
 └── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 </code></pre></div>
-<p>The output keeps the input's dimensions — only the signal values change. Each run
+<p>The output keeps the input's dimensions; only the signal values change. Each run
 gets a per-file <code>.json</code> sidecar recording its <code>Sources</code> (a <code>bids:</code> URI to the
 source BOLD), the resolved cleaning settings, and the hypline version.
 On first output, hypline stamps a <code>derivatives/hypline/dataset_description.json</code>
 (written once, left alone thereafter).</p>
 <p>Denoised BOLD lives in its own tree rather than beside its fMRIPrep source
-because denoising is hypline's own pipeline, not a continuation of fMRIPrep — a
+because denoising is hypline's own pipeline, not a continuation of fMRIPrep. A
 separate tree carries an honest <code>GeneratedBy: hypline</code> provenance instead of
 inheriting fMRIPrep's.</p>
 <h2 id="common-errors">Common errors<a class="headerlink" href="#common-errors" title="Permanent link">&para;</a></h2>
@@ -1217,7 +1386,7 @@ inheriting fMRIPrep's.</p>
 </tr>
 <tr>
 <td>Command finishes, but no <code>desc-denoised</code> files appear</td>
-<td><code>--space</code> names a valid space that is <strong>absent</strong> from your fMRIPrep outputs, so nothing matched.</td>
+<td><code>--space</code> names a valid space that is absent from your fMRIPrep outputs, so nothing matched.</td>
 <td>Pass a <code>--space</code> you actually preprocessed (check the <code>space-</code> entity on your fMRIPrep BOLD files).</td>
 </tr>
 <tr>
@@ -1281,13 +1450,13 @@ inheriting fMRIPrep's.</p>
         
         
           
-          <a href="../python-api/" class="md-footer__link md-footer__link--next" aria-label="Next: Python API">
+          <a href="../encoding/" class="md-footer__link md-footer__link--next" aria-label="Next: hypline encoding">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Python API
+                hypline encoding
               </div>
             </div>
             <div class="md-footer__button md-icon">

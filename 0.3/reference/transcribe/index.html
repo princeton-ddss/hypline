@@ -308,6 +308,15 @@
   
     
     
+      
+  
+  
+  
+    
+  
+  
+    
+    
       <li class="md-tabs__item md-tabs__item--active">
         <a href="./" class="md-tabs__link">
           
@@ -317,6 +326,9 @@
 
         </a>
       </li>
+    
+  
+
     
   
 
@@ -708,6 +720,54 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            CLI
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
     <li class="md-nav__item md-nav__item--active">
       
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
@@ -886,8 +946,58 @@
   
   
     <li class="md-nav__item">
-      <a href="../python-api/" class="md-nav__link">
+      <a href="../encoding/" class="md-nav__link">
         
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
@@ -896,7 +1006,65 @@
   </span>
   
 
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features & confounds
+    
+  </span>
+  
+
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1109,7 +1277,7 @@ be aligned to the BOLD signal.</p>
 <p>If your <code>events.tsv</code> files annotate speaking turns, each transcript gains a
 <code>turn_sub</code> column naming which subject held the floor when each word began.</p>
 <p>Mark turns in each subject's raw <code>events.tsv</code> with the flat <code>trial_type</code> label
-<code>turn_speaker</code> — one row per window where <strong>that subject</strong> is the assigned
+<code>turn_speaker</code> — one row per window where that subject is the assigned
 speaker:</p>
 <div class="highlight"><pre><span></span><code>onset   duration   trial_type
 0.0     12.5       turn_speaker
@@ -1117,8 +1285,8 @@ speaker:</p>
 </code></pre></div>
 <ul>
 <li>The label records <strong>whose turn it is by study design</strong>, not who was observed
-  speaking — a turn window may still contain a word uttered by the other partner.</li>
-<li>Mark only your own turns (<code>turn_speaker</code>); transcribe reads <strong>both</strong> partners'
+  speaking, so a turn window may still contain a word uttered by the other partner.</li>
+<li>Mark only your own turns (<code>turn_speaker</code>); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.</li>
 <li>Windows are <code>[onset, onset + duration)</code>. Gaps (silence) are allowed; windows
