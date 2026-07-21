@@ -59,7 +59,7 @@ its inputs from the directory layout; you never pass individual file paths.
 Whisper speech-recognition model.
 
 ```bash
-hypline transcribe data/ --audio-ext .wav --model tiny
+hypline transcribe data/ --audio-ext .wav --model small
 ```
 
 ```text
@@ -72,9 +72,9 @@ Transcribing dyad-030_ses-1_task-conv_run-2_trial-3_audio.wav
 (Log lines are abridged here; a first run also prints a one-time model download
 and voice-activity-detection messages.)
 
-!!! tip "Why `--model tiny`"
+!!! tip "Why `--model small`"
 
-    `tiny` keeps this tutorial fast: about a minute on a laptop CPU, with a small
+    `small` keeps this tutorial fast: about a few minutes on a laptop CPU, with a small
     one-time model download. It mis-hears some words, which is fine here, since you are
     learning the workflow rather than analyzing the transcripts. For a real analysis,
     omit `--model` to use the default `large-v2`, which is far more accurate but a
@@ -443,7 +443,7 @@ choices side by side.
 
     This is how you run the cross-brain analysis that motivates hypline: the
     mechanics of pointing one partner's model at the other's brain. It does not
-    demonstrate the *effect*, since two runs of `--model tiny` transcripts are far
+    demonstrate the *effect*, since two runs of transcripts are far
     too little data for the cross-brain scores to mean anything. On a full study
     they carry the shared-representation signal; here they only confirm the
     command runs end to end.
