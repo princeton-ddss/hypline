@@ -1,4 +1,4 @@
-# Test the cross-brain effect from evals
+# Interpret the cross-brain effect from evals
 
 You have run [`encoding analyze`](../reference/encoding.md) a few times and have a
 handful of eval files. This guide turns them into an answer to the question
