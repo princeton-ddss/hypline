@@ -277,9 +277,9 @@ hypline's BOLD postprocessing outputs. `bold_desc` selects the variant flavor:
 postprocessing variant (e.g. hyperalignment) keyed by `desc-<flavor>`.
 
 Encoding never consumes fMRIPrep's raw `desc-preproc` BOLD; it reads BOLD that
-the upstream denoise step has already cleaned of **run-level nuisance** signal
-(motion, aCompCor/tCompCor, WM/CSF, drift). That cleaning is a prior, separate
-stage — not something the encoding fit does.
+the upstream [denoise](denoise.md) step has already cleaned of **run-level
+nuisance** signal (motion, aCompCor/tCompCor, WM/CSF, drift). That cleaning is a
+prior, separate stage — not something the encoding fit does.
 
 Encoding-time confounds are a distinct concern from denoise nuisance, split by
 what they model and when they act. Denoise removes run-level nuisance from BOLD

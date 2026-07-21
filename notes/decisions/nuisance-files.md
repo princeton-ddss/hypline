@@ -5,7 +5,7 @@ Parallel to [confound-files.md](confound-files.md); the two are deliberately
 distinct (see below).
 
 Nuisance regressors are **run-level**: they clean a BOLD run, so they are always
-one row per TR. Confounds track **feature granularity** and serve the planned
+one row per TR. Confounds track **feature granularity** and serve the
 encoding-side consumer; the two are split by granularity into separate folders
 and formats — see [confound-files.md](confound-files.md), [layout.md](layout.md).
 

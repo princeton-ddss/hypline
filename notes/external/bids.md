@@ -17,9 +17,9 @@ sub-01_ses-01_task-movie_run-1_space-T1w_desc-preproc_bold.nii.gz
 | `dyad`   | conversation pair         | leading identity for shared-conversation files (custom; see [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)) |
 | `ses`    | session                   | only when dataset has sessions          |
 | `task`   | task name                 | always for functional data              |
-| `acq`    | acquisition variant       | e.g. `acq-highres`                      |
+| `acq`    | acquisition variant       | BIDS-standard, but **rejected** at construction (see below) |
 | `run`    | run index within task/ses | only when task has multiple runs        |
-| `echo`   | echo index                | multi-echo acquisitions                 |
+| `echo`   | echo index                | BIDS-standard, but **rejected** at construction (see below) |
 | `space`  | reference space           | e.g. `T1w`, `MNI152NLin2009cAsym`       |
 | `res`    | resolution                | resampled derivatives                   |
 | `den`    | surface density           | surface derivatives                     |
@@ -38,7 +38,7 @@ Some entity names look tempting for custom use but are already reserved:
 - `chunk` — segmented acquisitions
 
 Check the BIDS spec before introducing a new custom entity. Hypline's category
-entities (`feat`/`conf`/`nuis`) were each confirmed BIDS-free — no
+entities (`feat`/`conf`/`nuis`/`result`) were each confirmed BIDS-free — no
 reserved short label collides — so they are safe as custom names. Stimuli use
 trailing `_audio`/`_transcript` suffixes rather than an entity.
 
@@ -57,12 +57,12 @@ events.tsv (e.g. `block`, `trial`) are inferred as the segment entity at discove
 exactly one entity name is allowed per run. See
 [../decisions/semantic-entity.md](../decisions/semantic-entity.md).
 
-Hypline extends the BIDS root with four non-standard areas (`stimuli/`,
-`features/`, `confounds/`, `nuisance/`) that follow the same
+Hypline extends the BIDS root with five non-standard areas (`stimuli/`,
+`features/`, `confounds/`, `nuisance/`, `results/`) that follow the same
 `<identity>/[ses-YY/]<kind>/` nesting. The leading identity is `dyad` for the
 shared-conversation areas (`stimuli`/`features`/`confounds`) and `sub` for
-`nuisance`. See [../decisions/layout.md](../decisions/layout.md) and
-[../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
+`nuisance` and `results`. See [../decisions/layout.md](../decisions/layout.md)
+and [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md).
 
 ## `trial_type.Levels` for segment metadata
 

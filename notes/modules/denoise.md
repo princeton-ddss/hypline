@@ -25,13 +25,11 @@ Each output gets a per-file `..._desc-denoised_bold.json` sidecar: `Sources`
 `derivatives/hypline/dataset_description.json` (`GeneratedBy: hypline`,
 `DatasetType: derivative`, `DatasetLinks`) stamps the tree.
 
-**Denoise output and encoding's default input must agree — and currently do
-not.** Encoding reads its input BOLD via `find.fmriprep` defaulting to
-`bold_desc="clean"`, so it looks for `desc-clean` in the fmriprep tree. Denoise
-now writes `desc-denoised` under `derivatives/hypline/`, so neither the area nor
-the descriptor matches: the denoise→encoding default chain finds nothing. Closing
-the gap means pointing encoding's read path at the hypline area with a `denoised`
-default. Until then this block documents a live break, not a settled contract.
+Denoise output is encoding's default input: encoding reads BOLD from the
+`derivatives/hypline/` area (`find.hypline`) with `bold_desc` defaulting to
+`denoised`, matching both the area and descriptor this stage writes. The two
+sides are coupled on that `denoised` default — see
+[encoding.md](encoding.md#module-layout).
 
 ## Nuisance source
 

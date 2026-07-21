@@ -12,12 +12,13 @@ Directory contract for the hypline-flavored BIDS root tree.
 ├── stimuli/dyad-XX/[ses-YY/]<kind>/                   # audio, transcript, ... (shared conversation)
 ├── features/dyad-XX/[ses-YY/]<kind>[-<desc>]/         # phonemic, semantic, ... (shared conversation)
 ├── confounds/dyad-XX/[ses-YY/]<kind>[-<desc>]/        # phonemic, semantic, ... (shared conversation)
-└── nuisance/sub-XX/[ses-YY/]<kind>[-<desc>]/          # physio, ... (run-level, per-brain)
+├── nuisance/sub-XX/[ses-YY/]<kind>[-<desc>]/          # physio, ... (run-level, per-brain)
+└── results/sub-XX/[ses-YY/]<kind>[-<desc>]/           # encoding models, eval correlations (per-brain)
 ```
 
 `stimuli/`, `features/`, `confounds/` are **dyad-keyed** (derived from the
-shared conversation); BOLD-derived areas (raw, fmriprep, hypline, `nuisance/`)
-stay **sub-keyed**. See [dyad-keyed.md](dyad-keyed.md). The identity prefix is a
+shared conversation); BOLD-derived areas (raw, fmriprep, hypline, `nuisance/`,
+`results/`) stay **sub-keyed**. See [dyad-keyed.md](dyad-keyed.md). The identity prefix is a
 parameter threaded through discovery — shared areas pass `dyad`, per-brain areas
 pass `sub`, one code path. `list.dyads(area=)` scans on-disk subdirs (distinct
 from the participants.tsv mapping).
@@ -36,8 +37,8 @@ stimulus is the experimental record (the audio, transcript, movie) with one
 ground truth, so `stimuli/` has no variants — `path.stimulus` takes no `desc`. An
 artifact that needs variants is a feature, not a stimulus.
 
-`stimuli/`, `features/`, `confounds/`, and `nuisance/` are hypline extensions —
-not in the BIDS spec. CLI commands take a single `<bids_root>`; path resolution
+`stimuli/`, `features/`, `confounds/`, `nuisance/`, and `results/` are hypline
+extensions — not in the BIDS spec. CLI commands take a single `<bids_root>`; path resolution
 is centralized.
 
 ## Vocabulary
@@ -53,10 +54,11 @@ Two terms name directory levels below `<identity>/[ses-YY/]` (`<identity>` is
     - `features/`: `phonemic`, `semantic` — `feat-<kind>` entity.
     - `confounds/`: `phonemic`, `semantic` — `conf-<kind>` entity; source derivations differ by optional `desc-<name>`.
     - `nuisance/`: user-named, e.g. `physio` — `nuis-<kind>` entity; optional `desc-<name>`. Carries a `_timeseries` suffix and is TSV — see [nuisance-files.md](nuisance-files.md).
+    - `results/`: analysis outputs — `result-<kind>` entity; optional `desc-<name>`. Encoding models (joblib) and eval correlations (netCDF) — see [../modules/encoding.md](../modules/encoding.md#eval-result-persistence).
 
 ## Category entities are mutually exclusive
 
-A derivative carries exactly one of `feat-*`, `conf-*`, `nuis-*`.
+A derivative carries exactly one of `feat-*`, `conf-*`, `nuis-*`, `result-*`.
 A confound derived from a `feat-phonemic` file is named `conf-phonemic`,
 not `feat-phonemic_conf-phonemic`. Stimuli are not derivatives and carry no
 category entity; their kind is a trailing `_<kind>` suffix (`_audio`,
