@@ -59,7 +59,7 @@ its inputs from the directory layout; you never pass individual file paths.
 Whisper speech-recognition model.
 
 ```bash
-hypline transcribe data/ --audio-ext .wav --model tiny
+hypline transcribe data/ --audio-ext .wav --model small
 ```
 
 ```text
@@ -79,7 +79,7 @@ and voice-activity-detection messages.)
     learning the workflow rather than analyzing the transcripts. For a real analysis,
     omit `--model` to use the default `large-v2`, which is far more accurate but a
     multi-GB download and much slower on CPU (pass `--device cuda` if you have a
-    GPU).
+    GPU). -- to be updated
 
 Only four files are transcribed, not one per run. These are the
 reading-condition subset from [step 1](#1-get-the-example-dataset): each run's
@@ -446,7 +446,7 @@ choices side by side.
     demonstrate the *effect*, since two runs of `--model tiny` transcripts are far
     too little data for the cross-brain scores to mean anything. On a full study
     they carry the shared-representation signal; here they only confirm the
-    command runs end to end.
+    command runs end to end. -- to be updated
 
 !!! success "Check"
 
