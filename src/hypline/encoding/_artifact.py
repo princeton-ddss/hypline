@@ -191,7 +191,7 @@ def _numpyfy_fitted(obj: object, _seen: set[int] | None = None) -> None:
         setattr(obj, attr, _convert(value))
 
 
-def save_artifact(artifact: EncodingArtifact, path: Path) -> None:
+def save_artifact(artifact: EncodingArtifact, path: str | Path) -> None:
     """Dump `artifact` to `path` (.joblib) plus a non-pipeline JSON sidecar.
 
     Forces fitted weights to numpy before the joblib dump (see `_numpyfy_fitted`)
@@ -201,6 +201,8 @@ def save_artifact(artifact: EncodingArtifact, path: Path) -> None:
     """
     import joblib
     from himalaya.backend import set_backend
+
+    path = Path(path)
 
     # Switch to numpy so the in-memory pipeline this artifact still references
     # predicts on the same backend as a reloaded copy (predict reads the active
@@ -252,7 +254,7 @@ def _sidecar(artifact: EncodingArtifact) -> dict:
     }
 
 
-def load_artifact(path: Path) -> EncodingArtifact:
+def load_artifact(path: str | Path) -> EncodingArtifact:
     """Load an encoding artifact from its `.joblib` blob.
 
     Logs a warning (does not fail) on a `hypline_version` mismatch read from the
@@ -271,6 +273,8 @@ def load_artifact(path: Path) -> EncodingArtifact:
         time), so it loads and predicts without torch or CUDA.
     """
     import joblib
+
+    path = Path(path)
 
     sidecar_path = path.with_suffix(".json")
     if sidecar_path.exists():
