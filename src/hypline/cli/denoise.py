@@ -36,9 +36,9 @@ def denoise(
         typer.Option(
             "--compcor",
             help="""
-            Comma-separated CompCor selectors type:mask:n (e.g., a:CSF:5 = top-5
-            aCompCor in CSF; t::10 = top-10 tCompCor). type a=anatomical (mask
-            required), t=temporal (no mask); n = top-N int or variance fraction (0-1)
+            Comma-separated CompCor selectors <type>:<mask>:<n> (e.g., a:CSF:5 = top-5
+            aCompCor in CSF; t::10 = top-10 tCompCor). <type> a=anatomical (mask
+            required), t=temporal (no mask); <n> = top-N int or variance fraction (0-1)
             """,
             show_default=False,
         ),
