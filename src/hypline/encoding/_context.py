@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import reprlib
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Collection
 
 import numpy as np
 
@@ -134,14 +134,16 @@ def _require_consistent_metadata(
 
 def _require_regressor_at_every_cell(
     regressor_bids: dict[RegressorKey, BIDSPath],
+    *,
     regressor_names: dict[str, tuple[str, str | None]],
     sub_id: str,
-    label: str,
 ) -> None:
-    """Assert every regressor is present at every discovered cell.
+    """Assert every regressor is present at every cell in the merged set.
 
     A missing regressor at any cell would silently produce an incomplete X, so it
-    raises instead.
+    raises. Train-only; runs over the merged feature+confound dict. See
+    `_assemble_training_data` for why it subsumes the old cross-stream alignment check,
+    and `EncodingPredictor.predict` for why predict skips it.
     """
     expected = {
         RegressorKey(cell_key, regressor_name)
@@ -152,10 +154,84 @@ def _require_regressor_at_every_cell(
     if missing:
         regressor_key = next(iter(missing))
         loc = _format_loc(sub=sub_id, **dict(regressor_key.cell.items()))
-        msg = f"Missing {label}={regressor_key.name} at {loc}"
+        msg = f"Missing regressor={regressor_key.name} at {loc}"
         if len(missing) > 1:
             msg += f" ({len(missing) - 1} other coverage gaps exist)"
         raise FileNotFoundError(msg)
+
+
+def _require_uniform_regressor_shape(
+    regressor_bids: dict[RegressorKey, BIDSPath],
+    *,
+    feature_names: Collection[str],
+    confound_names: Collection[str],
+) -> None:
+    """Assert regressor schema uniformity and metadata consistency.
+
+    Splits the merged dict by stream because the two streams read metadata through
+    different readers and carry different diagnostic labels; schema uniformity would
+    pass on the merged dict, but per-stream keeps the label right.
+    """
+    feature_bids = {
+        key: bids for key, bids in regressor_bids.items() if key.name in feature_names
+    }
+    confound_bids = {
+        key: bids for key, bids in regressor_bids.items() if key.name in confound_names
+    }
+
+    _require_uniform_schema(feature_bids)
+    _require_consistent_metadata(feature_bids, read_feature_metadata, "feat")
+
+    if confound_bids:
+        _require_uniform_schema(confound_bids)
+        _require_consistent_metadata(confound_bids, read_confound_metadata, "conf")
+
+
+def _require_uniform_bold_shape(
+    bold_metas: dict[BoldKey, BoldMeta], sub_id: str
+) -> None:
+    """Assert every BOLD run shares one TR, segment entity, and metadata schema.
+
+    Incompatible TRs or segment schemas cannot pool into one X/Y. Runs over the cell
+    set that becomes Y; see `_assemble_training_data` for why this is deferred past
+    discovery.
+    """
+    repetition_times = {meta.repetition_time for meta in bold_metas.values()}
+    if len(repetition_times) > 1:
+        raise ValueError(
+            f"Inconsistent repetition times (TRs) across BOLD files for "
+            f"subject {sub_id}: {repetition_times}"
+        )
+
+    segment_entities = {
+        meta.segments[0].entity if meta.segments else None
+        for meta in bold_metas.values()
+    }
+    if len(segment_entities) > 1:
+        run_labels = sorted(
+            f"{meta.representative_file().path.name} ("
+            f"{meta.segments[0].entity if meta.segments else 'unsegmented'})"
+            for meta in bold_metas.values()
+        )
+        raise ValueError(
+            f"BOLD runs disagree on segment entity for subject {sub_id}:\n  "
+            + "\n  ".join(run_labels)
+        )
+
+    segmented_metas = [meta for meta in bold_metas.values() if meta.segments]
+    metadata_key_sets = {
+        frozenset(seg.metadata) for meta in segmented_metas for seg in meta.segments
+    }
+    if len(metadata_key_sets) > 1:
+        run_labels = sorted(
+            f"{meta.representative_file().path.name} "
+            f"({sorted(meta.segments[0].metadata) or 'no metadata'})"
+            for meta in segmented_metas
+        )
+        raise ValueError(
+            f"BOLD runs disagree on segment metadata schema for subject "
+            f"{sub_id}:\n  " + "\n  ".join(run_labels)
+        )
 
 
 def _load_bold_array(paths: list[Path]) -> np.ndarray:
@@ -363,7 +439,7 @@ class _EncodingContext:
     _recipe: XRecipe
 
     def _discover_features(self, sub_id: str) -> dict[RegressorKey, BIDSPath]:
-        """Discover and validate feature file paths for a subject.
+        """Discover feature file paths for a subject.
 
         Scans the features directory by BIDS filename alone — no feature data is read.
         Features are dyad-keyed, so `sub_id` is resolved to its dyad via `dyad_of`;
@@ -371,10 +447,9 @@ class _EncodingContext:
         post-enrichment in _apply_filters. Duplicate files for the same (cell, feature)
         pair raise immediately.
 
-        Returns a flat dict mapping each (cell, feature) pair to its BIDSPath.
-        Every cell is guaranteed to have all requested features — a missing feature
-        at any cell raises rather than silently producing an incomplete matrix.
-        All files are guaranteed to share the same cell schema (entity key set).
+        Returns a flat dict mapping each (cell, feature) pair to its BIDSPath. No
+        schema, metadata, or coverage validation here — those run in the callers, over
+        the cells that actually become X.
         """
         # Features are dyad-keyed; resolve this subject's dyad via participants.tsv
         dyad_id = self._layout.dyad_of(sub_id)
@@ -404,21 +479,15 @@ class _EncodingContext:
                     )
                 feature_bids[feature_key] = bids
 
-        _require_uniform_schema(feature_bids)
-        _require_consistent_metadata(feature_bids, read_feature_metadata, "feat")
-        _require_regressor_at_every_cell(
-            feature_bids, self._recipe.features, sub_id, "feat"
-        )
         return feature_bids
 
     def _discover_confounds(self, sub_id: str) -> dict[RegressorKey, BIDSPath]:
-        """Discover and validate confound file paths for a subject.
+        """Discover confound file paths for a subject.
 
-        Mirrors `_discover_features` (same schema and per-cell coverage checks),
-        but reads via `find.confounds`/`read_confound_metadata` and stores the
-        confound name in `RegressorKey.name`. That per-entry key only labels
-        coverage and dedup here — confounds all collapse into one ridge band in
-        `_build_x`.
+        Mirrors `_discover_features` (validation likewise deferred to callers), but
+        reads via `find.confounds` and stores the confound name in `RegressorKey.name`.
+        That per-entry key only labels coverage and dedup — confounds all collapse into
+        one ridge band in `_build_x`.
 
         Returns an empty dict when no confounds are configured.
         """
@@ -453,11 +522,6 @@ class _EncodingContext:
                     )
                 confound_bids[confound_key] = bids
 
-        _require_uniform_schema(confound_bids)
-        _require_consistent_metadata(confound_bids, read_confound_metadata, "conf")
-        _require_regressor_at_every_cell(
-            confound_bids, self._recipe.confounds, sub_id, "conf"
-        )
         return confound_bids
 
     def _discover_bold(self, sub_id: str) -> dict[BoldKey, BoldMeta]:
@@ -465,9 +529,11 @@ class _EncodingContext:
 
         Scans the BOLD directory by filename without loading image arrays. TR is
         read from the sidecar JSON, falling back to the image header. Segmentation
-        is inferred from the colocated events TSV when present. All runs are guaranteed
-        to share the same TR, BOLD-level entity invariants, and segment entity (or all
-        unsegmented).
+        is inferred from the colocated events TSV when present.
+
+        No cross-run shape validation (TR, segment entity, segment-metadata schema)
+        here — that runs via `_require_uniform_bold_shape` in the callers, over the
+        cells that become Y.
 
         Surface fmriprep emits one file per hemisphere, so a run maps to two files
         differing only by `hemi`; both are grouped under the run's `BoldKey` and
@@ -510,46 +576,6 @@ class _EncodingContext:
             except ValueError as e:
                 raise ValueError(f"Failed to load BOLD at {loc}: {e}") from e
 
-        # Validate: TR is invariant across all runs
-        repetition_times = {meta.repetition_time for meta in bold_metas.values()}
-        if len(repetition_times) > 1:
-            raise ValueError(
-                f"Inconsistent repetition times (TRs) across BOLD files for "
-                f"subject {sub_id}: {repetition_times}"
-            )
-
-        # Validate: segment entity is invariant across all runs (or all unsegmented)
-        segment_entities = {
-            meta.segments[0].entity if meta.segments else None
-            for meta in bold_metas.values()
-        }
-        if len(segment_entities) > 1:
-            run_labels = sorted(
-                f"{meta.representative_file().path.name} ("
-                f"{meta.segments[0].entity if meta.segments else 'unsegmented'})"
-                for meta in bold_metas.values()
-            )
-            raise ValueError(
-                f"BOLD runs disagree on segment entity for subject {sub_id}:\n  "
-                + "\n  ".join(run_labels)
-            )
-
-        # Validate: segment metadata schema is invariant across segmented runs
-        segmented_metas = [meta for meta in bold_metas.values() if meta.segments]
-        metadata_key_sets = {
-            frozenset(seg.metadata) for meta in segmented_metas for seg in meta.segments
-        }
-        if len(metadata_key_sets) > 1:
-            run_labels = sorted(
-                f"{meta.representative_file().path.name} "
-                f"({sorted(meta.segments[0].metadata) or 'no metadata'})"
-                for meta in segmented_metas
-            )
-            raise ValueError(
-                f"BOLD runs disagree on segment metadata schema for subject "
-                f"{sub_id}:\n  " + "\n  ".join(run_labels)
-            )
-
         return bold_metas
 
     def _resolve_cell_keys(
@@ -565,8 +591,10 @@ class _EncodingContext:
         segment entity are rejected unless they echo a metadata key from events.json
         — descriptive metadata must live in events.json, not filenames.
 
-        Invariant: _discover_bold guarantees all segments share the same metadata
-        schema across runs, so resolved cells always end up with a uniform key set.
+        Does not assume a uniform segment-metadata schema across runs: resolution is
+        fully per-run — each cell reads segments off its own BOLD meta — so it
+        tolerates heterogeneous metas and lets `_require_uniform_bold_shape` flag any
+        that survive filtering.
         """
 
         def _loc(bold_key: BoldKey) -> str:

@@ -16,7 +16,12 @@ from hypline.bids import parse_filter_groups, validate_bids_entities
 from hypline.layout import BIDSLayout
 
 from ._artifact import EncodingArtifact, FittedModel, load_artifact
-from ._context import _align_y, _EncodingContext
+from ._context import (
+    _align_y,
+    _EncodingContext,
+    _require_uniform_bold_shape,
+    _require_uniform_regressor_shape,
+)
 from ._eval import (
     ROLES,
     _role_masks,
@@ -207,8 +212,10 @@ class EncodingPredictor(_EncodingContext):
         Uses full discovery, not the recipe's `bids_filters`: `_select_cells`
         trusts the stored `train`/`universe` sets and may name cells (`test_on`)
         outside the train corpus, so the source's available cells must not be
-        pre-narrowed by replaying train-time filters. `_apply_filters` and
-        `_validate_coverage` (a train coverage invariant) are deliberately skipped.
+        pre-narrowed by replaying train-time filters. `_apply_filters` and the coverage
+        checks (`_validate_coverage`, `_require_regressor_at_every_cell`) are
+        deliberately skipped. Shape checks still run, on the per-model selected set —
+        see the loop below.
         """
         feature_bids = self._discover_features(source_sub_id)
         confound_bids = self._discover_confounds(source_sub_id)
@@ -228,6 +235,27 @@ class EncodingPredictor(_EncodingContext):
         results: list[Prediction] = []
         for model in self._artifact.models:
             cells = _select_cells(available, self._artifact, model, test_on=test_on)
+
+            # Shape uniformity over the selected set only: a cross-task/heterogeneous
+            # OOS selection is pooled into one X whose delays are in TR units, so a
+            # mixed-TR selection would silently misapply the model's TR-specific weights
+            # (no crash, wrong Y_hat).
+            selected_bold_keys = {cell.to_bold_key() for cell in cells}
+            selected_bold = {
+                bold_key: meta
+                for bold_key, meta in bold_metas.items()
+                if bold_key in selected_bold_keys
+            }
+            selected_regressors = {
+                key: bids for key, bids in regressor_bids.items() if key.cell in cells
+            }
+            _require_uniform_bold_shape(selected_bold, source_sub_id)
+            _require_uniform_regressor_shape(
+                selected_regressors,
+                feature_names=self._recipe.features,
+                confound_names=self._recipe.confounds,
+            )
+
             sub_metas = {
                 key: meta for key, meta in regressor_metas.items() if key.cell in cells
             }

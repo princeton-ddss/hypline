@@ -58,7 +58,7 @@ A run with one events.tsv row is **segmented** (segment count = 1), not unsegmen
   files always carry per BIDS) rather than inventing a structural entity like `block-1` that
   would falsely advertise multiple blocks. Value must match the filename's `task`.
 
-Cross-run (enforced in `Encoding._discover_bold`):
+Cross-run (enforced in `_require_uniform_bold_shape`, post-filter over the assembled set):
 - All segmented runs share the same metadata key set. Strict — a segmented run with no
   events.json (empty metadata) does not match a segmented run with populated metadata.
   Mixing the two raises rather than silently routing partial metadata downstream.

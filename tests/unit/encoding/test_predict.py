@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 import pytest
 
 from hypline.encoding import EncodingPredictor
@@ -10,11 +11,14 @@ from hypline.encoding._predict import (
 )
 from hypline.encoding._schema import CellDelayer, CellKey, TrainingData, XData
 
-from ..conftest import BIDSTree
+from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree
 from .conftest import (
     DYAD,
     PARTNER,
+    SPACE,
     SUB,
+    TASK,
+    _add_dyad_turns,
     _add_phonemic_confound,
     _make_encoding,
     _two_run_dyad,
@@ -99,9 +103,7 @@ class TestSelectCells:
             CellKey(task="a", run="2"),
         }
         model = self._model(set())
-        selected = _select_cells(
-            avail, self._artifact(None), model, test_on=["task-a"]
-        )
+        selected = _select_cells(avail, self._artifact(None), model, test_on=["task-a"])
         assert selected == {CellKey(task="a", run="1"), CellKey(task="a", run="2")}
 
     def test_test_on_ors_within_entity(self):
@@ -330,6 +332,67 @@ class TestPredict:
 
         for pred in preds:
             assert all(cell["run"] == "1" for cell in pred.row_slices)
+
+    def test_heterogeneous_selected_set_raises(self, tree: BIDSTree):
+        # Predict trusts stored cell sets for coverage but still checks shape over the
+        # per-model *selected* set. Train on run-1 alone (uniform), then select both
+        # runs at predict where run-2's TR differs: pooling mixed TRs into one X would
+        # silently misapply the model's TR-specific weights, so predict must raise.
+        feature_df = pl.DataFrame(
+            {
+                "start_time": [2.0 * i for i in range(DEFAULT_BOLD_N_TRS)],
+                "feature": [[float(i + 1)] for i in range(DEFAULT_BOLD_N_TRS)],
+            },
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+        )
+        for run, tr in (("1", 2.0), ("2", 1.5)):
+            _add_dyad_turns(tree, run=run, tr=tr)
+            for sub in (SUB, PARTNER):
+                tree.add_bold(
+                    sub=sub, task=TASK, space=SPACE, run=run, tr=tr, desc="denoised"
+                )
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run, df=feature_df)
+
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
+        artifact = enc.train(SUB)
+        predictor = EncodingPredictor(bids_root=tree.root, artifact=artifact)
+
+        with pytest.raises(ValueError, match="Inconsistent repetition times"):
+            predictor.predict(source_sub_id=SUB, test_on=["run-1", "run-2"])
+
+    def test_heterogeneous_regressor_metadata_in_selection_raises(self, tree: BIDSTree):
+        # The regressor-shape leg of the predict selected-set check (distinct from the
+        # bold-shape leg above): BOLD is uniform, but the two selected runs carry
+        # conflicting mfcc metadata, which would pool incompatible features into one X.
+        feature_df = pl.DataFrame(
+            {
+                "start_time": [2.0 * i for i in range(DEFAULT_BOLD_N_TRS)],
+                "feature": [[float(i + 1)] for i in range(DEFAULT_BOLD_N_TRS)],
+            },
+            schema={"start_time": pl.Float64, "feature": pl.Array(pl.Float64, 1)},
+        )
+        for run, model in (("1", "v1"), ("2", "v2")):
+            _add_dyad_turns(tree, run=run)
+            for sub in (SUB, PARTNER):
+                tree.add_bold(
+                    sub=sub, task=TASK, space=SPACE, run=run, tr=2.0, desc="denoised"
+                )
+            tree.add_feature(
+                dyad=DYAD,
+                task=TASK,
+                kind="mfcc",
+                run=run,
+                df=feature_df,
+                metadata={"model": model},
+            )
+
+        # Train on run-1 only, so the fit sees a metadata-uniform subset.
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
+        artifact = enc.train(SUB)
+        predictor = EncodingPredictor(bids_root=tree.root, artifact=artifact)
+
+        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
+            predictor.predict(source_sub_id=SUB, test_on=["run-1", "run-2"])
 
 
 class TestAnalyze:

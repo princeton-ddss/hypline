@@ -34,5 +34,5 @@ nuisance paths uniformly.
 Lift the ban (entirely or per-entity) if hypline grows beyond the
 hyperscanning domain — e.g. a methods-comparison study comparing acquisition
 variants. Re-adding an entity requires restoring per-call invariance
-validation in `encoding._discover_bold` so a single training call still sees
-one coherent acquisition.
+validation in `encoding._require_uniform_bold_shape` so a single training call
+still sees one coherent acquisition.

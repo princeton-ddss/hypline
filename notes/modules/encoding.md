@@ -52,9 +52,10 @@ A single `train(sub_id)` call is scoped to:
 ## Pipeline
 
 Features and confounds are two independent regressor streams. Each is discovered
-and validated on its own (schema, generator-metadata, per-stream cell coverage),
+(filename scan only — no schema, metadata, or coverage validation),
 resolved against BOLD **before** merging, then combined into one regressor dict
-that filter/enrich/build run over once. The per-stream resolve is load-bearing:
+that filter/enrich/build run over once (shape and coverage validation is deferred —
+see step 5). The per-stream resolve is load-bearing:
 resolution's unsegmented-run guard allows only one file per run, but a feature and
 a confound legitimately share one run — resolving the merged dict would miscount
 and falsely reject. `train(sub_id)` executes these steps in order:
@@ -64,15 +65,17 @@ and falsely reject. `train(sub_id)` executes these steps in order:
    [../decisions/dyad-keyed.md](../decisions/dyad-keyed.md)), then scans
    dyad-keyed feature filenames; returns raw `dict[RegressorKey, Path]` with
    filename-only `CellKey`s. No events I/O. No user filters.
-   **`_discover_confounds`** mirrors it against `confounds/` (same schema and
-   per-cell coverage checks); returns an empty dict when no confounds are configured.
+   **`_discover_confounds`** mirrors it against `confounds/`; returns an empty dict
+   when no confounds are configured.
 2. **`_discover_bold`** — scans BOLD filenames; reads sidecar JSON (TR), events.tsv
    (segment slices), and events.json `trial_type.Levels` (metadata) from the **raw** BIDS
    tree via `BIDSLayout.path.raw` (sidecars are identity-keyed, not per-variant). Returns
    `dict[BoldKey, BoldMeta]`. A surface run maps two files to one `BoldKey`;
    `resolve_voxel_source` orders the hemis `(L, R)` so their voxels concatenate into one Y,
    while a volume run stays one file (see [../external/fmriprep.md](../external/fmriprep.md#surface-vs-volume)).
-   Validates within-run and cross-run segment invariants. No user filters.
+   Validates within-run segment invariants only; cross-run shape invariants (TR,
+   segment entity, segment-metadata schema) are deferred to `_require_uniform_bold_shape`
+   post-filter (step 5). No user filters.
 3. **`_resolve_cell_keys`** — precondition: every cell's `(ses, run)` must map to a
    `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
    enrichment). Then merges `Segment.metadata` onto each cell's `CellKey`.
@@ -82,13 +85,11 @@ and falsely reject. `train(sub_id)` executes these steps in order:
 4. **`_apply_filters`** — applies user `bids_filters` to both enriched regressor cells
    and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns
    filtered `(dict[RegressorKey, Path], dict[BoldKey, BoldMeta])`.
-5. **`_validate_coverage`** — bidirectional `(ses, task, run)` coverage: every
-   filtered BOLD run must have regressor coverage and vice versa. Raises if either
-   filtered set is empty. Void-returning. **Train-only** — predict needs only the
-   regressor→BOLD half (already enforced by `_resolve_cell_keys`), so it skips this.
-   **`_validate_confound_alignment`** (train-only) then asserts the feature and
-   confound streams cover the same cell set — filters can narrow one stream and leave
-   the other with an orphan cell that would misalign the confound band against X's rows.
+5. **Post-filter validation**, over the assembled set (see
+   [Shape vs. coverage validation](#shape-vs-coverage-validation) for scope and why):
+   **`_require_uniform_bold_shape`** then **`_require_uniform_regressor_shape`** (shape,
+   both roles), then **`_require_regressor_at_every_cell`** and **`_validate_coverage`**
+   (coverage, train-only).
 6. **`_enrich_regressor_metas`** — the single regressor↔BOLD-timeline crossover, role-neutral
    (placement depends only on the cell's BOLD timeline): derives each cell's TR-grid
    placement (`onset_tr`, `n_trs`, `repetition_time`) from `bold_metas` (segment TR-slice,
@@ -102,6 +103,33 @@ and falsely reject. `train(sub_id)` executes these steps in order:
 8. **`_build_training_data`** (train-only) — wraps `_build_x` and appends Y via
    `_align_y`, which slices each cell's BOLD onto X's row geometry and validates
    `n_trs` against the array (drift guard + bounds check) before assembling.
+
+## Shape vs. coverage validation
+
+Two invariant kinds guard the X/Y build, and they scope differently:
+
+- **Shape invariants** — one TR, one segment entity, one segment-metadata schema,
+  one regressor schema across the pooled cells. Incompatible shapes cannot pool into
+  a single X/Y. Checked by `_require_uniform_bold_shape` /
+  `_require_uniform_regressor_shape` on **both** train and predict.
+- **Coverage invariants** — corpus completeness: every regressor at every cell
+  (`_require_regressor_at_every_cell`), bidirectional regressor↔BOLD coverage
+  (`_validate_coverage`). Demanding every feature and confound at every cell also
+  forces the two streams to cover the same cells, so this subsumes the old
+  cross-stream confound-alignment check. **Train-only by design** — predict trusts the
+  stored cell sets and lets `test_on` name cells outside the train corpus, so
+  re-imposing coverage there would reject legitimate out-of-sample selections.
+
+Both run over **the set that actually becomes X/Y**, not full discovery: the filtered
+set on train, the per-model selected set on predict. This is why they were pulled out
+of `_discover_*` — a `bids_filters` narrowing a heterogeneous subject (e.g. mixed-TR
+runs) down to a uniform subset now *passes*, where a discovery-time check would
+false-fail on the discarded runs.
+
+**Contract (do not regress): predict runs shape checks on its selected set, never
+coverage.** Because the check is on the selected set, a default cross-run predict
+whose runs have incompatible TRs *raises* on the shape check rather than silently
+pooling — `test_on` to a shape-uniform subset when that happens.
 
 ## Prod/comp turn split
 
@@ -228,8 +256,8 @@ Predict and analyze run across subjects *within one study* sharing the design
 (paradigm, acquisition, TR). Encoding weights tie to a feature space and voxel grid,
 so crossing studies breaks feature alignment regardless of TR. This is a usage
 contract, not a recipe guard: `XRecipe` carries no `repetition_time`, and the
-per-build TR check (`_discover_bold`) plus `_align_y`'s drift guard enforce
-*consistency*, not cross-study tolerance.
+per-build TR check (`_require_uniform_bold_shape`) plus `_align_y`'s drift guard
+enforce *consistency*, not cross-study tolerance.
 
 ## Alignment contract
 

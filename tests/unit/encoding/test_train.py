@@ -466,46 +466,6 @@ class TestValidateCoverage:
             enc._validate_coverage(SUB, feature_paths, bold_metas)
 
 
-class TestValidateConfoundAlignment:
-    def test_no_confounds_is_noop(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
-        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
-        enc = _make_encoding(tree, ["mfcc"])
-        feature_paths = enc._discover_features(SUB)
-        enc._validate_confound_alignment(SUB, feature_paths)
-
-    def test_aligned_cells_pass(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", desc="denoised")
-        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
-        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
-        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
-        regressor_bids = {
-            **enc._discover_features(SUB),
-            **enc._discover_confounds(SUB),
-        }
-        enc._validate_confound_alignment(SUB, regressor_bids)
-
-    def test_feature_cell_without_confound_raises(self, tree: BIDSTree):
-        # run-2 has a feature but no confound: the streams disagree on which cells
-        # they cover, which would misalign the confound band against X's rows
-        tree.add_participants({SUB: DYAD})
-        for run in ("1", "2"):
-            tree.add_bold(sub=SUB, task=TASK, space=SPACE, run=run, desc="denoised")
-            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
-        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
-        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
-        regressor_bids = {
-            **enc._discover_features(SUB),
-            **enc._discover_confounds(SUB),
-        }
-        with pytest.raises(
-            FileNotFoundError, match="No confound coverage to match the other stream"
-        ):
-            enc._validate_confound_alignment(SUB, regressor_bids)
-
-
 class TestFoldHelpers:
     def test_group_cells_by_descriptive_entity(self):
         # cond spans multiple runs — groups collapse runs into shared cond buckets
@@ -852,6 +812,97 @@ class TestAssembleTrainingData:
         enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
         with pytest.raises(ValueError, match="confounds must be saved"):
             enc._assemble_training_data(SUB)
+
+    def test_regressor_shape_error_fires_before_coverage_error(self, tree: BIDSTree):
+        # A regressor metadata mismatch (mfcc model v1 vs v2) and a coverage gap
+        # (clip only at run-1) coexist under uniform BOLD. `_assemble_training_data`
+        # runs regressor-shape before coverage, so the metadata error must win — and
+        # this also guards that the relocated shape check is wired into assembly at
+        # all (a coverage-only fixture would slip a dropped shape line past the suite).
+        _add_dyad_turns(tree, run="1")
+        _add_dyad_turns(tree, run="2")
+        for run in ("1", "2"):
+            tree.add_bold(
+                sub=SUB, task=TASK, space=SPACE, run=run, tr=2.0, desc="denoised"
+            )
+        tree.add_feature(
+            dyad=DYAD,
+            task=TASK,
+            kind="mfcc",
+            run="1",
+            df=self._feature_df(),
+            metadata={"model": "v1"},
+        )
+        tree.add_feature(
+            dyad=DYAD,
+            task=TASK,
+            kind="mfcc",
+            run="2",
+            df=self._feature_df(),
+            metadata={"model": "v2"},
+        )
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="clip", run="1", df=self._feature_df()
+        )
+        enc = _make_encoding(tree, ["mfcc", "clip"])
+        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
+            enc._assemble_training_data(SUB)
+
+    def test_missing_regressor_at_cell_raises_in_assembly(self, tree: BIDSTree):
+        # Guards that `_require_regressor_at_every_cell` is wired into assembly: clip
+        # is present at run-1 but missing at run-2 (mfcc covers both), a gap
+        # `_validate_coverage` does not catch — it would slip into `_build_x`.
+        _add_dyad_turns(tree, run="1")
+        _add_dyad_turns(tree, run="2")
+        for run in ("1", "2"):
+            tree.add_bold(
+                sub=SUB, task=TASK, space=SPACE, run=run, tr=2.0, desc="denoised"
+            )
+            tree.add_feature(
+                dyad=DYAD, task=TASK, kind="mfcc", run=run, df=self._feature_df()
+            )
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="clip", run="1", df=self._feature_df()
+        )
+        enc = _make_encoding(tree, ["mfcc", "clip"])
+        with pytest.raises(FileNotFoundError, match="Missing regressor=clip"):
+            enc._assemble_training_data(SUB)
+
+    def test_mixed_tr_bold_raises_in_assembly(self, tree: BIDSTree):
+        # Guards that `_require_uniform_bold_shape` is wired into assembly: run-1 and
+        # run-2 carry different TRs with no filter to discard either, so the mixed set
+        # reaches assembly and must raise before pooling into one X/Y.
+        _add_dyad_turns(tree, run="1")
+        _add_dyad_turns(tree, run="2")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=1.5, desc="denoised")
+        for run in ("1", "2"):
+            tree.add_feature(
+                dyad=DYAD, task=TASK, kind="mfcc", run=run, df=self._feature_df()
+            )
+        enc = _make_encoding(tree, ["mfcc"])
+        with pytest.raises(ValueError, match="Inconsistent repetition times"):
+            enc._assemble_training_data(SUB)
+
+    def test_filter_narrows_heterogeneous_subject_to_uniform_subset(
+        self, tree: BIDSTree
+    ):
+        # The motivating case for relocating shape checks past the filter: run-1 and
+        # run-2 have different TRs (heterogeneous subject), but a run-1 filter narrows
+        # to a shape-uniform subset, so assembly must pass rather than raise on the
+        # discarded run-2 TR.
+        _add_dyad_turns(tree, run="1")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=1.5, desc="denoised")
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", df=self._feature_df()
+        )
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", df=self._feature_df()
+        )
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
+        data = enc._assemble_training_data(SUB)
+        assert list(data.row_slices) == [CellKey(task=TASK, run="1")]
 
 
 class TestSplit:

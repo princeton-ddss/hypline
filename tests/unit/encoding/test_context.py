@@ -7,6 +7,9 @@ from hypline.encoding._context import (
     _SCREEN_BAND,
     _build_pipeline,
     _load_bold_array,
+    _require_regressor_at_every_cell,
+    _require_uniform_bold_shape,
+    _require_uniform_regressor_shape,
 )
 from hypline.encoding._schema import BoldKey, CellKey, RegressorKey, TrainingData
 
@@ -117,14 +120,15 @@ class TestDiscoverFeatures:
         with pytest.raises(ValueError, match="Multiple feature files"):
             enc._discover_features(SUB)
 
-    def test_missing_feature_at_one_cell_raises(self, tree: BIDSTree):
+    def test_missing_feature_at_one_cell_passes_discovery(self, tree: BIDSTree):
+        # Discovery does not enforce per-cell coverage; that runs in
+        # `_require_regressor_at_every_cell`. Discovery returns the incomplete set.
         tree.add_participants({SUB: DYAD})
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         tree.add_feature(dyad=DYAD, task=TASK, kind="clip", run="1")
         enc = _make_encoding(tree, ["mfcc", "clip"])
-        with pytest.raises(FileNotFoundError, match="Missing feat=clip"):
-            enc._discover_features(SUB)
+        enc._discover_features(SUB)
 
     def test_canonical_reads_bare_folder_not_variants(self, tree: BIDSTree):
         # The user-visible bug fix: variants on disk no longer collide
@@ -184,44 +188,16 @@ class TestDiscoverFeatures:
             CellKey(task="conv", run="1"),
         }
 
-    def test_mixed_segmented_unsegmented_runs_raises(self, tree: BIDSTree):
+    def test_mixed_segmented_unsegmented_runs_passes_discovery(self, tree: BIDSTree):
+        # Discovery does not enforce schema uniformity; that runs in
+        # `_require_uniform_regressor_shape`. Discovery returns the mixed set.
         tree.add_participants({SUB: DYAD})
         tree.add_feature(
             dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
         )
         tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(
-            ValueError, match="Inconsistent schemas across regressor files"
-        ):
-            enc._discover_features(SUB)
-
-    def test_schema_error_fires_before_coverage_error(self, tree: BIDSTree):
-        # clip missing at run-2, but schema mismatch should raise first
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
-        )
-        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="clip", run="1", extra_entities={"block": "1"}
-        )
-        enc = _make_encoding(tree, ["mfcc", "clip"])
-        with pytest.raises(
-            ValueError, match="Inconsistent schemas across regressor files"
-        ):
-            enc._discover_features(SUB)
-
-    def test_file_without_hypline_metadata_raises(self, tree: BIDSTree, tmp_path):
-        tree.add_participants({SUB: DYAD})
-        kind_dir = tree.features_dir / f"dyad-{DYAD}" / "mfcc"
-        kind_dir.mkdir(parents=True)
-        path = kind_dir / f"dyad-{DYAD}_task-{TASK}_run-1_feat-mfcc.parquet"
-        df = pl.DataFrame({"start_time": [0.0], "feature": [[0.0]]})
-        pq.write_table(df.to_arrow(), path)
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="no hypline metadata"):
-            enc._discover_features(SUB)
+        enc._discover_features(SUB)
 
     def test_bids_filters_not_applied_at_discovery(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})
@@ -230,97 +206,6 @@ class TestDiscoverFeatures:
         enc = _make_encoding(tree, ["mfcc"], bids_filters=["run-1"])
         feature_paths = enc._discover_features(SUB)
         assert len(feature_paths) == 2
-
-    def test_inconsistent_metadata_across_files_raises(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
-            enc._discover_features(SUB)
-
-    def test_inconsistent_metadata_diff_in_error_message(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="model:"):
-            enc._discover_features(SUB)
-
-    def test_missing_key_shows_as_missing_in_diff(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD,
-            task=TASK,
-            kind="mfcc",
-            run="2",
-            metadata={"model": "v1", "extra": "x"},
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="<missing>"):
-            enc._discover_features(SUB)
-
-    def test_third_file_diverges_from_first(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="3", metadata={"model": "v2"}
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
-            enc._discover_features(SUB)
-
-    def test_underscore_prefixed_keys_exempt_from_metadata_check(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD,
-            task=TASK,
-            kind="mfcc",
-            run="1",
-            metadata={"model": "v1", "_run_id": "abc"},
-        )
-        tree.add_feature(
-            dyad=DYAD,
-            task=TASK,
-            kind="mfcc",
-            run="2",
-            metadata={"model": "v1", "_run_id": "xyz"},
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        enc._discover_features(SUB)
-
-    def test_metadata_check_independent_across_features(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v1"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="clip", run="1", metadata={"model": "v2"}
-        )
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="clip", run="2", metadata={"model": "v2"}
-        )
-        enc = _make_encoding(tree, ["mfcc", "clip"])
-        enc._discover_features(SUB)
 
 
 class TestDiscoverConfounds:
@@ -356,26 +241,15 @@ class TestDiscoverConfounds:
         with pytest.raises(ValueError, match="Multiple confound files"):
             enc._discover_confounds(SUB)
 
-    def test_missing_confound_at_one_cell_raises(self, tree: BIDSTree):
+    def test_missing_confound_at_one_cell_passes_discovery(self, tree: BIDSTree):
+        # Discovery does not enforce coverage or metadata consistency; those run in
+        # `_require_regressor_at_every_cell` / `_require_uniform_regressor_shape`.
         tree.add_participants({SUB: DYAD})
         tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
         tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="2")
         tree.add_confound(dyad=DYAD, task=TASK, kind="motion", run="1")
         enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic", "motion"])
-        with pytest.raises(FileNotFoundError, match="Missing conf=motion"):
-            enc._discover_confounds(SUB)
-
-    def test_inconsistent_metadata_across_files_raises(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_confound(
-            dyad=DYAD, task=TASK, kind="phonemic", run="1", metadata={"model": "v1"}
-        )
-        tree.add_confound(
-            dyad=DYAD, task=TASK, kind="phonemic", run="2", metadata={"model": "v2"}
-        )
-        enc = _make_encoding(tree, ["mfcc"], confounds=["phonemic"])
-        with pytest.raises(ValueError, match="Inconsistent metadata for conf=phonemic"):
-            enc._discover_confounds(SUB)
+        enc._discover_confounds(SUB)
 
 
 class TestDiscoverBold:
@@ -478,12 +352,13 @@ class TestDiscoverBold:
         bold_metas = enc._discover_bold(SUB)
         assert set(bold_metas) == {BoldKey(ses=None, task=TASK, run="2")}
 
-    def test_inconsistent_tr_raises(self, tree: BIDSTree):
+    def test_inconsistent_tr_passes_discovery(self, tree: BIDSTree):
+        # Discovery does not enforce TR uniformity; that runs in
+        # `_require_uniform_bold_shape`. Discovery returns the mixed-TR set.
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
         tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=1.5, desc="denoised")
         enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="Inconsistent repetition times"):
-            enc._discover_bold(SUB)
+        enc._discover_bold(SUB)
 
     def test_unrequested_task_bold_filtered_out(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="denoised")
@@ -656,98 +531,6 @@ class TestDiscoverBold:
         bold_meta = bold_metas[BoldKey(ses=None, task=TASK, run="1")]
         assert len(bold_meta.segments) == 2
         assert bold_meta.segments[0].entity == "block"
-
-    def test_runs_disagree_on_segment_entity_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
-        tree.add_events(
-            sub=SUB,
-            task=TASK,
-            run="1",
-            rows=[
-                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
-            ],
-        )
-        tree.add_events(
-            sub=SUB,
-            task=TASK,
-            run="2",
-            rows=[
-                {"trial_type": "trial-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "trial-2", "onset": 100.0, "duration": 100.0},
-            ],
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="disagree on segment entity"):
-            enc._discover_bold(SUB)
-
-    def test_mixed_segmented_and_unsegmented_raises(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-        tree.add_bold(
-            sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised"
-        )  # no events → unsegmented
-        tree.add_events(
-            sub=SUB,
-            task=TASK,
-            run="1",
-            rows=[
-                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
-                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
-            ],
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="disagree on segment entity"):
-            enc._discover_bold(SUB)
-
-    def test_events_json_cross_run_schema_mismatch_raises(self, tree: BIDSTree):
-        rows = [
-            {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
-            {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
-        ]
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
-
-        # run-1 has metadata key "cond"; run-2 has metadata key "item"
-        tree.add_events(
-            sub=SUB,
-            task=TASK,
-            run="1",
-            rows=rows,
-            sidecar_json={
-                "trial_type": {
-                    "Levels": {
-                        "block-1": {"metadata": {"cond": "R"}},
-                        "block-2": {"metadata": {"cond": "L"}},
-                    }
-                }
-            },
-        )
-        tree.add_events(
-            sub=SUB,
-            task=TASK,
-            run="2",
-            rows=rows,
-            sidecar_json={
-                "trial_type": {
-                    "Levels": {
-                        "block-1": {"metadata": {"item": "A"}},
-                        "block-2": {"metadata": {"item": "B"}},
-                    }
-                }
-            },
-        )
-
-        enc = _make_encoding(tree, ["mfcc"])
-        with pytest.raises(ValueError, match="disagree on segment metadata schema"):
-            enc._discover_bold(SUB)
-
-    def test_all_unsegmented_passes(self, tree: BIDSTree):
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
-        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
-        enc = _make_encoding(tree, ["mfcc"])
-        bold_metas = enc._discover_bold(SUB)
-        assert all(bold_meta.segments == [] for bold_meta in bold_metas.values())
 
     def test_bids_filters_not_applied_at_discovery(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})
@@ -1016,3 +799,312 @@ class TestResolveCellKeys:
         bold_metas = enc._discover_bold(SUB)
         with pytest.raises(ValueError, match="disagree on"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+
+
+class TestRequireUniformRegressorShape:
+    """Schema uniformity and metadata consistency over the merged regressor dict.
+
+    The shape helpers run post-filter (train) / on the selected set (predict), not
+    at discovery, so these drive the module-level helper directly on whatever
+    discovery returned. This one splits the merged dict by stream, so labels stay
+    `feat=` / `conf=`.
+    """
+
+    def _shape(self, enc) -> None:
+        regressor_bids = {**enc._discover_features(SUB), **enc._discover_confounds(SUB)}
+        _require_uniform_regressor_shape(
+            regressor_bids,
+            feature_names=enc._recipe.features,
+            confound_names=enc._recipe.confounds,
+        )
+
+    def test_uniform_schema_and_metadata_passes(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2"):
+            tree.add_feature(
+                dyad=DYAD, task=TASK, kind="mfcc", run=run, metadata={"model": "v1"}
+            )
+        self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_mixed_segmented_unsegmented_schema_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"block": "1"}
+        )
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
+        with pytest.raises(
+            ValueError, match="Inconsistent schemas across regressor files"
+        ):
+            self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_inconsistent_feature_metadata_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+        )
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
+        )
+        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
+            self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_inconsistent_metadata_diff_in_error_message(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+        )
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="2", metadata={"model": "v2"}
+        )
+        with pytest.raises(ValueError, match="model:"):
+            self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_missing_key_shows_as_missing_in_diff(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(
+            dyad=DYAD, task=TASK, kind="mfcc", run="1", metadata={"model": "v1"}
+        )
+        tree.add_feature(
+            dyad=DYAD,
+            task=TASK,
+            kind="mfcc",
+            run="2",
+            metadata={"model": "v1", "extra": "x"},
+        )
+        with pytest.raises(ValueError, match="<missing>"):
+            self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_third_file_diverges_from_first(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        for run, model in (("1", "v1"), ("2", "v1"), ("3", "v2")):
+            tree.add_feature(
+                dyad=DYAD, task=TASK, kind="mfcc", run=run, metadata={"model": model}
+            )
+        with pytest.raises(ValueError, match="Inconsistent metadata for feat=mfcc"):
+            self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_underscore_prefixed_keys_exempt_from_metadata_check(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        for run, run_id in (("1", "abc"), ("2", "xyz")):
+            tree.add_feature(
+                dyad=DYAD,
+                task=TASK,
+                kind="mfcc",
+                run=run,
+                metadata={"model": "v1", "_run_id": run_id},
+            )
+        self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_metadata_check_independent_across_features(self, tree: BIDSTree):
+        # mfcc and clip each carry a uniform-but-different model; splitting per name
+        # keeps them from being compared against each other.
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2"):
+            tree.add_feature(
+                dyad=DYAD, task=TASK, kind="mfcc", run=run, metadata={"model": "v1"}
+            )
+            tree.add_feature(
+                dyad=DYAD, task=TASK, kind="clip", run=run, metadata={"model": "v2"}
+            )
+        self._shape(_make_encoding(tree, ["mfcc", "clip"]))
+
+    def test_file_without_hypline_metadata_raises(self, tree: BIDSTree):
+        # Metadata is read here (not at discovery), so a parquet lacking hypline
+        # metadata raises from the check in `_require_uniform_regressor_shape`.
+        tree.add_participants({SUB: DYAD})
+        kind_dir = tree.features_dir / f"dyad-{DYAD}" / "mfcc"
+        kind_dir.mkdir(parents=True)
+        path = kind_dir / f"dyad-{DYAD}_task-{TASK}_run-1_feat-mfcc.parquet"
+        df = pl.DataFrame({"start_time": [0.0], "feature": [[0.0]]})
+        pq.write_table(df.to_arrow(), path)
+        with pytest.raises(ValueError, match="no hypline metadata"):
+            self._shape(_make_encoding(tree, ["mfcc"]))
+
+    def test_inconsistent_confound_metadata_raises(self, tree: BIDSTree):
+        # Confound stream reads via its own reader and carries the `conf=` label.
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
+        tree.add_confound(
+            dyad=DYAD, task=TASK, kind="phonemic", run="1", metadata={"model": "v1"}
+        )
+        tree.add_confound(
+            dyad=DYAD, task=TASK, kind="phonemic", run="2", metadata={"model": "v2"}
+        )
+        with pytest.raises(ValueError, match="Inconsistent metadata for conf=phonemic"):
+            self._shape(_make_encoding(tree, ["mfcc"], confounds=["phonemic"]))
+
+
+class TestRequireRegressorAtEveryCell:
+    """Per-cell coverage over the merged dict (train-only).
+
+    Demanding every feature and confound at every cell also subsumes cross-stream
+    alignment, so a feature-only or confound-only cell raises here with the unified
+    `Missing regressor=` message.
+    """
+
+    def _coverage(self, enc) -> None:
+        regressor_bids = {**enc._discover_features(SUB), **enc._discover_confounds(SUB)}
+        _require_regressor_at_every_cell(
+            regressor_bids,
+            regressor_names={**enc._recipe.features, **enc._recipe.confounds},
+            sub_id=SUB,
+        )
+
+    def test_full_coverage_passes(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2"):
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
+            tree.add_feature(dyad=DYAD, task=TASK, kind="clip", run=run)
+        self._coverage(_make_encoding(tree, ["mfcc", "clip"]))
+
+    def test_missing_feature_at_one_cell_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="1")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run="2")
+        tree.add_feature(dyad=DYAD, task=TASK, kind="clip", run="1")
+        with pytest.raises(FileNotFoundError, match="Missing regressor=clip"):
+            self._coverage(_make_encoding(tree, ["mfcc", "clip"]))
+
+    def test_missing_confound_at_one_cell_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2"):
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="2")
+        tree.add_confound(dyad=DYAD, task=TASK, kind="motion", run="1")
+        with pytest.raises(FileNotFoundError, match="Missing regressor=motion"):
+            self._coverage(
+                _make_encoding(tree, ["mfcc"], confounds=["phonemic", "motion"])
+            )
+
+    def test_feature_only_cell_raises(self, tree: BIDSTree):
+        # run-2 has a feature but no confound: the missing confound leaves run-2
+        # uncovered, so demanding every regressor at every cell raises here.
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2"):
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
+        tree.add_confound(dyad=DYAD, task=TASK, kind="phonemic", run="1")
+        with pytest.raises(FileNotFoundError, match="Missing regressor=phonemic"):
+            self._coverage(_make_encoding(tree, ["mfcc"], confounds=["phonemic"]))
+
+    def test_multiple_gaps_report_count(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        for run in ("1", "2", "3"):
+            tree.add_feature(dyad=DYAD, task=TASK, kind="mfcc", run=run)
+        tree.add_feature(dyad=DYAD, task=TASK, kind="clip", run="1")
+        with pytest.raises(FileNotFoundError, match="other coverage gaps exist"):
+            self._coverage(_make_encoding(tree, ["mfcc", "clip"]))
+
+
+class TestRequireUniformBoldShape:
+    """Cross-run TR, segment-entity, and segment-metadata schema uniformity over the
+    cell set that becomes Y.
+
+    Same post-filter placement as `TestRequireUniformRegressorShape`, on the bold
+    side. Segment fixtures still exercise `_discover_bold`'s inference to build the
+    metas the helper then judges.
+    """
+
+    def test_inconsistent_tr_raises(self, tree: BIDSTree):
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=1.5, desc="denoised")
+        enc = _make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(SUB)
+        with pytest.raises(ValueError, match="Inconsistent repetition times"):
+            _require_uniform_bold_shape(bold_metas, SUB)
+
+    def test_runs_disagree_on_segment_entity_raises(self, tree: BIDSTree):
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="2",
+            rows=[
+                {"trial_type": "trial-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "trial-2", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        enc = _make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(SUB)
+        with pytest.raises(ValueError, match="disagree on segment entity"):
+            _require_uniform_bold_shape(bold_metas, SUB)
+
+    def test_mixed_segmented_and_unsegmented_raises(self, tree: BIDSTree):
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(
+            sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised"
+        )  # no events → unsegmented
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+                {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
+            ],
+        )
+        enc = _make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(SUB)
+        with pytest.raises(ValueError, match="disagree on segment entity"):
+            _require_uniform_bold_shape(bold_metas, SUB)
+
+    def test_events_json_cross_run_schema_mismatch_raises(self, tree: BIDSTree):
+        rows = [
+            {"trial_type": "block-1", "onset": 0.0, "duration": 100.0},
+            {"trial_type": "block-2", "onset": 100.0, "duration": 100.0},
+        ]
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
+
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=rows,
+            sidecar_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"cond": "R"}},
+                        "block-2": {"metadata": {"cond": "L"}},
+                    }
+                }
+            },
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="2",
+            rows=rows,
+            sidecar_json={
+                "trial_type": {
+                    "Levels": {
+                        "block-1": {"metadata": {"item": "A"}},
+                        "block-2": {"metadata": {"item": "B"}},
+                    }
+                }
+            },
+        )
+
+        enc = _make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(SUB)
+        with pytest.raises(ValueError, match="disagree on segment metadata schema"):
+            _require_uniform_bold_shape(bold_metas, SUB)
+
+    def test_all_unsegmented_passes(self, tree: BIDSTree):
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised")
+        tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="2", tr=2.0, desc="denoised")
+        enc = _make_encoding(tree, ["mfcc"])
+        bold_metas = enc._discover_bold(SUB)
+        assert all(bold_meta.segments == [] for bold_meta in bold_metas.values())
+        _require_uniform_bold_shape(bold_metas, SUB)

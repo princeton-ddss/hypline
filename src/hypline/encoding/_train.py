@@ -22,7 +22,15 @@ from hypline.enums import Device
 from hypline.layout import BIDSLayout
 
 from ._artifact import EncodingArtifact, FittedModel, FoldSpec, XRecipe
-from ._context import _align_y, _build_pipeline, _EncodingContext, _format_loc
+from ._context import (
+    _align_y,
+    _build_pipeline,
+    _EncodingContext,
+    _format_loc,
+    _require_regressor_at_every_cell,
+    _require_uniform_bold_shape,
+    _require_uniform_regressor_shape,
+)
 from ._schema import (
     BoldKey,
     CellKey,
@@ -36,10 +44,9 @@ from ._schema import (
 def _group_cells_by(cells: set[CellKey], entity: str) -> dict[str, set[CellKey]]:
     """Group cells by their value for `entity`.
 
-    Raises if `entity` is absent from any cell. Because `_resolve_cell_keys`
-    yields a uniform schema (a key is on every cell or none), uniform absence
-    means the dataset has no such axis — a `fold_by` config error, not a
-    data-shape edge case.
+    Raises if `entity` is absent from any cell. `_require_uniform_regressor_shape` ran
+    first over this same set (a key is on every cell or none), so uniform absence means
+    the dataset has no such axis — a `fold_by` config error, not a data-shape edge case.
     """
     groups: dict[str, set[CellKey]] = {}
     for cell in cells:
@@ -416,8 +423,30 @@ class EncodingTrainer(_EncodingContext):
         regressor_bids, bold_metas = self._apply_filters(
             sub_id, regressor_bids, bold_metas
         )
+
+        # Shape and per-cell coverage are scope-sensitive: they must hold over the
+        # filtered set that becomes X/Y, not the full discovery. `_discover_*` defers
+        # them here so a filter narrowing to a shape-uniform subset passes even when
+        # the whole subject is heterogeneous.
+        _require_uniform_bold_shape(bold_metas, sub_id)
+        _require_uniform_regressor_shape(
+            regressor_bids,
+            feature_names=self._recipe.features,
+            confound_names=self._recipe.confounds,
+        )
+
+        # Coverage over the merged dict: every cell must carry every feature and
+        # confound. Demanding both streams at every cell also forces the two streams
+        # to cover the same cells, so a confound-only or feature-only cell raises here
+        # (no separate cross-stream alignment check needed). Train-only — see
+        # `_require_regressor_at_every_cell`.
+        _require_regressor_at_every_cell(
+            regressor_bids,
+            regressor_names={**self._recipe.features, **self._recipe.confounds},
+            sub_id=sub_id,
+        )
+
         self._validate_coverage(sub_id, regressor_bids, bold_metas)
-        self._validate_confound_alignment(sub_id, regressor_bids)
         regressor_metas = self._enrich_regressor_metas(regressor_bids, bold_metas)
         return self._build_training_data(sub_id, regressor_metas, bold_metas)
 
@@ -538,40 +567,6 @@ class EncodingTrainer(_EncodingContext):
                 msg += f" ({others} other coverage gaps exist)"
             raise FileNotFoundError(msg)
 
-    def _validate_confound_alignment(
-        self,
-        sub_id: str,
-        regressor_bids: dict[RegressorKey, BIDSPath],
-    ) -> None:
-        """Assert confounds cover exactly the feature cells in the merged dict.
-
-        Each stream's own discovery already guarantees "every entry at every cell
-        within it," so the only cross-stream gap left is the two streams disagreeing
-        on *which* cells they cover — e.g. a `bids_filter` that narrows features but
-        leaves a confound cell with no feature, or a confound missing for one run.
-        Equal cell sets close that gap; an unequal set would misalign the confound
-        band against X's rows. No-op when no confounds are configured.
-        """
-        if not self._recipe.confounds:
-            return
-
-        confound_names = set(self._recipe.confounds)
-        feature_cells = {
-            key.cell for key in regressor_bids if key.name not in confound_names
-        }
-        confound_cells = {
-            key.cell for key in regressor_bids if key.name in confound_names
-        }
-        orphans = feature_cells ^ confound_cells
-        if orphans:
-            cell = next(iter(orphans))
-            side = "confound" if cell in feature_cells else "feature"
-            loc = _format_loc(sub=sub_id, **dict(cell.items()))
-            msg = f"No {side} coverage to match the other stream at {loc}"
-            if len(orphans) > 1:
-                msg += f" ({len(orphans) - 1} other alignment gaps exist)"
-            raise FileNotFoundError(msg)
-
     def _build_training_data(
         self,
         sub_id: str,
@@ -590,8 +585,9 @@ class EncodingTrainer(_EncodingContext):
         x_data = self._build_x(sub_id, regressor_metas)
         Y = _align_y(bold_metas, x_data.row_slices)
 
-        # Segment entity is invariant across bold_metas (validated in _discover_bold),
-        # so any segmented meta answers it; None when runs are unsegmented
+        # Segment entity is invariant across bold_metas (validated by
+        # _require_uniform_bold_shape), so any segmented meta answers it;
+        # None when runs are unsegmented
         segmented_meta = next((m for m in bold_metas.values() if m.segments), None)
         segment_entity = segmented_meta.segments[0].entity if segmented_meta else None
 
