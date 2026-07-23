@@ -97,13 +97,6 @@ def train(
             show_default=False,
         ),
     ],
-    tasks: Annotated[
-        str,
-        typer.Option(
-            help="Comma-separated task labels to train on (e.g., neutral,opinion)",
-            show_default=False,
-        ),
-    ],
     features: Annotated[
         str,
         typer.Option(
@@ -211,7 +204,8 @@ def train(
             "--data-filters",
             help="""
             Comma-separated BIDS entity filters; same-entity values OR'd, different
-            entities AND'd (e.g., run-2,run-4,cond-G → (run=2 OR run=4) AND cond=G)
+            entities AND'd (e.g., task-neutral,task-opinion,run-2 → (task=neutral OR
+            task=opinion) AND run=2). Filter tasks here — there is no dedicated flag.
             """,
             show_default=False,
         ),
@@ -245,11 +239,10 @@ def train(
             param_hint="--fold-by/--n-folds",
         )
 
-    _tasks = split_csv(tasks, param_hint="--tasks")
     _features = split_csv(features, param_hint="--features")
-    # Required options: split_csv returns None only on a None input, which typer
-    # rules out. Assert to narrow for the trainer's list[str] params.
-    assert _tasks is not None and _features is not None
+    # Required option: split_csv returns None only on a None input, which typer
+    # rules out. Assert to narrow for the trainer's list[str] param.
+    assert _features is not None
 
     _confounds = split_csv(confounds, param_hint="--confounds")
     _bids_filters = split_csv(bids_filters, param_hint="--data-filters")
@@ -274,7 +267,6 @@ def train(
         config=config,
         bids_root=bids_root,
         features=_features,
-        tasks=_tasks,
         confounds=_confounds,
         bold_space=bold_space.value,
         bold_desc=bold_desc,

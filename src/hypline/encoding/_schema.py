@@ -28,9 +28,10 @@ class CellKey:
       (feat/conf are the category entities naming the regressor kind, not a
       cell axis; excluding both lets feature and confound cells compare equal)
 
-    `task` flows through as a cell axis: a training call may declare multiple
-    tasks (`tasks=["A", "B"]`), in which case cells from different tasks become
-    distinct rows in X/Y. Single-task calls leave `task` constant on every cell.
+    `task` flows through as a cell axis, filtered like any other corpus entity via
+    `bids_filters` (e.g. `task-A,task-B`). An unfiltered call pools every task, in
+    which case cells from different tasks become distinct rows in X/Y; narrowing to
+    one task leaves `task` constant on every cell.
 
     Equality and hashing are order-independent.
     """

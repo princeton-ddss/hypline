@@ -157,9 +157,10 @@ author rather than validated.
 
 Excluded from `CellKey` (`CellKey.EXCLUDE`): `sub` (invariant within a training call),
 `desc`, `res`, `den` (BOLD image-variant derivatives), `space`, `feat` (orthogonal axes).
-`task` flows through as a cell axis — single-task calls leave it constant, multi-task calls
-(`Encoding(tasks=["A","B"])`) yield distinct cells per task. Entities are present or absent
-— no `None` sentinel. Equality and hashing are order-independent.
+`task` flows through as a cell axis, filtered like any corpus entity via `bids_filters`
+(`task-A,task-B`) — an unfiltered call pools every task and yields distinct cells per task,
+while a single-task filter leaves it constant. Entities are present or absent — no `None`
+sentinel. Equality and hashing are order-independent.
 
 CV splits are expressed by querying `CellKey` entities:
 

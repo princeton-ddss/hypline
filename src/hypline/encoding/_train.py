@@ -200,7 +200,6 @@ class EncodingTrainer(_EncodingContext):
         config: EncodingConfig,
         bids_root: str | Path,
         features: list[str],
-        tasks: list[str],
         confounds: list[str] | None = None,
         bold_space: str,
         bold_desc: str = "denoised",
@@ -247,12 +246,6 @@ class EncodingTrainer(_EncodingContext):
                 " — an entry must be one or the other"
             )
 
-        if not tasks:
-            raise ValueError("tasks must be a non-empty list")
-        if len(tasks) != len(set(tasks)):
-            dupes = sorted({t for t in tasks if tasks.count(t) > 1})
-            raise ValueError(f"Duplicate entries in tasks: {dupes}")
-
         parsed_bold_space = parse_bold_space(bold_space)
 
         if not BIDS_ENTITY_VALUE_RE.match(bold_desc):
@@ -265,7 +258,7 @@ class EncodingTrainer(_EncodingContext):
             )
 
         normalized_bids_filters = normalize_bids_filters(
-            bids_filters, reserved={"sub", "task", "space", "feat", "desc"}
+            bids_filters, reserved={"sub", "space", "feat", "desc"}
         )
 
         # fold_by/n_folds are paired: both define one fold group or neither does.
@@ -298,7 +291,6 @@ class EncodingTrainer(_EncodingContext):
         self._recipe = XRecipe(
             features=feature_map,
             confounds=confound_map,
-            tasks=tasks,
             bold_space=parsed_bold_space,
             bold_desc=bold_desc,
             downsample=downsample,

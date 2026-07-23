@@ -11,8 +11,15 @@ app.rich_markup_mode = None
 
 runner = CliRunner()
 
-# Every invocation needs the three required options; tests add/override as needed
-REQUIRED = ["--tasks", "conv", "--features", "semantic-test", "--desc", "v1"]
+# Every invocation needs the required options; tests add/override as needed
+REQUIRED = [
+    "--features",
+    "semantic-test",
+    "--desc",
+    "v1",
+    "--data-filters",
+    "task-conv",
+]
 
 
 def _patch_trainer(monkeypatch):
@@ -251,6 +258,7 @@ class TestEncodingTrainConfig:
         def spy(self, **kwargs):
             captured["config"] = kwargs["config"]
             captured["split"] = kwargs["split"]
+            captured["bids_filters"] = kwargs["bids_filters"]
             orig(self, **kwargs)
 
         monkeypatch.setattr(EncodingTrainer, "__init__", spy)
@@ -316,6 +324,30 @@ class TestEncodingTrainConfig:
         defaults = EncodingConfig()
         assert captured["config"].delays == defaults.delays
         assert captured["config"].alphas == defaults.alphas
+
+    def test_data_filters_carry_task_to_bids_filters(self, tree, monkeypatch):
+        captured, _ = self._capture_init(monkeypatch)
+
+        runner.invoke(
+            app,
+            [
+                "encoding",
+                "train",
+                str(tree.root),
+                "--features",
+                "semantic-test",
+                "--desc",
+                "v1",
+                "--data-filters",
+                "task-conv,run-2",
+                "--fold-by",
+                "none",
+                "--sub-ids",
+                "01",
+            ],
+        )
+
+        assert captured["bids_filters"] == ["task-conv", "run-2"]
 
     def test_delays_alphas_override_when_passed(self, tree, monkeypatch):
         captured, _ = self._capture_init(monkeypatch)

@@ -49,7 +49,6 @@ def _make_encoding(
     features: list[str],
     *,
     confounds: list[str] | None = None,
-    tasks: list[str] | None = None,
     bold_space: str = SPACE,
     bold_desc: str = "denoised",
     bids_filters: list[str] | None = None,
@@ -59,12 +58,12 @@ def _make_encoding(
 ) -> EncodingTrainer:
     # Default split=False: the split path needs a 2-subject dyad with turn_speaker
     # events, which most fixtures do not set up; split-specific tests opt in.
+    # Callers filter tasks via `bids_filters`; omitting it pools every task.
     return EncodingTrainer(
         config=EncodingConfig(),
         bids_root=tree.root,
         features=features,
         confounds=confounds,
-        tasks=tasks if tasks is not None else [TASK],
         bold_space=bold_space,
         bold_desc=bold_desc,
         bids_filters=bids_filters,

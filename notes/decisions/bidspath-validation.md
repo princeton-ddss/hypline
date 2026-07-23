@@ -75,9 +75,9 @@ that depend on `task` raise where the dependency actually exists.
 Concrete sites:
 - BOLD/events loading in `bold` — BIDS requires `task` on `bold` (events
   inherit it), so loaders raise when it's absent.
-- Encoding in `encoding` — `Encoding(tasks=[...])` declares which tasks are in
-  scope; discovery passes `task-*` filters to `layout.find`, so out-of-scope
-  files never enter the pipeline (see [../modules/encoding.md](../modules/encoding.md)).
+- Encoding in `encoding` — discovery is task-blind (no `task-*` filter passed to
+  `layout.find`); `task` narrowing rides `bids_filters` and is applied post-discovery
+  in `_apply_filters` (see [../modules/encoding.md](../modules/encoding.md)).
 - `layout.find.stimuli` and `layout.find.features` — every file in these
   areas is tied to a BOLD run via `task`, and derivatives (transcripts,
   features, confounds) inherit it from their source. The check lives at the

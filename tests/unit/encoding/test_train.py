@@ -237,6 +237,24 @@ class TestApplyFilters:
         assert all(feature_key.cell.get("run") == "1" for feature_key in feature_paths)
         assert all(bold_key.run == "1" for bold_key in bold_metas)
 
+    def test_task_filter_narrows_like_any_corpus_entity(self, tree: BIDSTree):
+        # `task` is now selected post-resolution here, not at discovery: both tasks are
+        # discovered, and a `task-conv` filter drops rest on both the regressor and
+        # BOLD sides — the same path `run`/`ses` take.
+        tree.add_participants({SUB: DYAD})
+        for task in ("rest", "conv"):
+            tree.add_bold(
+                sub=SUB, task=task, space=SPACE, run="1", tr=2.0, desc="denoised"
+            )
+            tree.add_feature(dyad=DYAD, task=task, kind="mfcc", run="1")
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["task-conv"])
+        feature_paths = enc._discover_features(SUB)
+        bold_metas = enc._discover_bold(SUB)
+        feature_paths = enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
+        feature_paths, bold_metas = enc._apply_filters(SUB, feature_paths, bold_metas)
+        assert all(fk.cell.get("task") == "conv" for fk in feature_paths)
+        assert all(bold_key.task == "conv" for bold_key in bold_metas)
+
     def test_or_within_entity_and_across_entities(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})
         for ses, run in (("1", "1"), ("1", "2"), ("2", "1")):

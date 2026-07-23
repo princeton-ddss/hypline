@@ -36,9 +36,6 @@ class XRecipe:
         Confound ref name -> its `(kind, desc)` selector. All confounds collapse
         into one shared ridge band, so within-band order is irrelevant (a single
         alpha covers them).
-    tasks
-        Cell axis: multiple tasks make cells from different tasks distinct
-        rows in X/Y. A single-task call holds `task` constant on every cell.
     bold_space
         Target BOLD space; surface (e.g. `fsaverage6`) or volume.
     bold_desc
@@ -48,8 +45,9 @@ class XRecipe:
         Method mapping feature time series onto the BOLD TR grid.
     bids_filters
         Extra BIDS filters constraining the cell set — the sole record of
-        which runs/conditions shaped X (the `sub`/`task`/`space`/`feat`/`desc`
-        entities are reserved and cannot appear here).
+        which tasks/runs/conditions shaped X. `task` is an ordinary corpus
+        filter here; only `sub`/`space`/`feat`/`desc` are reserved and cannot
+        appear.
     delays
         FIR delays (in TRs) stacked per regressor, giving the model its HRF
         lag basis.
@@ -66,7 +64,6 @@ class XRecipe:
 
     features: dict[str, tuple[str, str | None]]
     confounds: dict[str, tuple[str, str | None]]
-    tasks: list[str]
     bold_space: SurfaceSpace | VolumeSpace
     bold_desc: str
     downsample: FeatureDownsampleMethod
@@ -75,10 +72,6 @@ class XRecipe:
     alphas: list[float]
     split: bool = True
     col_slices: dict[str, slice] = field(default_factory=dict)
-
-    @property
-    def task_filters(self) -> list[str]:
-        return [f"task-{task}" for task in self.tasks]
 
 
 @dataclass(frozen=True)
@@ -225,7 +218,6 @@ def _sidecar(artifact: EncodingArtifact) -> dict:
         "recipe": {
             "features": {name: list(spec) for name, spec in recipe.features.items()},
             "confounds": {name: list(spec) for name, spec in recipe.confounds.items()},
-            "tasks": recipe.tasks,
             "bold_space": str(recipe.bold_space),
             "bold_desc": recipe.bold_desc,
             "downsample": recipe.downsample,

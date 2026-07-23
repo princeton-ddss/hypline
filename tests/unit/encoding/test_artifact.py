@@ -12,7 +12,7 @@ from hypline.encoding._context import _CONFOUND_BAND
 from hypline.encoding._schema import CellKey, TrainingData
 
 from ..conftest import BIDSTree
-from .conftest import SUB, TASK, _make_encoding
+from .conftest import SUB, _make_encoding
 
 
 class TestArtifactRoundTrip:
@@ -77,7 +77,10 @@ class TestArtifactRoundTrip:
         save_artifact(artifact, out.path)
         sidecar = json.loads(out.path.with_suffix(".json").read_text())
         assert sidecar["sub_id"] == SUB
-        assert sidecar["recipe"]["tasks"] == [TASK]
+        # `task` is no longer a dedicated sidecar field; it rides `bids_filters` like
+        # any corpus entity (empty here — this fixture applies no filters).
+        assert "tasks" not in sidecar["recipe"]
+        assert sidecar["recipe"]["bids_filters"] == []
         assert sidecar["recipe"]["col_slices"] == {
             "phonemic-gpt3": [0, 3],
             "mfcc": [3, 7],

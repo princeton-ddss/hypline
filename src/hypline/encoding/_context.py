@@ -459,7 +459,6 @@ class _EncodingContext:
                 dyad=dyad_id,
                 kind=kind,
                 desc=desc,
-                bids_filters=self._recipe.task_filters,
             )
 
             for bids in feature_files:
@@ -502,7 +501,6 @@ class _EncodingContext:
                 dyad=dyad_id,
                 kind=kind,
                 desc=desc,
-                bids_filters=self._recipe.task_filters,
             )
 
             for bids in confound_files:
@@ -549,7 +547,6 @@ class _EncodingContext:
             bids_filters=[
                 f"space-{self._recipe.bold_space}",
                 f"desc-{self._recipe.bold_desc}",
-                *self._recipe.task_filters,
             ],
         )
 

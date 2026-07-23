@@ -167,20 +167,26 @@ class TestDiscoverFeatures:
         features = {fk.name for fk in feature_paths}
         assert features == {"phonemic-gpt3", "semantic-bert"}
 
-    def test_unrequested_task_files_filtered_out(self, tree: BIDSTree):
+    def test_feature_discovery_is_task_blind(self, tree: BIDSTree):
+        # `task` is no longer a discovery-time filter — a `task-conv` filter is on the
+        # trainer here yet both tasks still surface; selection is deferred to
+        # `_apply_filters` (see `test_task_filter_narrows_like_any_corpus_entity`).
         tree.add_participants({SUB: DYAD})
         tree.add_feature(dyad=DYAD, task="rest", kind="mfcc", run="1")
         tree.add_feature(dyad=DYAD, task="conv", kind="mfcc", run="2")
-        enc = _make_encoding(tree, ["mfcc"], tasks=["conv"])
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["task-conv"])
         feature_paths = enc._discover_features(SUB)
         cell_keys = {fk.cell for fk in feature_paths}
-        assert cell_keys == {CellKey(task="conv", run="2")}
+        assert cell_keys == {
+            CellKey(task="rest", run="1"),
+            CellKey(task="conv", run="2"),
+        }
 
     def test_multi_task_cells_distinct(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})
         tree.add_feature(dyad=DYAD, task="rest", kind="mfcc", run="1")
         tree.add_feature(dyad=DYAD, task="conv", kind="mfcc", run="1")
-        enc = _make_encoding(tree, ["mfcc"], tasks=["rest", "conv"])
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["task-rest", "task-conv"])
         feature_paths = enc._discover_features(SUB)
         cell_keys = {fk.cell for fk in feature_paths}
         assert cell_keys == {
@@ -360,17 +366,23 @@ class TestDiscoverBold:
         enc = _make_encoding(tree, ["mfcc"])
         enc._discover_bold(SUB)
 
-    def test_unrequested_task_bold_filtered_out(self, tree: BIDSTree):
+    def test_bold_discovery_is_task_blind(self, tree: BIDSTree):
+        # Task-blind like feature discovery: a `task-conv` filter is on the trainer yet
+        # both tasks surface; selection is deferred to `_apply_filters` (see
+        # `test_task_filter_narrows_like_any_corpus_entity`).
         tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="denoised")
         tree.add_bold(sub=SUB, space=SPACE, task="conv", run="2", desc="denoised")
-        enc = _make_encoding(tree, ["mfcc"], tasks=["conv"])
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["task-conv"])
         bold_metas = enc._discover_bold(SUB)
-        assert list(bold_metas.keys()) == [BoldKey(ses=None, task="conv", run="2")]
+        assert set(bold_metas.keys()) == {
+            BoldKey(ses=None, task="rest", run="1"),
+            BoldKey(ses=None, task="conv", run="2"),
+        }
 
     def test_multi_task_bold_distinct(self, tree: BIDSTree):
         tree.add_bold(sub=SUB, space=SPACE, task="rest", run="1", desc="denoised")
         tree.add_bold(sub=SUB, space=SPACE, task="conv", run="1", desc="denoised")
-        enc = _make_encoding(tree, ["mfcc"], tasks=["rest", "conv"])
+        enc = _make_encoding(tree, ["mfcc"], bids_filters=["task-rest", "task-conv"])
         bold_metas = enc._discover_bold(SUB)
         assert set(bold_metas.keys()) == {
             BoldKey(ses=None, task="rest", run="1"),

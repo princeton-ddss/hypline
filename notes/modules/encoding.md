@@ -19,12 +19,12 @@ A single `train(sub_id)` call is scoped to:
 
 - **One subject.** Subjects are modeled independently — different brains,
   different voxel alignment.
-- **Tasks are an explicit input.** `EncodingTrainer(tasks=[...])` declares which
-  task values are in scope; others are excluded at discovery. `task` is a
-  `CellKey` axis: `tasks=["A", "B"]` opts into a multi-task fit where
-  A-cells and B-cells are distinct rows sharing regression weights.
-  Single-task is the norm; the explicit list makes any deviation visible
-  at the call site.
+- **Tasks are filtered like any corpus entity.** There is no dedicated `tasks`
+  input; narrow via `bids_filters` (`task-A`, `task-B` → `task-A,task-B` on the
+  `--data-filters` CLI flag). Selection is deferred past discovery to
+  `_apply_filters`, so discovery is task-blind. `task` is a `CellKey` axis: an
+  unfiltered call pools every task (A-cells and B-cells become distinct rows
+  sharing regression weights); a `task-A` filter holds it constant.
 - **Multiple sessions and runs: allowed and expected.** More data,
   concatenated into a single X/Y.
 - **Features are named with optional variant.** Each `EncodingTrainer(features=[...])`
@@ -127,9 +127,10 @@ runs) down to a uniform subset now *passes*, where a discovery-time check would
 false-fail on the discarded runs.
 
 **Contract (do not regress): predict runs shape checks on its selected set, never
-coverage.** Because the check is on the selected set, a default cross-run predict
-whose runs have incompatible TRs *raises* on the shape check rather than silently
-pooling — `test_on` to a shape-uniform subset when that happens.
+coverage.** Because the check is on the selected set, a default predict whose
+selected cells span incompatible TRs across any corpus axis (run, task) *raises*
+on the shape check rather than silently pooling — `test_on` to a shape-uniform
+subset when that happens.
 
 ## Prod/comp turn split
 
@@ -326,15 +327,16 @@ All user-supplied `bids_filters` are applied post-resolution in `_apply_filters`
 resolved `CellKey`s (features) and BOLD filename entities (BOLD). Neither `_discover_features`
 nor `_discover_bold` apply user filters. `_discover_features` uses only structural
 filters (`dyad` — resolved from `sub` via `dyad_of` — and `feat`) plus the
-per-feature `desc` variant selector; `_discover_bold` uses `sub`, `space`, `desc`
-(the `bold_desc` derivative flavor), and `task`.
+per-feature `desc` variant selector; `_discover_bold` uses `sub`, `space`, and `desc`
+(the `bold_desc` derivative flavor). Neither passes `task`, so discovery is task-blind.
 
 Rationale: metadata entities (e.g. `cond-R`) do not exist on filenames and cannot be routed
 to `BIDSLayout` queries. Applying all filters uniformly post-resolution ensures consistent
 behaviour whether the filter targets a structural entity (`ses-1`) or a descriptive one (`cond-R`).
 
-**Reserved entities** (`sub`, `task`, `space`, `feat`, `desc`) are rejected at construction —
-use the dedicated arguments instead. `desc` is reserved because it is overloaded:
+**Reserved entities** (`sub`, `space`, `feat`, `desc`) are rejected at construction —
+use the dedicated arguments instead. `task` is not reserved: it has no dedicated
+argument and rides `bids_filters` like any corpus entity. `desc` is reserved because it is overloaded:
 feature-file variant selector (`features=[...]`) vs. BOLD derivative flavor (`bold_desc`,
 default `"denoised"`); neither routes through `bids_filters`.
 
