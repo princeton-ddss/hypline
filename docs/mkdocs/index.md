@@ -111,7 +111,7 @@ hypline denoise data/ \
 
 # encoding branch: fit the model that maps features onto the denoised BOLD
 hypline encoding train data/ \
-  --tasks conv \
+  --data-filters task-conv \
   --features phonemic \
   --desc v1 \
   --fold-by none

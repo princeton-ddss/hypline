@@ -1,10 +1,10 @@
 # A full run on the example dataset
 
 This walkthrough takes a real example dataset — stimulus audio and fMRIPrep
-outputs — through the whole hypline pipeline: **phonemic features** and
-**denoised BOLD**, then a fitted **encoding model** joining the two, using one
-command per step. By the end you will have run hypline end to end and seen
-exactly what each step reads and writes.
+outputs — through the whole hypline pipeline: **phonemic and syntactic
+features** and **denoised BOLD**, then a fitted **encoding model** joining the
+two sides, using one command per step. By the end you will have run hypline end
+to end and seen exactly what each step reads and writes.
 
 It assumes you have hypline installed (see [Installation](../index.md#installation),
 including FFmpeg for transcription). No prior hypline experience is needed, but
@@ -12,12 +12,15 @@ skim [The hypline dataset layout](../concepts/layout.md) first if a path or
 filename below is ever unclear; this tutorial shows the layout in action rather
 than re-explaining it.
 
-Expect about 25 minutes start to finish. Two steps dominate: the
-one-time ~2.8 GB dataset download, and the encoding fit ([step 6](#6-fit-the-encoding-model)),
-a whole-brain ridge model that runs ~4–5 minutes per subject on CPU. Every
-other step runs in seconds to about a minute (transcription). The fit runs on
-CPU so the tutorial works anywhere; if you have a GPU, `--device cuda` makes
-it far faster.
+Expect about 30 minutes start to finish. A few steps dominate: the
+one-time ~2.8 GB dataset download, transcription ([step 2](#2-transcribe-the-audio)),
+a few minutes on CPU with the `small` model, and the encoding fit
+([step 6](#6-fit-the-encoding-model)), a whole-brain ridge model that runs ~4–5
+minutes per subject on CPU. Generating syntactic features
+([step 3](#3-generate-features)) also triggers a one-time ~560 MB
+spaCy model download. Every other step runs in seconds. Transcription and
+the fit both run on CPU so the tutorial works anywhere; if you have a GPU,
+`--device cuda` makes them far faster.
 
 ## 1. Get the example dataset
 
@@ -59,7 +62,7 @@ its inputs from the directory layout; you never pass individual file paths.
 Whisper speech-recognition model.
 
 ```bash
-hypline transcribe data/ --audio-ext .wav --model tiny
+hypline transcribe data/ --audio-ext .wav --model small
 ```
 
 ```text
@@ -72,14 +75,14 @@ Transcribing dyad-030_ses-1_task-conv_run-2_trial-3_audio.wav
 (Log lines are abridged here; a first run also prints a one-time model download
 and voice-activity-detection messages.)
 
-!!! tip "Why `--model tiny`"
+!!! tip "Why `--model small`"
 
-    `tiny` keeps this tutorial fast: about a minute on a laptop CPU, with a small
-    one-time model download. It mis-hears some words, which is fine here, since you are
-    learning the workflow rather than analyzing the transcripts. For a real analysis,
-    omit `--model` to use the default `large-v2`, which is far more accurate but a
-    multi-GB download and much slower on CPU (pass `--device cuda` if you have a
-    GPU).
+    `small` keeps this tutorial quick while producing usable transcripts: a few
+    minutes on a laptop CPU, with a modest one-time model download. It still mis-hears
+    the occasional word, which is fine here, since you are learning the workflow
+    rather than analyzing the transcripts. For a real analysis, omit `--model` to use
+    the default `large-v2`, which is more accurate still but a multi-GB download and
+    much slower on CPU (pass `--device cuda` if you have a GPU).
 
 Only four files are transcribed, not one per run. These are the
 reading-condition subset from [step 1](#1-get-the-example-dataset): each run's
@@ -116,11 +119,15 @@ belongs to the pair rather than to either partner. See
     no transcripts appear, the audio was not found: confirm you passed `--audio-ext
     .wav` and that `data/` is the unpacked dataset root.
 
-## 3. Generate phonemic features
+## 3. Generate features
 
-`featuregen phonemic` reads those transcripts and computes a **phonemic feature**
-for each: a per-word representation that becomes a predictor in the encoding
-model.
+`featuregen` reads those transcripts and computes **features**: per-word
+representations that become predictors in the encoding model. We generate two
+families here — **phonemic** and **syntactic** — so the encoding fit later has a
+band for each.
+
+Start with `featuregen phonemic`, which computes a phonemic feature for each
+transcript.
 
 ```bash
 hypline featuregen phonemic data/
@@ -155,14 +162,35 @@ The two confound flavors live in their own subdirectories because they are
 `desc` variants of the same `conf-phonemic` kind — see
 [Variants with `desc`](../concepts/layout.md#variants-with-desc).
 
+Now add a second family. `featuregen syntactic` reads the same transcripts and
+computes per-token part-of-speech, dependency, and stopword features:
+
+```bash
+hypline featuregen syntactic data/
+```
+
+```text
+Generating syntactic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
+...
+```
+
+The first run downloads a spaCy language model (~560 MB, one time) before it
+begins. Unlike phonemic, syntactic generates no confounds — just the features:
+
+```text
+data/features/dyad-030/ses-1/syntactic/
+└── dyad-030_ses-1_task-conv_run-1_trial-1_feat-syntactic.parquet   # … one per transcript (4)
+```
+
 That completes the **stimulus branch**: from audio to the features (and
-confounds) the encoding model uses as predictors.
+phonemic confounds) the encoding model uses as predictors.
 
 !!! success "Check"
 
-    You should have four `feat-phonemic.parquet` files under `features/`, plus
+    `features/` now holds four `feat-phonemic.parquet` and four
+    `feat-syntactic.parquet` files, one of each per transcript from step 2, plus
     four files in each of the `phonemic-onset/` and `phonemic-rate/` confound
-    subdirectories, one per transcript from step 2.
+    subdirectories.
 
 ## 4. Denoise the BOLD
 
@@ -172,7 +200,8 @@ you select from fMRIPrep's own confounds table.
 
 ```bash
 hypline denoise data/ \
-  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
+  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
+  --space MNI152NLin2009cAsym
 ```
 
 ```text
@@ -183,9 +212,12 @@ Denoising complete: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc
 
 Here `--columns` names confound columns from fMRIPrep's table: the six head-motion
 parameters (`trans_*`, `rot_*`) plus `cosine`, a prefix that expands to every
-cosine-drift regressor. We did not pass `--space`, so `denoise` cleaned the
-default volumetric space (`MNI152NLin2009cAsym`), the main target for most
-analyses.
+cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
+(`MNI152NLin2009cAsym`), so we name that space explicitly — `--space` defaults to
+the surface `fsaverage6`, and your own surface data needs no `--space` at all.
+(Omitting `--columns` entirely would fall back to hypline's default
+**Speer et al. 2024** confound set — see the
+[`denoise` reference](../reference/denoise.md).)
 
 This step is **sub-keyed**: it processes each partner's brain (`sub-031`,
 `sub-032`) independently, so all four run × subject combinations are denoised.
@@ -242,6 +274,7 @@ two go together:
 ```bash
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
+  --space MNI152NLin2009cAsym \
   --custom-sources demo \
   --custom-columns demo_regressor1,demo_regressor2 \
   --force
@@ -262,17 +295,17 @@ result stays reproducible.
 
 ## 6. Fit the encoding model
 
-Both sides are now in place: phonemic features (the predictors) and denoised
-BOLD (the target). `encoding train` joins them, fitting a voxelwise ridge model
-per subject:
+Both sides are now in place: the phonemic and syntactic features (the
+predictors) and denoised BOLD (the target). `encoding train` joins them, fitting
+a voxelwise ridge model per subject:
 
 ```bash
 hypline encoding train data/ \
-  --tasks conv \
-  --features phonemic \
+  --data-filters task-conv \
+  --features phonemic,syntactic \
+  --bold-space MNI152NLin2009cAsym \
   --desc v1 \
-  --fold-by run \
-  --n-folds loo
+  --fold-by run
 ```
 
 ```text
@@ -284,10 +317,14 @@ Fitting starting: sub-032 fold 2/2 — training on 1 cells / … rows
 Fitting complete: sub-032 (2 folds)
 ```
 
-`--features phonemic` uses the features from step 3 as the model's predictors,
-and `--tasks conv` scopes the fit to the `conv` task. `--fold-by run --n-folds
-loo` cross-validates by run, leaving one run out per fold. This is the common
-setup, and the one that lets you score held-out data in
+`--features phonemic,syntactic` uses both feature families from step 3 as the
+model's predictors — this is a **banded** ridge, so each family becomes its own
+band with a separately tuned regularization strength. `--data-filters task-conv`
+scopes the fit to the `conv` task. We pass `--bold-space MNI152NLin2009cAsym` to
+match the volumetric BOLD denoised in step 4; `--bold-space` otherwise defaults
+to the surface `fsaverage6`. `--fold-by run` cross-validates by run,
+leave-one-out by default (`n_folds='loo'`), leaving one run out per fold. This is
+the common setup, and the one that lets you score held-out data in
 [step 7](#7-score-a-model-within-a-subject).
 With two runs, `loo` yields two folds. `--desc v1` tags this model variant so its
 output lands in its own subdirectory.
@@ -366,10 +403,14 @@ each fold's **held-out** run, the run that fold did not train on. This is why
 step 6 folded: a single unfolded model has no held-out data to score against
 itself.
 
-Each score is broken out by **role**, derived from the target's turns in the
-conversation: `prod` (the target is speaking), `comp` (the partner is speaking,
-the target listening), and `both` (either). One eval thus reports how well the
-model predicts the brain during production, comprehension, and overall.
+Each score is broken out by **band** and **role**. There is one band per feature
+family you trained on — here `phonemic` and `syntactic` — so you can read each
+family's contribution separately, plus an always-present `screens_band` holding
+the task boxcars (you can ignore it). Role is derived from the target's turns in
+the conversation: `prod` (the target is speaking), `comp` (the partner is
+speaking, the target listening), and `both` (either). One eval thus reports how
+well each feature band predicts the brain during production, comprehension, and
+overall.
 
 The eval lands in its own `results/` subdirectory, keyed by the target subject:
 
@@ -387,7 +428,7 @@ from hypline.encoding import load_eval
 ds = load_eval(
     "data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc"
 )
-ds["corr"].sel(role="prod")   # scores during the target's own speech
+ds["corr"].sel(band="phonemic", role="prod")   # phonemic scores during the target's own speech
 ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 ```
 
@@ -402,8 +443,7 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 
     `results/sub-031/` gains an `encodingEval-selfeval/` directory with one
     `.nc` file, and the log reads `scored 2 folds`. An `empty out-of-sample set`
-    error means the model wasn't folded; re-run step 6 with `--fold-by run
-    --n-folds loo`.
+    error means the model wasn't folded; re-run step 6 with `--fold-by run`.
 
 ## 8. Score across brains
 
@@ -443,7 +483,7 @@ choices side by side.
 
     This is how you run the cross-brain analysis that motivates hypline: the
     mechanics of pointing one partner's model at the other's brain. It does not
-    demonstrate the *effect*, since two runs of `--model tiny` transcripts are far
+    demonstrate the *effect*, since two runs of `--model small` transcripts are far
     too little data for the cross-brain scores to mean anything. On a full study
     they carry the shared-representation signal; here they only confirm the
     command runs end to end.
@@ -460,7 +500,7 @@ choices side by side.
 
 | Side       | Where                                  | From          |
 | ---------- | -------------------------------------- | ------------- |
-| Predictors | `features/dyad-030/…/phonemic/`        | steps 2–3     |
+| Predictors | `features/dyad-030/…/{phonemic,syntactic}/` | steps 2–3 |
 | Target     | `derivatives/hypline/sub-*/…/func/`    | step 4        |
 | Model      | `results/sub-*/encodingModel-v1/`      | step 6        |
 | Eval       | `results/sub-031/encodingEval-*/`      | steps 7–8     |
@@ -471,6 +511,11 @@ dataset root. To regenerate a step after changing an option, re-run it with
 
 ## Where to go next
 
+- **Add richer features** — this run used phonemic and syntactic features, both
+  CPU-only. For LLM-derived **semantic** features (contextual word embeddings,
+  the representation central to Zada et al.), see
+  [`featuregen semantic`](../reference/featuregen.md) and add `semantic` to
+  `--features`.
 - **Process only some runs or conditions** — [Filter to specific runs or
   conditions](../how-to/filter.md).
 - **Regenerate outputs after a fix** — [Regenerate outputs](../how-to/regenerate.md).

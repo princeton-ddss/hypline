@@ -18,8 +18,8 @@ out-of-dyad subjects used as a baseline below:
 
 ```bash
 hypline encoding train data/ \
-  --tasks conv --features semantic --desc v1 \
-  --fold-by run --n-folds loo
+  --data-filters task-conv --features semantic --desc v1 \
+  --fold-by run
 ```
 
 Two details carry into everything that follows. The band is named after the

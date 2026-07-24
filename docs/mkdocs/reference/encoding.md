@@ -42,7 +42,7 @@ subject to `results/`.
 
 ```bash
 hypline encoding train <dataset-root> \
-  --tasks … --features … --desc … --fold-by … [OPTIONS]
+  --features … --desc … --fold-by … [OPTIONS]
 ```
 
 ### Inputs
@@ -65,13 +65,12 @@ dyad](../concepts/layout.md#subject-vs-dyad).
 
 | Option           | Description                                                                                     | Default              |
 | ---------------- | ----------------------------------------------------------------------------------------------- | -------------------- |
-| `--tasks`        | Comma-separated task labels to train on (e.g. `neutral,opinion`) — **required**                 | —                    |
 | `--features`     | Comma-separated feature refs as `<kind>[-<desc>]` (e.g. `semantic-gpt3,phonemic-noArt`); each becomes its own ridge band — **required** | — |
 | `--desc`         | Variant label for this model (alphanumeric); output lands under `results/sub-XX/encodingModel-<desc>/` — **required** | — |
 | `--fold-by`      | Cross-validation grouping axis: a BIDS entity to fold on (e.g. `run`), or `none` for a single unfolded model — **required** | — |
-| `--n-folds`      | Number of folds: an integer (`>=2`) or `loo`. Required with `--fold-by <entity>`; omit with `--fold-by none` | none |
+| `--n-folds`      | Number of folds: an integer (`>=2`) or `loo`. Defaults to `loo` with `--fold-by <entity>`; omit with `--fold-by none` | `loo` (with `--fold-by <entity>`) |
 | `--confounds`    | Comma-separated confound refs as `<kind>[-<desc>]` (e.g. `phonemic-onset,phonemic-rate`); all share one band | none |
-| `--bold-space`   | BOLD space to train on: `fsaverage5`, `fsaverage6`, `MNI152NLin6Asym`, `MNI152NLin2009cAsym`    | `MNI152NLin2009cAsym`|
+| `--bold-space`   | BOLD space to train on: `fsaverage5`, `fsaverage6`, `MNI152NLin6Asym`, `MNI152NLin2009cAsym`    | `fsaverage6`         |
 | `--bold-desc`    | BOLD `desc` entity selecting the input runs                                                      | `denoised`           |
 | `--downsample`   | Feature-to-TR downsampling: `mean` or `sum`                                                      | `mean`               |
 | `--delays`       | Comma-separated FIR delays in TRs                                                                | `0,1,2,3,4,5`        |
@@ -79,15 +78,24 @@ dyad](../concepts/layout.md#subject-vs-dyad).
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
 | `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
 | `--sub-ids`      | Comma-separated subject IDs to train (e.g. `031,032`); omit for all                               | all                  |
-| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Segments and metadata](../concepts/segments.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
-!!! warning "`--fold-by` and `--n-folds` are paired"
+!!! warning "`--fold-by` and `--n-folds`"
 
-    Give `--n-folds` when `--fold-by` names an entity, and omit it when
-    `--fold-by none`. Supplying one without the other raises. `--fold-by none`
-    fits a single model over the whole corpus; `--fold-by run --n-folds 5` fits
-    five cross-validated models grouped by run.
+    `--fold-by <entity>` defaults to leave-one-out (`n_folds='loo'`), so
+    `--n-folds` is optional there — pass it only to override the count. The one
+    invalid pairing is `--fold-by none` with an explicit `--n-folds`, which
+    raises. `--fold-by none` fits a single model over the whole corpus;
+    `--fold-by run --n-folds 5` fits five cross-validated models grouped by run.
+
+!!! warning "Pooling multiple tasks"
+
+    A fit that spans more than one task shares one set of ridge weights across
+    them, collapsing task-specific responses. `train` warns when it detects this
+    without a task-level opt-in. To fit one task, narrow via
+    `--data-filters task-<label>`. To pool tasks on purpose, name them with a
+    `task-*` filter or fold across them with `--fold-by task`.
 
 ### Example
 
@@ -96,22 +104,21 @@ confounds, over the `conv` task:
 
 ```bash
 hypline encoding train data/ \
-  --tasks conv \
+  --data-filters task-conv \
   --features semantic-gpt3 \
   --confounds phonemic-onset,phonemic-rate \
   --desc v1 \
   --fold-by none
 ```
 
-Cross-validate by run, five folds, on a GPU:
+Cross-validate by run — leave-one-out by default, on a GPU:
 
 ```bash
 hypline encoding train data/ \
-  --tasks conv \
+  --data-filters task-conv \
   --features semantic-gpt3 \
-  --desc cv5 \
+  --desc cv \
   --fold-by run \
-  --n-folds 5 \
   --device cuda
 ```
 
@@ -170,7 +177,7 @@ model as below:
 hypline encoding analyze data/ \
   --target-sub 031 \
   --model-sub self \
-  --model-desc cv5 \
+  --model-desc cv \
   --desc selfeval
 ```
 
@@ -213,10 +220,10 @@ source-run or session entity):
 
 | What you see | Cause | Fix |
 | ------------ | ----- | --- |
-| `give --n-folds with --fold-by <entity>, and omit it with --fold-by none` | `--fold-by` and `--n-folds` were not passed both-or-neither. | Pass `--n-folds` when `--fold-by` names an entity; omit it with `--fold-by none`. |
+| `omit --n-folds with --fold-by none` | `--n-folds` was given alongside `--fold-by none`, which fits a single unfolded model. | Drop `--n-folds`, or fold on an entity with `--fold-by <entity>`. |
 | `n_folds='loo' needs >= 2 groups to fold; got 1` | `--fold-by` names an entity with only one value in the training corpus, so there is nothing to leave out. | Widen the corpus (task/filters), or fit unfolded with `--fold-by none`. |
 | `n_folds=N exceeds the M group(s) found for the fold_by entity` (`train`) | `--n-folds` is larger than the number of distinct `--fold-by` values available. | Lower `--n-folds` to at most the group count, or use `loo`. |
-| `No regressor files match the given filters` / `No BOLD files match the given filters` (`train`) | `--tasks`, `--features`, `--data-filters`, `--bold-space`, or `--bold-desc` selected nothing. | Confirm the features and `desc-denoised` BOLD exist and that the filters are not too narrow. |
+| `No regressor files match the given filters` / `No BOLD files match the given filters` (`train`) | `--features`, `--data-filters`, `--bold-space`, or `--bold-desc` selected nothing. | Confirm the features and `desc-denoised` BOLD exist and that the filters are not too narrow. |
 | `empty out-of-sample set — pass test_on to name cells` (`analyze`) | The model was trained unfolded (`--fold-by none`), so it has no held-out cells to score. | Score a folded model, or name cells explicitly with `--test-on`. |
 | `test_on matched no available cells: …` (`analyze`) | `--test-on` names cells the source subject does not have. | Check the `--test-on` filter against the runs/conditions that exist. |
 | `test_on entities […] not found on any available cell … check for a typo` (`analyze`) | A `--test-on` filter uses an entity that no cell carries. | Fix the entity name (e.g. `run-6`, not `ses-1`). |
