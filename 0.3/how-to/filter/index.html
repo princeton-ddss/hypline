@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../../tutorials/walkthrough/">
+        <link rel="prev" href="../prepare-dataset/">
       
       
         <link rel="next" href="../regenerate/">
@@ -269,7 +269,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -522,6 +522,29 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -693,6 +716,29 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -779,6 +825,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1244,7 +1382,7 @@
 <h1 id="filter-to-specific-runs-or-conditions">Filter to specific runs or conditions<a class="headerlink" href="#filter-to-specific-runs-or-conditions" title="Permanent link">&para;</a></h1>
 <p>Most hypline commands run over everything they discover by convention: every
 run and segment, and every dyad or subject. When you want a command to touch only
-part of your dataset — one dyad, two runs, a single condition — you narrow it with
+part of your dataset (one dyad, two runs, a single condition), you narrow it with
 two options that appear on nearly every command:</p>
 <ul>
 <li><strong><code>--dyad-ids</code></strong> / <strong><code>--sub-ids</code></strong> — pick which dyads or subjects to process.
@@ -1283,7 +1421,7 @@ descriptive attributes alike.</p>
 hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/<span class="w"> </span>--data-filters<span class="w"> </span>run-1,run-2
 </code></pre></div>
 <h3 id="a-condition-from-eventsjson-metadata">A condition from <code>events.json</code> (metadata)<a class="headerlink" href="#a-condition-from-eventsjson-metadata" title="Permanent link">&para;</a></h3>
-<p><code>cond</code> never appears in a filename — it lives in the <code>events.json</code> sidecar — but
+<p><code>cond</code> never appears in a filename (it lives in the <code>events.json</code> sidecar), but
 you filter on it the same way:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># only the &quot;R&quot; condition</span>
 hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z<span class="w"> </span>--data-filters<span class="w"> </span>cond-R
@@ -1383,7 +1521,7 @@ that one:</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../../tutorials/walkthrough/" class="md-footer__link md-footer__link--prev" aria-label="Previous: A full run on the example dataset">
+          <a href="../prepare-dataset/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Prepare your own dataset">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1393,7 +1531,7 @@ that one:</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                A full run on the example dataset
+                Prepare your own dataset
               </div>
             </div>
           </a>

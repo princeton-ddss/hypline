@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="how-to/filter/" class="md-tabs__link">
+        <a href="how-to/prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -596,6 +596,29 @@
   
   
     <li class="md-nav__item">
+      <a href="how-to/prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="how-to/filter/" class="md-nav__link">
         
   
@@ -625,6 +648,29 @@
   
   <span class="md-ellipsis">
     Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="how-to/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
     
   </span>
   
@@ -721,6 +767,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1135,9 +1273,9 @@
 <h1 id="hypline">Hypline<a class="headerlink" href="#hypline" title="Permanent link">&para;</a></h1>
 <p>Hypline is a command-line toolbox for cleaning and analyzing data from
 hyperscanning studies involving dyadic conversations. Its commands are modular.
-Each does one job — transcribe audio, generate features, denoise
+Each does one job (transcribe audio, generate features, denoise
 <a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> BOLD, fit an <strong>encoding
-model</strong> — and runs on its own, all inside one
+model</strong>), and runs on its own, all inside one
 <a href="https://bids.neuroimaging.io/">BIDS</a>-style dataset. An encoding model predicts
 the brain's BOLD response from features of the speech a participant heard.
 Hypline prepares both sides of that fit: the stimulus features (the predictors)
@@ -1282,13 +1420,13 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 
 <span class="c1"># encoding branch: fit the model that maps features onto the denoised BOLD</span>
 hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--features<span class="w"> </span>phonemic<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--fold-by<span class="w"> </span>none
 </code></pre></div>
-<p>After this, <code>data/</code> holds phonemic features plus <code>desc-denoised</code> BOLD — the two
-sides the encoding model needs — and a fitted model under <code>results/</code>. Load an
+<p>After this, <code>data/</code> holds phonemic features plus <code>desc-denoised</code> BOLD (the two
+sides the encoding model needs) and a fitted model under <code>results/</code>. Load an
 encoding result back into Python for downstream analysis with
 <a href="reference/encoding-results/"><code>load_eval</code> / <code>load_artifact</code></a>.
 You can also start with <code>transcribe</code> alone and follow the table above step by
@@ -1311,8 +1449,13 @@ under <strong>Common errors</strong> on each reference page.</p>
 <ul>
 <li><strong>Want to try it now?</strong> Follow the <a href="tutorials/walkthrough/">Tutorial</a> — a full
   pipeline run on a downloadable example dataset, one command at a time.</li>
+<li><strong>Bringing your own study?</strong> <a href="how-to/prepare-dataset/">Prepare your own dataset</a>
+  is the checklist for arranging your recordings the way hypline expects.</li>
 <li><strong>New to hypline?</strong> Start with <a href="concepts/layout/">The hypline dataset layout</a>
   to learn how a dataset is organized — every command depends on it.</li>
+<li><strong>What can the model do?</strong> <a href="concepts/feature-families/">Feature families</a> and
+  <a href="concepts/how-encoding-works/">How the encoding model works</a> cover what you can
+  predict and how the analysis is set up.</li>
 <li><strong>Want command details?</strong> See the <a href="reference/transcribe/">Reference</a> for each
   command's arguments and options.</li>
 </ul>

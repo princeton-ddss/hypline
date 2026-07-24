@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -522,6 +522,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../how-to/prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../how-to/filter/" class="md-nav__link">
         
   
@@ -551,6 +574,29 @@
   
   <span class="md-ellipsis">
     Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
     
   </span>
   
@@ -647,6 +693,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1172,7 +1310,7 @@
 derivative. <code>denoise</code> reads fMRIPrep's preprocessed BOLD together with the
 nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD under the
 <code>derivatives/hypline/</code> tree.</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">(</span>--columns<span class="w"> </span>…<span class="w"> </span><span class="p">|</span><span class="w"> </span>--compcor<span class="w"> </span>…<span class="w"> </span><span class="p">|</span><span class="w"> </span>--custom-sources<span class="w"> </span>…<span class="o">)</span><span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">[</span>--columns<span class="w"> </span>…<span class="w"> </span><span class="p">|</span><span class="w"> </span>--compcor<span class="w"> </span>…<span class="w"> </span><span class="p">|</span><span class="w"> </span>--custom-sources<span class="w"> </span>…<span class="o">]</span><span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
 <p>Nuisance regressors come from two channels, stacked into one regressor matrix:</p>
 <ol>
@@ -1216,7 +1354,7 @@ nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD u
 <tr>
 <td><code>--columns</code></td>
 <td>Comma-separated fMRIPrep confound columns to regress out (see below)</td>
-<td>none</td>
+<td>Speer et al. 2024 set (when no channel given)</td>
 </tr>
 <tr>
 <td><code>--compcor</code></td>
@@ -1236,12 +1374,17 @@ nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD u
 <tr>
 <td><code>--space</code></td>
 <td>BOLD space to clean: <code>fsaverage5</code>, <code>fsaverage6</code>, <code>MNI152NLin6Asym</code>, <code>MNI152NLin2009cAsym</code></td>
-<td><code>MNI152NLin2009cAsym</code></td>
+<td><code>fsaverage6</code></td>
 </tr>
 <tr>
 <td><code>--sub-ids</code></td>
 <td>Comma-separated subject IDs to process; omit for all</td>
 <td>all</td>
+</tr>
+<tr>
+<td><code>--desc</code></td>
+<td>Output <code>desc</code> entity tag (alphanumeric); output lands as <code>desc-&lt;desc&gt;</code>. A distinct value keeps separate nuisance-config variants from overwriting (e.g. <code>--desc motionOnly</code>)</td>
+<td><code>denoised</code></td>
 </tr>
 <tr>
 <td><code>--data-filters</code></td>
@@ -1255,13 +1398,16 @@ nuisance regressors you select, and produces a <code>desc-denoised</code> BOLD u
 </tr>
 </tbody>
 </table>
-<p>At least one of <code>--columns</code>, <code>--compcor</code>, or <code>--custom-sources</code> is required — an
-all-empty invocation raises rather than silently doing nothing.</p>
+<p>No nuisance channel is required. When you pass none of <code>--columns</code>, <code>--compcor</code>,
+or <code>--custom-sources</code>, <code>denoise</code> falls back to the <strong>Speer et al. 2024</strong> default
+set: motion and WM/CSF signal (each with squared and derivative expansions) plus
+cosine drift. An explicit <code>--compcor</code> or <code>--custom-sources</code> means you are picking
+your own model, so the default is left out rather than composed onto it.</p>
 <p><strong><code>--columns</code></strong> accepts exact column names from the fMRIPrep table (<code>trans_x</code>,
 <code>rot_x</code>, …) plus <em>group prefixes</em> that expand to every matching column
 (<code>cosine</code> → all cosine regressors, <code>motion_outlier</code> → all motion-outlier
 columns).</p>
-<p><strong><code>--compcor</code></strong> selects principal components using <code>type:mask:n</code> tokens:</p>
+<p><strong><code>--compcor</code></strong> selects principal components using <code>&lt;type&gt;:&lt;mask&gt;:&lt;n&gt;</code> tokens:</p>
 <table>
 <thead>
 <tr>
@@ -1288,8 +1434,8 @@ columns).</p>
 </tr>
 </tbody>
 </table>
-<p><code>type</code> is <code>a</code> (anatomical — mask required) or <code>t</code> (temporal — no mask). <code>n</code> is a
-top-N integer, or a fraction between 0 and 1 for a variance threshold.</p>
+<p><code>&lt;type&gt;</code> is <code>a</code> (anatomical, mask required) or <code>t</code> (temporal, no mask). <code>&lt;n&gt;</code> is
+a top-N integer, or a fraction between 0 and 1 for a variance threshold.</p>
 <p><strong><code>--custom-sources</code> / <code>--custom-columns</code></strong> pull run-level regressors from the
 <code>nuisance/</code> area. Each source is a <code>&lt;kind&gt;</code> or <code>&lt;kind&gt;-&lt;desc&gt;</code> token naming a
 <code>nuisance/&lt;kind&gt;[-&lt;desc&gt;]/</code> directory; <code>--custom-columns</code> then selects columns
@@ -1309,8 +1455,8 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 <p class="admonition-title">Things that must line up</p>
 <ul>
 <li><strong>Space must exist.</strong> <code>--space</code> must name a space present in your fMRIPrep
-  outputs. It defaults to the volumetric <code>MNI152NLin2009cAsym</code>; surface
-  spaces (<code>fsaverage*</code>) are cleaned per hemisphere automatically.</li>
+  outputs. It defaults to the surface space <code>fsaverage6</code>, cleaned per
+  hemisphere automatically; volumetric spaces (<code>MNI152*</code>) are also supported.</li>
 <li><strong>Column names must be unique</strong> across all channels (fMRIPrep and custom);
   a collision raises rather than silently dropping one.</li>
 <li><strong>TR counts must match.</strong> Every selected regressor channel and the BOLD
@@ -1318,8 +1464,12 @@ convention, so a blank or non-numeric cell raises rather than being filled.</p>
 </ul>
 </div>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<p>Clean BOLD for all subjects, regressing out a motion + drift model. <code>--space</code>
-defaults to the volumetric <code>MNI152NLin2009cAsym</code>, so it can be omitted:</p>
+<p>Clean BOLD for all subjects with the default Speer et al. 2024 confound set —
+pass no nuisance channel at all. <code>--space</code> defaults to the surface <code>fsaverage6</code>,
+so it too can be omitted:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/
+</code></pre></div>
+<p>Or name your own motion + drift model explicitly:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 </code></pre></div>
@@ -1342,9 +1492,12 @@ fMRIPrep's <code>sub-XX/[ses-YY/]func/</code> shape and preserving the source's 
 identity — only the <code>desc</code> entity (<code>desc-denoised</code>) and the root differ from the
 source:</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/derivatives/hypline/sub-031/ses-1/func/
-├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # output
+├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # volumetric output
 └── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 </code></pre></div>
+<p>A surface run (<code>--space fsaverage6</code>, the default) instead writes a per-hemisphere
+<code>.func.gii</code> pair carrying the source's <code>space</code>/<code>hemi</code> entities plus <code>desc-denoised</code>,
+e.g. <code>sub-031_ses-1_task-conv_run-1_hemi-L_space-fsaverage6_desc-denoised_bold.func.gii</code>.</p>
 <p>The output keeps the input's dimensions; only the signal values change. Each run
 gets a per-file <code>.json</code> sidecar recording its <code>Sources</code> (a <code>bids:</code> URI to the
 source BOLD), the resolved cleaning settings, and the hypline version.
@@ -1364,11 +1517,6 @@ inheriting fMRIPrep's.</p>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>at least one of --columns, --compcor, or --custom-sources must be given</code></td>
-<td>The command was called with no regressor channel selected.</td>
-<td>Pass at least one of <code>--columns</code>, <code>--compcor</code>, or <code>--custom-sources</code>.</td>
-</tr>
 <tr>
 <td><code>--custom-sources and --custom-columns must be given together</code></td>
 <td>One of the custom-nuisance options was passed without the other.</td>

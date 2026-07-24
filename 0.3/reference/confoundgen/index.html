@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -522,6 +522,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../how-to/prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../how-to/filter/" class="md-nav__link">
         
   
@@ -551,6 +574,29 @@
   
   <span class="md-ellipsis">
     Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
     
   </span>
   
@@ -647,6 +693,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1307,7 +1445,7 @@ BOLD runs. <code>confoundgen</code> is a group of subcommands, one per confound 
 <p>Each confound file is a Parquet table already aligned to the BOLD TR grid.</p>
 <div class="admonition note">
 <p class="admonition-title">fMRIPrep regressors are not generated here</p>
-<p>Motion, drift, and CompCor regressors are <strong>not</strong> confound files. <code>denoise</code>
+<p>Motion, drift, and CompCor regressors are not confound files. <code>denoise</code>
 reads them straight from fMRIPrep's confounds table — see
 <a href="../denoise/"><code>denoise --columns</code> / <code>--compcor</code></a>. <code>confounds/</code> holds only
 stimulus-derived, feature-granular confounds.</p>
@@ -1381,7 +1519,7 @@ Each <code>desc</code> lands in its own subdirectory:</p>
 <p>Each derivation is referred to by name (<code>phonemic-onset</code>, <code>phonemic-rate</code>). These
 are feature-granular, encoding-side confounds: <a href="../encoding/"><code>encoding train</code></a>
 reads them as its confound band (via <code>--confounds</code>), partialling them out in the
-same ridge fit. They are <strong>not</strong> read by <a href="../denoise/"><code>denoise</code></a>, whose nuisance
+same ridge fit. They are not read by <a href="../denoise/"><code>denoise</code></a>, whose nuisance
 regressors come from fMRIPrep and the <code>nuisance/</code> area instead.</p>
 <hr />
 <h2 id="confoundgen-semantic"><code>confoundgen semantic</code><a class="headerlink" href="#confoundgen-semantic" title="Permanent link">&para;</a></h2>

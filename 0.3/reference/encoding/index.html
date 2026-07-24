@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../how-to/filter/" class="md-tabs__link">
+        <a href="../../how-to/prepare-dataset/" class="md-tabs__link">
           
   
   
@@ -522,6 +522,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../how-to/prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../how-to/filter/" class="md-nav__link">
         
   
@@ -551,6 +574,29 @@
   
   <span class="md-ellipsis">
     Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Test the cross-brain effect from evals
     
   </span>
   
@@ -647,6 +693,98 @@
   
   <span class="md-ellipsis">
     Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reading-an-eval/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Reading an encoding result
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
     
   </span>
   
@@ -1307,7 +1445,7 @@ is a group of subcommands.</p>
 </tr>
 </tbody>
 </table>
-<p>Both read from the dataset root and write to a new <strong><code>results/</code></strong> area (see
+<p>Both read from the dataset root and write to a new <code>results/</code> area (see
 <a href="#outputs">Outputs</a>). Results load back as live Python objects rather than flat
 tables; read them for downstream analysis with the <a href="../encoding-results/">encoding results API</a>.</p>
 <div class="admonition note">
@@ -1321,14 +1459,15 @@ regressor into a production copy and a comprehension copy and learns separate
 weights for each (<code>--no-split</code> keeps one shared copy). Either way, two
 intercept-like production/comprehension task boxcars always ride a reserved
 band that absorbs the mean BOLD offset between the two states — <code>--no-split</code>
-drops the per-regressor duplication, not this band.</p>
+drops the per-regressor duplication, not this band. <a href="../../concepts/how-encoding-works/">How the encoding model
+works</a> unpacks this at more length.</p>
 </div>
 <hr />
 <h2 id="hypline-encoding-train"><code>hypline encoding train</code><a class="headerlink" href="#hypline-encoding-train" title="Permanent link">&para;</a></h2>
 <p>Fit a voxelwise ridge encoding model per subject, writing one model artifact per
 subject to <code>results/</code>.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>…<span class="w"> </span>--features<span class="w"> </span>…<span class="w"> </span>--desc<span class="w"> </span>…<span class="w"> </span>--fold-by<span class="w"> </span>…<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<span class="w">  </span>--features<span class="w"> </span>…<span class="w"> </span>--desc<span class="w"> </span>…<span class="w"> </span>--fold-by<span class="w"> </span>…<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
 <h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1356,11 +1495,6 @@ dyad</a>.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--tasks</code></td>
-<td>Comma-separated task labels to train on (e.g. <code>neutral,opinion</code>) — <strong>required</strong></td>
-<td>—</td>
-</tr>
-<tr>
 <td><code>--features</code></td>
 <td>Comma-separated feature refs as <code>&lt;kind&gt;[-&lt;desc&gt;]</code> (e.g. <code>semantic-gpt3,phonemic-noArt</code>); each becomes its own ridge band — <strong>required</strong></td>
 <td>—</td>
@@ -1377,8 +1511,8 @@ dyad</a>.</p>
 </tr>
 <tr>
 <td><code>--n-folds</code></td>
-<td>Number of folds: an integer (<code>&gt;=2</code>) or <code>loo</code>. Required with <code>--fold-by &lt;entity&gt;</code>; omit with <code>--fold-by none</code></td>
-<td>none</td>
+<td>Number of folds: an integer (<code>&gt;=2</code>) or <code>loo</code>. Defaults to <code>loo</code> with <code>--fold-by &lt;entity&gt;</code>; omit with <code>--fold-by none</code></td>
+<td><code>loo</code> (with <code>--fold-by &lt;entity&gt;</code>)</td>
 </tr>
 <tr>
 <td><code>--confounds</code></td>
@@ -1388,7 +1522,7 @@ dyad</a>.</p>
 <tr>
 <td><code>--bold-space</code></td>
 <td>BOLD space to train on: <code>fsaverage5</code>, <code>fsaverage6</code>, <code>MNI152NLin6Asym</code>, <code>MNI152NLin2009cAsym</code></td>
-<td><code>MNI152NLin2009cAsym</code></td>
+<td><code>fsaverage6</code></td>
 </tr>
 <tr>
 <td><code>--bold-desc</code></td>
@@ -1427,7 +1561,7 @@ dyad</a>.</p>
 </tr>
 <tr>
 <td><code>--data-filters</code></td>
-<td>Comma-separated BIDS entity filters bounding the training corpus — see <a href="../../concepts/segments/">Segments and metadata</a></td>
+<td>Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. <code>task-conv</code>) — there is no dedicated task flag; see <a href="../../concepts/segments/">Segments and metadata</a></td>
 <td>none</td>
 </tr>
 <tr>
@@ -1438,29 +1572,37 @@ dyad</a>.</p>
 </tbody>
 </table>
 <div class="admonition warning">
-<p class="admonition-title"><code>--fold-by</code> and <code>--n-folds</code> are paired</p>
-<p>Give <code>--n-folds</code> when <code>--fold-by</code> names an entity, and omit it when
-<code>--fold-by none</code>. Supplying one without the other raises. <code>--fold-by none</code>
-fits a single model over the whole corpus; <code>--fold-by run --n-folds 5</code> fits
-five cross-validated models grouped by run.</p>
+<p class="admonition-title"><code>--fold-by</code> and <code>--n-folds</code></p>
+<p><code>--fold-by &lt;entity&gt;</code> defaults to leave-one-out (<code>n_folds='loo'</code>), so
+<code>--n-folds</code> is optional there — pass it only to override the count. The one
+invalid pairing is <code>--fold-by none</code> with an explicit <code>--n-folds</code>, which
+raises. <code>--fold-by none</code> fits a single model over the whole corpus;
+<code>--fold-by run --n-folds 5</code> fits five cross-validated models grouped by run.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Pooling multiple tasks</p>
+<p>A fit that spans more than one task shares one set of ridge weights across
+them, collapsing task-specific responses. <code>train</code> warns when it detects this
+without a task-level opt-in. To fit one task, narrow via
+<code>--data-filters task-&lt;label&gt;</code>. To pool tasks on purpose, name them with a
+<code>task-*</code> filter or fold across them with <code>--fold-by task</code>.</p>
 </div>
 <h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h3>
 <p>Fit a single model per subject from semantic features plus phonemic-timing
 confounds, over the <code>conv</code> task:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--features<span class="w"> </span>semantic-gpt3<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--confounds<span class="w"> </span>phonemic-onset,phonemic-rate<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--fold-by<span class="w"> </span>none
 </code></pre></div>
-<p>Cross-validate by run, five folds, on a GPU:</p>
+<p>Cross-validate by run — leave-one-out by default, on a GPU:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--features<span class="w"> </span>semantic-gpt3<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--desc<span class="w"> </span>cv5<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--desc<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--fold-by<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-folds<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--device<span class="w"> </span>cuda
 </code></pre></div>
 <hr />
@@ -1476,7 +1618,9 @@ role (production / comprehension / both). Three subject roles are independent:</
 within-subject fit; partners in one dyad share a conversation across different
 brains; different dyads are a scramble/null control (<code>analyze</code> warns). The values
 <code>self</code> and <code>partner</code> are accepted for <code>--model-sub</code> / <code>--source-sub</code>, resolved
-relative to <code>--target-sub</code> via <code>participants.tsv</code>.</p>
+relative to <code>--target-sub</code> via <code>participants.tsv</code>. For how these pairings map to
+within-brain, cross-brain, and pseudo-dyad analyses, see <a href="../../concepts/how-encoding-works/#choosing-source-and-model">Choosing source and
+model</a>.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>analyze<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--target-sub<span class="w"> </span>…<span class="w"> </span>--model-sub<span class="w"> </span>…<span class="w"> </span>--model-desc<span class="w"> </span>…<span class="w"> </span>--desc<span class="w"> </span>…<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </code></pre></div>
@@ -1528,7 +1672,7 @@ relative to <code>--target-sub</code> via <code>participants.tsv</code>.</p>
 </tbody>
 </table>
 <p>The output is per-fold, per-band, per-role, per-voxel scores. These are himalaya
-<em>split</em> scores — each band's own contribution to the joint prediction — so a
+<em>split</em> scores (each band's own contribution to the joint prediction), so a
 band's value is not a plain Pearson correlation and need not fall in <code>[-1, 1]</code>.
 Roles are derived from the target's turns: <code>prod</code> and <code>comp</code> are the
 exclusive pure-production / pure-comprehension rows, and <code>both</code> is the union of
@@ -1542,7 +1686,7 @@ model as below:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>analyze<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--target-sub<span class="w"> </span><span class="m">031</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--model-sub<span class="w"> </span>self<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--model-desc<span class="w"> </span>cv5<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-desc<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--desc<span class="w"> </span>selfeval
 </code></pre></div>
 <p>Score subject <code>031</code>'s BOLD using the partner's model and features (a
@@ -1556,7 +1700,7 @@ cross-brain, shared-conversation eval) on run 6:</p>
 <span class="w">  </span>--test-on<span class="w"> </span>run-6
 </code></pre></div>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
-<p>Both commands write to a new top-level <strong><code>results/</code></strong> area, keyed by subject
+<p>Both commands write to a new top-level <code>results/</code> area, keyed by subject
 (one analysis output consumes many runs across sessions, so results carry no
 source-run or session entity):</p>
 <div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/results/
@@ -1585,9 +1729,9 @@ source-run or session entity):</p>
 </thead>
 <tbody>
 <tr>
-<td><code>give --n-folds with --fold-by &lt;entity&gt;, and omit it with --fold-by none</code></td>
-<td><code>--fold-by</code> and <code>--n-folds</code> were not passed both-or-neither.</td>
-<td>Pass <code>--n-folds</code> when <code>--fold-by</code> names an entity; omit it with <code>--fold-by none</code>.</td>
+<td><code>omit --n-folds with --fold-by none</code></td>
+<td><code>--n-folds</code> was given alongside <code>--fold-by none</code>, which fits a single unfolded model.</td>
+<td>Drop <code>--n-folds</code>, or fold on an entity with <code>--fold-by &lt;entity&gt;</code>.</td>
 </tr>
 <tr>
 <td><code>n_folds='loo' needs &gt;= 2 groups to fold; got 1</code></td>
@@ -1601,7 +1745,7 @@ source-run or session entity):</p>
 </tr>
 <tr>
 <td><code>No regressor files match the given filters</code> / <code>No BOLD files match the given filters</code> (<code>train</code>)</td>
-<td><code>--tasks</code>, <code>--features</code>, <code>--data-filters</code>, <code>--bold-space</code>, or <code>--bold-desc</code> selected nothing.</td>
+<td><code>--features</code>, <code>--data-filters</code>, <code>--bold-space</code>, or <code>--bold-desc</code> selected nothing.</td>
 <td>Confirm the features and <code>desc-denoised</code> BOLD exist and that the filters are not too narrow.</td>
 </tr>
 <tr>
