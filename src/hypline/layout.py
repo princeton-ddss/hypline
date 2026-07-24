@@ -754,16 +754,16 @@ class _Path:
 
         return BIDSPath(out_dir / f"{stem}{suffix}{source.ext}")
 
-    def denoised(self, *, source: BIDSPath) -> BIDSPath:
+    def denoised(self, *, source: BIDSPath, desc: str = "denoised") -> BIDSPath:
         """Derive a denoised-BOLD output path from `source`.
 
-        Sets `desc-denoised`. `source` is the fmriprep `desc-preproc` BOLD;
-        relocating to the hypline derivatives tree gives the denoised output
-        honest provenance instead of inheriting fmriprep's `GeneratedBy`.
+        Sets `desc-<desc>` (default `denoised`); a distinct `desc` keeps separate
+        nuisance-config variants on separate paths instead of overwriting. `source`
+        is the fmriprep `desc-preproc` BOLD; relocating to the hypline derivatives
+        tree gives the denoised output honest provenance instead of inheriting
+        fmriprep's `GeneratedBy`.
         """
-        return self._derive_derivative_path(
-            area="hypline", source=source, desc="denoised"
-        )
+        return self._derive_derivative_path(area="hypline", source=source, desc=desc)
 
     def stimulus(
         self,

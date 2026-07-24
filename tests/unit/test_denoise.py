@@ -305,6 +305,24 @@ class TestDenoise:
         assert isinstance(img, Nifti1Image)
         assert img.shape[-1] == DEFAULT_BOLD_N_TRS
 
+    def test_custom_desc_writes_own_path(self, tree: BIDSTree):
+        # A distinct desc lands on its own path, so nuisance-config variants
+        # coexist instead of overwriting the default desc-denoised
+        _add_run(tree)
+        _denoiser(tree, columns=["trans_x"], desc="motionOnly").denoise("01")
+
+        func_dir = tree.denoised_func_dir(sub="01")
+        variant = (
+            func_dir
+            / f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-motionOnly_bold.nii.gz"
+        )
+        default = (
+            func_dir
+            / f"sub-01_task-A_run-1_space-{VOLUME_SPACE}_desc-denoised_bold.nii.gz"
+        )
+        assert variant.exists()
+        assert not default.exists()
+
     def test_tr_count_mismatch_raises(self, tree: BIDSTree):
         # Confounds tsv one TR shorter than the bold the fixture writes
         _add_run(tree, df=_tsv_df(DEFAULT_BOLD_N_TRS - 1))

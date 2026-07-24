@@ -88,6 +88,16 @@ def denoise(
             show_default=False,
         ),
     ] = None,
+    desc: Annotated[
+        str,
+        typer.Option(
+            help="""
+            Output desc entity tag (alphanumeric); output lands as desc-<desc>.
+            A distinct value keeps separate nuisance-config variants from
+            overwriting (e.g., --desc motionOnly).
+            """,
+        ),
+    ] = "denoised",
     force: Annotated[
         bool,
         typer.Option(
@@ -131,6 +141,7 @@ def denoise(
         custom_sources=_custom_sources,
         custom_columns=_custom_columns,
         bids_filters=_bids_filters,
+        desc=desc,
         force=force,
     )
 

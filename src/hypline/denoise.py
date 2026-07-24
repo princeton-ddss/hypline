@@ -121,11 +121,12 @@ class Denoiser:
     Finds preprocessed fmriprep BOLD (volumetric `desc-preproc`; surface
     `.func.gii` carries no `desc`), regresses out the fmriprep confound columns
     selected by `columns`/`compcor`, and writes the denoised run as
-    `desc-denoised` into the hypline derivatives tree, so the output carries its
-    own provenance rather than fmriprep's `GeneratedBy`. Output lands in a
-    separate tree from the input, so the denoiser never rediscovers its own
-    runs. Volume and surface BOLD dispatch on
-    `type(space)`; surface runs are per-hemisphere and denoised independently.
+    `desc-<desc>` (default `denoised`) into the hypline derivatives tree, so the
+    output carries its own provenance rather than fmriprep's `GeneratedBy`; a
+    distinct `desc` keeps separate nuisance-config variants from overwriting.
+    Output lands in a separate tree from the input, so the denoiser never
+    rediscovers its own runs. Volume and surface BOLD dispatch on `type(space)`;
+    surface runs are per-hemisphere and denoised independently.
     """
 
     def __init__(
@@ -138,6 +139,7 @@ class Denoiser:
         custom_sources: list[str],
         custom_columns: list[str],
         bids_filters: list[str] | None = None,
+        desc: str = "denoised",
         force: bool = False,
     ):
         if not columns and not compcor and not custom_sources:
@@ -152,6 +154,7 @@ class Denoiser:
         self._compcor = parse_compcor(compcor)
         self._custom_sources = [parse_kind_desc(ref) for ref in custom_sources]
         self._custom_columns = custom_columns
+        self._desc = desc
         self._bids_filters = normalize_bids_filters(
             bids_filters, reserved={"sub", "desc", "space"}
         )
@@ -179,7 +182,7 @@ class Denoiser:
         )
 
         for bold in bolds:
-            out = self._layout.path.denoised(source=bold)
+            out = self._layout.path.denoised(source=bold, desc=self._desc)
             if skip_existing(out.path, force=self._force):
                 continue
             out.path.parent.mkdir(parents=True, exist_ok=True)
