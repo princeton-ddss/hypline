@@ -89,14 +89,16 @@ hypline denoise data/ \
 
 # encoding branch: fit the model that maps features onto the denoised BOLD
 hypline encoding train data/ \
-  --tasks conv \
+  --data-filters task-conv \
   --features phonemic \
   --desc v1 \
   --fold-by none
 ```
 
 After this, `data/` holds phonemic features plus `desc-denoised` BOLD — the two
-sides the encoding model needs — and a fitted model under `results/`.
+sides the encoding model needs — and a fitted model under `results/`. Re-run any
+step with `--force` to overwrite its outputs; without it, hypline skips work it
+has already done.
 
 ## Documentation
 
