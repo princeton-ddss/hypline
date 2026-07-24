@@ -24,7 +24,12 @@ A single `train(sub_id)` call is scoped to:
   `--data-filters` CLI flag). Selection is deferred past discovery to
   `_apply_filters`, so discovery is task-blind. `task` is a `CellKey` axis: an
   unfiltered call pools every task (A-cells and B-cells become distinct rows
-  sharing regression weights); a `task-A` filter holds it constant.
+  sharing regression weights); a `task-A` filter holds it constant. Because that
+  pooling is silent, an assembled set spanning >1 task emits a warning — suppressed
+  when the user opted in (an explicit `task-*` in `bids_filters`, or `fold_by="task"`).
+  Why `task` warns when `ses`/`run` don't, though all three are peer cell axes: by
+  BIDS convention distinct `task-*` labels usually mean distinct paradigms (a
+  repeated task is a `run-*`), so cross-task pooling is more often an oversight.
 - **Multiple sessions and runs: allowed and expected.** More data,
   concatenated into a single X/Y.
 - **Features are named with optional variant.** Each `EncodingTrainer(features=[...])`

@@ -13,12 +13,13 @@ from hypline.encoding import (
 )
 from hypline.encoding._artifact import FoldSpec
 from hypline.encoding._context import _CONFOUND_BAND, _SCREEN_BAND
-from hypline.encoding._schema import BoldKey, CellKey, TrainingData
+from hypline.encoding._schema import BoldKey, CellKey, RegressorKey, TrainingData
 from hypline.encoding._train import (
     _group_cells_by,
     _inner_cv,
     _partition_groups,
     _select_rows,
+    _warn_if_pooling_tasks,
 )
 
 from ..conftest import DEFAULT_BOLD_N_TRS, BIDSTree
@@ -550,6 +551,58 @@ class TestFoldHelpers:
         # rows 0,1 (run 1) then 4,5 (run 3) — run 2 dropped, order preserved
         np.testing.assert_array_equal(Y_sub.ravel(), [0, 1, 4, 5])
         np.testing.assert_array_equal(X_sub, data.X[[0, 1, 4, 5]])
+
+
+class TestWarnIfPoolingTasks:
+    """The multi-task pooling warning: fires only on silent cross-task pooling.
+
+    Loguru does not connect to pytest's `caplog`, so warnings are captured via a
+    temporary sink (matching test_predict.py).
+    """
+
+    @staticmethod
+    def _bids(cells: set[CellKey]) -> dict[RegressorKey, object]:
+        # values are unread — the helper only inspects each key's cell
+        return {RegressorKey(cell, "mfcc"): None for cell in cells}
+
+    @staticmethod
+    def _warnings(bids, filters, fold) -> list[str]:
+        import loguru
+
+        messages: list[str] = []
+        handler_id = loguru.logger.add(
+            lambda m: messages.append(str(m)), level="WARNING"
+        )
+        try:
+            _warn_if_pooling_tasks(bids, filters, fold)
+        finally:
+            loguru.logger.remove(handler_id)
+        return messages
+
+    def test_multi_task_warns(self):
+        bids = self._bids({CellKey(task="a", run="1"), CellKey(task="b", run="1")})
+        messages = self._warnings(bids, [], None)
+        assert any("Pooling 2 tasks" in m and "'a', 'b'" in m for m in messages)
+
+    def test_single_task_silent(self):
+        bids = self._bids({CellKey(task="a", run="1"), CellKey(task="a", run="2")})
+        assert self._warnings(bids, [], None) == []
+
+    def test_explicit_task_filter_silent(self):
+        # user named the tasks — pooling is opted into, not silent. `task-*` is the
+        # normalized form the call site passes, so the suppression predicate catches it.
+        bids = self._bids({CellKey(task="a", run="1"), CellKey(task="b", run="1")})
+        assert self._warnings(bids, ["task-a", "task-b"], None) == []
+
+    def test_fold_by_task_silent(self):
+        # cross-task modeling is deliberate when folding on task
+        bids = self._bids({CellKey(task="a", run="1"), CellKey(task="b", run="1")})
+        assert self._warnings(bids, [], FoldSpec(by="task", n=2)) == []
+
+    def test_non_task_filter_still_warns(self):
+        # a filter on another entity does not excuse silent task pooling
+        bids = self._bids({CellKey(task="a", run="1"), CellKey(task="b", run="1")})
+        assert self._warnings(bids, ["run-1"], None) != []
 
 
 class TestInnerCv:

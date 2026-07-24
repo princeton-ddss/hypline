@@ -98,6 +98,37 @@ def _partition_groups(
     return buckets
 
 
+def _warn_if_pooling_tasks(
+    regressor_bids: dict[RegressorKey, BIDSPath],
+    bids_filters: list[str],
+    fold: FoldSpec | None,
+) -> None:
+    """Warn when a fit pools >1 task into one model without a task-level opt-in.
+
+    Cross-task cells share ridge weights, so pooling collapses task-specific
+    responses — usually an oversight (see notes/modules/encoding.md), but valid
+    when deliberate. Stay quiet on opt-in: an explicit `task-*` filter names the
+    tasks, and `fold_by="task"` models across them.
+
+    `task` is always present on a cell (`CellKey.to_bold_key` indexes it), so no
+    missing-axis guard is needed.
+    """
+    tasks = {regressor_key.cell["task"] for regressor_key in regressor_bids}
+    if len(tasks) <= 1:
+        return
+    if any(f.split("-", 1)[0] == "task" for f in bids_filters):
+        return
+    if fold is not None and fold.by == "task":
+        return
+    logger.warning(
+        "Pooling {} tasks into one model (sharing ridge weights): {}. "
+        "To fit one task, narrow via --data-filters (e.g. task-A). To pool them "
+        "on purpose, opt in with a task filter or fold_by=task.",
+        len(tasks),
+        sorted(tasks),
+    )
+
+
 def _select_rows(
     data: TrainingData, cells: set[CellKey]
 ) -> tuple[np.ndarray, np.ndarray, list[CellKey]]:
@@ -439,6 +470,11 @@ class EncodingTrainer(_EncodingContext):
         )
 
         self._validate_coverage(sub_id, regressor_bids, bold_metas)
+
+        # Warn only on the coverage-checked set that will actually fit — an earlier
+        # placement could pair a warning with a coverage raise on the same set.
+        _warn_if_pooling_tasks(regressor_bids, self._recipe.bids_filters, self._fold)
+
         regressor_metas = self._enrich_regressor_metas(regressor_bids, bold_metas)
         return self._build_training_data(sub_id, regressor_metas, bold_metas)
 
