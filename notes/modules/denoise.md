@@ -48,8 +48,11 @@ encoding confounds. Regressors come from two channels, h-concatenated into one
    `nuisance/`; `--custom-columns` selects columns from their horizontal concat.
    The two must be given together. Each source resolves via `find.nuisance`.
 
-At least one of `--columns` / `--compcor` / `--custom-sources` is required — an
-all-empty invocation raises rather than silently no-opping. See
+When no channel (`--columns` / `--compcor` / `--custom-sources`) is given, the CLI
+falls back to `DEFAULT_CONFOUND_COLUMNS` (the Speer et al. 2024 motion + WM/CSF set;
+`hypline.denoise`). An explicit `--compcor` / `--custom-sources` suppresses the
+fallback rather than composing onto it. Constructing `Denoiser` directly still
+requires a channel — the fallback lives in the CLI layer only. See
 [../decisions/nuisance-files.md](../decisions/nuisance-files.md) for the nuisance
 file contract and [../external/fmriprep.md](../external/fmriprep.md) for the tsv
 read.

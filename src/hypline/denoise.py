@@ -33,6 +33,24 @@ from hypline.io import (
 )
 from hypline.layout import BIDSLayout
 
+# Confound set from Speer et al., 2024 (Nat Commun, doi:10.1038/s41467-024-51990-7):
+# six motion params + mean WM/CSF signal, each with square, derivative, and squared
+# derivative, plus cosine drift; no CompCor. `cosine` is a group prefix expanding to
+# every `cosine*` column. Used as the `--columns` fallback when no channel is given.
+DEFAULT_CONFOUND_COLUMNS = [
+    "cosine",
+    *(
+        f"{param}{suffix}"
+        for suffix in ("", "_power2", "_derivative1", "_derivative1_power2")
+        for param in ("trans_x", "trans_y", "trans_z", "rot_x", "rot_y", "rot_z")
+    ),
+    *(
+        f"{tissue}{suffix}"
+        for tissue in ("white_matter", "csf")
+        for suffix in ("", "_power2", "_derivative1", "_derivative1_power2")
+    ),
+]
+
 # nilearn clean params shared by volume and surface paths; single-sourced so the
 # sidecar records exactly what ran, never a hand-typed copy that can drift
 CLEAN_PARAMS = {

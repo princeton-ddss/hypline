@@ -5,7 +5,7 @@ import pytest
 
 from hypline._version import __version__
 from hypline.bids import BIDSPath
-from hypline.denoise import CLEAN_PARAMS, Denoiser
+from hypline.denoise import CLEAN_PARAMS, DEFAULT_CONFOUND_COLUMNS, Denoiser
 from hypline.enums import VolumeSpace
 
 from .conftest import DEFAULT_BOLD_N_TRS, BIDSTree
@@ -284,6 +284,48 @@ class TestConstructor:
                 custom_sources=[],
                 custom_columns=[],
             )
+
+
+class TestDefaultConfoundColumns:
+    def test_matches_speer_set(self):
+        # Regression lock on the Speer et al. 2024 confound set. Spelled out as a
+        # flat literal on purpose — a comprehension here would mirror the source's
+        # own comprehension, so a same-shaped edit to both would pass silently.
+        assert DEFAULT_CONFOUND_COLUMNS == [
+            "cosine",
+            "trans_x",
+            "trans_y",
+            "trans_z",
+            "rot_x",
+            "rot_y",
+            "rot_z",
+            "trans_x_power2",
+            "trans_y_power2",
+            "trans_z_power2",
+            "rot_x_power2",
+            "rot_y_power2",
+            "rot_z_power2",
+            "trans_x_derivative1",
+            "trans_y_derivative1",
+            "trans_z_derivative1",
+            "rot_x_derivative1",
+            "rot_y_derivative1",
+            "rot_z_derivative1",
+            "trans_x_derivative1_power2",
+            "trans_y_derivative1_power2",
+            "trans_z_derivative1_power2",
+            "rot_x_derivative1_power2",
+            "rot_y_derivative1_power2",
+            "rot_z_derivative1_power2",
+            "white_matter",
+            "white_matter_power2",
+            "white_matter_derivative1",
+            "white_matter_derivative1_power2",
+            "csf",
+            "csf_power2",
+            "csf_derivative1",
+            "csf_derivative1_power2",
+        ]
 
 
 class TestDenoise:

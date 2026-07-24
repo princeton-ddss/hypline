@@ -26,7 +26,10 @@ def denoise(
             help="""
             Comma-separated fmriprep confound columns: exact tsv names (e.g.,
             trans_x,rot_x) plus group prefixes that expand to all matches
-            (cosine, motion_outlier)
+            (cosine, motion_outlier). When no nuisance channel
+            (--columns/--compcor/--custom-sources) is given, defaults to the
+            Speer et al. 2024 set: motion and WM/CSF signal (each with squared
+            and derivative expansions) plus cosine drift.
             """,
             show_default=False,
         ),
@@ -107,7 +110,7 @@ def denoise(
     ] = False,
 ):
     """Regress fmriprep confounds out of preprocessed BOLD, writing desc-denoised."""
-    from hypline.denoise import Denoiser
+    from hypline.denoise import DEFAULT_CONFOUND_COLUMNS, Denoiser
     from hypline.layout import BIDSLayout
 
     _columns = split_csv(columns, param_hint="--columns") or []
@@ -115,10 +118,10 @@ def denoise(
     _custom_sources = split_csv(custom_sources, param_hint="--custom-sources") or []
     _custom_columns = split_csv(custom_columns, param_hint="--custom-columns") or []
     if not _columns and not _compcor and not _custom_sources:
-        raise typer.BadParameter(
-            "at least one of --columns, --compcor, or --custom-sources must be given",
-            param_hint="--columns/--compcor/--custom-sources",
-        )
+        # No channel given: fall back to the default confound set. An explicit
+        # --compcor/--custom-sources means the user is picking their own model,
+        # so leave the fallback out rather than composing the default onto it.
+        _columns = list(DEFAULT_CONFOUND_COLUMNS)
     if bool(_custom_sources) != bool(_custom_columns):
         raise typer.BadParameter(
             "--custom-sources and --custom-columns must be given together",
