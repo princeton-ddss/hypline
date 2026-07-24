@@ -1298,7 +1298,7 @@
 <h1 id="how-the-encoding-model-works">How the encoding model works<a class="headerlink" href="#how-the-encoding-model-works" title="Permanent link">&para;</a></h1>
 <p>The <a href="../../reference/encoding/"><code>encoding</code></a> commands are the point of the whole
 pipeline: everything before them prepares the two sides of one fit. This page
-explains what that fit <em>is</em> — the model <code>train</code> builds and <code>analyze</code> scores — and
+explains what that fit <em>is</em> (the model <code>train</code> builds and <code>analyze</code> scores) and
 then the choice that gives an analysis its meaning: whose speech, whose model,
 and whose brain you line up.</p>
 <p>You do not need this page to run the commands; the <a href="../../reference/encoding/">reference</a>
@@ -1340,7 +1340,7 @@ contribution is fit, and measured, in its own right.</p>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Confounds are not the denoising step</p>
-<p>The confound band is stimulus-derived nuisance — speech onset and rate, say —
+<p>The confound band is stimulus-derived nuisance (speech onset and rate, say),
 partialled out <em>inside</em> the encoding fit. That is separate from
 <a href="../../reference/denoise/"><code>denoise</code></a>, which cleans run-level nuisance (motion,
 drift) out of the BOLD before encoding ever sees it. The same stimulus-derived
@@ -1360,8 +1360,8 @@ in an eval are about which rows are <em>scored</em> afterward. Both come from th
 speaking turns, but they are separate mechanisms.</p>
 <h2 id="choosing-source-and-model">Choosing source and model<a class="headerlink" href="#choosing-source-and-model" title="Permanent link">&para;</a></h2>
 <p><code>train</code> fits one model per subject. <code>analyze</code> then scores a model's predictions
-against a subject's real brain, and it takes <strong>three subjects that need not be
-the same person</strong>:</p>
+against a subject's real brain, and it takes three subjects that need not be
+the same person:</p>
 <ul>
 <li><strong>target</strong> (<code>--target-sub</code>) — whose real BOLD the scores are measured against,
   and whose speaking turns define the <code>prod</code>/<code>comp</code> roles.</li>

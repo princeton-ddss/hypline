@@ -1394,7 +1394,7 @@ sub-keyed brain — see <a href="../../concepts/layout/#subject-vs-dyad">Subject
 Two subjects share a <code>dyad_id</code> exactly when they held one conversation together.</p>
 <div class="admonition warning">
 <p class="admonition-title">Use real tabs</p>
-<p>Every <code>.tsv</code> hypline reads must be separated by <strong>actual tab characters</strong>, not
+<p>Every <code>.tsv</code> hypline reads must be separated by actual tab characters, not
 spaces. A space-separated row collapses into one column and fails with a
 misleading "missing column" error. This bites most often in
 <code>participants.tsv</code>, since it is the first file hypline reads.</p>
@@ -1431,8 +1431,8 @@ nuisance regressors from fMRIPrep's own <code>desc-confounds</code> table, so bo
 present. The BOLD <code>space</code> you preprocessed into is the one you will pass to
 <code>denoise</code> and <code>encoding</code> later.</p>
 <h2 id="4-lay-out-the-stimulus-audio">4. Lay out the stimulus audio<a class="headerlink" href="#4-lay-out-the-stimulus-audio" title="Permanent link">&para;</a></h2>
-<p>The conversation audio is <strong>dyad-keyed</strong> — it belongs to the pair, not either
-partner — so it goes under <code>stimuli/</code>, keyed by dyad:</p>
+<p>The conversation audio is dyad-keyed (it belongs to the pair, not either
+partner), so it goes under <code>stimuli/</code>, keyed by dyad:</p>
 <div class="highlight"><pre><span></span><code>stimuli/dyad-030/ses-1/audio/
 └── dyad-030_ses-1_task-conv_run-1_audio.wav
 </code></pre></div>
@@ -1443,12 +1443,12 @@ partner — so it goes under <code>stimuli/</code>, keyed by dyad:</p>
 <h2 id="5-optional-describe-conditions-and-custom-nuisance">5. (Optional) Describe conditions and custom nuisance<a class="headerlink" href="#5-optional-describe-conditions-and-custom-nuisance" title="Permanent link">&para;</a></h2>
 <p>Two optional inputs round out a dataset:</p>
 <ul>
-<li><strong><code>events.json</code> sidecars</strong> attach descriptive metadata — condition, item,
-  counterbalance group — to the segments declared in <code>events.tsv</code>. This is what
+<li><strong><code>events.json</code> sidecars</strong> attach descriptive metadata (condition, item,
+  counterbalance group) to the segments declared in <code>events.tsv</code>. This is what
   lets you filter on <code>cond-R</code> even though <code>cond</code> never appears in a filename. See
   <a href="../../concepts/segments/#attaching-metadata-eventsjson">Attaching metadata</a>.</li>
 <li><strong><code>nuisance/</code> files</strong> hold run-level regressors you supply yourself that
-  fMRIPrep never produced — physiological recordings, say — for <code>denoise</code> to
+  fMRIPrep never produced (physiological recordings, say) for <code>denoise</code> to
   regress out alongside the fMRIPrep columns. See the
   <a href="../../reference/denoise/"><code>denoise</code> reference</a>.</li>
 </ul>
@@ -1462,7 +1462,7 @@ partner — so it goes under <code>stimuli/</code>, keyed by dyad:</p>
 ├── derivatives/fmriprep/                      # fMRIPrep outputs (you supply)
 └── stimuli/dyad-030/ses-1/audio/              # conversation audio (you supply)
 </code></pre></div>
-<p>Everything else — <code>features/</code>, <code>confounds/</code>, <code>derivatives/hypline/</code>, <code>results/</code> —
+<p>Everything else (<code>features/</code>, <code>confounds/</code>, <code>derivatives/hypline/</code>, <code>results/</code>)
 appears as you run the commands. With this in place, follow the
 <a href="../../tutorials/walkthrough/">tutorial</a> from its transcription step onward; every
 command takes <code>data/</code> as its only argument and discovers the rest.</p>

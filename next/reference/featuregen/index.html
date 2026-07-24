@@ -1836,7 +1836,7 @@ for features without confounds.</p>
 <p>A semantic feature file per transcript, tagged <code>feat-semantic</code>, under
 <code>features/</code>. Each row carries <code>start_time</code>, <code>turn_sub</code> (forward-filled from the
 transcript; carried through unchanged), <code>word</code>, <code>token</code>, the <code>feature</code>
-vector, and — for any non-zero layer — per-token LM metrics (<code>rank</code>,
+vector, and (for any non-zero layer) per-token LM metrics (<code>rank</code>,
 <code>true_prob</code>, <code>entropy</code>). The Parquet footer records <code>hf_model</code>, <code>hf_tokenizer</code>
 (equal to <code>hf_model</code> unless overridden via the <a href="../python-api/">Python API</a>), and
 <code>layer</code>. With <code>--skip-confoundgen</code> omitted, the matching <code>conf-semantic</code>
@@ -1873,7 +1873,7 @@ granted to the same account that issued the token, or the download fails.</p>
 <a href="https://github.com/openai/whisper">Whisper</a> feature extractor, the same
 front-end that turns audio into the input Whisper's encoder sees. Unlike
 <code>phonemic</code> and <code>semantic</code>, this reads audio directly (no transcript needed) and
-its output is <strong>pre-aligned to the run's BOLD TR grid</strong>: one log-Mel vector per
+its output is pre-aligned to the run's BOLD TR grid: one log-Mel vector per
 TR, ready to feed an encoding model without a downstream binning step.</p>
 <h3 id="inputs_2">Inputs<a class="headerlink" href="#inputs_2" title="Permanent link">&para;</a></h3>
 <p>Stimulus audio under <code>stimuli/</code> — the same files <a href="../transcribe/"><code>transcribe</code></a>
@@ -1965,7 +1965,7 @@ of Mel bands). The Parquet footer records the <code>model</code>, <code>sampling
 POS tag concatenated with its dependency relation, plus a final 0/1 stopword
 dimension. The model is fixed (<code>en_core_web_lg</code>) and auto-downloaded on first use,
 so there is no <code>--model</code> option.</p>
-<p>Words are tokenized and tagged <strong>one conversational turn at a time</strong>: the
+<p>Words are tokenized and tagged one conversational turn at a time: the
 dependency parser needs coherent utterances, so words are grouped by <code>turn_sub</code>
 (which subject held the floor) and each maximal run is parsed as one document.
 A word that spaCy splits into several tokens (<code>"don't"</code> → <code>do</code> + <code>n't</code>) yields
@@ -2030,7 +2030,7 @@ features only.</p>
 <a href="../../concepts/layout/#variants-with-desc">The hypline dataset layout</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Feature file format</p>
-<p>Each row is one spaCy <strong>token</strong> with its <code>start_time</code> (seconds from the start
+<p>Each row is one spaCy token with its <code>start_time</code> (seconds from the start
 of the stimulus), its <code>turn_sub</code> label (the utterance the parse grouped on),
 the <code>token</code> text, its source <code>word</code>, and a one-hot
 <code>feature</code> vector (POS ⊕ dependency ⊕ stopword). Width and column order are fit

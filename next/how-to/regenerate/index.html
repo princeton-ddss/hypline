@@ -1263,12 +1263,12 @@
 <p>You ran part of the pipeline, then something upstream changed: you re-recorded
 audio, fixed an <code>events.tsv</code>, or chose different confound columns. This guide
 shows how to redo just the affected work without recomputing the whole dataset,
-and, importantly, which <strong>downstream</strong> steps you must also rerun.</p>
+and, importantly, which downstream steps you must also rerun.</p>
 <h2 id="why-a-plain-rerun-does-nothing">Why a plain rerun does nothing<a class="headerlink" href="#why-a-plain-rerun-does-nothing" title="Permanent link">&para;</a></h2>
-<p>By default, hypline <strong>skips any output that already exists</strong>. This makes reruns
+<p>By default, hypline skips any output that already exists. This makes reruns
 cheap, but it means a second run after a fix appears to do nothing: the outputs
 are still there, so every step is skipped.</p>
-<p>To overwrite, pass <strong><code>--force</code></strong>. Skipping is decided per output file, so
+<p>To overwrite, pass <code>--force</code>. Skipping is decided per output file, so
 <code>--force</code> combined with <a href="../filter/">the identity option (<code>--dyad-ids</code> / <code>--sub-ids</code>) /
 <code>--data-filters</code></a> regenerates only the subset you select, leaving
 everything else untouched.</p>
@@ -1279,14 +1279,14 @@ hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span c
 <p class="admonition-title">Skipping is existence-only — there is no staleness detection</p>
 <p>Hypline decides to skip by asking <em>“does this output file exist?”</em>, never
 <em>“is this output older than its inputs?”</em> It never compares timestamps. So
-regenerating an input does <strong>not</strong> mark anything downstream as stale.</p>
-<p>If a later step's output already exists, that step will <strong>skip and leave its
-old result in place</strong>, now computed from inputs you have since changed. You
+regenerating an input does not mark anything downstream as stale.</p>
+<p>If a later step's output already exists, that step will skip and leave its
+old result in place, now computed from inputs you have since changed. You
 must rerun every downstream step with <code>--force</code> yourself. The propagation
 table below tells you which ones.</p>
 </div>
 <h2 id="what-to-rerun-after-each-kind-of-fix">What to rerun after each kind of fix<a class="headerlink" href="#what-to-rerun-after-each-kind-of-fix" title="Permanent link">&para;</a></h2>
-<p>Find the row for what you changed; rerun the listed steps <strong>in order</strong>, each with
+<p>Find the row for what you changed; rerun the listed steps in order, each with
 <code>--force</code> (scoped with filters as needed). Each step reads what the one before it
 wrote, so a gap leaves stale output behind.</p>
 <table>

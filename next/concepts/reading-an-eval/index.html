@@ -1417,11 +1417,11 @@ out by <strong>role</strong>, derived from the target subject's own turns:</p>
 <a href="../how-encoding-works/">FIR delays</a> let one turn's signal spill onto the first
 rows of the next, and those boundary rows are dropped from both so neither role
 is contaminated. <code>both</code> keeps them, which is why it is not simply <code>prod</code> plus
-<code>comp</code>. A role with no rows in a fold — a run where the target never listened,
-say — scores <code>NaN</code>, not zero. That way it can be skipped when you average across
+<code>comp</code>. A role with no rows in a fold (a run where the target never listened,
+say) scores <code>NaN</code>, not zero. That way it can be skipped when you average across
 folds rather than dragging the average down.</p>
 <h3 id="fold-the-cross-validation-folds"><code>fold</code>: the cross-validation folds<a class="headerlink" href="#fold-the-cross-validation-folds" title="Permanent link">&para;</a></h3>
-<p><code>fold</code> is a plain integer index, <code>0</code> upward. It does <strong>not</strong> tell you which run
+<p><code>fold</code> is a plain integer index, <code>0</code> upward. It does not tell you which run
 each fold held out; that lives in the dataset's attributes, one list of cells
 per fold:</p>
 <div class="highlight"><pre><span></span><code><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;fold_cells&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>     <span class="c1"># the cells fold 0 was scored on (its held-out run)</span>
@@ -1450,11 +1450,11 @@ and that choice has its own page:
 joint prediction's accuracy. Two things follow from that, and both are easy to
 get wrong:</p>
 <ul>
-<li>A split score is <strong>not a plain Pearson correlation</strong> and need not land in
+<li>A split score is not a plain Pearson correlation and need not land in
   <code>[-1, 1]</code>. A single band's value can even be negative. Read it as that band's
   relative encoding strength, not as a fraction of variance explained.</li>
-<li>The scores are a decomposition of the joint model's correlation, so <strong>the bands
-  do sum to it</strong>: <code>r_joint = r_screens + r_semantic + … + r_confounds</code>. That makes
+<li>The scores are a decomposition of the joint model's correlation, so the bands
+  do sum to it: <code>r_joint = r_screens + r_semantic + … + r_confounds</code>. That makes
   the sum the joint model's score — but a single band's share is not itself a
   correlation, so do not read one band's value on that scale.</li>
 </ul>

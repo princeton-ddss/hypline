@@ -1422,13 +1422,13 @@ speaker:</p>
 20.0    8.0        turn_speaker
 </code></pre></div>
 <ul>
-<li>The label records <strong>whose turn it is by study design</strong>, not who was observed
+<li>The label records whose turn it is by study design, not who was observed
   speaking, so a turn window may still contain a word uttered by the other partner.</li>
 <li>Mark only your own turns (<code>turn_speaker</code>); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.</li>
 <li>Windows are <code>[onset, onset + duration)</code>. Gaps (silence) are allowed; windows
-  must <strong>not</strong> overlap — within a subject or across partners. A cross-partner
+  must not overlap — within a subject or across partners. A cross-partner
   overlap is treated as cross-talk and raises an error.</li>
 <li><code>turn_speaker</code> onsets are <strong>run-relative</strong> — the whole-run <code>events.tsv</code> clock,
   the same frame as your segment (e.g. <code>trial-1</code>) rows. Write them that way even

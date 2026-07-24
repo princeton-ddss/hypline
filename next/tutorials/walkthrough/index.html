@@ -520,9 +520,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-generate-phonemic-features" class="md-nav__link">
+  <a href="#3-generate-features" class="md-nav__link">
     <span class="md-ellipsis">
-      3. Generate phonemic features
+      3. Generate features
     </span>
   </a>
   
@@ -1310,9 +1310,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-generate-phonemic-features" class="md-nav__link">
+  <a href="#3-generate-features" class="md-nav__link">
     <span class="md-ellipsis">
-      3. Generate phonemic features
+      3. Generate features
     </span>
   </a>
   
@@ -1416,22 +1416,25 @@
 
 
 <h1 id="a-full-run-on-the-example-dataset">A full run on the example dataset<a class="headerlink" href="#a-full-run-on-the-example-dataset" title="Permanent link">&para;</a></h1>
-<p>This walkthrough takes a real example dataset — stimulus audio and fMRIPrep
-outputs — through the whole hypline pipeline: <strong>phonemic features</strong> and
-<strong>denoised BOLD</strong>, then a fitted <strong>encoding model</strong> joining the two, using one
-command per step. By the end you will have run hypline end to end and seen
-exactly what each step reads and writes.</p>
+<p>This walkthrough takes a real example dataset (stimulus audio and fMRIPrep
+outputs) through the whole hypline pipeline: phonemic and syntactic
+features and denoised BOLD, then a fitted encoding model joining the
+two sides, using one command per step. By the end you will have run hypline end
+to end and seen exactly what each step reads and writes.</p>
 <p>It assumes you have hypline installed (see <a href="../../#installation">Installation</a>,
 including FFmpeg for transcription). No prior hypline experience is needed, but
 skim <a href="../../concepts/layout/">The hypline dataset layout</a> first if a path or
 filename below is ever unclear; this tutorial shows the layout in action rather
 than re-explaining it.</p>
-<p>Expect about 25 minutes start to finish. Two steps dominate: the
-one-time ~2.8 GB dataset download, and the encoding fit (<a href="#6-fit-the-encoding-model">step 6</a>),
-a whole-brain ridge model that runs ~4–5 minutes per subject on CPU. Every
-other step runs in seconds to about a minute (transcription). The fit runs on
-CPU so the tutorial works anywhere; if you have a GPU, <code>--device cuda</code> makes
-it far faster.</p>
+<p>Expect about 30 minutes start to finish. A few steps dominate: the
+one-time ~2.8 GB dataset download, transcription (<a href="#2-transcribe-the-audio">step 2</a>),
+a few minutes on CPU with the <code>small</code> model, and the encoding fit
+(<a href="#6-fit-the-encoding-model">step 6</a>), a whole-brain ridge model that runs ~4–5
+minutes per subject on CPU. Generating syntactic features
+(<a href="#3-generate-features">step 3</a>) also triggers a one-time ~560 MB
+spaCy model download. Every other step runs in seconds. Transcription and
+the fit both run on CPU so the tutorial works anywhere; if you have a GPU,
+<code>--device cuda</code> makes them far faster.</p>
 <h2 id="1-get-the-example-dataset">1. Get the example dataset<a class="headerlink" href="#1-get-the-example-dataset" title="Permanent link">&para;</a></h2>
 <p>Download the example dataset and unpack it. Throughout this tutorial we call the
 unpacked dataset root <code>data/</code>.</p>
@@ -1463,7 +1466,7 @@ its inputs from the directory layout; you never pass individual file paths.</p>
 <h2 id="2-transcribe-the-audio">2. Transcribe the audio<a class="headerlink" href="#2-transcribe-the-audio" title="Permanent link">&para;</a></h2>
 <p><code>transcribe</code> turns each stimulus <code>.wav</code> into a word-level transcript using a
 Whisper speech-recognition model.</p>
-<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--model<span class="w"> </span>tiny
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>transcribe<span class="w"> </span>data/<span class="w"> </span>--audio-ext<span class="w"> </span>.wav<span class="w"> </span>--model<span class="w"> </span>small
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>Transcribing dyad-030_ses-1_task-conv_run-1_trial-1_audio.wav
 Transcribing dyad-030_ses-1_task-conv_run-1_trial-3_audio.wav
@@ -1473,13 +1476,13 @@ Transcribing dyad-030_ses-1_task-conv_run-2_trial-3_audio.wav
 <p>(Log lines are abridged here; a first run also prints a one-time model download
 and voice-activity-detection messages.)</p>
 <div class="admonition tip">
-<p class="admonition-title">Why <code>--model tiny</code></p>
-<p><code>tiny</code> keeps this tutorial fast: about a minute on a laptop CPU, with a small
-one-time model download. It mis-hears some words, which is fine here, since you are
-learning the workflow rather than analyzing the transcripts. For a real analysis,
-omit <code>--model</code> to use the default <code>large-v2</code>, which is far more accurate but a
-multi-GB download and much slower on CPU (pass <code>--device cuda</code> if you have a
-GPU).</p>
+<p class="admonition-title">Why <code>--model small</code></p>
+<p><code>small</code> keeps this tutorial quick while producing usable transcripts: a few
+minutes on a laptop CPU, with a modest one-time model download. It still mis-hears
+the occasional word, which is fine here, since you are learning the workflow
+rather than analyzing the transcripts. For a real analysis, omit <code>--model</code> to use
+the default <code>large-v2</code>, which is more accurate still but a multi-GB download and
+much slower on CPU (pass <code>--device cuda</code> if you have a GPU).</p>
 </div>
 <p>Only four files are transcribed, not one per run. These are the
 reading-condition subset from <a href="#1-get-the-example-dataset">step 1</a>: each run's
@@ -1508,10 +1511,13 @@ files, and each opens with the <code>word,start_time,end_time,…</code> header 
 no transcripts appear, the audio was not found: confirm you passed <code>--audio-ext
 .wav</code> and that <code>data/</code> is the unpacked dataset root.</p>
 </div>
-<h2 id="3-generate-phonemic-features">3. Generate phonemic features<a class="headerlink" href="#3-generate-phonemic-features" title="Permanent link">&para;</a></h2>
-<p><code>featuregen phonemic</code> reads those transcripts and computes a <strong>phonemic feature</strong>
-for each: a per-word representation that becomes a predictor in the encoding
-model.</p>
+<h2 id="3-generate-features">3. Generate features<a class="headerlink" href="#3-generate-features" title="Permanent link">&para;</a></h2>
+<p><code>featuregen</code> reads those transcripts and computes <strong>features</strong>: per-word
+representations that become predictors in the encoding model. We generate two
+families here (<strong>phonemic</strong> and <strong>syntactic</strong>), so the encoding fit later has a
+band for each.</p>
+<p>Start with <code>featuregen phonemic</code>, which computes a phonemic feature for each
+transcript.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span class="w"> </span>data/
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>Generating phonemic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
@@ -1519,8 +1525,8 @@ model.</p>
 Generating phonemic confounds for dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet
 ...
 </code></pre></div>
-<p>By default this step also generates the matching <strong>phonemic confounds</strong> —
-speech-onset and speech-rate regressors derived from the same features — so you
+<p>By default this step also generates the matching <strong>phonemic confounds</strong>
+(speech-onset and speech-rate regressors derived from the same features), so you
 get both in one command. Pass <code>--skip-confoundgen</code> to suppress that, or run
 <a href="../../reference/confoundgen/"><code>confoundgen phonemic</code></a> on its own later.</p>
 <p>Two new areas appear, both dyad-keyed:</p>
@@ -1536,20 +1542,34 @@ get both in one command. Pass <code>--skip-confoundgen</code> to suppress that, 
 <p>The two confound flavors live in their own subdirectories because they are
 <code>desc</code> variants of the same <code>conf-phonemic</code> kind — see
 <a href="../../concepts/layout/#variants-with-desc">Variants with <code>desc</code></a>.</p>
+<p>Now add a second family. <code>featuregen syntactic</code> reads the same transcripts and
+computes per-token part-of-speech, dependency, and stopword features:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>featuregen<span class="w"> </span>syntactic<span class="w"> </span>data/
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>Generating syntactic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
+...
+</code></pre></div>
+<p>The first run downloads a spaCy language model (~560 MB, one time) before it
+begins. Unlike phonemic, syntactic generates no confounds — just the features:</p>
+<div class="highlight"><pre><span></span><code>data/features/dyad-030/ses-1/syntactic/
+└── dyad-030_ses-1_task-conv_run-1_trial-1_feat-syntactic.parquet   # … one per transcript (4)
+</code></pre></div>
 <p>That completes the <strong>stimulus branch</strong>: from audio to the features (and
-confounds) the encoding model uses as predictors.</p>
+phonemic confounds) the encoding model uses as predictors.</p>
 <div class="admonition success">
 <p class="admonition-title">Check</p>
-<p>You should have four <code>feat-phonemic.parquet</code> files under <code>features/</code>, plus
+<p><code>features/</code> now holds four <code>feat-phonemic.parquet</code> and four
+<code>feat-syntactic.parquet</code> files, one of each per transcript from step 2, plus
 four files in each of the <code>phonemic-onset/</code> and <code>phonemic-rate/</code> confound
-subdirectories, one per transcript from step 2.</p>
+subdirectories.</p>
 </div>
 <h2 id="4-denoise-the-bold">4. Denoise the BOLD<a class="headerlink" href="#4-denoise-the-bold" title="Permanent link">&para;</a></h2>
 <p>The other branch cleans the BOLD signal, the encoding model's target.
 <code>denoise</code> reads fMRIPrep's preprocessed BOLD and regresses out nuisance signals
 you select from fMRIPrep's own confounds table.</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
+<span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--space<span class="w"> </span>MNI152NLin2009cAsym
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>Denoising starting: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
 Denoising complete: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
@@ -1557,9 +1577,12 @@ Denoising complete: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc
 </code></pre></div>
 <p>Here <code>--columns</code> names confound columns from fMRIPrep's table: the six head-motion
 parameters (<code>trans_*</code>, <code>rot_*</code>) plus <code>cosine</code>, a prefix that expands to every
-cosine-drift regressor. We did not pass <code>--space</code>, so <code>denoise</code> cleaned the
-default volumetric space (<code>MNI152NLin2009cAsym</code>), the main target for most
-analyses.</p>
+cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
+(<code>MNI152NLin2009cAsym</code>), so we name that space explicitly — <code>--space</code> defaults to
+the surface <code>fsaverage6</code>, and your own surface data needs no <code>--space</code> at all.
+(Omitting <code>--columns</code> entirely would fall back to hypline's default
+<strong>Speer et al. 2024</strong> confound set — see the
+<a href="../../reference/denoise/"><code>denoise</code> reference</a>.)</p>
 <p>This step is <strong>sub-keyed</strong>: it processes each partner's brain (<code>sub-031</code>,
 <code>sub-032</code>) independently, so all four run × subject combinations are denoised.
 The output goes to hypline's own derivatives tree, leaving fMRIPrep's untouched:</p>
@@ -1569,9 +1592,9 @@ The output goes to hypline's own derivatives tree, leaving fMRIPrep's untouched:
 </code></pre></div>
 <p>The same pair is written for each run and subject — <code>sub-031</code> and <code>sub-032</code>,
 <code>run-1</code> and <code>run-2</code>.</p>
-<p>Each denoised BOLD carries a <code>.json</code> sidecar recording exactly how it was made —
-the <code>desc-preproc</code> source it came from, the resolved regressor columns, and the
-hypline version — so the result is reproducible. See the
+<p>Each denoised BOLD carries a <code>.json</code> sidecar recording exactly how it was made
+(the <code>desc-preproc</code> source it came from, the resolved regressor columns, and the
+hypline version), so the result is reproducible. See the
 <a href="../../reference/denoise/"><code>denoise</code> reference</a> for CompCor selectors, custom
 <code>nuisance/</code> regressors, and surface spaces.</p>
 <div class="admonition success">
@@ -1592,7 +1615,7 @@ this path:</p>
 </code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">These are synthetic</p>
-<p>The shipped <code>nuis-demo</code> files hold <strong>synthetic placeholder regressors</strong>
+<p>The shipped <code>nuis-demo</code> files hold synthetic placeholder regressors
 (<code>demo_regressor1</code>, <code>demo_regressor2</code>) rather than real signals, so the tutorial
 can exercise <code>--custom-sources</code> without needing physiological data. In a real
 analysis you author these yourself; the
@@ -1604,6 +1627,7 @@ analysis you author these yourself; the
 two go together:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--columns<span class="w"> </span>trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--space<span class="w"> </span>MNI152NLin2009cAsym<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--custom-sources<span class="w"> </span>demo<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--custom-columns<span class="w"> </span>demo_regressor1,demo_regressor2<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--force
@@ -1621,15 +1645,15 @@ result stays reproducible.</p>
 name collides with a selected fMRIPrep column; rename or drop one.</p>
 </div>
 <h2 id="6-fit-the-encoding-model">6. Fit the encoding model<a class="headerlink" href="#6-fit-the-encoding-model" title="Permanent link">&para;</a></h2>
-<p>Both sides are now in place: phonemic features (the predictors) and denoised
-BOLD (the target). <code>encoding train</code> joins them, fitting a voxelwise ridge model
-per subject:</p>
+<p>Both sides are now in place: the phonemic and syntactic features (the
+predictors) and denoised BOLD (the target). <code>encoding train</code> joins them, fitting
+a voxelwise ridge model per subject:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--features<span class="w"> </span>phonemic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--features<span class="w"> </span>phonemic,syntactic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--bold-space<span class="w"> </span>MNI152NLin2009cAsym<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--fold-by<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-folds<span class="w"> </span>loo
+<span class="w">  </span>--fold-by<span class="w"> </span>run
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>Fitting starting: sub-031 fold 1/2 — training on 1 cells / … rows
 Fitting starting: sub-031 fold 2/2 — training on 1 cells / … rows
@@ -1638,10 +1662,14 @@ Fitting starting: sub-032 fold 1/2 — training on 1 cells / … rows
 Fitting starting: sub-032 fold 2/2 — training on 1 cells / … rows
 Fitting complete: sub-032 (2 folds)
 </code></pre></div>
-<p><code>--features phonemic</code> uses the features from step 3 as the model's predictors,
-and <code>--tasks conv</code> scopes the fit to the <code>conv</code> task. <code>--fold-by run --n-folds
-loo</code> cross-validates by run, leaving one run out per fold. This is the common
-setup, and the one that lets you score held-out data in
+<p><code>--features phonemic,syntactic</code> uses both feature families from step 3 as the
+model's predictors — this is a <strong>banded</strong> ridge, so each family becomes its own
+band with a separately tuned regularization strength. <code>--data-filters task-conv</code>
+scopes the fit to the <code>conv</code> task. We pass <code>--bold-space MNI152NLin2009cAsym</code> to
+match the volumetric BOLD denoised in step 4; <code>--bold-space</code> otherwise defaults
+to the surface <code>fsaverage6</code>. <code>--fold-by run</code> cross-validates by run,
+leave-one-out by default (<code>n_folds='loo'</code>), leaving one run out per fold. This is
+the common setup, and the one that lets you score held-out data in
 <a href="#7-score-a-model-within-a-subject">step 7</a>.
 With two runs, <code>loo</code> yields two folds. <code>--desc v1</code> tags this model variant so its
 output lands in its own subdirectory.</p>
@@ -1653,7 +1681,7 @@ grid of regularization strengths, ~4–5 minutes per subject on CPU. The
 long pause between them is normal. The fit runs on CPU so the tutorial works
 anywhere; pass <code>--device cuda</code> if you have a GPU.</p>
 </div>
-<p>The step is <strong>sub-keyed</strong> like <code>denoise</code>, one model per brain. Outputs go to a
+<p>The step is sub-keyed like <code>denoise</code>, one model per brain. Outputs go to a
 new <code>results/</code> area:</p>
 <div class="highlight"><pre><span></span><code>data/results/sub-031/encodingModel-v1/
 ├── sub-031_result-encodingModel_desc-v1.joblib   # the fitted model
@@ -1701,13 +1729,17 @@ Analysis complete: target sub-031 — scored 2 folds
 </code></pre></div>
 <p><code>--model-desc v1</code> names the model from <a href="#6-fit-the-encoding-model">step 6</a>, and
 <code>--desc selfeval</code> tags this eval. We passed no <code>--test-on</code>, so <code>analyze</code> scores
-each fold's <strong>held-out</strong> run, the run that fold did not train on. This is why
+each fold's held-out run, the run that fold did not train on. This is why
 step 6 folded: a single unfolded model has no held-out data to score against
 itself.</p>
-<p>Each score is broken out by <strong>role</strong>, derived from the target's turns in the
-conversation: <code>prod</code> (the target is speaking), <code>comp</code> (the partner is speaking,
-the target listening), and <code>both</code> (either). One eval thus reports how well the
-model predicts the brain during production, comprehension, and overall.</p>
+<p>Each score is broken out by band and role. There is one band per feature
+family you trained on (here <code>phonemic</code> and <code>syntactic</code>), so you can read each
+family's contribution separately, plus an always-present <code>screens_band</code> holding
+the task boxcars (you can ignore it). Role is derived from the target's turns in
+the conversation: <code>prod</code> (the target is speaking), <code>comp</code> (the partner is
+speaking, the target listening), and <code>both</code> (either). One eval thus reports how
+well each feature band predicts the brain during production, comprehension, and
+overall.</p>
 <p>The eval lands in its own <code>results/</code> subdirectory, keyed by the target subject:</p>
 <div class="highlight"><pre><span></span><code>data/results/sub-031/encodingEval-selfeval/
 └── sub-031_result-encodingEval_desc-selfeval.nc   # per-voxel scores (netCDF-4)
@@ -1719,13 +1751,13 @@ model predicts the brain during production, comprehension, and overall.</p>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">load_eval</span><span class="p">(</span>
     <span class="s2">&quot;data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc&quot;</span>
 <span class="p">)</span>
-<span class="n">ds</span><span class="p">[</span><span class="s2">&quot;corr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;prod&quot;</span><span class="p">)</span>   <span class="c1"># scores during the target&#39;s own speech</span>
+<span class="n">ds</span><span class="p">[</span><span class="s2">&quot;corr&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="s2">&quot;phonemic&quot;</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;prod&quot;</span><span class="p">)</span>   <span class="c1"># phonemic scores during the target&#39;s own speech</span>
 <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;model_sub&quot;</span><span class="p">],</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;target_sub&quot;</span><span class="p">]</span>   <span class="c1"># provenance rides along</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">These scores are not <code>[-1, 1]</code> correlations</p>
-<p><code>corr</code> holds himalaya <em>split</em> scores — each feature band's own contribution
-to the joint prediction — so a value is not a plain Pearson correlation and
+<p><code>corr</code> holds himalaya <em>split</em> scores (each feature band's own contribution
+to the joint prediction), so a value is not a plain Pearson correlation and
 can fall outside <code>[-1, 1]</code>. Read them as relative encoding scores rather than
 accuracy fractions.</p>
 </div>
@@ -1733,8 +1765,7 @@ accuracy fractions.</p>
 <p class="admonition-title">Check</p>
 <p><code>results/sub-031/</code> gains an <code>encodingEval-selfeval/</code> directory with one
 <code>.nc</code> file, and the log reads <code>scored 2 folds</code>. An <code>empty out-of-sample set</code>
-error means the model wasn't folded; re-run step 6 with <code>--fold-by run
---n-folds loo</code>.</p>
+error means the model wasn't folded; re-run step 6 with <code>--fold-by run</code>.</p>
 </div>
 <h2 id="8-score-across-brains">8. Score across brains<a class="headerlink" href="#8-score-across-brains" title="Permanent link">&para;</a></h2>
 <p>The within-subject eval is the warm-up. What hypline is built for is
@@ -1754,7 +1785,7 @@ Analysis complete: target sub-031 — scored 2 folds
 <p><code>--target-sub 031</code> keeps <code>sub-031</code>'s brain as the comparison, but <code>--model-sub
 partner</code> and <code>--source-sub partner</code> swap in <code>sub-032</code>'s model and features (hypline
 resolves <code>partner</code> through <code>participants.tsv</code>). The output structure is identical
-to step 7 — a <code>.nc</code> under <code>encodingEval-crosseval/</code> — so <code>load_eval</code> reads it the
+to step 7 (a <code>.nc</code> under <code>encodingEval-crosseval/</code>), so <code>load_eval</code> reads it the
 same way.</p>
 <p>This pairs the partner's model <em>and</em> speech, the cross-brain form used in Zada et
 al. (2026). It is not the only one: pairing your own speech with the partner's
@@ -1766,7 +1797,7 @@ choices side by side.</p>
 <p class="admonition-title">What this step demonstrates</p>
 <p>This is how you run the cross-brain analysis that motivates hypline: the
 mechanics of pointing one partner's model at the other's brain. It does not
-demonstrate the <em>effect</em>, since two runs of <code>--model tiny</code> transcripts are far
+demonstrate the <em>effect</em>, since two runs of <code>--model small</code> transcripts are far
 too little data for the cross-brain scores to mean anything. On a full study
 they carry the shared-representation signal; here they only confirm the
 command runs end to end.</p>
@@ -1790,7 +1821,7 @@ scored against <code>sub-031</code>'s brain.</p>
 <tbody>
 <tr>
 <td>Predictors</td>
-<td><code>features/dyad-030/…/phonemic/</code></td>
+<td><code>features/dyad-030/…/{phonemic,syntactic}/</code></td>
 <td>steps 2–3</td>
 </tr>
 <tr>
@@ -1815,6 +1846,11 @@ dataset root. To regenerate a step after changing an option, re-run it with
 <code>--force</code>. Without it, hypline skips outputs that already exist.</p>
 <h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Add richer features</strong> — this run used phonemic and syntactic features, both
+  CPU-only. For LLM-derived <strong>semantic</strong> features (contextual word embeddings,
+  the representation central to Zada et al.), see
+  <a href="../../reference/featuregen/"><code>featuregen semantic</code></a> and add <code>semantic</code> to
+  <code>--features</code>.</li>
 <li><strong>Process only some runs or conditions</strong> — <a href="../../how-to/filter/">Filter to specific runs or
   conditions</a>.</li>
 <li><strong>Regenerate outputs after a fix</strong> — <a href="../../how-to/regenerate/">Regenerate outputs</a>.</li>

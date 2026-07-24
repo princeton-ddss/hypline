@@ -1291,8 +1291,8 @@ which explains what a single eval's axes mean. Here we compare several.</p>
 semantic feature, tagged <code>v1</code> — for the target and its partner, and for the
 out-of-dyad subjects used as a baseline below:</p>
 <div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span>--features<span class="w"> </span>semantic<span class="w"> </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--fold-by<span class="w"> </span>run<span class="w"> </span>--n-folds<span class="w"> </span>loo
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span>--features<span class="w"> </span>semantic<span class="w"> </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold-by<span class="w"> </span>run
 </code></pre></div>
 <p>Two details carry into everything that follows. The band is named after the
 feature ref, so training <code>--features semantic</code> gives a band called <code>semantic</code>; if

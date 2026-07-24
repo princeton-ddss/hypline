@@ -1445,7 +1445,7 @@ BOLD runs. <code>confoundgen</code> is a group of subcommands, one per confound 
 <p>Each confound file is a Parquet table already aligned to the BOLD TR grid.</p>
 <div class="admonition note">
 <p class="admonition-title">fMRIPrep regressors are not generated here</p>
-<p>Motion, drift, and CompCor regressors are <strong>not</strong> confound files. <code>denoise</code>
+<p>Motion, drift, and CompCor regressors are not confound files. <code>denoise</code>
 reads them straight from fMRIPrep's confounds table — see
 <a href="../denoise/"><code>denoise --columns</code> / <code>--compcor</code></a>. <code>confounds/</code> holds only
 stimulus-derived, feature-granular confounds.</p>
@@ -1519,7 +1519,7 @@ Each <code>desc</code> lands in its own subdirectory:</p>
 <p>Each derivation is referred to by name (<code>phonemic-onset</code>, <code>phonemic-rate</code>). These
 are feature-granular, encoding-side confounds: <a href="../encoding/"><code>encoding train</code></a>
 reads them as its confound band (via <code>--confounds</code>), partialling them out in the
-same ridge fit. They are <strong>not</strong> read by <a href="../denoise/"><code>denoise</code></a>, whose nuisance
+same ridge fit. They are not read by <a href="../denoise/"><code>denoise</code></a>, whose nuisance
 regressors come from fMRIPrep and the <code>nuisance/</code> area instead.</p>
 <hr />
 <h2 id="confoundgen-semantic"><code>confoundgen semantic</code><a class="headerlink" href="#confoundgen-semantic" title="Permanent link">&para;</a></h2>

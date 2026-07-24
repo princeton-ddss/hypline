@@ -1273,9 +1273,9 @@
 <h1 id="hypline">Hypline<a class="headerlink" href="#hypline" title="Permanent link">&para;</a></h1>
 <p>Hypline is a command-line toolbox for cleaning and analyzing data from
 hyperscanning studies involving dyadic conversations. Its commands are modular.
-Each does one job — transcribe audio, generate features, denoise
+Each does one job (transcribe audio, generate features, denoise
 <a href="https://fmriprep.org/en/stable/index.html">fMRIPrep</a> BOLD, fit an <strong>encoding
-model</strong> — and runs on its own, all inside one
+model</strong>), and runs on its own, all inside one
 <a href="https://bids.neuroimaging.io/">BIDS</a>-style dataset. An encoding model predicts
 the brain's BOLD response from features of the speech a participant heard.
 Hypline prepares both sides of that fit: the stimulus features (the predictors)
@@ -1420,13 +1420,13 @@ hypline<span class="w"> </span>denoise<span class="w"> </span>data/<span class="
 
 <span class="c1"># encoding branch: fit the model that maps features onto the denoised BOLD</span>
 hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--tasks<span class="w"> </span>conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--features<span class="w"> </span>phonemic<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--fold-by<span class="w"> </span>none
 </code></pre></div>
-<p>After this, <code>data/</code> holds phonemic features plus <code>desc-denoised</code> BOLD — the two
-sides the encoding model needs — and a fitted model under <code>results/</code>. Load an
+<p>After this, <code>data/</code> holds phonemic features plus <code>desc-denoised</code> BOLD (the two
+sides the encoding model needs) and a fitted model under <code>results/</code>. Load an
 encoding result back into Python for downstream analysis with
 <a href="reference/encoding-results/"><code>load_eval</code> / <code>load_artifact</code></a>.
 You can also start with <code>transcribe</code> alone and follow the table above step by

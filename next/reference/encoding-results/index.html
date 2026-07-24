@@ -1601,7 +1601,7 @@ two functions.</p>
 
 
 <a href="#hypline.encoding.load_artifact" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">load_artifact</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EncodingArtifact</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">load_artifact</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EncodingArtifact</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -1628,7 +1628,7 @@ A missing sidecar silently skips the version check.</p>
                 <code>path</code>
             </td>
             <td>
-                  <code><span title="pathlib.Path">Path</span></code>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1878,18 +1878,6 @@ alpha covers them).</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="hypline.encoding.XRecipe.tasks">tasks</span></code></td>
-            <td>
-                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Cell axis: multiple tasks make cells from different tasks distinct
-rows in X/Y. A single-task call holds <code>task</code> constant on every cell.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
             <td><code><span title="hypline.encoding.XRecipe.bold_space">bold_space</span></code></td>
             <td>
                   <code><span title="hypline.enums.SurfaceSpace">SurfaceSpace</span> | <span title="hypline.enums.VolumeSpace">VolumeSpace</span></code>
@@ -1931,8 +1919,9 @@ derivative the model is fit against.</p>
             <td>
               <div class="doc-md-description">
                 <p>Extra BIDS filters constraining the cell set — the sole record of
-which runs/conditions shaped X (the <code>sub</code>/<code>task</code>/<code>space</code>/<code>feat</code>/<code>desc</code>
-entities are reserved and cannot appear here).</p>
+which tasks/runs/conditions shaped X. <code>task</code> is an ordinary corpus
+filter here; only <code>sub</code>/<code>space</code>/<code>feat</code>/<code>desc</code> are reserved and cannot
+appear.</p>
               </div>
             </td>
           </tr>
@@ -2233,7 +2222,7 @@ exactly).</p>
 
 
 <a href="#hypline.encoding.save_artifact" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_artifact</span><span class="p">(</span><span class="n">artifact</span><span class="p">:</span> <span class="n">EncodingArtifact</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">save_artifact</span><span class="p">(</span><span class="n">artifact</span><span class="p">:</span> <span class="n">EncodingArtifact</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
