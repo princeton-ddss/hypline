@@ -72,7 +72,7 @@ def denoise(
         typer.Option(
             help="BOLD data space to denoise",
         ),
-    ] = BoldSpace.MNI_152_NLIN_2009_C_ASYM,
+    ] = BoldSpace.FS_AVERAGE_6,
     sub_ids: Annotated[
         str | None,
         typer.Option(

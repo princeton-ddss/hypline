@@ -153,7 +153,7 @@ def train(
         typer.Option(
             help="BOLD data space to train on",
         ),
-    ] = BoldSpace.MNI_152_NLIN_2009_C_ASYM,
+    ] = BoldSpace.FS_AVERAGE_6,
     bold_desc: Annotated[
         str,
         typer.Option(
