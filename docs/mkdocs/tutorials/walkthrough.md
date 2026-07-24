@@ -1,8 +1,8 @@
 # A full run on the example dataset
 
-This walkthrough takes a real example dataset — stimulus audio and fMRIPrep
-outputs — through the whole hypline pipeline: **phonemic and syntactic
-features** and **denoised BOLD**, then a fitted **encoding model** joining the
+This walkthrough takes a real example dataset (stimulus audio and fMRIPrep
+outputs) through the whole hypline pipeline: phonemic and syntactic
+features and denoised BOLD, then a fitted encoding model joining the
 two sides, using one command per step. By the end you will have run hypline end
 to end and seen exactly what each step reads and writes.
 
@@ -123,7 +123,7 @@ belongs to the pair rather than to either partner. See
 
 `featuregen` reads those transcripts and computes **features**: per-word
 representations that become predictors in the encoding model. We generate two
-families here — **phonemic** and **syntactic** — so the encoding fit later has a
+families here (**phonemic** and **syntactic**), so the encoding fit later has a
 band for each.
 
 Start with `featuregen phonemic`, which computes a phonemic feature for each
@@ -140,8 +140,8 @@ Generating phonemic confounds for dyad-030_ses-1_task-conv_run-1_trial-1_feat-ph
 ...
 ```
 
-By default this step also generates the matching **phonemic confounds** —
-speech-onset and speech-rate regressors derived from the same features — so you
+By default this step also generates the matching **phonemic confounds**
+(speech-onset and speech-rate regressors derived from the same features), so you
 get both in one command. Pass `--skip-confoundgen` to suppress that, or run
 [`confoundgen phonemic`](../reference/confoundgen.md) on its own later.
 
@@ -232,9 +232,9 @@ data/derivatives/hypline/sub-031/ses-1/func/
 The same pair is written for each run and subject — `sub-031` and `sub-032`,
 `run-1` and `run-2`.
 
-Each denoised BOLD carries a `.json` sidecar recording exactly how it was made —
-the `desc-preproc` source it came from, the resolved regressor columns, and the
-hypline version — so the result is reproducible. See the
+Each denoised BOLD carries a `.json` sidecar recording exactly how it was made
+(the `desc-preproc` source it came from, the resolved regressor columns, and the
+hypline version), so the result is reproducible. See the
 [`denoise` reference](../reference/denoise.md) for CompCor selectors, custom
 `nuisance/` regressors, and surface spaces.
 
@@ -260,7 +260,7 @@ data/nuisance/sub-031/ses-1/demo/
 
 !!! info "These are synthetic"
 
-    The shipped `nuis-demo` files hold **synthetic placeholder regressors**
+    The shipped `nuis-demo` files hold synthetic placeholder regressors
     (`demo_regressor1`, `demo_regressor2`) rather than real signals, so the tutorial
     can exercise `--custom-sources` without needing physiological data. In a real
     analysis you author these yourself; the
@@ -337,7 +337,7 @@ output lands in its own subdirectory.
     long pause between them is normal. The fit runs on CPU so the tutorial works
     anywhere; pass `--device cuda` if you have a GPU.
 
-The step is **sub-keyed** like `denoise`, one model per brain. Outputs go to a
+The step is sub-keyed like `denoise`, one model per brain. Outputs go to a
 new `results/` area:
 
 ```text
@@ -399,12 +399,12 @@ Analysis complete: target sub-031 — scored 2 folds
 
 `--model-desc v1` names the model from [step 6](#6-fit-the-encoding-model), and
 `--desc selfeval` tags this eval. We passed no `--test-on`, so `analyze` scores
-each fold's **held-out** run, the run that fold did not train on. This is why
+each fold's held-out run, the run that fold did not train on. This is why
 step 6 folded: a single unfolded model has no held-out data to score against
 itself.
 
-Each score is broken out by **band** and **role**. There is one band per feature
-family you trained on — here `phonemic` and `syntactic` — so you can read each
+Each score is broken out by band and role. There is one band per feature
+family you trained on (here `phonemic` and `syntactic`), so you can read each
 family's contribution separately, plus an always-present `screens_band` holding
 the task boxcars (you can ignore it). Role is derived from the target's turns in
 the conversation: `prod` (the target is speaking), `comp` (the partner is
@@ -434,8 +434,8 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 
 !!! note "These scores are not `[-1, 1]` correlations"
 
-    `corr` holds himalaya *split* scores — each feature band's own contribution
-    to the joint prediction — so a value is not a plain Pearson correlation and
+    `corr` holds himalaya *split* scores (each feature band's own contribution
+    to the joint prediction), so a value is not a plain Pearson correlation and
     can fall outside `[-1, 1]`. Read them as relative encoding scores rather than
     accuracy fractions.
 
@@ -469,7 +469,7 @@ Analysis complete: target sub-031 — scored 2 folds
 `--target-sub 031` keeps `sub-031`'s brain as the comparison, but `--model-sub
 partner` and `--source-sub partner` swap in `sub-032`'s model and features (hypline
 resolves `partner` through `participants.tsv`). The output structure is identical
-to step 7 — a `.nc` under `encodingEval-crosseval/` — so `load_eval` reads it the
+to step 7 (a `.nc` under `encodingEval-crosseval/`), so `load_eval` reads it the
 same way.
 
 This pairs the partner's model *and* speech, the cross-brain form used in Zada et

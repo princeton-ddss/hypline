@@ -6,8 +6,8 @@ score tells you how well the brain tracks *that* dimension. So choosing features
 is choosing a scientific question. Hypline generates four families, each aimed at
 a different level of speech.
 
-This page is the map for picking among them. For how to generate each — options,
-inputs, outputs — see the [`featuregen` reference](../reference/featuregen.md).
+This page is the map for picking among them. For how to generate each (options,
+inputs, outputs), see the [`featuregen` reference](../reference/featuregen.md).
 
 ## The four families at a glance
 
@@ -58,7 +58,7 @@ isolation. This is the family that carries meaning, and the one the analysis in
 Zada et al. (2026) is built on. Because the embedding is contextual, it also
 reflects prediction: how expected a word was given everything before it.
 
-Unlike the other three, semantic features have **no default model** — you choose
+Unlike the other three, semantic features have no default model — you choose
 which language model produces them with `--model`, and the choice matters. A
 larger model gives richer representations; a longer-context model handles longer
 transcripts. See the

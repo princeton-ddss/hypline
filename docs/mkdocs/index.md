@@ -2,9 +2,9 @@
 
 Hypline is a command-line toolbox for cleaning and analyzing data from
 hyperscanning studies involving dyadic conversations. Its commands are modular.
-Each does one job — transcribe audio, generate features, denoise
+Each does one job (transcribe audio, generate features, denoise
 [fMRIPrep](https://fmriprep.org/en/stable/index.html) BOLD, fit an **encoding
-model** — and runs on its own, all inside one
+model**), and runs on its own, all inside one
 [BIDS](https://bids.neuroimaging.io/)-style dataset. An encoding model predicts
 the brain's BOLD response from features of the speech a participant heard.
 Hypline prepares both sides of that fit: the stimulus features (the predictors)
@@ -117,8 +117,8 @@ hypline encoding train data/ \
   --fold-by none
 ```
 
-After this, `data/` holds phonemic features plus `desc-denoised` BOLD — the two
-sides the encoding model needs — and a fitted model under `results/`. Load an
+After this, `data/` holds phonemic features plus `desc-denoised` BOLD (the two
+sides the encoding model needs) and a fitted model under `results/`. Load an
 encoding result back into Python for downstream analysis with
 [`load_eval` / `load_artifact`](reference/encoding-results.md).
 You can also start with `transcribe` alone and follow the table above step by

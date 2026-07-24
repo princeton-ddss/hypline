@@ -47,7 +47,7 @@ Two subjects share a `dyad_id` exactly when they held one conversation together.
 
 !!! warning "Use real tabs"
 
-    Every `.tsv` hypline reads must be separated by **actual tab characters**, not
+    Every `.tsv` hypline reads must be separated by actual tab characters, not
     spaces. A space-separated row collapses into one column and fails with a
     misleading "missing column" error. This bites most often in
     `participants.tsv`, since it is the first file hypline reads.
@@ -95,8 +95,8 @@ present. The BOLD `space` you preprocessed into is the one you will pass to
 
 ## 4. Lay out the stimulus audio
 
-The conversation audio is **dyad-keyed** — it belongs to the pair, not either
-partner — so it goes under `stimuli/`, keyed by dyad:
+The conversation audio is dyad-keyed (it belongs to the pair, not either
+partner), so it goes under `stimuli/`, keyed by dyad:
 
 ```
 stimuli/dyad-030/ses-1/audio/
@@ -112,12 +112,12 @@ This is the only stimulus area you fill by hand. From here
 
 Two optional inputs round out a dataset:
 
-- **`events.json` sidecars** attach descriptive metadata — condition, item,
-  counterbalance group — to the segments declared in `events.tsv`. This is what
+- **`events.json` sidecars** attach descriptive metadata (condition, item,
+  counterbalance group) to the segments declared in `events.tsv`. This is what
   lets you filter on `cond-R` even though `cond` never appears in a filename. See
   [Attaching metadata](../concepts/segments.md#attaching-metadata-eventsjson).
 - **`nuisance/` files** hold run-level regressors you supply yourself that
-  fMRIPrep never produced — physiological recordings, say — for `denoise` to
+  fMRIPrep never produced (physiological recordings, say) for `denoise` to
   regress out alongside the fMRIPrep columns. See the
   [`denoise` reference](../reference/denoise.md).
 
@@ -136,7 +136,7 @@ data/
 └── stimuli/dyad-030/ses-1/audio/              # conversation audio (you supply)
 ```
 
-Everything else — `features/`, `confounds/`, `derivatives/hypline/`, `results/` —
+Everything else (`features/`, `confounds/`, `derivatives/hypline/`, `results/`)
 appears as you run the commands. With this in place, follow the
 [tutorial](../tutorials/walkthrough.md) from its transcription step onward; every
 command takes `data/` as its only argument and discovers the rest.

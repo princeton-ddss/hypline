@@ -88,13 +88,13 @@ ds["corr"].sel(role="prod")   # scores during the target's own speech
 [FIR delays](how-encoding-works.md) let one turn's signal spill onto the first
 rows of the next, and those boundary rows are dropped from both so neither role
 is contaminated. `both` keeps them, which is why it is not simply `prod` plus
-`comp`. A role with no rows in a fold — a run where the target never listened,
-say — scores `NaN`, not zero. That way it can be skipped when you average across
+`comp`. A role with no rows in a fold (a run where the target never listened,
+say) scores `NaN`, not zero. That way it can be skipped when you average across
 folds rather than dragging the average down.
 
 ### `fold`: the cross-validation folds
 
-`fold` is a plain integer index, `0` upward. It does **not** tell you which run
+`fold` is a plain integer index, `0` upward. It does not tell you which run
 each fold held out; that lives in the dataset's attributes, one list of cells
 per fold:
 
@@ -135,11 +135,11 @@ The values in `corr` are himalaya **split scores**: each band's own share of the
 joint prediction's accuracy. Two things follow from that, and both are easy to
 get wrong:
 
-- A split score is **not a plain Pearson correlation** and need not land in
+- A split score is not a plain Pearson correlation and need not land in
   `[-1, 1]`. A single band's value can even be negative. Read it as that band's
   relative encoding strength, not as a fraction of variance explained.
-- The scores are a decomposition of the joint model's correlation, so **the bands
-  do sum to it**: `r_joint = r_screens + r_semantic + … + r_confounds`. That makes
+- The scores are a decomposition of the joint model's correlation, so the bands
+  do sum to it: `r_joint = r_screens + r_semantic + … + r_confounds`. That makes
   the sum the joint model's score — but a single band's share is not itself a
   correlation, so do not read one band's value on that scale.
 

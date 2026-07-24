@@ -73,7 +73,7 @@ files mirror the identity entities of the source they came from.
 ## Subject vs. dyad
 
 Hypline is a hyperscanning pipeline: two partners hold one conversation while
-both are scanned. An artifact is keyed by **what it is derived from**:
+both are scanned. An artifact is keyed by what it is derived from:
 
 - **`sub`-keyed** — derived from one *brain*: raw BOLD, `derivatives/fmriprep/`,
   `derivatives/hypline/` (denoised), `nuisance/`, and `results/` (a subject's
@@ -103,7 +103,7 @@ a sub-keyed BOLD requires it and errors if it is missing.
 !!! warning "Use real tabs"
 
     `participants.tsv` — and every `.tsv` hypline reads (`events.tsv`, custom
-    `nuisance/` tables) — must be separated by **actual tab characters**, not
+    `nuisance/` tables) — must be separated by actual tab characters, not
     spaces. Hypline splits on tabs, so a space-separated row collapses into one
     column and fails with a misleading "missing column" error.
 

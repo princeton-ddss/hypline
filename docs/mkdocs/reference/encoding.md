@@ -15,7 +15,7 @@ hypline encoding <command> <dataset-root> [OPTIONS]
 | `train`    | Fit a per-subject ridge model from features (+ optional confounds)  |
 | `analyze`  | Score a model's cross-subject predictions against a target's BOLD   |
 
-Both read from the dataset root and write to a new **`results/`** area (see
+Both read from the dataset root and write to a new `results/` area (see
 [Outputs](#outputs)). Results load back as live Python objects rather than flat
 tables; read them for downstream analysis with the [encoding results API](encoding-results.md).
 
@@ -159,7 +159,7 @@ hypline encoding analyze <dataset-root> \
 | `--force`       | Overwrite existing outputs (default skips them)                                                  | off     |
 
 The output is per-fold, per-band, per-role, per-voxel scores. These are himalaya
-*split* scores — each band's own contribution to the joint prediction — so a
+*split* scores (each band's own contribution to the joint prediction), so a
 band's value is not a plain Pearson correlation and need not fall in `[-1, 1]`.
 Roles are derived from the target's turns: `prod` and `comp` are the
 exclusive pure-production / pure-comprehension rows, and `both` is the union of
@@ -196,7 +196,7 @@ hypline encoding analyze data/ \
 
 ## Outputs
 
-Both commands write to a new top-level **`results/`** area, keyed by subject
+Both commands write to a new top-level `results/` area, keyed by subject
 (one analysis output consumes many runs across sessions, so results carry no
 source-run or session entity):
 

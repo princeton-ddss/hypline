@@ -2,7 +2,7 @@
 
 Most hypline commands run over everything they discover by convention: every
 run and segment, and every dyad or subject. When you want a command to touch only
-part of your dataset — one dyad, two runs, a single condition — you narrow it with
+part of your dataset (one dyad, two runs, a single condition), you narrow it with
 two options that appear on nearly every command:
 
 - **`--dyad-ids`** / **`--sub-ids`** — pick which dyads or subjects to process.
@@ -57,7 +57,7 @@ hypline featuregen phonemic data/ --data-filters run-1,run-2
 
 ### A condition from `events.json` (metadata)
 
-`cond` never appears in a filename — it lives in the `events.json` sidecar — but
+`cond` never appears in a filename (it lives in the `events.json` sidecar), but
 you filter on it the same way:
 
 ```bash

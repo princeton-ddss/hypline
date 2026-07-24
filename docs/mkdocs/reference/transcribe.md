@@ -105,13 +105,13 @@ onset   duration   trial_type
 20.0    8.0        turn_speaker
 ```
 
-- The label records **whose turn it is by study design**, not who was observed
+- The label records whose turn it is by study design, not who was observed
   speaking, so a turn window may still contain a word uttered by the other partner.
 - Mark only your own turns (`turn_speaker`); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.
 - Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
-  must **not** overlap — within a subject or across partners. A cross-partner
+  must not overlap — within a subject or across partners. A cross-partner
   overlap is treated as cross-talk and raises an error.
 - `turn_speaker` onsets are **run-relative** — the whole-run `events.tsv` clock,
   the same frame as your segment (e.g. `trial-1`) rows. Write them that way even

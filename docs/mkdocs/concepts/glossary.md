@@ -24,7 +24,7 @@ are grouped by where you meet them.
   [Subject vs. dyad](layout.md#subject-vs-dyad).
 
 **Segment**
-: A named time window within a run — a trial, block, or condition — declared in
+: A named time window within a run (a trial, block, or condition), declared in
   the run's `events.tsv`. Segments are what let you generate per-trial features
   and filter down to specific conditions. See [Segments and metadata](segments.md).
 

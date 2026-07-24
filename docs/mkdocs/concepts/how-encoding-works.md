@@ -2,7 +2,7 @@
 
 The [`encoding`](../reference/encoding.md) commands are the point of the whole
 pipeline: everything before them prepares the two sides of one fit. This page
-explains what that fit *is* — the model `train` builds and `analyze` scores — and
+explains what that fit *is* (the model `train` builds and `analyze` scores) and
 then the choice that gives an analysis its meaning: whose speech, whose model,
 and whose brain you line up.
 
@@ -50,7 +50,7 @@ Two bands are special:
 
 !!! note "Confounds are not the denoising step"
 
-    The confound band is stimulus-derived nuisance — speech onset and rate, say —
+    The confound band is stimulus-derived nuisance (speech onset and rate, say),
     partialled out *inside* the encoding fit. That is separate from
     [`denoise`](../reference/denoise.md), which cleans run-level nuisance (motion,
     drift) out of the BOLD before encoding ever sees it. The same stimulus-derived
@@ -74,8 +74,8 @@ speaking turns, but they are separate mechanisms.
 ## Choosing source and model
 
 `train` fits one model per subject. `analyze` then scores a model's predictions
-against a subject's real brain, and it takes **three subjects that need not be
-the same person**:
+against a subject's real brain, and it takes three subjects that need not be
+the same person:
 
 - **target** (`--target-sub`) — whose real BOLD the scores are measured against,
   and whose speaking turns define the `prod`/`comp` roles.

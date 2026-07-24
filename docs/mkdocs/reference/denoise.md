@@ -74,7 +74,7 @@ columns).
 | `t::10`     | top-10 **t**emporal CompCor components (no mask)       |
 | `a:CSF:0.5` | enough CSF components to explain 50% of variance       |
 
-`<type>` is `a` (anatomical — mask required) or `t` (temporal — no mask). `<n>` is
+`<type>` is `a` (anatomical, mask required) or `t` (temporal, no mask). `<n>` is
 a top-N integer, or a fraction between 0 and 1 for a variance threshold.
 
 **`--custom-sources` / `--custom-columns`** pull run-level regressors from the
@@ -105,7 +105,7 @@ from the horizontal concat of all named sources. The two must be given together.
 
 ## Example
 
-Clean BOLD for all subjects with the default **Speer et al. 2024** confound set —
+Clean BOLD for all subjects with the default Speer et al. 2024 confound set —
 pass no nuisance channel at all. `--space` defaults to the surface `fsaverage6`,
 so it too can be omitted:
 

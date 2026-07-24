@@ -16,7 +16,7 @@ Each confound file is a Parquet table already aligned to the BOLD TR grid.
 
 !!! note "fMRIPrep regressors are not generated here"
 
-    Motion, drift, and CompCor regressors are **not** confound files. `denoise`
+    Motion, drift, and CompCor regressors are not confound files. `denoise`
     reads them straight from fMRIPrep's confounds table — see
     [`denoise --columns` / `--compcor`](denoise.md). `confounds/` holds only
     stimulus-derived, feature-granular confounds.
@@ -86,7 +86,7 @@ Each `desc` lands in its own subdirectory:
 Each derivation is referred to by name (`phonemic-onset`, `phonemic-rate`). These
 are feature-granular, encoding-side confounds: [`encoding train`](encoding.md)
 reads them as its confound band (via `--confounds`), partialling them out in the
-same ridge fit. They are **not** read by [`denoise`](denoise.md), whose nuisance
+same ridge fit. They are not read by [`denoise`](denoise.md), whose nuisance
 regressors come from fMRIPrep and the `nuisance/` area instead.
 
 ---

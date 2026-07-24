@@ -39,7 +39,7 @@ annotations in the same file.
 
 !!! info "One segment entity per run"
 
-    All segment rows in a run must use the **same** entity name — all `trial-*`,
+    All segment rows in a run must use the same entity name — all `trial-*`,
     or all `block-*`, never a mix. That single name becomes the run's *segment
     entity*. Use the finest level you need (e.g. `trial`); coarser groupings go
     in metadata, described below.

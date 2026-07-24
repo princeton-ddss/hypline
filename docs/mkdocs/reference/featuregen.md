@@ -152,7 +152,7 @@ hypline featuregen semantic data/ --model gpt2-xl
 A semantic feature file per transcript, tagged `feat-semantic`, under
 `features/`. Each row carries `start_time`, `turn_sub` (forward-filled from the
 transcript; carried through unchanged), `word`, `token`, the `feature`
-vector, and — for any non-zero layer — per-token LM metrics (`rank`,
+vector, and (for any non-zero layer) per-token LM metrics (`rank`,
 `true_prob`, `entropy`). The Parquet footer records `hf_model`, `hf_tokenizer`
 (equal to `hf_model` unless overridden via the [Python API](python-api.md)), and
 `layer`. With `--skip-confoundgen` omitted, the matching `conf-semantic`
@@ -197,7 +197,7 @@ Derive a **log-Mel spectrogram** from the stimulus audio using a
 [Whisper](https://github.com/openai/whisper) feature extractor, the same
 front-end that turns audio into the input Whisper's encoder sees. Unlike
 `phonemic` and `semantic`, this reads audio directly (no transcript needed) and
-its output is **pre-aligned to the run's BOLD TR grid**: one log-Mel vector per
+its output is pre-aligned to the run's BOLD TR grid: one log-Mel vector per
 TR, ready to feed an encoding model without a downstream binning step.
 
 ### Inputs
@@ -272,7 +272,7 @@ POS tag concatenated with its dependency relation, plus a final 0/1 stopword
 dimension. The model is fixed (`en_core_web_lg`) and auto-downloaded on first use,
 so there is no `--model` option.
 
-Words are tokenized and tagged **one conversational turn at a time**: the
+Words are tokenized and tagged one conversational turn at a time: the
 dependency parser needs coherent utterances, so words are grouped by `turn_sub`
 (which subject held the floor) and each maximal run is parsed as one document.
 A word that spaCy splits into several tokens (`"don't"` → `do` + `n't`) yields
@@ -326,7 +326,7 @@ A `--desc` label lands as `desc-<label>` in its own subdirectory
 
 !!! note "Feature file format"
 
-    Each row is one spaCy **token** with its `start_time` (seconds from the start
+    Each row is one spaCy token with its `start_time` (seconds from the start
     of the stimulus), its `turn_sub` label (the utterance the parse grouped on),
     the `token` text, its source `word`, and a one-hot
     `feature` vector (POS ⊕ dependency ⊕ stopword). Width and column order are fit

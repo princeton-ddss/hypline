@@ -3,15 +3,15 @@
 You ran part of the pipeline, then something upstream changed: you re-recorded
 audio, fixed an `events.tsv`, or chose different confound columns. This guide
 shows how to redo just the affected work without recomputing the whole dataset,
-and, importantly, which **downstream** steps you must also rerun.
+and, importantly, which downstream steps you must also rerun.
 
 ## Why a plain rerun does nothing
 
-By default, hypline **skips any output that already exists**. This makes reruns
+By default, hypline skips any output that already exists. This makes reruns
 cheap, but it means a second run after a fix appears to do nothing: the outputs
 are still there, so every step is skipped.
 
-To overwrite, pass **`--force`**. Skipping is decided per output file, so
+To overwrite, pass `--force`. Skipping is decided per output file, so
 `--force` combined with [the identity option (`--dyad-ids` / `--sub-ids`) /
 `--data-filters`](filter.md) regenerates only the subset you select, leaving
 everything else untouched.
@@ -25,16 +25,16 @@ hypline featuregen phonemic data/ --data-filters run-1 --force
 
     Hypline decides to skip by asking *“does this output file exist?”*, never
     *“is this output older than its inputs?”* It never compares timestamps. So
-    regenerating an input does **not** mark anything downstream as stale.
+    regenerating an input does not mark anything downstream as stale.
 
-    If a later step's output already exists, that step will **skip and leave its
-    old result in place**, now computed from inputs you have since changed. You
+    If a later step's output already exists, that step will skip and leave its
+    old result in place, now computed from inputs you have since changed. You
     must rerun every downstream step with `--force` yourself. The propagation
     table below tells you which ones.
 
 ## What to rerun after each kind of fix
 
-Find the row for what you changed; rerun the listed steps **in order**, each with
+Find the row for what you changed; rerun the listed steps in order, each with
 `--force` (scoped with filters as needed). Each step reads what the one before it
 wrote, so a gap leaves stale output behind.
 
