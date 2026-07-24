@@ -126,8 +126,19 @@ class TestEncodingTrainWiring:
 
 
 class TestEncodingTrainValidation:
-    def test_fold_by_entity_requires_n_folds(self, tree, monkeypatch):
+    def test_fold_by_entity_defaults_n_folds_to_loo(self, tree, monkeypatch):
         _patch_trainer(monkeypatch)
+
+        captured = {}
+        from hypline.encoding import EncodingTrainer
+
+        real_init = EncodingTrainer.__init__
+
+        def _spy_init(self, *args, n_folds, **kwargs):
+            captured["n_folds"] = n_folds
+            real_init(self, *args, n_folds=n_folds, **kwargs)
+
+        monkeypatch.setattr(EncodingTrainer, "__init__", _spy_init)
 
         result = runner.invoke(
             app,
@@ -143,8 +154,8 @@ class TestEncodingTrainValidation:
             ],
         )
 
-        assert result.exit_code != 0
-        assert "--n-folds" in result.output
+        assert result.exit_code == 0, result.output
+        assert captured["n_folds"] == "loo"
 
     def test_fold_by_none_rejects_n_folds(self, tree, monkeypatch):
         _patch_trainer(monkeypatch)

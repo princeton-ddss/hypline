@@ -132,7 +132,7 @@ def train(
         typer.Option(
             help="""
             Number of cross-validation folds: an integer (>=2) or 'loo'.
-            Required with --fold-by <entity>; omit when --fold-by none
+            Defaults to 'loo' with --fold-by <entity>; omit when --fold-by none
             """,
             show_default=False,
         ),
@@ -231,11 +231,14 @@ def train(
 
     _fold_by = _parse_fold_by(fold_by)
     _n_folds = _parse_n_folds(n_folds)
-    # fold_by and n_folds are paired both-or-neither. --fold-by is always given
-    # (required), so anchor the check on whether an entity was named vs "none".
-    if (_fold_by is None) != (_n_folds is None):
+    # Folding an entity without a count defaults to leave-one-out.
+    if _fold_by is not None and _n_folds is None:
+        _n_folds = "loo"
+    # The default fill above resolved entity-without-count, so the only remaining
+    # invalid pairing is --fold-by none with an explicit --n-folds.
+    if _fold_by is None and _n_folds is not None:
         raise typer.BadParameter(
-            "give --n-folds with --fold-by <entity>, and omit it with --fold-by none",
+            "omit --n-folds with --fold-by none",
             param_hint="--fold-by/--n-folds",
         )
 
