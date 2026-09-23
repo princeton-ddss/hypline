@@ -88,8 +88,8 @@ a sub-keyed BOLD requires it and errors if it is missing.
 
 !!! warning "Use real tabs"
 
-    `participants.tsv` — and every `.tsv` hypline reads (`events.tsv`, custom
-    `nuisance/` tables) — must be separated by actual tab characters, not
+    `participants.tsv` and every other `.tsv` file hypline reads (e.g., `events.tsv`, custom
+    `nuisance/` tables) must be separated by actual tab characters as delimiters, not
     spaces. Hypline splits on tabs, so a space-separated row collapses into one
     column and fails with a misleading "missing column" error.
 
