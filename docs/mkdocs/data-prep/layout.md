@@ -13,7 +13,7 @@ ready, continue to the command-specific guides, beginning with [hypline transcri
 ## The root tree
 
 A hypline dataset extends the [BIDS](https://bids.neuroimaging.io/) standard with
-a few extra areas. A complete tree looks like this:
+a few extra areas. A representative dataset tree looks like this:
 
 ```
 <dataset-root>/
@@ -59,18 +59,16 @@ a few extra areas. A complete tree looks like this:
 
 ## Subject vs. Dyad
 
-Each dyadic conversation run produces one set of stimuli, features, 
-and confounds, which can later be used to fit a separate encoding model 
-for each partner. An artifact is keyed by what it is derived from:
+An artifact is keyed by what it is derived from:
 
 - **`sub`-keyed** — derived from one *brain*: raw BOLD, `derivatives/fmriprep/`,
   `derivatives/hypline/` (denoised), `nuisance/`, and `results/` (a subject's
   fitted encoding model, whose weights tie to that brain's voxel grid).
 - **`dyad`-keyed** — derived from the *shared conversation* between two partners:
-  `stimuli/`, `features/`, `confounds/`. One conversation → one dyad → one set of
-  stimuli/features/confounds, later consumed by each partner's per-subject
-  encoding model. A `dyad-030` audio file is the dyad's shared recording, not
-  either partner's.
+  `stimuli/`, `features/`, `confounds/`. Each dyadic conversation run produces one set of stimuli, features, 
+  and confounds, which can later be used to fit a separate encoding model 
+  for each partner. A `dyad-030` audio file represents the shared recording, not
+  either partner individually.
 
 Because the two worlds use different identity entities, hypline bridges them
 through **`participants.tsv`** — a standard BIDS table at the dataset root with
@@ -159,14 +157,11 @@ between them later by name.
 
 ## Selecting subjects and runs
 
-Because commands discover files by convention, you select what to process with
-options rather than paths: an identity option plus `--data-filters` for runs and
-conditions, both interpreted against the entities described above. The identity
-option follows the area the command writes: dyad-keyed stimulus commands
-(`transcribe`, `featuregen`, `confoundgen`) take **`--dyad-ids`**, while the
-sub-keyed `denoise` takes **`--sub-ids`**. A third shared option, `--force`,
-overwrites existing outputs (by default hypline skips files it has already
-generated, so reruns are cheap).
+Because commands discover files by convention, you select what to process using 
+identity options and `--data-filters`, rather than individual file paths. Dyad-keyed 
+commands (`transcribe`, `featuregen`, and `confoundgen`) take **`--dyad-ids`**, whereas 
+subj-keyed commands (`denoise` and `encoding`) take **`--sub-ids`**. Use --force to 
+overwrite existing outputs; otherwise, hypline skips outputs it has already generated.
 
 For how to combine these, see [Filter to specific runs or
 conditions](../FAQ/filter.md).
