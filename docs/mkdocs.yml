@@ -92,7 +92,7 @@ nav:
       - hypline denoise: how-to/denoise.md
       - hypline encoding: how-to/encoding.md
     - Python API:
-      - Features and Confounds: how-to/python-api.md
+      - Features and confounds: how-to/python-api.md
       - Encoding results: how-to/encoding-results.md
   - FAQ:
     - What feature families does hypline provide?: FAQ/feature-families.md
