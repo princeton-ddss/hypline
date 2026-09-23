@@ -22,7 +22,9 @@ a few extra areas. A representative dataset tree looks like this:
 ├── derivatives/
 │   ├── fmriprep/sub-031/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
 │   └── hypline/sub-031/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
-├── stimuli/dyad-030/ses-1/audio/            # stimulus audio, transcripts
+├── stimuli/dyad-030/ses-1/                 
+│   ├── audio/                               # audio files you supply
+│   └── transcript/                          # generated transcripts
 ├── features/dyad-030/ses-1/phonemic/        # generated features
 ├── confounds/dyad-030/ses-1/phonemic/       # generated confounds
 ├── results/sub-031/
@@ -55,7 +57,7 @@ a few extra areas. A representative dataset tree looks like this:
 
     Examples here use a `ses-1/` level under each subject
     (`sub-031/ses-1/func/`) to match the tutorial dataset. Datasets without
-    sessions omit the level entirely (`sub-031/func/`). Hypline handles both.
+    sessions omit the level entirely (`sub-031/func/`). Hypline handles both cases.
 
 ## Subject vs. Dyad
 
@@ -85,13 +87,6 @@ subjects `031` and `032` are partners in `dyad-030` (a real study has many such
 pairs). It is read lazily: a purely `sub`-keyed workflow (e.g. `denoise`
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
 a sub-keyed BOLD requires it and errors if it is missing.
-
-!!! warning "Use real tabs"
-
-    `participants.tsv` and every other `.tsv` file hypline reads (e.g., `events.tsv`, custom
-    `nuisance/` tables) must be separated by actual tab characters as delimiters, not
-    spaces. Hypline splits on tabs, so a space-separated row collapses into one
-    column and fails with a misleading "missing column" error.
 
 So a `dyad-030` feature file does not match a BOLD file by sharing `sub`;
 the two carry different identity entities. The join goes through
