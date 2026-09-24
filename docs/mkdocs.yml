@@ -84,6 +84,7 @@ nav:
   - Prepare your data:
     - Hypline dataset layout: data-prep/layout.md
     - Prepare your own dataset: data-prep/prepare-dataset.md
+    - Segments and Metadata: data-prep/segments.md
   - How-to guides:
     - CLI:
       - hypline transcribe: how-to/transcribe.md
