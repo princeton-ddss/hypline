@@ -1,18 +1,19 @@
-# The hypline dataset layout
+# Hypline dataset layout
 
-Every hypline command takes a single argument, the **dataset root**, and finds
-its inputs and writes its outputs by following a fixed directory convention.
-Understanding that convention is the key to using hypline: you never pass file
-paths, you organize your files where hypline expects them.
+Hypline discovers inputs and writes outputs according to a fixed dataset structure. 
+Each data-processing command takes the **dataset root** as its main positional argument; 
+you organize files according to hypline’s conventions instead of passing each input 
+and output path separately.
 
-This page describes the layout once. The [reference pages](../reference/transcribe.md)
-assume it. To build a dataset in this shape from your own recordings, follow
-[Prepare your own dataset](../how-to/prepare-dataset.md).
+This page explains that structure, including how hypline organizes subject-level 
+brain data and dyad-level conversation data. To assemble your own data in this format, 
+see [Prepare your own dataset](../data-prep/prepare-dataset.md). Once your dataset is 
+ready, continue to the command-specific guides, beginning with [hypline transcribe](../how-to/transcribe.md). 
 
 ## The root tree
 
 A hypline dataset extends the [BIDS](https://bids.neuroimaging.io/) standard with
-a few extra areas. A complete tree looks like this:
+a few extra areas. A representative dataset tree looks like this:
 
 ```
 <dataset-root>/
@@ -21,68 +22,55 @@ a few extra areas. A complete tree looks like this:
 ├── derivatives/
 │   ├── fmriprep/sub-031/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
 │   └── hypline/sub-031/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
-├── stimuli/dyad-030/ses-1/audio/            # stimulus audio, transcripts
+├── stimuli/dyad-030/ses-1/                 
+│   ├── audio/                               # audio files you supply
+│   └── transcript/                          # generated transcripts
 ├── features/dyad-030/ses-1/phonemic/        # generated features
 ├── confounds/dyad-030/ses-1/phonemic/       # generated confounds
-├── results/sub-031/encodingModel-v1/        # encoding models and evals
+├── results/sub-031/
+│   ├── encodingModel-v1/                    # fitted encoding models
+│   └── encodingEval-v1/                     # evaluation results
 └── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
 ```
 
-- **`sub-031/`, `derivatives/fmriprep/`** are standard BIDS areas. You provide
-  these — your raw recordings and your fMRIPrep run.
+- **`sub-031/`, `derivatives/fmriprep/`** are BIDS and BIDS-derivatives areas
+  that you provide. Hypline reads event timing from the raw BIDS tree and
+  preprocessed BOLD data from fMRIPrep; it does not require the raw BOLD images themselves.
 - **`derivatives/hypline/`** is a BIDS derivatives tree hypline fills with its
-  imaging derivatives — currently the [`denoise`](../reference/denoise.md)
+  imaging derivatives — currently the [`denoise`](../how-to/denoise.md)
   output. It mirrors fMRIPrep's `sub-XX/[ses-YY/]func/` shape and carries its own
   `dataset_description.json`.
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by **dyad**
-  (`dyad-030/`), not subject — see [Subject vs. dyad](#subject-vs-dyad) below.
-- **`results/`** is where [`encoding`](../reference/encoding.md) writes its
-  analysis outputs — fitted models (`encodingModel-<desc>/`) and evals
+  (`dyad-030/`), not subject — see [Subject vs. Dyad](#subject-vs-dyad) below.
+- **`results/`** is where [`encoding`](../how-to/encoding.md) writes its
+  analysis outputs — fitted models (`encodingModel-<desc>/`) and evaluation results
   (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
   consumes many runs across sessions.
 - **`nuisance/`** is optional and you fill it — run-level regressors (e.g.
-  physiological recordings) for [`denoise`](../reference/denoise.md) to regress
+  physiological recordings) for [`denoise`](../how-to/denoise.md) to regress
   out alongside fMRIPrep's confounds.
 - **`participants.tsv`** is a standard BIDS table at the dataset root, required
-  to map subjects to dyads — see [Subject vs. dyad](#subject-vs-dyad).
+  to map subjects to dyads — see [Subject vs. Dyad](#subject-vs-dyad).
 
 !!! info "Sessions are optional"
 
     Examples here use a `ses-1/` level under each subject
     (`sub-031/ses-1/func/`) to match the tutorial dataset. Datasets without
-    sessions omit the level entirely (`sub-031/func/`). Hypline handles both.
+    sessions omit the level entirely (`sub-031/func/`). Hypline handles both cases.
 
-## How files are named
+## Subject vs. Dyad
 
-Hypline follows BIDS filename conventions: a filename is a chain of
-`entity-value` pairs joined by `_`, ending in a suffix and extension.
-
-```
-sub-031_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
-\____________________________________________/ \__/ \_____/
-                   entities                   suffix   ext
-```
-
-The **identity entities** at the front name which recording a file belongs to.
-A file leads with exactly one of `sub` or `dyad` (never both), followed by
-the BOLD-identity entities `ses`, `task`, `run`. A `sub`-keyed file belongs to
-one brain; a `dyad`-keyed file belongs to one shared conversation. Generated
-files mirror the identity entities of the source they came from.
-
-## Subject vs. dyad
-
-Hypline is a hyperscanning pipeline: two partners hold one conversation while
-both are scanned. An artifact is keyed by what it is derived from:
+An artifact is keyed by what it is derived from:
 
 - **`sub`-keyed** — derived from one *brain*: raw BOLD, `derivatives/fmriprep/`,
   `derivatives/hypline/` (denoised), `nuisance/`, and `results/` (a subject's
   fitted encoding model, whose weights tie to that brain's voxel grid).
 - **`dyad`-keyed** — derived from the *shared conversation* between two partners:
-  `stimuli/`, `features/`, `confounds/`. One conversation → one dyad → one set of
-  stimuli/features/confounds, later consumed by each partner's per-subject
-  encoding model. A `dyad-030` audio file is the dyad's shared recording, not
-  either partner's.
+  `stimuli/`, `features/`, `confounds/`. Each dyadic conversation run produces one set of stimuli, features, 
+  and confounds, which can later be used to fit a separate encoding model 
+  for each partner. A `dyad-030` audio file represents the shared recording, not
+  either partner individually.
 
 Because the two worlds use different identity entities, hypline bridges them
 through **`participants.tsv`** — a standard BIDS table at the dataset root with
@@ -100,22 +88,33 @@ pairs). It is read lazily: a purely `sub`-keyed workflow (e.g. `denoise`
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
 a sub-keyed BOLD requires it and errors if it is missing.
 
-!!! warning "Use real tabs"
-
-    `participants.tsv` — and every `.tsv` hypline reads (`events.tsv`, custom
-    `nuisance/` tables) — must be separated by actual tab characters, not
-    spaces. Hypline splits on tabs, so a space-separated row collapses into one
-    column and fails with a misleading "missing column" error.
-
 So a `dyad-030` feature file does not match a BOLD file by sharing `sub`;
 the two carry different identity entities. The join goes through
 `participants.tsv`: a subject's encoding model looks up its dyad, then reads that
 dyad's features.
 
+## File-naming convention
+
+Hypline follows BIDS filename conventions: a filename is a chain of
+`entity-value` pairs joined by `_`, ending in a suffix and extension.
+
+```
+sub-031_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
+\____________________________________________/ \__/ \_____/
+                   entities                   suffix   ext
+```
+### Identity entities
+
+The **identity entities** at the front name which recording a file belongs to.
+A file leads with exactly one of `sub` or `dyad` (never both), followed by
+the BOLD-identity entities `ses`, `task`, `run`. A `sub`-keyed file belongs to
+one brain; a `dyad`-keyed file belongs to one shared conversation. Generated
+files mirror the identity entities of the source they came from.
+
 ### Category entities
 
-Each hypline-generated derivative carries exactly one **category entity** naming
-what kind of derivative it is:
+Files stored under `features/`, `confounds/`, `nuisance/`, and `results/` 
+carry one **category entity** that identifies their contents:
 
 | Entity        | Area          | Example                         |
 | ------------- | ------------- | ------------------------------- |
@@ -129,11 +128,14 @@ The `<kind>` matches the subdirectory the file lives in. A phonemic feature
 `<kind>-<desc>` subdirectory pairs the entity with its `--desc` variant tag —
 `result-encodingModel_desc-v1` under `results/sub-031/encodingModel-v1/`.
 
+Denoised BOLD files under `derivatives/hypline/` instead follow standard 
+BIDS-derivatives naming and use `desc-denoised`.
+
 Stimuli carry no category entity. Their kind is a trailing filename suffix
 (`_audio`, `_transcript`) instead — e.g. `dyad-030_ses-1_task-conv_run-1_audio.wav`
 under `stimuli/dyad-030/ses-1/audio/`.
 
-### Variants with `desc`
+### `desc` variants
 
 Some commands accept a `--desc` label that tags an output as one *variant* among
 several. Variants live in their own subdirectory so they stay physically
@@ -150,20 +152,16 @@ between them later by name.
 
 ## Selecting subjects and runs
 
-Because commands discover files by convention, you select what to process with
-options rather than paths: an identity option plus `--data-filters` for runs and
-conditions, both interpreted against the entities described above. The identity
-option follows the area the command writes: dyad-keyed stimulus commands
-(`transcribe`, `featuregen`, `confoundgen`) take **`--dyad-ids`**, while the
-sub-keyed `denoise` takes **`--sub-ids`**. A third shared option, `--force`,
-overwrites existing outputs (by default hypline skips files it has already
-generated, so reruns are cheap).
+Because commands discover files by convention, you select what to process using 
+identity options and `--data-filters`, rather than individual file paths. Dyad-keyed 
+commands (`transcribe`, `featuregen`, and `confoundgen`) take **`--dyad-ids`**, whereas 
+subj-keyed commands (`denoise` and `encoding`) take **`--sub-ids`**. Use --force to 
+overwrite existing outputs; otherwise, hypline skips outputs it has already generated.
 
 For how to combine these, see [Filter to specific runs or
-conditions](../how-to/filter.md); for what `--data-filters` can match, see
-[Segments and metadata](segments.md).
+conditions](../FAQ/filter.md).
 
-## The payoff
+## Why the convention matters
 
 Centralizing discovery in one convention means commands compose cleanly: each
 reads what earlier steps wrote, with no configuration file wiring inputs to

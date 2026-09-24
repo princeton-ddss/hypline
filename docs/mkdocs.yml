@@ -80,9 +80,9 @@ plugins:
 nav:
   - Home: index.md
   - Tutorials:
-    - A full run on the example dataset: tutorials/walkthrough.md
+    - Run the full pipeline on the example dataset: tutorials/walkthrough.md
   - Prepare your data:
-    - The hypline dataset layout: data-prep/layout.md
+    - Hypline dataset layout: data-prep/layout.md
     - Prepare your own dataset: data-prep/prepare-dataset.md
   - How-to guides:
     - CLI:
@@ -92,12 +92,12 @@ nav:
       - hypline denoise: how-to/denoise.md
       - hypline encoding: how-to/encoding.md
     - Python API:
-      - Features & Confounds: how-to/python-api.md
+      - Features and confounds: how-to/python-api.md
       - Encoding results: how-to/encoding-results.md
   - FAQ:
-    - What are the features we use: FAQ/feature-families.md
+    - What feature families does hypline provide?: FAQ/feature-families.md
     - Filter to specific runs or conditions: FAQ/filter.md
     - Regenerate outputs after a fix: FAQ/regenerate.md
-    - Test the cross-brain effect from evals: FAQ/analyze-evals.md
+    - Test cross-brain effects from evaluation results: FAQ/analyze-evals.md
     - Glossary: FAQ/glossary.md
 
