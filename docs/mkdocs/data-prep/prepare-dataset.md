@@ -52,10 +52,10 @@ to the same scanning pair.
     misleading "missing column" error. This bites most often in
     `participants.tsv`, since it is the first file hypline reads.
 
-## 2. Place the raw recordings under `sub-*/`
+## 2. Add event information under `sub-*/`
 
-Each subject's raw BOLD and its events file go in a standard BIDS `func`
-directory, keyed by subject:
+Hypline reads each run’s structure from BIDS `events.tsv` files stored in the
+subject’s `func` directory:
 
 ```
 sub-031/ses-1/func/
@@ -63,11 +63,25 @@ sub-031/ses-1/func/
 └── sub-031_ses-1_task-conv_run-1_events.tsv
 ```
 
-The `events.tsv` beside each run is where hypline reads the run's structure — its
-trials, blocks, or conditions. If your runs have internal structure you want to
-feature-generate or filter on, this file is how you declare it; see
-[Filter to specific runs or conditions](../FAQ/filter.md). A whole-run dataset can leave it
-minimal.
+The raw BOLD image may remain as part of your original BIDS dataset, but hypline
+does not read it directly. Hypline reads the accompanying `events.tsv` and
+obtains its imaging data from the fMRIPrep derivatives described in the next
+section.
+
+An `events.tsv` file can describe segments such as trials, blocks, or
+conditions, as well as the subject’s speaking turns. Hypline uses these
+annotations when generating segment-level features, filtering runs or
+conditions, and assigning transcript words to speakers.
+
+!!! important "Learn how to create your events files"
+
+    See [Segments and metadata](segments.md) before creating your `events.tsv`
+    files. That page explains the required columns, hypline’s segment-labeling
+    convention, speaking-turn annotations, and how to attach descriptive
+    metadata through `events.json`.
+
+    For an unsegmented whole-run dataset, `events.tsv` may be omitted unless you
+    want to include speaking-turn annotations.
 
 !!! info "Sessions are optional"
 
