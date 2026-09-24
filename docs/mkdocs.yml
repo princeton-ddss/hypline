@@ -80,26 +80,26 @@ plugins:
 nav:
   - Home: index.md
   - Tutorials:
-    - A full run on the example dataset: tutorials/walkthrough.md
+    - Run the full pipeline on the example dataset: tutorials/walkthrough.md
+  - Prepare your data:
+    - Hypline dataset layout: data-prep/layout.md
+    - Prepare your own dataset: data-prep/prepare-dataset.md
+    - Segments and Metadata: data-prep/segments.md
   - How-to guides:
-    - Prepare your own dataset: how-to/prepare-dataset.md
-    - Filter to specific runs or conditions: how-to/filter.md
-    - Regenerate outputs after a fix: how-to/regenerate.md
-    - Test the cross-brain effect from evals: how-to/analyze-evals.md
-  - Concepts:
-    - The hypline dataset layout: concepts/layout.md
-    - Segments and metadata: concepts/segments.md
-    - Feature families: concepts/feature-families.md
-    - How the encoding model works: concepts/how-encoding-works.md
-    - Reading an encoding result: concepts/reading-an-eval.md
-    - Glossary: concepts/glossary.md
-  - Reference:
     - CLI:
-      - hypline transcribe: reference/transcribe.md
-      - hypline featuregen: reference/featuregen.md
-      - hypline confoundgen: reference/confoundgen.md
-      - hypline denoise: reference/denoise.md
-      - hypline encoding: reference/encoding.md
+      - hypline transcribe: how-to/transcribe.md
+      - hypline featuregen: how-to/featuregen.md
+      - hypline confoundgen: how-to/confoundgen.md
+      - hypline denoise: how-to/denoise.md
+      - hypline encoding: how-to/encoding.md
     - Python API:
-      - Features & confounds: reference/python-api.md
-      - Encoding results: reference/encoding-results.md
+      - Features and confounds: how-to/python-api.md
+      - Encoding results: how-to/encoding-results.md
+  - FAQ:
+    - How the encoding model works: FAQ/how-encoding-works.md    
+    - What feature families does hypline provide?: FAQ/feature-families.md
+    - Filter to specific runs or conditions: FAQ/filter.md
+    - Regenerate outputs after a fix: FAQ/regenerate.md
+    - Test cross-brain effects from evaluation results: FAQ/analyze-evals.md
+    - Glossary: FAQ/glossary.md
+

@@ -1,20 +1,32 @@
 # Hypline
 
-Hypline is a command-line toolbox for cleaning and analyzing data from
-hyperscanning studies involving dyadic conversations. Its commands are modular.
-Each does one job (transcribe audio, generate features, denoise
-[fMRIPrep](https://fmriprep.org/en/stable/index.html) BOLD, fit an **encoding
-model**), and runs on its own, all inside one
-[BIDS](https://bids.neuroimaging.io/)-style dataset. An encoding model predicts
-the brain's BOLD response from features of the speech a participant heard.
-Hypline prepares both sides of that fit: the stimulus features (the predictors)
-and the denoised BOLD (the target). It then fits and scores the model with
-[`encoding`](reference/encoding.md).
+Hypline is a command-line toolbox for running encoding analyses on fMRI
+hyperscanning data collected during dyadic conversation. It is designed for
+researchers who want to relate features of an ongoing conversation—such as its
+phonemic, semantic, syntactic, or acoustic content—to the BOLD responses of the
+people producing and comprehending that speech.
+
+An encoding model learns a mapping from features of a stimulus or behavior
+to measured brain activity and tests how well those features predict responses
+in held-out fMRI data. Encoding models are widely used in naturalistic fMRI to
+study what information is represented across the brain during continuous
+experiences such as listening to speech, watching movies, or engaging in
+conversation. In hyperscanning studies, the same framework can be used to
+examine the neural representations associated with speech production and
+comprehension while two people interact in real time. To learn more about how 
+encoding model works, see [How the encoding model works](FAQ/how-encoding-works.md).
+
+Hypline supports the main steps needed to run this analysis on dyadic
+conversation data: transcribing recorded speech, generating stimulus features
+and their confounds, denoising [fMRIPrep](https://fmriprep.org/en/stable/index.html) 
+BOLD data, and fitting and evaluating encoding models. Its commands are modular: 
+each performs one step and can be run independently, while all commands operate 
+within the same [BIDS](https://bids.neuroimaging.io/)-style dataset.
 
 Hypline implements the encoding-model approach of Zada et al. (2026),[^zada]
-which used fMRI hyperscanning and language-model features to study the shared
-neural systems for speech production and comprehension in real-time dyadic
-conversations.
+which combined fMRI hyperscanning with language-model features to study the shared
+neural systems for speech production and comprehension during real-time dyadic
+conversation.
 
 [^zada]: Zada, Z., Nastase, S. A., Speer, S., Mwilambwe-Tshilobo, L., Tsoi, L.,
     Burns, S. M., Falk, E., Hasson, U., & Tamir, D. I. (2026). Linguistic
@@ -23,6 +35,9 @@ conversations.
     [https://doi.org/10.1016/j.neuron.2025.11.004](https://doi.org/10.1016/j.neuron.2025.11.004)
 
 ## Installation
+
+Hypline currently supports Python 3.11. We recommend installing it in a
+dedicated Python 3.11 environment.
 
 === "pip"
 
@@ -51,15 +66,44 @@ hypline --help
 !!! note "FFmpeg required for transcription"
 
     `hypline transcribe` decodes audio through [FFmpeg](https://ffmpeg.org/),
-    which must be installed separately and available on your `PATH`. Other
-    commands do not need it.
+    which must be installed separately. Other commands do not need it.
 
-## The pipeline
+For example: 
 
-Hypline's commands compose into a pipeline. Each one reads from a shared dataset
-root and writes its outputs back into the same tree. Most steps fall into two
-independent branches, a **stimulus branch** and an **fMRIPrep branch**, that
-prepare the two sides the **encoding branch** then joins:
+=== "macOS"
+
+    ```bash
+    brew install ffmpeg
+    ```
+
+=== "Ubuntu / Debian" 
+
+    ```bash 
+    sudo apt update
+    sudo apt install ffmpeg
+    ```
+    
+=== "Conda" 
+
+    ```bash 
+    conda install -c conda-forge ffmpeg
+    ```
+
+After installation, confirm that FFmpeg is available: 
+    ```bash
+    ffmpeg -version
+    ```
+
+Only `hypline transcribe` requires FFmpeg; other Hypline commands do not.
+
+## The commands
+
+Hypline's commands form a modular pipeline. Each command reads from the same
+dataset root and writes its outputs back into that dataset.
+
+The workflow has three parts: (1) the **stimulus branch** prepares features 
+describing the conversation; (2) the **fMRIPrep branch** prepares denoised BOLD responses; 
+and (3) the **encoding branch** combines these inputs to fit and evaluate encoding models.
 
 | Command                | Branch   | Reads                                  | Writes                          |
 | ---------------------- | -------- | -------------------------------------- | ------------------------------- |
@@ -74,42 +118,40 @@ prepare the two sides the **encoding branch** then joins:
 | `encoding train`       | encoding | features, confounds, denoised BOLD     | fitted models (`results/`)      |
 | `encoding analyze`     | encoding | fitted models, features, denoised BOLD | eval correlations (`results/`)  |
 
-The stimulus and fMRIPrep branches never meet each other. Stimulus commands
-build the encoding model's predictors, while `denoise` cleans the BOLD target
-from fMRIPrep's own confounds table (and any custom `nuisance/` regressors). The
-two sides come together only in the encoding branch, where
-[`encoding`](reference/encoding.md) fits the model and scores it against the
-brain.
+The stimulus and fMRIPrep branches can be run independently. Stimulus commands
+construct the predictors used by the encoding model, while `denoise` prepares
+the BOLD responses that serve as its targets. These inputs come together only
+when you run the [`encoding`](how-to/encoding.md) commands.
 
 !!! tip "Features and their confounds in one step"
 
-    `featuregen phonemic` also generates the matching phonemic confounds by
-    default, so you rarely call `confoundgen phonemic` directly. See the
-    [featuregen reference](reference/featuregen.md).
+    `featuregen phonemic` generates the corresponding phonemic confounds by
+    default, so you usually do not need to call `confoundgen phonemic` separately. 
+    See the [featuregen guide](how-to/featuregen.md).
 
-You do not have to run every step. Each command works on its own as long as its
-inputs exist — run `transcribe` alone for transcripts, or `denoise` alone to
-clean fMRIPrep BOLD without ever transcribing audio.
+You do not need to run the entire pipeline. Each command can be used
+independently as long as its required inputs already exist. For example, you
+can run `transcribe` only to generate transcripts, or `denoise` only to clean
+fMRIPrep BOLD data.
 
 ## Run the pipeline
 
-Once your files sit where hypline expects (see
-[the dataset layout](concepts/layout.md)), every command takes the dataset root
-and discovers its inputs from there; you never pass file paths. End to end, the
-whole pipeline is four commands. Each reads what the previous ones wrote, so
-order matters only where one step's output is the next step's input:
+Once your files follow the 
+[hypline dataset layout](data-prep/layout.md), each command takes the dataset root
+as its main input and automatically finds the files it needs.
+
+For example, a basic analysis using phonemic features looks like this:
 
 ```bash
-# stimulus branch: audio → transcripts → features (+ phonemic confounds, auto)
+# stimulus branch: audio → transcripts → features 
 hypline transcribe data/ --audio-ext .wav
 hypline featuregen phonemic data/
 
-# fMRIPrep branch: clean the BOLD with a motion + drift model, read straight
-# from fMRIPrep's confounds table
+# fMRIPrep branch: preprocessed BOLD → denoised BOLD
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine
 
-# encoding branch: fit the model that maps features onto the denoised BOLD
+# encoding branch: fit the encoding model
 hypline encoding train data/ \
   --data-filters task-conv \
   --features phonemic \
@@ -117,37 +159,30 @@ hypline encoding train data/ \
   --fold-by none
 ```
 
-After this, `data/` holds phonemic features plus `desc-denoised` BOLD (the two
-sides the encoding model needs) and a fitted model under `results/`. Load an
-encoding result back into Python for downstream analysis with
-[`load_eval` / `load_artifact`](reference/encoding-results.md).
-You can also start with `transcribe` alone and follow the table above step by
-step. Re-run any single step with `--force` to overwrite its outputs; without
-it, hypline skips work it has already done.
+After these steps, `data/` contains the phonemic predictors, denoised BOLD responses
+and fitted encoding models under `results/`. To evaluate fitted models,
+use `hypline encoding analyze`. You can then load the resulting evaluation outputs
+in Python with [`load_eval` / `load_artifact`](how-to/encoding-results.md).
+
+You can also run any step on its own. Hypline skips outputs that already exist;
+use `--force` when you want to regenerate them.
 
 !!! tip "When a command produces no output"
 
-    Two cases look like failures but usually aren't. `No dyads found` (stimulus
-    commands) or `No subjects found` (`denoise`, `encoding`) means the area
-    that command reads is empty, or your `--dyad-ids` / `--sub-ids` excluded
-    everything; widen the id list or check the files are in place. (A
-    `--data-filters` that matches nothing is different: it fails the
-    affected id and exits `1` — see [Filter to specific runs or
-    conditions](how-to/filter.md#when-a-filter-matches-nothing).) A command that
-    exits instantly with no log means its outputs already exist and were skipped;
-    re-run with `--force` to regenerate. Per-command failure modes are listed
-    under **Common errors** on each reference page.
+    `No dyads found` for stimulus commands or `No subjects found` for 
+    `denoise` and `encoding` usually means that the command could not
+    find matching inputs, or that `--dyad-ids` / `--sub-ids` excluded
+    all available data. Check the dataset layout and the IDs you supplied. (If
+    `--data-filters` matches no data, see [Filter to specific runs or
+    conditions](FAQ/filter.md#when-a-filter-matches-nothing).)
 
 ## Where to go next
 
-- **Want to try it now?** Follow the [Tutorial](tutorials/walkthrough.md) — a full
-  pipeline run on a downloadable example dataset, one command at a time.
-- **Bringing your own study?** [Prepare your own dataset](how-to/prepare-dataset.md)
-  is the checklist for arranging your recordings the way hypline expects.
-- **New to hypline?** Start with [The hypline dataset layout](concepts/layout.md)
-  to learn how a dataset is organized — every command depends on it.
-- **What can the model do?** [Feature families](concepts/feature-families.md) and
-  [How the encoding model works](concepts/how-encoding-works.md) cover what you can
-  predict and how the analysis is set up.
-- **Want command details?** See the [Reference](reference/transcribe.md) for each
+- **Want to try it now?** Follow the [Tutorial](tutorials/walkthrough.md) for a complete
+  run on a downloadable example dataset.
+- **New to hypline?** Start with [The hypline dataset layout](data-prep/layout.md)
+  to learn how a dataset is organized.
+- **Want command details?** See the [How-to guides](how-to/transcribe.md) for each
   command's arguments and options.
+- **Want to understand the analysis better?** [How the encoding model works](FAQ/how-encoding-works.md)
+  and [Feature families](FAQ/feature-families.md) cover what you can predict and how the analysis is set up.

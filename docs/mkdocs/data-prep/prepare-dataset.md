@@ -6,7 +6,7 @@ recordings into the tree hypline expects, so that every command can find its
 inputs by convention. Once the tree is right, the commands run exactly as the
 tutorial shows.
 
-The [dataset layout](../concepts/layout.md) describes the tree in full; this page
+The [dataset layout](../data-prep/layout.md) describes the tree in full; this page
 is the practical checklist for building one from scratch.
 
 ## What you supply, and what hypline fills in
@@ -42,8 +42,8 @@ sub-034	dyad-034
 ```
 
 This is the single source of truth that lets a dyad-keyed feature reach a
-sub-keyed brain — see [Subject vs. dyad](../concepts/layout.md#subject-vs-dyad).
-Two subjects share a `dyad_id` exactly when they held one conversation together.
+sub-keyed brain. Two subjects share a `dyad_id` exactly when they belong 
+to the same scanning pair.
 
 !!! warning "Use real tabs"
 
@@ -52,10 +52,10 @@ Two subjects share a `dyad_id` exactly when they held one conversation together.
     misleading "missing column" error. This bites most often in
     `participants.tsv`, since it is the first file hypline reads.
 
-## 2. Place the raw recordings under `sub-*/`
+## 2. Add event information under `sub-*/`
 
-Each subject's raw BOLD and its events file go in a standard BIDS `func`
-directory, keyed by subject:
+Hypline reads each run’s structure from BIDS `events.tsv` files stored in the
+subject’s `func` directory:
 
 ```
 sub-031/ses-1/func/
@@ -63,17 +63,28 @@ sub-031/ses-1/func/
 └── sub-031_ses-1_task-conv_run-1_events.tsv
 ```
 
-The `events.tsv` beside each run is where hypline reads the run's structure — its
-trials, blocks, or conditions. If your runs have internal structure you want to
-feature-generate or filter on, this file is how you declare it; see
-[Segments and metadata](../concepts/segments.md). A whole-run dataset can leave it
-minimal.
-
 !!! info "Sessions are optional"
 
     The `ses-1/` level is optional. A dataset without sessions omits it entirely
     (`sub-031/func/`), and hypline handles both. Keep it consistent across the
     dataset.
+
+The raw BOLD image may remain as part of your original BIDS dataset, but hypline
+does not read it directly. Hypline reads the accompanying `events.tsv` and
+obtains its imaging data from the fMRIPrep derivatives described in the next
+section.
+
+An `events.tsv` file can describe segments such as trials, blocks, or
+conditions, as well as the subject’s speaking turns. Hypline uses these
+annotations when generating segment-level features, filtering runs or
+conditions, and assigning transcript words to speakers. For an 
+unsegmented whole-run dataset, `events.tsv` may be omitted unless you 
+want to include speaking-turn annotations.
+
+See [Segments and metadata](segments.md) to learn how to create your `events.tsv`
+files. That page explains the required columns, hypline’s segment-labeling
+convention, speaking-turn annotations, and how to attach descriptive
+metadata through `events.json`.
 
 ## 3. Add your fMRIPrep outputs
 
@@ -88,7 +99,7 @@ derivatives/fmriprep/sub-031/ses-1/func/
 └── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
 ```
 
-[`denoise`](../reference/denoise.md) reads the preprocessed BOLD and pulls its
+[`denoise`](../how-to/denoise.md) reads the preprocessed BOLD and pulls its
 nuisance regressors from fMRIPrep's own `desc-confounds` table, so both must be
 present. The BOLD `space` you preprocessed into is the one you will pass to
 `denoise` and `encoding` later.
@@ -104,8 +115,8 @@ stimuli/dyad-030/ses-1/audio/
 ```
 
 This is the only stimulus area you fill by hand. From here
-[`transcribe`](../reference/transcribe.md) writes the transcripts and
-[`featuregen`](../reference/featuregen.md) writes the features, both back under
+[`transcribe`](../how-to/transcribe.md) writes the transcripts and
+[`featuregen`](../how-to/featuregen.md) writes the features, both back under
 `stimuli/` and `features/` at the same dyad key.
 
 ## 5. (Optional) Describe conditions and custom nuisance
@@ -115,11 +126,11 @@ Two optional inputs round out a dataset:
 - **`events.json` sidecars** attach descriptive metadata (condition, item,
   counterbalance group) to the segments declared in `events.tsv`. This is what
   lets you filter on `cond-R` even though `cond` never appears in a filename. See
-  [Attaching metadata](../concepts/segments.md#attaching-metadata-eventsjson).
+  [Attaching metadata](../FAQ/filter.md#attaching-metadata-eventsjson).
 - **`nuisance/` files** hold run-level regressors you supply yourself that
   fMRIPrep never produced (physiological recordings, say) for `denoise` to
   regress out alongside the fMRIPrep columns. See the
-  [`denoise` reference](../reference/denoise.md).
+  [`denoise` reference](../how-to/denoise.md).
 
 Both are optional. A dataset with neither still runs the full pipeline.
 
@@ -139,7 +150,7 @@ data/
 Everything else (`features/`, `confounds/`, `derivatives/hypline/`, `results/`)
 appears as you run the commands. With this in place, follow the
 [tutorial](../tutorials/walkthrough.md) from its transcription step onward; every
-command takes `data/` as its only argument and discovers the rest.
+command takes `data/` as its main positional argument and discovers its inputs from there.
 
 !!! success "Check"
 
