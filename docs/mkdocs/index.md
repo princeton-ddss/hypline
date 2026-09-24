@@ -23,13 +23,6 @@ BOLD data, and fitting and evaluating encoding models. Its commands are modular:
 each performs one step and can be run independently, while all commands operate 
 within the same [BIDS](https://bids.neuroimaging.io/)-style dataset.
 
-At a high level, an encoding analysis requires two aligned inputs:
-(1) predictors describing what happened during the conversation, such as
-phonemic or semantic features derived from the speech; and
-(2) targets containing the corresponding denoised BOLD responses.
-Hypline prepares both sides of this analysis and provides commands for fitting
-and evaluating the resulting models.
-
 Hypline implements the encoding-model approach of Zada et al. (2026),[^zada]
 which combined fMRI hyperscanning with language-model features to study the shared
 neural systems for speech production and comprehension during real-time dyadic
