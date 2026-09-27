@@ -8,7 +8,7 @@ to end and seen exactly what each step reads and writes.
 
 It assumes you have hypline installed (see [Installation](../index.md#installation),
 including FFmpeg for transcription). No prior hypline experience is needed, but
-skim [The hypline dataset layout](../concepts/layout.md) first if a path or
+skim [The hypline dataset layout](../step-by-step/layout.md) first if a path or
 filename below is ever unclear; this tutorial shows the layout in action rather
 than re-explaining it.
 
@@ -110,7 +110,7 @@ you.,6.195,6.416,0.326,031
 
 These transcripts are **dyad-keyed** (`dyad-030`), because the conversation
 belongs to the pair rather than to either partner. See
-[Subject vs. dyad](../concepts/layout.md#subject-vs-dyad) for why.
+[Subject vs. dyad](../step-by-step/layout.md#subject-vs-dyad) for why.
 
 !!! success "Check"
 
@@ -143,7 +143,7 @@ Generating phonemic confounds for dyad-030_ses-1_task-conv_run-1_trial-1_feat-ph
 By default this step also generates the matching **phonemic confounds**
 (speech-onset and speech-rate regressors derived from the same features), so you
 get both in one command. Pass `--skip-confoundgen` to suppress that, or run
-[`confoundgen phonemic`](../reference/confoundgen.md) on its own later.
+[`confoundgen phonemic`](../step-by-step/confoundgen.md) on its own later.
 
 Two new areas appear, both dyad-keyed:
 
@@ -160,7 +160,7 @@ data/
 
 The two confound flavors live in their own subdirectories because they are
 `desc` variants of the same `conf-phonemic` kind — see
-[Variants with `desc`](../concepts/layout.md#variants-with-desc).
+[Variants with `desc`](../step-by-step/layout.md#variants-with-desc).
 
 Now add a second family. `featuregen syntactic` reads the same transcripts and
 computes per-token part-of-speech, dependency, and stopword features:
@@ -217,7 +217,7 @@ cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
 the surface `fsaverage6`, and your own surface data needs no `--space` at all.
 (Omitting `--columns` entirely would fall back to hypline's default
 **Speer et al. 2024** confound set — see the
-[`denoise` reference](../reference/denoise.md).)
+[`denoise` reference](../step-by-step/denoise.md).)
 
 This step is **sub-keyed**: it processes each partner's brain (`sub-031`,
 `sub-032`) independently, so all four run × subject combinations are denoised.
@@ -235,7 +235,7 @@ The same pair is written for each run and subject — `sub-031` and `sub-032`,
 Each denoised BOLD carries a `.json` sidecar recording exactly how it was made
 (the `desc-preproc` source it came from, the resolved regressor columns, and the
 hypline version), so the result is reproducible. See the
-[`denoise` reference](../reference/denoise.md) for CompCor selectors, custom
+[`denoise` reference](../step-by-step/denoise.md) for CompCor selectors, custom
 `nuisance/` regressors, and surface spaces.
 
 !!! success "Check"
@@ -355,7 +355,7 @@ data/results/sub-031/encodingModel-v1/
 ### Load the result back
 
 The model saves as a `.joblib` blob you load back into Python for downstream
-analysis, the same way [`read_feature`](../reference/python-api.md) reads a
+analysis, the same way [`read_feature`](../step-by-step/python-api.md) reads a
 feature file:
 
 ```python
@@ -476,7 +476,7 @@ This pairs the partner's model *and* speech, the cross-brain form used in Zada e
 al. (2026). It is not the only one: pairing your own speech with the partner's
 model (`--source-sub self --model-sub partner`) is often preferred, since it holds
 the stimulus fixed and varies only the model. [How the encoding model
-works](../concepts/how-encoding-works.md#choosing-source-and-model) lays out the
+works](../FAQ/how-encoding-works.md#choosing-source-and-model) lays out the
 choices side by side.
 
 !!! info "What this step demonstrates"
@@ -514,14 +514,11 @@ dataset root. To regenerate a step after changing an option, re-run it with
 - **Add richer features** — this run used phonemic and syntactic features, both
   CPU-only. For LLM-derived **semantic** features (contextual word embeddings,
   the representation central to Zada et al.), see
-  [`featuregen semantic`](../reference/featuregen.md) and add `semantic` to
+  [`featuregen semantic`](../step-by-step/featuregen.md) and add `semantic` to
   `--features`.
-- **Process only some runs or conditions** — [Filter to specific runs or
-  conditions](../how-to/filter.md).
-- **Regenerate outputs after a fix** — [Regenerate outputs](../how-to/regenerate.md).
-- **Per-command options** — the Reference pages:
-  [transcribe](../reference/transcribe.md) ·
-  [featuregen](../reference/featuregen.md) ·
-  [confoundgen](../reference/confoundgen.md) ·
-  [denoise](../reference/denoise.md) ·
-  [encoding](../reference/encoding.md).
+- **Per-command options** — Follow the step-by-step guides:
+  [transcribe](../step-by-step/transcribe.md) ·
+  [featuregen](../step-by-step/featuregen.md) ·
+  [confoundgen](../step-by-step/confoundgen.md) ·
+  [denoise](../step-by-step/denoise.md) ·
+  [encoding](../step-by-step/encoding.md).
