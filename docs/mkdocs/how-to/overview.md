@@ -1,9 +1,10 @@
 # Overview
 
-## The commands
+## The pipeline
 
-Hypline's commands form a modular pipeline. Each command reads from the same
-dataset root and writes its outputs back into that dataset.
+Hypline's commands form a modular pipeline. Once your files follow the 
+[hypline dataset layout](data-prep/layout.md), each command takes the dataset root
+as its main input and automatically finds the files it needs.
 
 The workflow has three parts: (1) the **stimulus branch** prepares features 
 describing the conversation; (2) the **fMRIPrep branch** prepares denoised BOLD responses; 
@@ -38,11 +39,7 @@ independently as long as its required inputs already exist. For example, you
 can run `transcribe` only to generate transcripts, or `denoise` only to clean
 fMRIPrep BOLD data.
 
-## Run the pipeline
-
-Once your files follow the 
-[hypline dataset layout](data-prep/layout.md), each command takes the dataset root
-as its main input and automatically finds the files it needs.
+## Example command set
 
 For example, a basic analysis using phonemic features looks like this:
 
@@ -70,13 +67,4 @@ in Python with [`load_eval` / `load_artifact`](steps/encoding-results.md).
 
 You can also run any step on its own. Hypline skips outputs that already exist;
 use `--force` when you want to regenerate them.
-
-!!! tip "When a command produces no output"
-
-    `No dyads found` for stimulus commands or `No subjects found` for 
-    `denoise` and `encoding` usually means that the command could not
-    find matching inputs, or that `--dyad-ids` / `--sub-ids` excluded
-    all available data. Check the dataset layout and the IDs you supplied. (If
-    `--data-filters` matches no data, see [Filter to specific runs or
-    conditions](FAQ/filter.md#when-a-filter-matches-nothing).)
 
