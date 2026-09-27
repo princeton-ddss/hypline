@@ -81,23 +81,27 @@ nav:
   - Home: index.md
   - Tutorials:
     - Run the full pipeline on the example dataset: tutorials/walkthrough.md
-  - Prepare your data:
-    - Hypline dataset layout: data-prep/layout.md
-    - Prepare your own dataset: data-prep/prepare-dataset.md
-    - Segments and Metadata: data-prep/segments.md
-  - How-to guides:
-    - CLI:
-      - hypline transcribe: how-to/transcribe.md
-      - hypline featuregen: how-to/featuregen.md
-      - hypline confoundgen: how-to/confoundgen.md
-      - hypline denoise: how-to/denoise.md
-      - hypline encoding: how-to/encoding.md
-    - Python API:
+  - Step-by-step guides:
+    - Step 1. Prepare your data:
+      - Hypline dataset layout: data-prep/layout.md
+      - Prepare your own dataset: data-prep/prepare-dataset.md
+      - Segments and metadata: data-prep/segments.md
+    - Step 2. Run the hypline pipeline (CLI):
+      - Overview: how-to/overview.md
+      - Generate features and confounds:
+        - hypline transcribe: how-to/transcribe.md
+        - hypline featuregen: how-to/featuregen.md
+        - hypline confoundgen: how-to/confoundgen.md
+      - Denoise fMRI data:
+        - hypline denoise: how-to/denoise.md
+      - Run encoding models:
+        - hypline encoding: how-to/encoding.md
+    - Step 3. Review your features and results (Python API):
       - Features and confounds: how-to/python-api.md
       - Encoding results: how-to/encoding-results.md
   - FAQ:
     - How the encoding model works: FAQ/how-encoding-works.md    
-    - What feature families does hypline provide?: FAQ/feature-families.md
+    - Feature families: FAQ/feature-families.md
     - Filter to specific runs or conditions: FAQ/filter.md
     - Regenerate outputs after a fix: FAQ/regenerate.md
     - Test cross-brain effects from evaluation results: FAQ/analyze-evals.md
