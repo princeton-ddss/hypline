@@ -36,7 +36,7 @@ named and discovered.
 | `--model-dir`    | Where to find/download model weights                             | `~/.cache/hypline/whisperx` |
 | `--device`       | Hardware target: `cpu` or `cuda`                                 | `cpu`            |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all              |
-| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](/segments.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filtering guide](FAQ/filter.md) | none |
 | `--force`        | Overwrite existing transcripts (default skips them)              | off              |
 
 !!! tip "Model size vs. speed"
