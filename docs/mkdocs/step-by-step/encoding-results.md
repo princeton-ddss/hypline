@@ -1,19 +1,21 @@
 # Encoding results
 
-The [`encoding`](encoding.md) CLI writes results; hypline's `encoding` package
-reads them back for downstream analysis — the encoding-side parallel to
-[`read_feature`](python-api.md). Imports come from `hypline.encoding` (not
-top-level `hypline`), which pulls in the encoding stack:
+The [`encoding`](encoding.md) CLI produces two kinds of results; (1) 
+**evals** from `analyze`, containing the per-voxel correlations used 
+for downstream analysis; (2) **model artifacts** from `train`, 
+containing fitted models and the recipe used to construct them.
+
+Load both from `hypline.encoding`:
 
 ```python
 from hypline.encoding import load_eval, load_artifact
 ```
 
-**An eval** (`analyze`'s output) loads as an
-[`xarray.Dataset`](https://docs.xarray.dev/), the usual downstream target,
-since it holds the per-voxel correlations you analyze. For what its `fold` /
-`band` / `role` / `voxel` axes mean and how to subset them, see [Reading an
-encoding result](../concepts/reading-an-eval.md):
+## Load an eval
+
+An eval (`analyze`'s output) loads as an
+[`xarray.Dataset`](https://docs.xarray.dev/). This is the usual starting 
+point for downstream analysis because it contains the per-voxel encoding correlations.
 
 ```python
 ds = load_eval("data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc")
@@ -25,8 +27,10 @@ prod_corr = ds["corr"].sel(role="prod")
 ds.attrs["model_sub"], ds.attrs["target_sub"], ds.attrs["delays"]
 ```
 
-**A model artifact** (`train`'s output) loads as an `EncodingArtifact`, holding the
-fitted weights and the recipe, for reusing or inspecting the model:
+## Load a model artifact
+
+A model artifact (`train`'s output) loads as an `EncodingArtifact`, which 
+contains the fitted weights and the recipe needed to inspect or reuse the model:
 
 ```python
 artifact = load_artifact("data/results/sub-031/encodingModel-v1/sub-031_result-encodingModel_desc-v1.joblib")
@@ -36,13 +40,13 @@ artifact.models      # one FittedModel per fold (its pipeline + the cells it was
 artifact.fold        # the FoldSpec, or None for a single unfolded model
 ```
 
-`load_artifact` warns (does not fail) if the artifact was written by a different
-hypline version — a provenance signal, not a hard incompatibility.
+`load_artifact` warns, but does not fail, if the artifact was 
+written by a different hypline version. Treat this as provenance 
+information rather than a hard incompatibility.
 
 ## Reference
 
-Full signatures and docstrings for the encoding results API — the loaders above,
-the types an artifact is made of, and the write seams behind them.
+API documentation for loading, inspecting, and saving encoding results.
 
 ### Loading
 
