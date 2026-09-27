@@ -83,22 +83,22 @@ nav:
     - Run the full pipeline on the example dataset: tutorials/walkthrough.md
   - Step-by-step guides:
     - Step 1. Prepare your data:
-      - Hypline dataset layout: data-prep/layout.md
-      - Prepare your own dataset: data-prep/prepare-dataset.md
-      - Segments and metadata: data-prep/segments.md
+      - Hypline dataset layout: step-by-step/layout.md
+      - Prepare your own dataset: step-by-step/prepare-dataset.md
+      - Segments and metadata: step-by-step/segments.md
     - Step 2. Run the hypline pipeline (CLI):
-      - Overview: how-to/overview.md
+      - Overview: step-by-step/overview.md
       - Generate features and confounds:
-        - hypline transcribe: how-to/transcribe.md
-        - hypline featuregen: how-to/featuregen.md
-        - hypline confoundgen: how-to/confoundgen.md
+        - hypline transcribe: step-by-step/transcribe.md
+        - hypline featuregen: step-by-step/featuregen.md
+        - hypline confoundgen: step-by-step/confoundgen.md
       - Denoise fMRI data:
-        - hypline denoise: how-to/denoise.md
+        - hypline denoise: step-by-step/denoise.md
       - Run encoding models:
-        - hypline encoding: how-to/encoding.md
+        - hypline encoding: step-by-step/encoding.md
     - Step 3. Review your features and results (Python API):
-      - Features and confounds: how-to/python-api.md
-      - Encoding results: how-to/encoding-results.md
+      - Features and confounds: step-by-step/python-api.md
+      - Encoding results: step-by-step/encoding-results.md
   - FAQ:
     - How the encoding model works: FAQ/how-encoding-works.md    
     - Feature families: FAQ/feature-families.md
