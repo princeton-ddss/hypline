@@ -60,7 +60,7 @@ named and discovered.
     find matching inputs, or that `--dyad-ids` / `--sub-ids` excluded
     all available data. Check the dataset layout and the IDs you supplied. (If
     `--data-filters` matches no data, see [Filter to specific runs or
-    conditions](FAQ/filter.md#when-a-filter-matches-nothing).)
+    conditions](../FAQ/filter.md#when-a-filter-matches-nothing).)
 
 
 ## Example
