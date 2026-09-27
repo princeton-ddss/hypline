@@ -7,8 +7,8 @@ and output path separately.
 
 This page explains that structure, including how hypline organizes subject-level 
 brain data and dyad-level conversation data. To assemble your own data in this format, 
-see [Prepare your own dataset](../data-prep/prepare-dataset.md). Once your dataset is 
-ready, continue to the command-specific guides, beginning with [hypline transcribe](../how-to/transcribe.md). 
+see [Prepare your own dataset](../step-by-step/prepare-dataset.md). Once your dataset is 
+ready, continue to the command-specific guides, beginning with [hypline transcribe](../step-by-step/transcribe.md). 
 
 ## The root tree
 
@@ -37,13 +37,13 @@ a few extra areas. A representative dataset tree looks like this:
   that you provide. Hypline reads event timing from the raw BIDS tree and
   preprocessed BOLD data from fMRIPrep; it does not require the raw BOLD images themselves.
 - **`derivatives/hypline/`** is a BIDS derivatives tree hypline fills with its
-  imaging derivatives — currently the [`denoise`](../how-to/denoise.md)
+  imaging derivatives — currently the [`denoise`](../step-by-step/denoise.md)
   output. It mirrors fMRIPrep's `sub-XX/[ses-YY/]func/` shape and carries its own
   `dataset_description.json`.
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by **dyad**
   (`dyad-030/`), not subject — see [Subject vs. Dyad](#subject-vs-dyad) below.
-- **`results/`** is where [`encoding`](../how-to/encoding.md) writes its
+- **`results/`** is where [`encoding`](../step-by-step/encoding.md) writes its
   analysis outputs — fitted models (`encodingModel-<desc>/`) and evaluation results
   (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
   consumes many runs across sessions.
