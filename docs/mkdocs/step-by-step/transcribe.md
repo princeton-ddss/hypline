@@ -24,7 +24,7 @@ Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 └── dyad-030_ses-1_task-conv_run-1_audio.wav
 ```
 
-See [The hypline dataset layout](../concepts/layout.md) for how files are
+See [Hypline dataset layout](/layout.md) for how files are
 named and discovered.
 
 ## Options
@@ -36,7 +36,7 @@ named and discovered.
 | `--model-dir`    | Where to find/download model weights                             | `~/.cache/hypline/whisperx` |
 | `--device`       | Hardware target: `cpu` or `cuda`                                 | `cpu`            |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all              |
-| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](/segments.md) | none |
 | `--force`        | Overwrite existing transcripts (default skips them)              | off              |
 
 !!! tip "Model size vs. speed"
