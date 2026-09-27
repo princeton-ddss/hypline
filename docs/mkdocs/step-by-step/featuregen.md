@@ -3,7 +3,7 @@
 Generate stimulus-derived **features**, the predictors (X) an encoding model
 maps onto the BOLD signal. `featuregen` is a group of subcommands, one per
 feature kind. For what each kind captures and how to choose among them, see
-[Feature families](../concepts/feature-families.md).
+[Feature families](../FAQ/feature-families.md).
 
 ```bash
 hypline featuregen <kind> <dataset-root> [OPTIONS]
@@ -42,7 +42,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 | `--desc`            | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen`| Write features only; do not also generate phonemic confounds | off     |
 | `--dyad-ids`        | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters`    | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters`    | Narrow to specific runs/conditions — see [Filtering guide](../FAQ/filter.md) | none |
 | `--force`           | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! tip "Features and confounds together"
@@ -87,7 +87,7 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
 (`phonemic-<label>/`), keeping variants separate. See
-[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#desc-variants).
 
 !!! note "Feature file format"
 
@@ -130,7 +130,7 @@ truncating; reach for a longer-context LM instead.
 | `--desc`             | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen` | Write features only; do not also generate semantic confounds | off     |
 | `--dyad-ids`         | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters`     | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters`     | Narrow to specific runs/conditions                               | none |
 | `--force`            | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! tip "Features and confounds together"
@@ -223,7 +223,7 @@ it. A dyad with no resolvable BOLD raises.
 | `--model-dir`    | Cache dir for downloaded weights                                 | `~/.cache/hypline/huggingface` |
 | `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions                               | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! note "No `--device`, no confounds"
@@ -251,7 +251,7 @@ A spectral feature file per stimulus, tagged `feat-spectral`, under `features/`:
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory
 (`spectral-<label>/`). See
-[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#desc-variants).
 
 !!! note "Feature file format"
 
@@ -292,7 +292,7 @@ their null timing into the output. Null-`word` rows are dropped and warned.
 | ---------------- | ---------------------------------------------------------------- | ------- |
 | `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions                               | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! note "Fixed model, no `--device`, no confounds"
@@ -322,7 +322,7 @@ A syntactic feature file per transcript, tagged `feat-syntactic`, under
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory
 (`syntactic-<label>/`). See
-[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#variants-with-desc).
 
 !!! note "Feature file format"
 
