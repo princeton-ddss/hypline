@@ -78,7 +78,7 @@ Dyad](layout.md#subject-vs-dyad).
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
 | `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
 | `--sub-ids`      | Comma-separated subject IDs to train (e.g. `031,032`); omit for all                               | all                  |
-| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Segments and metadata](segments.md) | none |
+| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Filtering guide](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
 !!! warning "`--fold-by` and `--n-folds`"
