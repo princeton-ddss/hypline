@@ -51,7 +51,7 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 | `--space`          | BOLD space to clean: `fsaverage5`, `fsaverage6`, `MNI152NLin6Asym`, `MNI152NLin2009cAsym` | `fsaverage6` |
 | `--sub-ids`        | Comma-separated subject IDs to process; omit for all                       | all                   |
 | `--desc`           | Output `desc` entity tag (alphanumeric); output lands as `desc-<desc>`. A distinct value keeps separate nuisance-config variants from overwriting (e.g. `--desc motionOnly`) | `denoised` |
-| `--data-filters`   | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters`   | Narrow to specific runs/conditions — see [Filtering guide](../FAQ/filter.md) | none |
 | `--force`          | Overwrite existing outputs (default skips them)                            | off                   |
 
 No nuisance channel is required. When you pass none of `--columns`, `--compcor`,
