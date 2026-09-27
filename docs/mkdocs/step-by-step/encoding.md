@@ -31,7 +31,7 @@ tables; read them for downstream analysis with the [encoding results API](encodi
     intercept-like production/comprehension task boxcars always ride a reserved
     band that absorbs the mean BOLD offset between the two states — `--no-split`
     drops the per-regressor duplication, not this band. [How the encoding model
-    works](../concepts/how-encoding-works.md) unpacks this at more length.
+    works](../FAQ/how-encoding-works.md) unpacks this at more length.
 
 ---
 
@@ -59,7 +59,7 @@ hypline encoding train <dataset-root> \
 
 Features are dyad-keyed and BOLD is subject-keyed, so `train` bridges them
 through `participants.tsv` — see [Subject vs.
-dyad](../concepts/layout.md#subject-vs-dyad).
+Dyad](layout.md#subject-vs-dyad).
 
 ### Options
 
@@ -78,7 +78,7 @@ dyad](../concepts/layout.md#subject-vs-dyad).
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
 | `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
 | `--sub-ids`      | Comma-separated subject IDs to train (e.g. `031,032`); omit for all                               | all                  |
-| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Segments and metadata](segments.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
 !!! warning "`--fold-by` and `--n-folds`"
@@ -139,7 +139,7 @@ brains; different dyads are a scramble/null control (`analyze` warns). The value
 `self` and `partner` are accepted for `--model-sub` / `--source-sub`, resolved
 relative to `--target-sub` via `participants.tsv`. For how these pairings map to
 within-brain, cross-brain, and pseudo-dyad analyses, see [Choosing source and
-model](../concepts/how-encoding-works.md#choosing-source-and-model).
+model](../FAQ/how-encoding-works.md#choosing-source-and-model).
 
 ```bash
 hypline encoding analyze <dataset-root> \
