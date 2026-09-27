@@ -1,8 +1,8 @@
 # `hypline featuregen`
 
-Generate stimulus-derived **features**, the predictors (X) an encoding model
-maps onto the BOLD signal. `featuregen` is a group of subcommands, one per
-feature kind. For what each kind captures and how to choose among them, see
+Generate stimulus-derived **features**, predictors that an encoding model 
+uses to model the BOLD signal. `featuregen` provides one subcommand for each 
+feature family. For what each family captures and how to choose among them, see
 [Feature families](../FAQ/feature-families.md).
 
 ```bash
@@ -12,9 +12,11 @@ hypline featuregen <kind> <dataset-root> [OPTIONS]
 | Subcommand | Generates                                            |
 | ---------- | ---------------------------------------------------- |
 | `phonemic` | phoneme-level articulatory features from transcripts |
-| `semantic` | contextual word embeddings from a Hugging Face causal LM |
+| `semantic` | contextual language-model embeddings for each token |
 | `spectral` | Whisper log-Mel spectrogram from stimulus audio, aligned to the BOLD TR grid |
-| `syntactic` | per-token POS, dependency, and stopword features from transcripts |
+| `syntactic` | part-of-speech, dependency, and stopword features for each token |
+
+After generating features, you can inspect the resulting files using hypline's [Python API](python-api.md).
 
 ---
 
@@ -322,7 +324,7 @@ A syntactic feature file per transcript, tagged `feat-syntactic`, under
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory
 (`syntactic-<label>/`). See
-[Hypline dataset layout](layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#desc-variants).
 
 !!! note "Feature file format"
 
