@@ -53,6 +53,16 @@ named and discovered.
     on a cluster with a small home quota. An explicit `--model-dir` still wins
     over both.
 
+!!! tip "When a command produces no output"
+
+    `No dyads found` for stimulus commands or `No subjects found` for 
+    `denoise` and `encoding` usually means that the command could not
+    find matching inputs, or that `--dyad-ids` / `--sub-ids` excluded
+    all available data. Check the dataset layout and the IDs you supplied. (If
+    `--data-filters` matches no data, see [Filter to specific runs or
+    conditions](FAQ/filter.md#when-a-filter-matches-nothing).)
+
+
 ## Example
 
 Transcribe every dyad's WAV audio with the default model:
