@@ -3,7 +3,7 @@
 ## The pipeline
 
 Hypline's commands form a modular pipeline. Once your files follow the 
-[hypline dataset layout](data-prep/layout.md), each command takes the dataset root
+[hypline dataset layout](layout.md), each command takes the dataset root
 as its main input and automatically finds the files it needs.
 
 The workflow has three parts: (1) the **stimulus branch** prepares features 
@@ -26,7 +26,7 @@ and (3) the **encoding branch** combines these inputs to fit and evaluate encodi
 The stimulus and fMRIPrep branches can be run independently. Stimulus commands
 construct the predictors used by the encoding model, while `denoise` prepares
 the BOLD responses that serve as its targets. These inputs come together only
-when you run the [`encoding`](steps/encoding.md) commands.
+when you run the [`encoding`](encoding.md) commands.
 
 !!! tip "Features and their confounds in one step"
 
@@ -63,7 +63,7 @@ hypline encoding train data/ \
 After these steps, `data/` contains the phonemic predictors, denoised BOLD responses
 and fitted encoding models under `results/`. To evaluate fitted models,
 use `hypline encoding analyze`. You can then load the resulting evaluation outputs
-in Python with [`load_eval` / `load_artifact`](steps/encoding-results.md).
+in Python with [`load_eval` / `load_artifact`](encoding-results.md).
 
 You can also run any step on its own. Hypline skips outputs that already exist;
 use `--force` when you want to regenerate them.
