@@ -160,7 +160,7 @@ data/
 
 The two confound flavors live in their own subdirectories because they are
 `desc` variants of the same `conf-phonemic` kind — see
-[Variants with `desc`](../step-by-step/layout.md#variants-with-desc).
+[Variants with `desc`](../step-by-step/layout.md#desc-variants).
 
 Now add a second family. `featuregen syntactic` reads the same transcripts and
 computes per-token part-of-speech, dependency, and stopword features:
