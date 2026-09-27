@@ -1,4 +1,4 @@
-# Python API
+# Load features and confounds
 
 Most of hypline is the command-line pipeline, but a small Python API is
 re-exported at the top level for reading and writing hypline's Parquet files
@@ -18,11 +18,9 @@ from hypline import (
 The two halves are deliberately asymmetric. **Saves are entity-based**:
 you pass `bids_root` plus BIDS entities (`dyad`, `feat`/`conf`, `run`, …) and
 hypline derives the canonical output path for you, so writes always land where
-the pipeline expects. Features and confounds describe the shared conversation, so
-they are keyed by `dyad`, not `sub` — see [Subject vs.
-dyad](../concepts/layout.md#subject-vs-dyad). **Reads are path-based**, since you
+the pipeline expects. **Reads are path-based**, since you
 usually already have a file in hand. Both enforce the [dataset
-layout](../concepts/layout.md) and the file formats; a malformed DataFrame or
+layout](layout.md) and the file formats; a malformed DataFrame or
 path raises rather than writing something the CLI can't later consume.
 
 Encoding results (fitted models and evals) have their own loaders under
@@ -68,7 +66,7 @@ path = save_feature(
 
 This writes `data/features/dyad-030/ses-1/embed/dyad-030_ses-1_task-conv_run-1_feat-embed.parquet`.
 Pass `desc="..."` to tag a variant into its own
-[`embed-<desc>/` subdirectory](../concepts/layout.md#variants-with-desc), and
+[`embed-<desc>/` subdirectory](layout.md#desc-variants), and
 `metadata={...}` to stash extra keys in the Parquet footer.
 
 !!! note "Custom confounds need TR alignment"
