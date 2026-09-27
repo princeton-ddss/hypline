@@ -24,7 +24,7 @@ Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 └── dyad-030_ses-1_task-conv_run-1_audio.wav
 ```
 
-See [Hypline dataset layout](/layout.md) for how files are
+See [Hypline dataset layout](layout.md) for how files are
 named and discovered.
 
 ## Options
