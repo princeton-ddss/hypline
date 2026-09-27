@@ -44,7 +44,7 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 
 | Option             | Description                                                                | Default               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------- |
-| `--columns`        | Comma-separated fMRIPrep confound columns to regress out (see below)       | Speer et al. 2024 set (when no channel given) |
+| `--columns`        | Comma-separated fMRIPrep confound columns to regress out (see below)       | Speer et al. 2024[^speer] set (when no channel given) |
 | `--compcor`        | Comma-separated CompCor selectors (see below)                              | none                  |
 | `--custom-sources` | Comma-separated `nuisance/` sources as `<kind>[-<desc>]`; requires `--custom-columns` | none       |
 | `--custom-columns` | Column names to select from the `--custom-sources` files; requires `--custom-sources` | none       |
@@ -55,10 +55,13 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 | `--force`          | Overwrite existing outputs (default skips them)                            | off                   |
 
 No nuisance channel is required. When you pass none of `--columns`, `--compcor`,
-or `--custom-sources`, `denoise` falls back to the **Speer et al. 2024** default
+or `--custom-sources`, `denoise` falls back to the **Speer et al. 2024[^speer]** default
 set: motion and WM/CSF signal (each with squared and derivative expansions) plus
 cosine drift. An explicit `--compcor` or `--custom-sources` means you are picking
 your own model, so the default is left out rather than composed onto it.
+
+[^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
+    [https://doi.org/10.1038/s41467-024-51990-7](https://doi.org/10.1038/s41467-024-51990-7)
 
 **`--columns`** accepts exact column names from the fMRIPrep table (`trans_x`,
 `rot_x`, …) plus *group prefixes* that expand to every matching column
