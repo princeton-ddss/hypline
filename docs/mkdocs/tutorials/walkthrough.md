@@ -110,7 +110,7 @@ you.,6.195,6.416,0.326,031
 
 These transcripts are **dyad-keyed** (`dyad-030`), because the conversation
 belongs to the pair rather than to either partner. See
-[Subject vs. dyad](../step-by-step/layout.md#subject-vs-dyad) for why.
+[Subject vs. Dyad](../step-by-step/layout.md#subject-vs-dyad) for why.
 
 !!! success "Check"
 
