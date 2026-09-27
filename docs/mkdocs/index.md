@@ -103,7 +103,7 @@ Only `hypline transcribe` requires FFmpeg; other Hypline commands do not.
   run on a downloadable example dataset.
 - **New to hypline?** Start with [Hypline dataset layout](step-by-step/layout.md)
   to learn how a dataset is organized.
-- **Want command details?** See the [Step-by-step guides](step-by-step/transcribe.md) for each
+- **Want command details?** See the [Step-by-step guides](step-by-step/overview.md) for each
   command's arguments and options.
 - **Want to understand the analysis better?** [How the encoding model works](FAQ/how-encoding-works.md)
   and [Feature families](FAQ/feature-families.md) cover what you can predict and how the analysis is set up.
