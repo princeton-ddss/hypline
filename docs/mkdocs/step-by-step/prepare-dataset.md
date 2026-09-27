@@ -6,7 +6,7 @@ recordings into the tree hypline expects, so that every command can find its
 inputs by convention. Once the tree is right, the commands run exactly as the
 tutorial shows.
 
-The [dataset layout](../data-prep/layout.md) describes the tree in full; this page
+The [dataset layout](layout.md) describes the tree in full; this page
 is the practical checklist for building one from scratch.
 
 ## What you supply, and what hypline fills in
@@ -17,7 +17,7 @@ the line between the two is most of the work:
 | You supply | Hypline generates |
 | ---------- | ----------------- |
 | `participants.tsv` — the dyad ↔ subject map | `stimuli/…/transcript/` — transcripts |
-| Raw BOLD and `events.tsv` under `sub-*/` | `features/` — features |
+| Raw BOLD (optional) and `events.tsv` under `sub-*/` | `features/` — features |
 | fMRIPrep outputs under `derivatives/fmriprep/` | `confounds/` — stimulus confounds |
 | Stimulus audio under `stimuli/…/audio/` | `derivatives/hypline/` — denoised BOLD |
 | `events.json` sidecars (optional metadata) | `results/` — models and evals |
@@ -99,7 +99,7 @@ derivatives/fmriprep/sub-031/ses-1/func/
 └── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
 ```
 
-[`denoise`](../how-to/denoise.md) reads the preprocessed BOLD and pulls its
+[`denoise`](../step-by-step/denoise.md) reads the preprocessed BOLD and pulls its
 nuisance regressors from fMRIPrep's own `desc-confounds` table, so both must be
 present. The BOLD `space` you preprocessed into is the one you will pass to
 `denoise` and `encoding` later.
@@ -115,8 +115,8 @@ stimuli/dyad-030/ses-1/audio/
 ```
 
 This is the only stimulus area you fill by hand. From here
-[`transcribe`](../how-to/transcribe.md) writes the transcripts and
-[`featuregen`](../how-to/featuregen.md) writes the features, both back under
+[`transcribe`](../step-by-step/transcribe.md) writes the transcripts and
+[`featuregen`](../step-by-step/featuregen.md) writes the features, both back under
 `stimuli/` and `features/` at the same dyad key.
 
 ## 5. (Optional) Describe conditions and custom nuisance
@@ -141,7 +141,7 @@ Laid out, a minimal single-dyad dataset looks like this:
 ```
 data/
 ├── participants.tsv
-├── sub-031/ses-1/func/                        # raw BOLD + events (you supply)
+├── sub-031/ses-1/func/                        # raw BOLD + events (you supply; raw BOLD not required)
 ├── sub-032/ses-1/func/
 ├── derivatives/fmriprep/                      # fMRIPrep outputs (you supply)
 └── stimuli/dyad-030/ses-1/audio/              # conversation audio (you supply)
