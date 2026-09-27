@@ -95,7 +95,7 @@ the structural ones appear in filenames.
 
 For how tokens combine (OR within an entity, AND across entities) and the full
 set of recipes, see [Filter to specific runs or
-conditions](../how-to/filter.md).
+conditions](../step-by-step/filter.md).
 
 ## Why you declare segments by hand
 
