@@ -162,6 +162,9 @@ get wrong:
     explains how the subject wiring behind an eval changes what a score like this
     tells you.
 
+To compare within-brain, cross-brain, and pseudo-dyad evals, see
+[Test the cross-brain effect from evals](../FAQ/analyze-evals.md).
+
 
 ## Load a model artifact
 
