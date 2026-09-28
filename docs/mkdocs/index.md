@@ -1,32 +1,19 @@
 # Hypline
 
-Hypline is a command-line toolbox for running encoding analyses on fMRI
-hyperscanning data collected during dyadic conversation. It is designed for
-researchers who want to relate features of an ongoing conversation—such as its
-phonemic, semantic, syntactic, or acoustic content—to the BOLD responses of the
-people producing and comprehending that speech.
+Hypline is a command-line toolbox for analyzing fMRI hyperscanning data collected during dyadic conversation. These interactions are complex and dynamic, and analyzing them often requires coordinating multiple steps across behavioral and neuroimaging data. Hypline provides a standardized workflow for structuring hyperscanning datasets, preparing and denoising fMRI data, and running analyses.
 
-An encoding model learns a mapping from features of a stimulus or behavior
-to measured brain activity and tests how well those features predict responses
-in held-out fMRI data. Encoding models are widely used in naturalistic fMRI to
-study what information is represented across the brain during continuous
-experiences such as listening to speech, watching movies, or engaging in
-conversation. In hyperscanning studies, the same framework can be used to
-examine the neural representations associated with speech production and
-comprehension while two people interact in real time. To learn more about how 
-encoding model works, see [How the encoding model works](FAQ/how-encoding-works.md).
+Hypline currently supports encoding analyses. Over time, we aim to expand the toolbox, with development from our team and yours, to support additional approaches including hyperalignment and shared response modelling, intersubject correlation, mental state decoding, hyper-hidden Markov modelling, natural language processing, and more. The pipeline provides defaults developed through extensive testing while allowing researchers to customize individual analysis choices. 
 
-Hypline supports the main steps needed to run this analysis on dyadic
+What is an encoding model? An encoding model learns a mapping from features of a stimulus or behavior
+to measured brain activity, then tests how well those features predict responses
+in held-out fMRI data. Encoding models are widely used in naturalistic fMRI to study what information is represented across the brain during continuous experiences such as listening to speech, watching movies, or engaging in conversation. In conversational hyperscanning, encoding models allow researchers to relate features of an ongoing conversation—such as its phonemic, semantic, syntactic, or acoustic content—to the BOLD responses of the people producing and comprehending that speech. For example, Zada et al. (2026),[^zada] used encoding models to examine shared neural systems involved in speech production and comprehension during real-time dyadic conversation. To learn more about how encoding model works, see [How the encoding model works](FAQ/how-encoding-works.md).
+
+Hypline supports the main steps needed to run an encoding analysis on dyadic
 conversation data: transcribing recorded speech, generating stimulus features
 and their confounds, denoising [fMRIPrep](https://fmriprep.org/en/stable/index.html) 
 BOLD data, and fitting and evaluating encoding models. Its commands are modular: 
 each performs one step and can be run independently, while all commands operate 
 within the same [BIDS](https://bids.neuroimaging.io/)-style dataset.
-
-Hypline implements the encoding-model approach of Zada et al. (2026),[^zada]
-which combined fMRI hyperscanning with language-model features to study the shared
-neural systems for speech production and comprehension during real-time dyadic
-conversation.
 
 [^zada]: Zada, Z., Nastase, S. A., Speer, S., Mwilambwe-Tshilobo, L., Tsoi, L.,
     Burns, S. M., Falk, E., Hasson, U., & Tamir, D. I. (2026). Linguistic
