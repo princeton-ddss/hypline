@@ -9,12 +9,12 @@ two options that appear on nearly every command:
   Which one a command takes follows the area it writes: the dyad-keyed stimulus
   commands (`transcribe`, `featuregen`, `confoundgen`) take `--dyad-ids`, while
   the sub-keyed `denoise` takes `--sub-ids`. See [Subject vs.
-  dyad](../concepts/layout.md#subject-vs-dyad).
+  Dyad](../step-by-step/layout.md#subject-vs-dyad).
 - **`--data-filters`** — pick which runs and conditions within them.
 
 This guide shows the common selections. For why segments and conditions work
-the way they do, see [Segments and metadata](../concepts/segments.md); for the
-full option list of any single command, see its [Reference](../reference/transcribe.md)
+the way they do, see [Segments and metadata](../step-by-step/segments.md); for the
+full option list of any single command, see its [step-by-step guide](../step-by-step/transcribe.md)
 page.
 
 ## Select dyads or subjects
