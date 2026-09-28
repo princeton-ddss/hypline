@@ -7,7 +7,7 @@ is choosing a scientific question. Hypline generates four families, each aimed a
 a different level of speech.
 
 This page is the map for picking among them. For how to generate each (options,
-inputs, outputs), see the [`featuregen` reference](../reference/featuregen.md).
+inputs, outputs), see the [`featuregen` guide](../step-by-step/featuregen.md).
 
 ## The four families at a glance
 
@@ -62,7 +62,7 @@ Unlike the other three, semantic features have no default model — you choose
 which language model produces them with `--model`, and the choice matters. A
 larger model gives richer representations; a longer-context model handles longer
 transcripts. See the
-[`featuregen semantic` reference](../reference/featuregen.md#featuregen-semantic)
+[`featuregen semantic` guide](../step-by-step/featuregen.md#featuregen-semantic)
 for the model requirements and how to select a layer.
 
 ## Choosing among them
@@ -81,5 +81,5 @@ points:
 
 Once you have features, [How the encoding model works](how-encoding-works.md)
 explains how they become a fitted model, and
-[Reading an encoding result](reading-an-eval.md) explains how to read each band's
+[Reading an encoding result](../step-by-step/encoding-results.md) explains how to read each band's
 score back out.
