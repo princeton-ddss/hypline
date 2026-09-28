@@ -41,7 +41,7 @@ scanned. It already contains the inputs hypline needs: stimulus audio under
 
 !!! info "What the example dataset covers"
 
-    It is a dyad from a real hyperscanning study
+    It is a dyad from a real hyperscanning study[^speer]
     trimmed so it is small enough to download and run quickly (about 2.8 GB):
 
     - **Two of the study's five runs** are included (`run-1`, `run-2`). The
@@ -55,6 +55,9 @@ scanned. It already contains the inputs hypline needs: stimulus audio under
 
 Every command below takes `data/` as its only positional argument and discovers
 its inputs from the directory layout; you never pass individual file paths.
+
+[^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
+    [https://doi.org/10.1038/s41467-024-51990-7](https://doi.org/10.1038/s41467-024-51990-7)
 
 ## 2. Transcribe the audio
 
@@ -81,13 +84,13 @@ and voice-activity-detection messages.)
     minutes on a laptop CPU, with a modest one-time model download. It still mis-hears
     the occasional word, which is fine here, since you are learning the workflow
     rather than analyzing the transcripts. For a real analysis, omit `--model` to use
-    the default `large-v2`, which is more accurate still but a multi-GB download and
+    the default `large-v2`, which is more accurate but a multi-GB download and
     much slower on CPU (pass `--device cuda` if you have a GPU).
 
-Only four files are transcribed, not one per run. These are the
-reading-condition subset from [step 1](#1-get-the-example-dataset): each run's
+Each run contains two types of trials (a generate and reading condition). Here we analyze only the
+reading condition subset from [step 1](#1-get-the-example-dataset): each run's
 audio covers only its R trials (`trial-1`, `trial-3`), so transcripts exist for
-those trials and not the others. The run's `events.tsv` still describes every
+those trials and not the others. That is, only four files are transcribed, not one per run. The run's `events.tsv` still describes every
 trial; hypline transcribes whatever audio is present.
 
 The transcripts land beside the audio, under a new `transcript/` subdirectory:
@@ -145,7 +148,7 @@ By default this step also generates the matching **phonemic confounds**
 get both in one command. Pass `--skip-confoundgen` to suppress that, or run
 [`confoundgen phonemic`](../step-by-step/confoundgen.md) on its own later.
 
-Two new areas appear, both dyad-keyed:
+Two new folders appear, both dyad-keyed:
 
 ```text
 data/
@@ -158,11 +161,11 @@ data/
         └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-rate.parquet    # … (4)
 ```
 
-The two confound flavors live in their own subdirectories because they are
+The two confound features live in their own subdirectories because they are
 `desc` variants of the same `conf-phonemic` kind — see
 [Variants with `desc`](../step-by-step/layout.md#desc-variants).
 
-Now add a second family. `featuregen syntactic` reads the same transcripts and
+Now add a second feature family. `featuregen syntactic` reads the same transcripts and
 computes per-token part-of-speech, dependency, and stopword features:
 
 ```bash
@@ -194,7 +197,7 @@ phonemic confounds) the encoding model uses as predictors.
 
 ## 4. Denoise the BOLD
 
-The other branch cleans the BOLD signal, the encoding model's target.
+The other branch cleans the BOLD signal, the encoding model's target. The hypline assumes that you have preprocessed your BOLD using fMRIPrep. 
 `denoise` reads fMRIPrep's preprocessed BOLD and regresses out nuisance signals
 you select from fMRIPrep's own confounds table.
 
@@ -214,9 +217,8 @@ Here `--columns` names confound columns from fMRIPrep's table: the six head-moti
 parameters (`trans_*`, `rot_*`) plus `cosine`, a prefix that expands to every
 cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
 (`MNI152NLin2009cAsym`), so we name that space explicitly — `--space` defaults to
-the surface `fsaverage6`, and your own surface data needs no `--space` at all.
-(Omitting `--columns` entirely would fall back to hypline's default
-**Speer et al. 2024** confound set — see the
+the surface `fsaverage6`, and your own surface data needs no `--space` at all. 
+(Omitting `--columns` entirely would fall back to hypline's default confound set, optimized as described in our prior work **Speer et al. 2024** — see the
 [`denoise` reference](../step-by-step/denoise.md).)
 
 This step is **sub-keyed**: it processes each partner's brain (`sub-031`,
@@ -250,7 +252,7 @@ hypline version), so the result is reproducible. See the
 So far `denoise` pulled every regressor from fMRIPrep's confounds table via
 `--columns`. The other channel is **custom nuisance files** under `nuisance/`:
 run-level regressors you supply yourself that fMRIPrep never produced (e.g.
-physiological recordings). The example dataset ships a small set so you can try
+physiological recordings). The example dataset includes a small set so you can try
 this path:
 
 ```text
@@ -260,11 +262,11 @@ data/nuisance/sub-031/ses-1/demo/
 
 !!! info "These are synthetic"
 
-    The shipped `nuis-demo` files hold synthetic placeholder regressors
+    The `nuis-demo` files hold synthetic placeholder regressors
     (`demo_regressor1`, `demo_regressor2`) rather than real signals, so the tutorial
     can exercise `--custom-sources` without needing physiological data. In a real
     analysis you author these yourself; the
-    [`denoise` reference](../reference/denoise.md#options) documents the
+    [`denoise` guide](../step-by-step/denoise.md#options) documents the
     `nuisance/` file format under `--custom-sources`.
 
 Re-run `denoise` adding the custom source. `--custom-sources` names the
@@ -324,7 +326,7 @@ scopes the fit to the `conv` task. We pass `--bold-space MNI152NLin2009cAsym` to
 match the volumetric BOLD denoised in step 4; `--bold-space` otherwise defaults
 to the surface `fsaverage6`. `--fold-by run` cross-validates by run,
 leave-one-out by default (`n_folds='loo'`), leaving one run out per fold. This is
-the common setup, and the one that lets you score held-out data in
+a common setup, and the one that lets you score held-out data in
 [step 7](#7-score-a-model-within-a-subject).
 With two runs, `loo` yields two folds. `--desc v1` tags this model variant so its
 output lands in its own subdirectory.
@@ -368,10 +370,10 @@ artifact.recipe   # the features, delays, alphas, and split the model was fit wi
 artifact.models   # the fitted pipeline(s)
 ```
 
-The fitted model is a starting point: the next two steps use it, scoring its
-predictions against a real brain.
+The fitted model is a starting point: the next two steps use it, comparing its
+predictions against real brain activity.
 
-## 7. Score a model within a subject
+## 7. Test a model within a subject
 
 `encoding analyze` scores a model's predictions against a subject's actual BOLD.
 It takes three subject roles, independent by design:
@@ -445,11 +447,11 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
     `.nc` file, and the log reads `scored 2 folds`. An `empty out-of-sample set`
     error means the model wasn't folded; re-run step 6 with `--fold-by run`.
 
-## 8. Score across brains
+## 8. Test across brains
 
 The within-subject eval is the warm-up. What hypline is built for is
 **cross-brain** analysis: because the two partners shared one conversation, you can
-drive one partner's model with the partner's speech and score it against the
+drive one partner's model with the partner's speech and test it against the
 other partner's brain. Same command, different subject wiring:
 
 ```bash
@@ -473,7 +475,7 @@ to step 7 (a `.nc` under `encodingEval-crosseval/`), so `load_eval` reads it the
 same way.
 
 This pairs the partner's model *and* speech, the cross-brain form used in Zada et
-al. (2026). It is not the only one: pairing your own speech with the partner's
+al. (2026). It is not the only cross-brain model: pairing your own speech with the partner's
 model (`--source-sub self --model-sub partner`) is often preferred, since it holds
 the stimulus fixed and varies only the model. [How the encoding model
 works](../FAQ/how-encoding-works.md#choosing-source-and-model) lays out the
