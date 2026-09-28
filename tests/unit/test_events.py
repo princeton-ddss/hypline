@@ -138,6 +138,21 @@ class TestLoadSegments:
         assert segments[0].metadata == {"cond": "a"}
         assert segments[1].metadata == {"cond": "b"}
 
+    def test_adjoining_segments_with_float_sum_do_not_overlap(self, tree: BIDSTree):
+        # 341.6 + 20.6 is 362.20000000000005 in floating point
+        bold_path = tree.add_bold(sub=SUB, task=TASK, space=SPACE, run="1")
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "block-1", "onset": 341.6, "duration": 20.6},
+                {"trial_type": "block-2", "onset": 362.2, "duration": 10.0},
+            ],
+        )
+        segments = load_segments(BIDSLayout(tree.root), BIDSPath(bold_path))
+        assert [seg.value for seg in segments] == ["1", "2"]
+
     def test_turn_speaker_rows_ignored_alongside_segments(self, tree: BIDSTree):
         # The load-bearing coexistence claim: turn_speaker is a flat label, so it
         # never enters segment parsing even when segments are present.
@@ -529,6 +544,55 @@ class TestLoadTurns:
         with pytest.raises(ValueError, match="cross-talk"):
             load_turns(BIDSLayout(tree.root), BIDSPath(stim))
 
+    def test_cross_partner_overlap_just_above_tolerance_raises(self, tree: BIDSTree):
+        # A 1e-5 s overlap is real, not float error, and must not be absorbed
+        tree.add_participants({SUB_A: DYAD, SUB_B: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
+        tree.add_events(
+            sub=SUB_A, task=TASK, run="1", rows=[_row("turn_speaker", 0.0, 10.00001)]
+        )
+        tree.add_events(
+            sub=SUB_B, task=TASK, run="1", rows=[_row("turn_speaker", 10.0, 10.0)]
+        )
+        with pytest.raises(ValueError, match="cross-talk"):
+            load_turns(BIDSLayout(tree.root), BIDSPath(stim))
+
+    def test_adjoining_turns_across_partners_do_not_overlap(self, tree: BIDSTree):
+        # 341.6 + 20.6 is 362.20000000000005 in floating point
+        tree.add_participants({SUB_A: DYAD, SUB_B: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
+        tree.add_events(
+            sub=SUB_A, task=TASK, run="1", rows=[_row("turn_speaker", 341.6, 20.6)]
+        )
+        tree.add_events(
+            sub=SUB_B, task=TASK, run="1", rows=[_row("turn_speaker", 362.2, 22.0)]
+        )
+        turns = load_turns(BIDSLayout(tree.root), BIDSPath(stim))
+        assert [t.sub for t in turns] == [SUB_A, SUB_B]
+
+    def test_adjoining_turns_within_subject_do_not_overlap(self, tree: BIDSTree):
+        # 341.6 + 20.6 is 362.20000000000005 in floating point
+        tree.add_participants({SUB_A: DYAD, SUB_B: DYAD})
+        stim = tree.add_stimulus(
+            dyad=DYAD, task=TASK, run="1", kind="audio", ext=".wav"
+        )
+        tree.add_events(
+            sub=SUB_A,
+            task=TASK,
+            run="1",
+            rows=[
+                _row("turn_speaker", 341.6, 20.6),
+                _row("turn_speaker", 362.2, 22.0),
+            ],
+        )
+        tree.add_events(sub=SUB_B, task=TASK, run="1", rows=[])
+        turns = load_turns(BIDSLayout(tree.root), BIDSPath(stim))
+        assert [t.onset for t in turns] == [341.6, 362.2]
+
     def test_missing_task_entity_raises(self, tree: BIDSTree):
         stim = tree.add_stimulus(dyad=DYAD, task=TASK, kind="audio", ext=".wav")
         source_no_task = BIDSPath(stim).without_entity("task")
@@ -567,6 +631,21 @@ class TestStampTurns:
         # half-open [onset, offset): 10.0 ends 001's window and starts 002's
         df, _ = stamp_turns(self._transcript([10.0]), self._TURNS, frame_onset=0.0)
         assert df.get_column("turn_sub").to_list() == ["002"]
+
+    def test_lifted_boundary_time_goes_to_turn_starting_there(self):
+        # 0.1 + 0.7 is 0.7999999999999999 in floating point, which a strict
+        # comparison would place in 001's window instead of 002's
+        turns = [Turn("001", 0.0, 0.8), Turn("002", 0.8, 1.6)]
+        df, _ = stamp_turns(self._transcript([0.1]), turns, frame_onset=0.7)
+        assert df.get_column("turn_sub").to_list() == ["002"]
+
+    def test_lifted_boundary_time_before_gap_is_silence(self):
+        # Same 0.7999999999999999 lift, but no turn starts at 0.8, so the time
+        # sits on 001's closing edge and falls in the gap
+        turns = [Turn("001", 0.0, 0.8), Turn("002", 1.0, 2.0)]
+        df, n_silent = stamp_turns(self._transcript([0.1]), turns, frame_onset=0.7)
+        assert df.get_column("turn_sub").to_list() == [None]
+        assert n_silent == 1
 
     def test_null_start_time_gives_null_turn_sub_and_is_not_counted(self):
         df, n_silent = stamp_turns(

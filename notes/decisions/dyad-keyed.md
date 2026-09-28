@@ -63,8 +63,9 @@ rows in each partner's events.tsv mark *that subject's own* turn windows, so the
 partners' turn info differs by design. `load_turns` (events.py) therefore reads
 *every* partner (`subjects_of(dyad)`) and unions the windows — pick-first does
 not apply. The same simultaneous-timeline invariant still underwrites it: turn
-windows from the two files share one clock, so cross-file overlap is genuine
-cross-talk (raised) rather than a timeline-misalignment artifact.
+windows from the two files share one clock, so cross-file overlap beyond
+`TIME_TOL` is genuine cross-talk (raised) rather than a timeline-misalignment
+artifact.
 
 ## Encoding seam
 

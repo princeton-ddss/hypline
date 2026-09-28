@@ -23,6 +23,10 @@ encoding-pipeline concern. See
 [../decisions/feature-files.md](../decisions/feature-files.md) for the
 boundary convention and the dummy-scan-trim interaction.
 
+Window overlap checks (segments and turns alike) allow `TIME_TOL` of float
+error: windows that meet exactly count as adjoining, and only larger
+overlaps raise.
+
 ## TR-index conversion
 
 `segment_tr_slice(segment, repetition_time)` is the one allowed conversion
@@ -63,6 +67,9 @@ takes a required `frame_onset` and lifts each word's time by it before matching
 it: the matching segment's run-relative onset, or `0.0` for an unsegmented
 whole-run source (times already run-relative). A segmented source whose segment
 value is missing/unknown is malformed and raises (mirrors `resolve_entities`).
+
+Adding `frame_onset` can introduce float error, so a word whose lifted time
+falls just short of a turn onset still belongs to that turn (`TIME_TOL`).
 
 ## Filename ↔ sidecar merge
 
