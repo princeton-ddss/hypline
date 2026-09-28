@@ -9,7 +9,7 @@ are grouped by where you meet them.
 **Dataset root**
 : The single directory every command takes as its argument. Hypline finds all
   inputs and writes all outputs by following a fixed layout beneath it, so you
-  never pass file paths. See [The hypline dataset layout](layout.md).
+  never pass file paths. See [The hypline dataset layout](../step-by-step/layout.md).
 
 **Dyad**
 : The pair of subjects who held one conversation while both were scanned. Hypline
@@ -21,12 +21,12 @@ are grouped by where you meet them.
   (raw BOLD, denoised BOLD, a fitted model); a **dyad-keyed** file is derived from
   the shared conversation (audio, transcripts, features, confounds). The two are
   bridged through `participants.tsv`. See
-  [Subject vs. dyad](layout.md#subject-vs-dyad).
+  [Subject vs. Dyad](../step-by-step/layout.md#subject-vs-dyad).
 
 **Segment**
 : A named time window within a run (a trial, block, or condition), declared in
   the run's `events.tsv`. Segments are what let you generate per-trial features
-  and filter down to specific conditions. See [Segments and metadata](segments.md).
+  and filter down to specific conditions. See [Segments and metadata](../step-by-step/segments.md).
 
 **`desc` variant**
 : A named alternative derivation of the same source, tagged with `--desc` and kept
@@ -54,7 +54,7 @@ are grouped by where you meet them.
 
 **Encoding model**
 : A model that predicts a voxel's BOLD signal from a weighted sum of speech
-  features. Hypline fits one per subject with [`encoding train`](../reference/encoding.md).
+  features. Hypline fits one per subject with [`encoding train`](../step-by-step/encoding.md).
 
 **Band**
 : One part of a banded-ridge model with its own regularization strength. Each
@@ -75,7 +75,7 @@ are grouped by where you meet them.
 ## Analysis
 
 **Source / model / target**
-: The three independent subject roles in [`encoding analyze`](../reference/encoding.md).
+: The three independent subject roles in [`encoding analyze`](../step-by-step/encoding.md).
   **Source** drives the prediction's inputs (whose speech), **model** supplies the
   weights (whose trained model), **target** is the brain being predicted (whose
   BOLD). See [Choosing source and model](how-encoding-works.md#choosing-source-and-model).
@@ -104,12 +104,12 @@ are grouped by where you meet them.
 **Role (`prod` / `comp` / `both`)**
 : The turn subset a score covers, from the target's own turns: `prod` (target
   speaking), `comp` (target listening), `both` (either). An eval reports every
-  band's score for each role. See [Reading an encoding result](reading-an-eval.md#role-which-turns-were-scored).
+  band's score for each role. See [Reading an encoding result](../step-by-step/encoding-results.md#role-which-turns-were-scored).
 
 **Eval**
 : The output of `analyze` — a netCDF file of per-voxel scores indexed by fold,
   band, role, and voxel, loaded back with `load_eval`. See
-  [Reading an encoding result](reading-an-eval.md).
+  [Reading an encoding result](../step-by-step/encoding-results.md).
 
 **Split score**
 : The value stored in an eval: one band's own share of the joint model's
