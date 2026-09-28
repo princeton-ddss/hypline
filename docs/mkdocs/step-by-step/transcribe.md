@@ -1,8 +1,8 @@
 # `hypline transcribe`
 
 Transcribe stimulus audio into word-level transcripts using a
-[Whisper](https://github.com/openai/whisper) speech-recognition model. Each
-transcript records, for every word, the time it was spoken — the timing that
+[Whisper](https://github.com/openai/whisper) speech-recognition model. For each word in each
+transcript, this step records the time the word was spoken — the timing that
 later feeds [`featuregen`](featuregen.md).
 
 ```bash
@@ -117,12 +117,12 @@ onset   duration   trial_type
 
 - The label records whose turn it is by study design, not who was observed
   speaking, so a turn window may still contain a word uttered by the other partner.
-- Mark only your own turns (`turn_speaker`); transcribe reads both partners'
+- Mark only the partipant's own turns (`turn_speaker`); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.
 - Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
   must not overlap — within a subject or across partners. A cross-partner
-  overlap is treated as cross-talk and raises an error.
+  overlap is treated as cross-talk and raises an error. Future hypline functionality will allow for speaker overlap.
 - `turn_speaker` onsets are **run-relative** — the whole-run `events.tsv` clock,
   the same frame as your segment (e.g. `trial-1`) rows. Write them that way even
   when audio is split per trial; transcribe shifts each word by its segment's
