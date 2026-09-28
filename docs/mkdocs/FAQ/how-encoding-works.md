@@ -1,12 +1,12 @@
 # How the encoding model works
 
-The [`encoding`](../step-by-step/encoding.md) commands are the point of the whole
+The `encoding` commands are the point of the whole
 pipeline: everything before them prepares the two sides of one fit. This page
 explains what that fit *is* (the model `train` builds and `analyze` scores) and
 then the choice that gives an analysis its meaning: whose speech, whose model,
 and whose brain you line up.
 
-You do not need this page to run the commands; the [step-by-step guides](../step-by-step/encoding.md)
+You do not need this page to run the commands; the [`encoding` guide](../step-by-step/encoding.md)
 covers every option. Read it to understand what the numbers mean.
 
 ## What an encoding model predicts
