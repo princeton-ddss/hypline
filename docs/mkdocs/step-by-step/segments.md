@@ -1,11 +1,11 @@
 # Segments and metadata
 
-A single BOLD run often contains several distinct stretches you care about, such
+A single BOLD run often contains several distinct units you care about, such
 as trials, blocks, or conditions. Hypline calls these **segments**, and it reads
 them from your `events.tsv` files. Segments are what let you generate per-trial
 features and filter your data down to specific conditions with `--data-filters`.
 
-This page explains where segments come from and how `--data-filters` uses them.
+This page explains where segments come from so that you can generate your own accurate segments and metadata files.
 You only need it if your runs have internal structure; whole-run datasets can
 skip it.
 
@@ -33,7 +33,7 @@ onset   duration   trial_type
 70.0    30.0       trial-3
 ```
 
-This run has three segments. Plain labels (e.g. `rest`, `fixation`) are not
+This run has three segments. Baseline labels (e.g. `rest`, `fixation`) are not
 segments; they are ignored for segmentation, so you can keep standard
 annotations in the same file.
 
