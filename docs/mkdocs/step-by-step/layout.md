@@ -1,13 +1,18 @@
 # Hypline dataset layout
 
-Hypline discovers inputs and writes outputs according to a fixed dataset structure. 
+Hypline pulls inputs and writes outputs according to a fixed dataset structure. 
 Each data-processing command takes the **dataset root** as its main positional argument; 
 you organize files according to hypline’s conventions instead of passing each input 
 and output path separately.
 
-This page explains that structure, including how hypline organizes subject-level 
-brain data and dyad-level conversation data. To assemble your own data in this format, 
-see [Prepare your own dataset](../step-by-step/prepare-dataset.md). Once your dataset is 
+We will explain how to prepare your data for the hypline in three steps. 
+1) This page explains that structure, including how hypline organizes subject-level 
+brain data and dyad-level conversation data.
+2) To assemble your own data in this format, 
+see [Prepare your own dataset](../step-by-step/prepare-dataset.md).
+3) More details about h
+
+Once your dataset is 
 ready, continue to the command-specific guides, beginning with [hypline transcribe](../step-by-step/transcribe.md). 
 
 ## The root tree
