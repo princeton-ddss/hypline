@@ -57,7 +57,7 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 No nuisance channel is required. When you pass none of `--columns`, `--compcor`,
 or `--custom-sources`, `denoise` falls back to the **Speer et al. 2024[^speer]** default
 set: motion and WM/CSF signal (each with squared and derivative expansions) plus
-cosine drift. An explicit `--compcor` or `--custom-sources` means you are picking
+cosine drift. This subset of confounds is optimized to detecting cross-brain signal. That said, you are free to select your own subset. An explicit `--compcor` or `--custom-sources` means you are picking
 your own model, so the default is left out rather than composed onto it.
 
 [^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
