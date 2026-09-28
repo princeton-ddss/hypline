@@ -55,9 +55,9 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 | `--force`          | Overwrite existing outputs (default skips them)                            | off                   |
 
 No nuisance channel is required. When you pass none of `--columns`, `--compcor`,
-or `--custom-sources`, `denoise` falls back to the **Speer et al. 2024[^speer]** default
+or `--custom-sources`, `denoise` defaults to the **Speer et al. 2024[^speer]** confound
 set: motion and WM/CSF signal (each with squared and derivative expansions) plus
-cosine drift. This subset of confounds is optimized to detecting cross-brain signal. That said, you are free to select your own subset. An explicit `--compcor` or `--custom-sources` means you are picking
+cosine drift. This subset of confounds was optimized through extensive testing to detect cross-brain signal. That said, you are free to select your own subset. An explicit `--compcor` or `--custom-sources` means you are picking
 your own model, so the default is left out rather than composed onto it.
 
 [^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
@@ -94,7 +94,7 @@ from the horizontal concat of all named sources. The two must be given together.
     `nuisance/sub-031/ses-1/<kind>[-<desc>]/`. It is a **wide** table: one named column
     per regressor, one row per TR (row count must match the BOLD run). Every
     value must be **finite** — unlike the fMRIPrep table, there is no `n/a`
-    convention, so a blank or non-numeric cell raises rather than being filled.
+    convention, so a blank or non-numeric cell raises an error rather than being filled.
 
 !!! warning "Things that must line up"
 
@@ -167,8 +167,7 @@ On first output, hypline stamps a `derivatives/hypline/dataset_description.json`
 
 Denoised BOLD lives in its own tree rather than beside its fMRIPrep source
 because denoising is hypline's own pipeline, not a continuation of fMRIPrep. A
-separate tree carries an honest `GeneratedBy: hypline` provenance instead of
-inheriting fMRIPrep's.
+separate tree denotes the hypline rather than fMRIPrep provenance.
 
 ## Common errors
 
