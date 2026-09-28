@@ -41,8 +41,8 @@ scanned. It already contains the inputs hypline needs: stimulus audio under
 
 !!! info "What the example dataset covers"
 
-    It is a faithful subset of a real hyperscanning study (about 2.8 GB),
-    trimmed so it is small enough to download and run quickly:
+    It is a dyad from a real hyperscanning study
+    trimmed so it is small enough to download and run quickly (about 2.8 GB):
 
     - **Two of the study's five runs** are included (`run-1`, `run-2`). The
       per-run file set and the dyad structure are otherwise complete.
