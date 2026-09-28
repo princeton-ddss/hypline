@@ -84,8 +84,8 @@ nav:
   - Step-by-step guides:
     - Step 1. Prepare your data:
       - Hypline dataset layout: step-by-step/layout.md
-      - Prepare your own dataset: step-by-step/prepare-dataset.md
       - Segments and metadata: step-by-step/segments.md
+      - Prepare your own dataset: step-by-step/prepare-dataset.md
     - Step 2. Run the hypline pipeline (CLI):
       - Overview: step-by-step/overview.md
       - Generate features and confounds:
