@@ -18,7 +18,7 @@ beside each run in the raw tree:
 sub-031/ses-1/func/sub-031_ses-1_task-conv_run-1_events.tsv
 ```
 
-Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
+If your data are already in BIDS format, you will likely already have an events.tsv file. Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
 resolves them through [`participants.tsv`](layout.md#subject-vs-dyad) and reads
 either partner's events — segments are shared across a dyad by construction.
 
