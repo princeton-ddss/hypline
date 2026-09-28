@@ -52,6 +52,9 @@ to the same scanning pair.
     misleading "missing column" error. This bites most often in
     `participants.tsv`, since it is the first file hypline reads.
 
+Hypline reads this participant-dyad mapping `participants.tsv` file from the
+dataset root folder.
+
 ## 2. Add event information under `sub-*/`
 
 Hypline reads each run’s structure from BIDS `events.tsv` files stored in the
@@ -88,7 +91,7 @@ metadata through `events.json`.
 
 ## 3. Add your fMRIPrep outputs
 
-Hypline does not preprocess BOLD; it consumes the output of
+Hypline does not preprocess BOLD; it takes in the output of
 [fMRIPrep](https://fmriprep.org/). Run fMRIPrep yourself and place its
 derivatives under `derivatives/fmriprep/`, in the per-subject shape it already
 produces:
@@ -104,7 +107,7 @@ nuisance regressors from fMRIPrep's own `desc-confounds` table, so both must be
 present. The BOLD `space` you preprocessed into is the one you will pass to
 `denoise` and `encoding` later.
 
-## 4. Lay out the stimulus audio
+## 4. Add the stimulus audio
 
 The conversation audio is dyad-keyed (it belongs to the pair, not either
 partner), so it goes under `stimuli/`, keyed by dyad:
@@ -144,6 +147,8 @@ data/
 ├── sub-031/ses-1/func/                        # raw BOLD + events (you supply; raw BOLD not required)
 ├── sub-032/ses-1/func/
 ├── derivatives/fmriprep/                      # fMRIPrep outputs (you supply)
+│   ├── sub-031/ses-1/func/                   
+│   └── sub-032/ses-1/func/
 └── stimuli/dyad-030/ses-1/audio/              # conversation audio (you supply)
 ```
 
