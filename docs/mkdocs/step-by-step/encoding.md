@@ -37,7 +37,7 @@ tables; read them for downstream analysis with the [encoding results API](encodi
 
 ## `hypline encoding train`
 
-Fit a voxelwise ridge encoding model per subject, writing one model per
+Fit a voxelwise ridge encoding model per subject, writing one model artifact per
 subject to `results/`.
 
 ```bash
