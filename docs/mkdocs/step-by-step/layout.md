@@ -6,11 +6,11 @@ you organize files according to hypline’s conventions instead of passing each 
 and output path separately.
 
 We will explain how to prepare your data for the hypline in three steps. 
-1) This page explains that structure, including how hypline organizes subject-level 
+1) Overview. This page explains the data structure: how hypline organizes subject-level 
 brain data and dyad-level conversation data.
-2) To assemble your own data in this format, 
+2) Create. The second step reviews the files necessary for running the hypline, including information on how to label meaningful segments your data and provide metadata files. See [Segments and metadata](../step-by-step/segments.md).
+3) Organize. To assemble your own data, files, and metadata files in the standardized hypline format, 
 see [Prepare your own dataset](../step-by-step/prepare-dataset.md).
-3) More details about h
 
 Once your dataset is 
 ready, continue to the command-specific guides, beginning with [hypline transcribe](../step-by-step/transcribe.md). 
@@ -87,7 +87,7 @@ sub-031          dyad-030
 sub-032          dyad-030
 ```
 
-This is the single source of truth for which subjects make up which dyad. Here
+This is only way hypline knows which subjects make up which dyad. Here
 subjects `031` and `032` are partners in `dyad-030` (a real study has many such
 pairs). It is read lazily: a purely `sub`-keyed workflow (e.g. `denoise`
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
@@ -110,7 +110,7 @@ sub-031_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
 ```
 ### Identity entities
 
-The **identity entities** at the front name which recording a file belongs to.
+The **identity entities** at the beginning denote which recording a file belongs to.
 A file leads with exactly one of `sub` or `dyad` (never both), followed by
 the BOLD-identity entities `ses`, `task`, `run`. A `sub`-keyed file belongs to
 one brain; a `dyad`-keyed file belongs to one shared conversation. Generated
@@ -168,7 +168,7 @@ conditions](../FAQ/filter.md).
 
 ## Why the convention matters
 
-Centralizing discovery in one convention means commands compose cleanly: each
+A standard naming and file structure convention means commands compose cleanly: each
 reads what earlier steps wrote, with no configuration file wiring inputs to
 outputs. It also keeps your dataset self-describing, since the directory tree itself
 records what has been generated and from what.
