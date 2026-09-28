@@ -1,12 +1,12 @@
 # How the encoding model works
 
-The [`encoding`](../reference/encoding.md) commands are the point of the whole
+The [`encoding`](../step-by-step/encoding.md) commands are the point of the whole
 pipeline: everything before them prepares the two sides of one fit. This page
 explains what that fit *is* (the model `train` builds and `analyze` scores) and
 then the choice that gives an analysis its meaning: whose speech, whose model,
 and whose brain you line up.
 
-You do not need this page to run the commands; the [reference](../reference/encoding.md)
+You do not need this page to run the commands; the [step-by-step guides](../step-by-step/encoding.md)
 covers every option. Read it to understand what the numbers mean.
 
 ## What an encoding model predicts
@@ -67,7 +67,7 @@ a speaking copy and a listening copy of every feature — but does not add bands
 Pass `--no-split` to fit one shared set of weights instead.
 
 This is worth keeping distinct from the roles you *score* on. The split is about
-how the model is *fit*; the [`prod`/`comp`/`both` roles](reading-an-eval.md#role-which-turns-were-scored)
+how the model is *fit*; the [`prod`/`comp`/`both` roles](../step-by-step/encoding-results.md#role-which-turns-were-scored)
 in an eval are about which rows are *scored* afterward. Both come from the same
 speaking turns, but they are separate mechanisms.
 
@@ -122,7 +122,7 @@ mechanically valid but not a fit, and `analyze` warns to flag it.
 ## Where to go next
 
 - **Read the scores an analysis produces** —
-  [Reading an encoding result](reading-an-eval.md).
-- **Every option in full** — the [`encoding` reference](../reference/encoding.md).
+  [Reading an encoding result](../step-by-step/encoding-results.md).
+- **Every option in full** — the [`encoding` guide](../step-by-step/encoding.md).
 - **See it run once** — the [tutorial](../tutorials/walkthrough.md) fits a model
   and scores it within and across brains.
