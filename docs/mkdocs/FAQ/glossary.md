@@ -9,7 +9,7 @@ are grouped by where you meet them.
 **Dataset root**
 : The single directory every command takes as its argument. Hypline finds all
   inputs and writes all outputs by following a fixed layout beneath it, so you
-  never pass file paths. See [The hypline dataset layout](../step-by-step/layout.md).
+  never pass file paths. See [Hypline dataset layout](../step-by-step/layout.md).
 
 **Dyad**
 : The pair of subjects who held one conversation while both were scanned. Hypline
