@@ -1,8 +1,7 @@
 # Load features and confounds
 
-Most of hypline is the command-line pipeline, but a small Python API is
-re-exported at the top level for reading and writing hypline's Parquet files
-directly:
+Most Hypline workflows use the command-line interface. Hypline also exposes a small 
+set of functions directly from the hypline package for reading and writing its Parquet files.
 
 ```python
 from hypline import (
@@ -15,31 +14,31 @@ from hypline import (
 )
 ```
 
-The two halves are deliberately asymmetric. **Saves are entity-based**:
-you pass `bids_root` plus BIDS entities (`dyad`, `feat`/`conf`, `run`, …) and
-hypline derives the canonical output path for you, so writes always land where
-the pipeline expects. **Reads are path-based**, since you
-usually already have a file in hand. Both enforce the [dataset
-layout](layout.md) and the file formats; a malformed DataFrame or
-path raises rather than writing something the CLI can't later consume.
+Reading and writing work slightly differently:
 
-Encoding results (fitted models and evals) have their own loaders under
-`hypline.encoding` (not top-level), covered in [Encoding
-results](encoding-results.md).
+**Saves are entity-based**. You provide `bids_root` and the relevant BIDS entities (`dyad`, `feat`/`conf`, `run`, …).
+Hypline constructs the canonical output path for you, sso that the file lands where 
+downstream commands expect it. 
+**Reads are path-based**. You provide the path of an existing Parquet file.
 
-## Plugging in a custom feature
+Both operations validate the [Hypline dataset layout](layout.md) and the expected file format. Invalid paths,
+metadata, or DataFrames raise an error instead of producing a file that Hypline
+cannot read.
 
-The CLI generates `feat-phonemic`, `feat-semantic`, `feat-spectral`, and
-`feat-syntactic` features. To drive an
-encoding model on a feature hypline doesn't compute — say prosody, or anything else you
-can align to the stimulus — build the DataFrame yourself and `save_feature` it into
-the dataset. From then on it is a first-class feature: it sits under
-`features/`, carries the right entities, and any downstream step that reads
-features by name will find it.
+Fitted encoding models and evaluation results use separate loaders under
+`hypline.encoding`. See [Encoding results](encoding-results.md).
 
-A feature DataFrame needs two columns: `start_time` (seconds from the start of
-the stimulus) and `feature` (one equal-width vector per row). Match the
-`start_time` convention hypline already uses — see the
+## Save a custom feature
+
+The CLI can generate `phonemic`, `semantic`, `spectral`, and
+`syntactic` features. To use another set of features (e.g., prosody), 
+you can construct the feature DataFrame yourself and save it with `save_feature`. 
+
+A feature DataFrame requires two columns: 
+- `start_time`: the time in seconds from the beginning of the stimulus
+- `feature`: an equal-width feature vector for that time point
+
+Follow the same `start_time` convention as Hypline's generated features. See the
 [feature file format](featuregen.md#outputs).
 
 ```python
@@ -65,34 +64,49 @@ path = save_feature(
 ```
 
 This writes `data/features/dyad-030/ses-1/embed/dyad-030_ses-1_task-conv_run-1_feat-embed.parquet`.
-Pass `desc="..."` to tag a variant into its own
-[`embed-<desc>/` subdirectory](layout.md#desc-variants), and
-`metadata={...}` to stash extra keys in the Parquet footer.
+The saved file is now part of the Hypline dataset, and downstream commands can
+locate it using the feature name `embed`.
+
+Use `desc="..."` to save a variant in its own
+[`embed-<desc>/` subdirectory](layout.md#desc-variants). Use
+`metadata={...}` to add custom keys to the Parquet footer.
 
 !!! note "Custom confounds need TR alignment"
 
-    `save_confound` is the confound-side parallel, but a confound is regressed
-    out of the BOLD, so its rows must align to the BOLD's TR grid: `start_time`
-    must begin at `0.0` and step by `repetition_time`, which you pass
-    explicitly (a single-row table carries no spacing to infer it from).
-    See [Segments and metadata](../concepts/segments.md) for how TR-aligned
-    confounds relate to the run.
+    `save_confound` is the corresponding function for custom confounds. Unlike 
+    a feature, a confound is regressed from the BOLD signal and must therefore
+    contain one row per fMRI volume.
+    Its `start_time` values must begin at `0.0` and advance by the run's
+    repetition time. Pass that interval explicitly as `repetition_time`, because
+    it cannot be inferred from a single-row table.
+    See [Segments and metadata](segments.md) for how the TR grid
+    relates to the duration of a run.
 
-## Round-tripping
+## Read data and metadata
 
-Read a feature back into a DataFrame, or peek at its footer metadata without
-loading the data:
+Load the complete feature table with `read_feature`:
 
 ```python
-from hypline import read_feature, read_feature_metadata
+from hypline import read_feature
 
 df = read_feature(path)
+```
+
+To inspect the Parquet footer without loading the feature values, use
+`read_feature_metadata`:
+
+```python
+from hypline import read_feature_metadata
+
 meta = read_feature_metadata(path)   # feature_name, feature_dim, hypline_version, …
 ```
 
-The reads validate the path and cross-check the footer against the path
-entities, so a file that round-trips through `read_feature` is one the pipeline
-will accept.
+The corresponding confound functions are `read_confound` and
+`read_confound_metadata`.
+
+Read operations validate the path and cross-check its entities against the
+Parquet metadata. A file that passes `read_feature` or `read_confound` therefore
+satisfies Hypline's feature- or confound-file validation.
 
 ## Reference
 
