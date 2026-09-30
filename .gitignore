@@ -14,3 +14,6 @@ playground
 
 # MkDocs build output
 docs/site/
+
+# macOS
+.DS_Store
