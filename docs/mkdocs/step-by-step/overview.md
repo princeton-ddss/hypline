@@ -32,7 +32,7 @@ when you run the [`encoding`](encoding.md) commands.
 
     `featuregen phonemic` generates the corresponding phonemic confounds by
     default, so you usually do not need to call `confoundgen phonemic` separately. 
-    See the [featuregen guide](how-to/featuregen.md).
+    See the [featuregen guide](featuregen.md).
 
 You do not need to run the entire pipeline. Each command can be used
 independently as long as its required inputs already exist. For example, you

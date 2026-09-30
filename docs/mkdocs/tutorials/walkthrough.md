@@ -327,7 +327,7 @@ match the volumetric BOLD denoised in step 4; `--bold-space` otherwise defaults
 to the surface `fsaverage6`. `--fold-by run` cross-validates by run,
 leave-one-out by default (`n_folds='loo'`), leaving one run out per fold. This is
 a common setup, and the one that lets you score held-out data in
-[step 7](#7-score-a-model-within-a-subject).
+[step 7](#7-test-a-model-within-a-subject).
 With two runs, `loo` yields two folds. `--desc v1` tags this model variant so its
 output lands in its own subdirectory.
 

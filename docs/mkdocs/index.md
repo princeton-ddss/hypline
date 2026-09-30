@@ -77,9 +77,10 @@ For example:
     ```
 
 After installation, confirm that FFmpeg is available: 
-    ```bash
-    ffmpeg -version
-    ```
+
+```bash
+ffmpeg -version
+```
 
 Only `hypline transcribe` requires FFmpeg; other Hypline commands do not.
 

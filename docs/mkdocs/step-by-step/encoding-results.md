@@ -1,10 +1,11 @@
 # How to work with encoding results
 
 The [`encoding`](encoding.md) CLI produces two kinds of results:
+
 - **evals** from `analyze`, containing the per-voxel encoding scores used 
-for downstream analysis;
+  for downstream analysis;
 - **model artifacts** from `train`, 
-containing fitted models and the recipe used to construct them.
+  containing fitted models and the recipe used to construct them.
 
 Load both from `hypline.encoding`:
 

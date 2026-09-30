@@ -24,6 +24,7 @@ hypline encoding train data/ \
 ```
 
 Two details carry into everything that follows. 
+
 - The band is named after the feature reference. Training with --features semantic produces a band called semantic. If you instead train with --features semantic-gpt3, select band="semantic-gpt3" below.
 - The model must be folded because the following analyses use out-of-sample scoring by default. An unfolded model has no held-out runs to score and raises an error.
 

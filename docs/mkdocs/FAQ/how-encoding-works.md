@@ -52,7 +52,7 @@ Two bands are special:
 
     The confound band is stimulus-derived nuisance (speech onset and rate, say),
     partialled out *inside* the encoding fit. That is separate from
-    [`denoise`](../reference/denoise.md), which cleans run-level nuisance (motion,
+    [`denoise`](../step-by-step/denoise.md), which cleans run-level nuisance (motion,
     drift) out of the BOLD before encoding ever sees it. The same stimulus-derived
     signal can be a feature band in one fit and a confound band in another; the
     role is a choice you make per fit, not a fixed property.

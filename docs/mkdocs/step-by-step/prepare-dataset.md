@@ -129,11 +129,11 @@ Two optional inputs round out a dataset:
 - **`events.json` sidecars** attach descriptive metadata (condition, item,
   counterbalance group) to the segments declared in `events.tsv`. This is what
   lets you filter on `cond-R` even though `cond` never appears in a filename. See
-  [Attaching metadata](../FAQ/filter.md#attaching-metadata-eventsjson).
+  [Attaching metadata](segments.md#attaching-metadata-eventsjson).
 - **`nuisance/` files** hold run-level regressors you supply yourself that
   fMRIPrep never produced (physiological recordings, say) for `denoise` to
   regress out alongside the fMRIPrep columns. See the
-  [`denoise` reference](../how-to/denoise.md).
+  [`denoise` reference](../step-by-step/denoise.md).
 
 Both are optional. A dataset with neither still runs the full pipeline.
 

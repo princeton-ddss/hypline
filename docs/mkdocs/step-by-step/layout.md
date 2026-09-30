@@ -6,11 +6,12 @@ you organize files according to hypline’s conventions instead of passing each 
 and output path separately.
 
 We will explain how to prepare your data for the hypline in three steps. 
-1) Overview. This page explains the data structure: how hypline organizes subject-level 
-brain data and dyad-level conversation data.
-2) Create. The second step reviews the files necessary for running the hypline, including information on how to label meaningful segments your data and provide metadata files. See [Segments and metadata](../step-by-step/segments.md).
-3) Organize. To assemble your own data, files, and metadata files in the standardized hypline format, 
-see [Prepare your own dataset](../step-by-step/prepare-dataset.md).
+
+1. Overview. This page explains the data structure: how hypline organizes subject-level 
+   brain data and dyad-level conversation data.
+2. Create. The second step reviews the files necessary for running the hypline, including information on how to label meaningful segments your data and provide metadata files. See [Segments and metadata](../step-by-step/segments.md).
+3. Organize. To assemble your own data, files, and metadata files in the standardized hypline format, 
+   see [Prepare your own dataset](../step-by-step/prepare-dataset.md).
 
 Once your dataset is 
 ready, continue to the command-specific guides, beginning with [hypline transcribe](../step-by-step/transcribe.md). 
@@ -53,7 +54,7 @@ a few extra areas. A representative dataset tree looks like this:
   (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
   consumes many runs across sessions.
 - **`nuisance/`** is optional and you fill it — run-level regressors (e.g.
-  physiological recordings) for [`denoise`](../how-to/denoise.md) to regress
+  physiological recordings) for [`denoise`](../step-by-step/denoise.md) to regress
   out alongside fMRIPrep's confounds.
 - **`participants.tsv`** is a standard BIDS table at the dataset root, required
   to map subjects to dyads — see [Subject vs. Dyad](#subject-vs-dyad).
