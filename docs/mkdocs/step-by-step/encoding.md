@@ -227,7 +227,7 @@ source-run or session entity):
 | `empty out-of-sample set — pass test_on to name cells` (`analyze`) | The model was trained unfolded (`--fold-by none`), so it has no held-out cells to test. | Test a folded model, or name cells explicitly with `--test-on`. |
 | `test_on matched no available cells: …` (`analyze`) | `--test-on` names cells the source subject does not have. | Check the `--test-on` filter against the runs/conditions that exist. |
 | `test_on entities […] not found on any available cell … check for a typo` (`analyze`) | A `--test-on` filter uses an entity that no cell carries. | Fix the entity name (e.g. `run-6`, not `ses-1`). |
-| Log warns `source (…) and target (…) are different dyads` (`analyze`) | The model/source and target belong to different dyads — a scramble/null control. | Expected for a null control; otherwise fix `--source-sub` / `--model-sub` so they share the target's dyad. |
+| Log warns `source (…) and target (…) are different dyads` (`analyze`) | The source and target belong to different dyads — a scramble/null control. | Expected for a null control; otherwise fix `--source-sub` so it shares the target's dyad. |
 | `No subjects found` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` excluded them all. | Confirm denoised BOLD exists and that filters are not too narrow. |
 
 ## Loading results in Python
