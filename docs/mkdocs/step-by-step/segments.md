@@ -80,6 +80,9 @@ onset   duration   trial_type
 - Mark only the participant's own turns (`turn_speaker`); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.
+- If your audio file contains overlapping utterances between turns, such as backchanneling
+  words from Partner B during Partner A's turn, these will also be recorded as what the
+  speaker said (i.e. Partner A).
 - Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
   must not overlap — within a subject or across partners. A cross-partner
   overlap is treated as cross-talk and raises an error. We're planning to develop hypline
