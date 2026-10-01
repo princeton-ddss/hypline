@@ -82,9 +82,6 @@ After installation, confirm that FFmpeg is available:
 ffmpeg -version
 ```
 
-Only `hypline transcribe` requires FFmpeg; other Hypline commands do not.
-
-
 ## Where to go next
 
 - **Want to try it now?** Follow the [Tutorial](tutorials/walkthrough.md) for a complete
