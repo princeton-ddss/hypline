@@ -66,5 +66,7 @@ use `hypline encoding analyze`. You can then load the resulting evaluation outpu
 in Python with [`load_eval` / `load_artifact`](encoding-results.md).
 
 You can also run any step on its own. Hypline skips outputs that already exist;
-use `--force` when you want to regenerate them.
+use `--force` when you want to regenerate them. If a command reports
+`No dyads found`, `No subjects found`, or a per-ID failure, see [When a filter
+matches nothing](../FAQ/filter.md#when-a-filter-matches-nothing).
 

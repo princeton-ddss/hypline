@@ -53,17 +53,6 @@ named and discovered.
     on a cluster with a small home quota. An explicit `--model-dir` still wins
     over both.
 
-!!! tip "When a command produces no output"
-
-    `No dyads found` for stimulus commands or `No subjects found` for
-    `denoise` and `encoding` means the command found no dyads or subjects
-    where it looks for inputs. Check the dataset layout. A wrong
-    `--dyad-ids` / `--sub-ids` value fails differently: you get a per-ID
-    error and exit code `1`. (If
-    `--data-filters` matches no data, see [Filter to specific runs or
-    conditions](../FAQ/filter.md#when-a-filter-matches-nothing).)
-
-
 ## Example
 
 Transcribe every dyad's WAV audio with the default model:
@@ -108,16 +97,4 @@ Each transcript row is one word with its onset time. These onsets are what
 `encoding` requires speaking-turn annotations in your `events.tsv` files; the
 other steps work without them. When they are present, each transcript gains a
 `turn_sub` column naming which subject held the floor when each word began.
-
-Mark turns in each subject's `events.tsv` with the flat `trial_type` label
-`turn_speaker` — one row per window where that subject is the assigned
-speaker:
-
-```tsv
-onset   duration   trial_type
-0.0     12.5       turn_speaker
-20.0    8.0        turn_speaker
-```
-
-See [Speaker turns](segments.md#speaker-turns) for the full rules on writing
-them.
+See [Speaker turns](segments.md#speaker-turns) for how to mark them.
