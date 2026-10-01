@@ -117,4 +117,5 @@ onset   duration   trial_type
 ```
 
 Go back to [Segments and Metadata](segments.md) for more detailed instructions about 
-`events.tsv` files.
+`encoding` requires these annotations. See [Speaker turns](segments.md#speaker-turns)
+for the full rules on writing them.
