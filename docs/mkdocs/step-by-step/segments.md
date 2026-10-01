@@ -77,7 +77,7 @@ onset   duration   trial_type
 65.0    30.0       trial-3
 ```
 
-- Mark only the partipant's own turns (`turn_speaker`); transcribe reads both partners'
+- Mark only the participant's own turns (`turn_speaker`); transcribe reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.
 - Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
