@@ -89,7 +89,7 @@ sub-031          dyad-030
 sub-032          dyad-030
 ```
 
-This is only way hypline knows which subjects make up which dyad. Here
+This is the only way hypline knows which subjects make up which dyad. Here
 subjects `031` and `032` are partners in `dyad-030` (a real study has many such
 pairs). It is read lazily: a purely `sub`-keyed workflow (e.g. `denoise`
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
