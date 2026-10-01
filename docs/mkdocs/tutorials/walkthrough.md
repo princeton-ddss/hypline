@@ -356,7 +356,7 @@ data/results/sub-031/encodingModel-v1/
 
 ### Load the result back
 
-The model saves as a `.joblib` blob you load back into Python for downstream
+The model saves as a `.joblib` file you load back into Python for downstream
 analysis, the same way [`read_feature`](../step-by-step/python-api.md) reads a
 feature file:
 
