@@ -36,38 +36,49 @@ hypline featuregen phonemic data/ --data-filters run-1 --force
 
 Find the row for what you changed; rerun the listed steps in order, each with
 `--force` (scoped with filters as needed). Each step reads what the one before it
-wrote, so a gap leaves stale output behind.
+wrote, so a gap leaves stale output behind. If you use `encoding`, end every
+row except `events.json` with `encoding train` → `encoding analyze`, since
+existing models were fit to the old inputs.
 
 | You changed… | Rerun, in order (each `--force`) |
 | ------------ | -------------------------------- |
-| **Stimulus audio** | `transcribe` → `featuregen phonemic` |
-| **An `events.tsv`** (segment onsets/durations) | `featuregen phonemic` |
+| **Stimulus audio** | `transcribe` → every `featuregen` family you use |
+| **An `events.tsv`** (segment onsets) | `transcribe` → every `featuregen` family you use |
+| **An `events.tsv`** (segment durations only) | `featuregen` `phonemic`, `semantic`, `spectral` |
+| **An `events.tsv`** (`turn_speaker` rows) | `transcribe` → `featuregen` `phonemic`, `semantic`, `syntactic` |
 | **An `events.json`** (metadata only, e.g. `cond`) | nothing to regenerate — metadata is read at filter time, not baked into outputs[^meta] |
-| **fMRIPrep preprocessed BOLD or its confounds table** | `denoise` only |
-| **Custom `nuisance/` files** | `denoise` only |
-| **Which nuisance regressors to regress** (`--columns` / `--compcor` / `--custom-sources` on denoise) | `denoise` only |
+| **fMRIPrep preprocessed BOLD or its confounds table** | `denoise` |
+| **Custom `nuisance/` files** | `denoise` |
+| **Which nuisance regressors to regress** (`--columns` / `--compcor` / `--custom-sources` on denoise) | `denoise` |
 
 [^meta]: `events.json` metadata (like `cond`) is matched by `--data-filters` when
     a command runs; it is never written into a filename or output. Changing it
     changes which files a future filter selects, not the contents of files
-    already generated. (Segment onsets/durations in `events.tsv`, by contrast,
-    do change generated confounds — so that row regenerates.)
+    already generated. (Segment and turn rows in `events.tsv`, by contrast, do
+    change generated outputs — so those rows regenerate.)
 
-!!! note "Why `featuregen phonemic`, not `confoundgen phonemic`, in those rows"
+!!! note "Why `featuregen`, not `confoundgen`, in those rows"
 
-    `featuregen phonemic` emits both the features and the matching
-    `conf-phonemic` confounds in one step, so `--force` refreshes both — no
-    separate `confoundgen phonemic` call needed after an audio or `events.tsv`
-    fix. The catch worth knowing: segment onsets and durations affect only the
-    confound half. `feat-phonemic` carries per-word timing and is
-    segment-agnostic, so re-emitting it is harmless rework; the segmenting that
-    `events.tsv` drives happens when the confounds are built.
+    `featuregen phonemic` and `featuregen semantic` also emit the matching
+    `conf-phonemic` / `conf-semantic` confounds, so `--force` refreshes both —
+    no separate `confoundgen` call needed.
+
+    Which feature files actually change depends on the fix. Segment durations
+    reach the confounds and `spectral`, which bins audio per segment. The
+    word-level feature files do not change, so re-emitting them is harmless
+    rework.
+
+    Turn edits change each word's `turn_sub`, which `transcribe` writes and
+    the word-level feature files carry. Moving a segment onset does too when
+    turns are marked, since `transcribe` places turns relative to the segment
+    start. `syntactic` parses one turn at a time, so its features change as
+    well.
 
 !!! note "Stimulus fixes do not propagate to `denoise`"
 
     `denoise` reads its nuisance regressors from fMRIPrep's confounds table and
     the `nuisance/` area — never from the stimulus-derived `confounds/`. So
-    re-recording audio or fixing an `events.tsv` changes features and phonemic
+    re-recording audio or fixing an `events.tsv` changes features and stimulus
     confounds but leaves `desc-denoised` BOLD untouched: there is no stimulus →
     `denoise` dependency to repair.
 
@@ -86,7 +97,9 @@ hypline denoise data/ \
 
 Without `--force`, `denoise` would see the existing `desc-denoised` file and skip —
 leaving denoised BOLD built from the old, CompCor-less regressor set. The same
-applies after editing any `nuisance/` file you regress out.
+applies after editing any `nuisance/` file you regress out. Then rerun
+`encoding train` and `encoding analyze` with `--force`, since existing models
+were fit to the old denoised BOLD.
 
 !!! tip "When in doubt, force the whole tail"
 

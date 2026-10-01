@@ -6,7 +6,7 @@ nuisance regressors you select, and produces a `desc-denoised` BOLD under the
 `derivatives/hypline/` tree.
 
 ```bash
-hypline denoise <dataset-root> [--columns … | --compcor … | --custom-sources …] [OPTIONS]
+hypline denoise <dataset-root> [--columns …] [--compcor …] [--custom-sources … --custom-columns …] [OPTIONS]
 ```
 
 Nuisance regressors come from two channels, stacked into one regressor matrix:
@@ -176,5 +176,5 @@ separate tree denotes the hypline rather than fMRIPrep provenance.
 | `--custom-sources and --custom-columns must be given together` | One of the custom-nuisance options was passed without the other. | Supply both, or neither. |
 | A `--custom-sources` source resolves to 0 (or multiple) files | A source names a `nuisance/<kind>[-<desc>]/` directory that does not exist (or matches more than one file per run). | Check the source spelling against your `nuisance/` directories. |
 | `Unequal number of TRs between BOLD and nuisance` | A regressor channel has a different row count than the BOLD it is paired with. | Confirm the fMRIPrep confounds table and any custom nuisance files span every TR of the run. |
-| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is absent from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
-| `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` / `--data-filters` excluded them all. | Confirm fMRIPrep outputs exist and that your filters are not too narrow. |
+| Every subject logs `sub-… failed: …` with a `FileNotFoundError`, and the command exits `1` | `--space` names a valid space that is absent from your fMRIPrep outputs, so no BOLD file matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
+| `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`. | Confirm the fMRIPrep outputs are under `derivatives/fmriprep/`. |

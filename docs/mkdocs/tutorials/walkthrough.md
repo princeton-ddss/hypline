@@ -352,7 +352,9 @@ data/results/sub-031/encodingModel-v1/
 
     `results/` now holds an `encodingModel-v1/` directory for `sub-031` and
     `sub-032`, each with a `.joblib` + `.json` pair. If the command logged
-    `No subjects found`, check that step 4 wrote `desc-denoised` BOLD.
+    `No subjects found`, check that `derivatives/fmriprep/` unpacked correctly
+    under `data/`. If a subject fails instead, check that step 4 wrote its
+    `desc-denoised` BOLD.
 
 ### Load the result back
 

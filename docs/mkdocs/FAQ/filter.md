@@ -62,8 +62,17 @@ you filter on it the same way:
 
 ```bash
 # only the "R" condition
-hypline denoise data/ --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z --data-filters cond-R
+hypline featuregen phonemic data/ --data-filters cond-R
 ```
+
+!!! warning "`denoise` and segment-level conditions"
+
+    fMRIPrep BOLD files cover a whole run and carry no segment entity like
+    `trial`. So on trial-segmented runs, a `cond` filter on `denoise` fails with
+    `Path is missing segment entity 'trial' declared in events.tsv`. It works
+    only when the run is declared with a single `task-<name>` row (see [Three
+    kinds of run](../step-by-step/segments.md#three-kinds-of-run)). Otherwise,
+    filter `denoise` by `run`.
 
 ### Runs AND a condition
 
@@ -71,9 +80,7 @@ Mixing different entities narrows the match — every named entity must hold:
 
 ```bash
 # (run 1 or run 2) AND condition R
-hypline denoise data/ \
-  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z \
-  --data-filters run-1,run-2,cond-R
+hypline featuregen phonemic data/ --data-filters run-1,run-2,cond-R
 ```
 
 ## The matching rule at a glance
@@ -88,10 +95,9 @@ identity option (`--dyad-ids` / `--sub-ids`) with `--data-filters` to slice on
 both axes at once:
 
 ```bash
-# subjects 031 and 032, run 1 only, condition R
-hypline denoise data/ \
-  --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z \
-  --sub-ids 031,032 \
+# dyad 030, run 1 only, condition R
+hypline featuregen phonemic data/ \
+  --dyad-ids 030 \
   --data-filters run-1,cond-R
 ```
 
@@ -110,14 +116,17 @@ See [Regenerate outputs after a fix](regenerate.md) for the rerun workflow.
 
 ## When a filter matches nothing
 
-Two outcomes look similar but mean different things:
+Three outcomes look similar but mean different things:
 
-- **`No dyads found`** / **`No subjects found`** — no ids were discovered at all:
-  the input location is empty, or your `--dyad-ids` / `--sub-ids` excluded
-  everything. `--data-filters` does not trigger this — id discovery ignores it.
-  Widen the id list, or confirm the files are in place. (Stimulus commands report
-  dyads; `denoise` reports subjects.)
-- **A per-id failure: `{id} failed: Files found but none matched user filters …`**
+- **`No dyads found`** / **`No subjects found`** — no ids were discovered at all,
+  because the input location is empty. Neither `--dyad-ids` / `--sub-ids` nor
+  `--data-filters` triggers this: passed ids skip discovery, and discovery
+  ignores filters. Confirm the files are in place. (Stimulus commands report
+  dyads; `denoise` and `encoding train` report subjects.)
+- **A per-id failure for an id you passed** (and the command exits `1`) — a
+  `--dyad-ids` / `--sub-ids` value names an id that does not exist, e.g.
+  `dyad 'dyad-999' not found under stimuli/`. Check the id against your dataset.
+- **A per-id failure: `{id} failed: Files found but none matched …`**
   (and the command exits `1`) — ids were found, but a `--data-filters` token
   matched nothing for that id, whether because it names an entity that exists
   nowhere, or a value present on no file. Hypline treats an empty match as a typo

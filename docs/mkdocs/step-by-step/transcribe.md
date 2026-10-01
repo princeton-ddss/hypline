@@ -97,13 +97,16 @@ Each transcript row is one word with its onset time. These onsets are what
 !!! note "Un-timed words"
 
     Whisper occasionally emits a token it cannot place in time (some numerals
-    and symbols). Such tokens appear in the transcript with a blank time and are
-    dropped by downstream feature generation, since an event with no time cannot
-    be aligned to the BOLD signal.
+    and symbols). Such tokens appear in the transcript with a blank time.
+    Feature generation keeps them, since they still give context to the
+    language model and parser. They are dropped later, when `confoundgen` and
+    `encoding` place rows on the TR grid, since a word with no time cannot be
+    aligned to the BOLD signal.
 
 ## Speaker turns
 
-If your `events.tsv` files annotate speaking turns, each transcript gains a
+`encoding` requires speaking-turn annotations in your `events.tsv` files; the
+other steps work without them. When they are present, each transcript gains a
 `turn_sub` column naming which subject held the floor when each word began.
 
 Mark turns in each subject's `events.tsv` with the flat `trial_type` label
@@ -116,6 +119,5 @@ onset   duration   trial_type
 20.0    8.0        turn_speaker
 ```
 
-Go back to [Segments and Metadata](segments.md) for more detailed instructions about 
-`encoding` requires these annotations. See [Speaker turns](segments.md#speaker-turns)
-for the full rules on writing them.
+See [Speaker turns](segments.md#speaker-turns) for the full rules on writing
+them.

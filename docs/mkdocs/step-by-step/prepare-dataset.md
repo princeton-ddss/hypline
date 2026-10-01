@@ -160,6 +160,6 @@ command takes `data/` as its main positional argument and discovers its inputs f
 !!! success "Check"
 
     `hypline transcribe data/ --audio-ext .wav` should log one line per audio
-    file it finds. `No dyads found` means the `stimuli/…/audio/` layout or
-    `participants.tsv` is off; `No subjects found` from `denoise` means the
+    file it finds. `No dyads found` means `stimuli/` holds no `dyad-*`
+    directories; `No subjects found` from `denoise` means the
     `derivatives/fmriprep/` tree did not land where hypline looks.

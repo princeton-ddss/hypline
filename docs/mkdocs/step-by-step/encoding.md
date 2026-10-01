@@ -228,7 +228,7 @@ source-run or session entity):
 | `test_on matched no available cells: …` (`analyze`) | `--test-on` names cells the source subject does not have. | Check the `--test-on` filter against the runs/conditions that exist. |
 | `test_on entities […] not found on any available cell … check for a typo` (`analyze`) | A `--test-on` filter uses an entity that no cell carries. | Fix the entity name (e.g. `run-6`, not `ses-1`). |
 | Log warns `source (…) and target (…) are different dyads` (`analyze`) | The source and target belong to different dyads — a scramble/null control. | Expected for a null control; otherwise fix `--source-sub` so it shares the target's dyad. |
-| `No subjects found` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` excluded them all. | Confirm denoised BOLD exists and that filters are not too narrow. |
+| `No subjects found` (`train`) | No subjects under `derivatives/fmriprep/`; `train` discovers subjects there, not in `derivatives/hypline/` (a missing `desc-denoised` BOLD shows up as a per-subject failure instead). | Confirm the fMRIPrep outputs are under `derivatives/fmriprep/`. |
 
 ## Loading results in Python
 

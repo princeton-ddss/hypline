@@ -1,8 +1,7 @@
 # Glossary
 
 Hypline gives a handful of ordinary words a specific meaning. This page defines
-them in one place; the rest of the docs link here rather than re-explaining. Terms
-are grouped by where you meet them.
+them in one place. Terms are grouped by where you meet them.
 
 ## Dataset structure
 
