@@ -16,10 +16,10 @@ from hypline import (
 
 Reading and writing work slightly differently:
 
-**Saves are entity-based**. You provide `bids_root` and the relevant BIDS entities (`dyad`, `feat`/`conf`, `run`, …).
-Hypline constructs the canonical output path for you, sso that the file lands where 
-downstream commands expect it. 
-**Reads are path-based**. You provide the path of an existing Parquet file.
+- **Saves are entity-based**. You provide `bids_root` and the relevant BIDS entities (`dyad`, `feat`/`conf`, `run`, …).
+  Hypline constructs the canonical output path for you, so that the file lands where
+  downstream commands expect it.
+- **Reads are path-based**. You provide the path of an existing Parquet file.
 
 Both operations validate the [Hypline dataset layout](layout.md) and the expected file format. Invalid paths,
 metadata, or DataFrames raise an error instead of producing a file that Hypline
