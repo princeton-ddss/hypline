@@ -87,7 +87,7 @@ onset   duration   trial_type
   must not overlap — within a subject or across partners. A cross-partner
   overlap is treated as cross-talk and raises an error. We're planning to develop hypline
   functionality to allow for speaker overlap in the future.
-- `turn_speaker` onsets are **run-based** — the whole-run `events.tsv` clock,
+- `turn_speaker` onsets are **run-relative** — the whole-run `events.tsv` clock,
   the same frame as your segment (e.g. `trial-1`) rows. Write them that way even
   when audio is split per trial; transcribe shifts each word by its segment's
   onset before matching, so you never annotate turns in per-trial time.
