@@ -1,4 +1,4 @@
-# How to work with encoding results
+# Reading encoding results
 
 The [`encoding`](encoding.md) CLI produces two kinds of results:
 
