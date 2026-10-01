@@ -122,7 +122,7 @@ mechanically valid but not a fit, and `analyze` warns to flag it.
 ## Where to go next
 
 - **Read the scores an analysis produces** —
-  [Reading an encoding result](../step-by-step/encoding-results.md).
+  [Reading encoding results](../step-by-step/encoding-results.md).
 - **Every option in full** — the [`encoding` guide](../step-by-step/encoding.md).
 - **See it run once** — the [tutorial](../tutorials/walkthrough.md) fits a model
   and scores it within and across brains.
