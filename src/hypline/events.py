@@ -20,6 +20,16 @@ if TYPE_CHECKING:
     from hypline.layout import BIDSLayout
 
 
+# Tolerance in seconds for comparing event times. Adding two decimal times like
+# 341.6 + 20.6 yields 362.20000000000005, so a window that ends exactly where the
+# next begins would otherwise read as overlapping. A tolerance is used instead of
+# rounding because rounding to a fixed number of decimals still misjudges values
+# that fall halfway between two rounding steps. Times on a 16 kHz sample grid are
+# multiples of 0.0000625, for example, which sit halfway between 6-decimal steps.
+# 1 µs is far finer than any real event timing and far coarser than float error.
+TIME_TOL = 1e-6
+
+
 @dataclass(frozen=True)
 class Segment:
     entity: str
@@ -117,12 +127,14 @@ def _parse_segments(events: pl.DataFrame | None) -> list[Segment]:
     segments = sorted(segments, key=lambda seg: seg.onset)
 
     for prev, curr in zip(segments, segments[1:]):
-        if prev.onset + prev.duration > curr.onset:
+        prev_offset = prev.onset + prev.duration
+        if prev_offset - curr.onset > TIME_TOL:
+            curr_offset = curr.onset + curr.duration
             raise ValueError(
                 f"Segments overlap: {segment_entity}-{prev.value} "
-                f"[{prev.onset}, {prev.onset + prev.duration}) and "
+                f"[{prev.onset}, {prev_offset}) and "
                 f"{segment_entity}-{curr.value} "
-                f"[{curr.onset}, {curr.onset + curr.duration})"
+                f"[{curr.onset}, {curr_offset})"
             )
 
     return segments
@@ -389,9 +401,9 @@ def _parse_turns(events: pl.DataFrame | None, sub: str) -> list[Turn]:
 
     Each row is a `[onset, onset + duration)` window during which `sub` holds
     the floor. Returns [] when events is None or carries no such rows. Within a
-    single subject's file the windows must not overlap (a word cannot fall in
-    two of that subject's turns); cross-partner overlap is checked later by the
-    union-level caller, where it signals cross-talk.
+    single subject's file the windows must not overlap by more than `TIME_TOL`
+    (a word cannot fall in two of that subject's turns); cross-partner overlap
+    is checked later by the union-level caller, where it signals cross-talk.
     """
     if events is None or events.is_empty():
         return []
@@ -409,7 +421,7 @@ def _parse_turns(events: pl.DataFrame | None, sub: str) -> list[Turn]:
     turns.sort(key=lambda t: t.onset)
 
     for prev, curr in zip(turns, turns[1:]):
-        if prev.offset > curr.onset:
+        if prev.offset - curr.onset > TIME_TOL:
             raise ValueError(
                 f"sub-{sub} {TURN_SPEAKER_LABEL} windows overlap: "
                 f"[{prev.onset}, {prev.offset}) and [{curr.onset}, {curr.offset})"
@@ -427,8 +439,8 @@ def load_turns(layout: BIDSLayout, source: BIDSPath) -> list[Turn]:
     info is *complementary*, not identical — every partner's file is read.
 
     Raises ValueError if `source` lacks `task`, if any partner's events.tsv is
-    malformed, or if turn windows overlap across partners (cross-talk: a word
-    could fall in two subjects' turns).
+    malformed, or if turn windows overlap across partners by more than
+    `TIME_TOL` (cross-talk: a word could fall in two subjects' turns).
     """
     if "task" not in source.entities:
         raise ValueError(
@@ -455,7 +467,7 @@ def load_turns(layout: BIDSLayout, source: BIDSPath) -> list[Turn]:
 
     turns.sort(key=lambda t: t.onset)
     for prev, curr in zip(turns, turns[1:]):
-        if prev.offset > curr.onset:
+        if prev.offset - curr.onset > TIME_TOL:
             raise ValueError(
                 f"{TURN_SPEAKER_LABEL} windows overlap across partners "
                 f"(cross-talk): sub-{prev.sub} [{prev.onset}, {prev.offset}) and "
@@ -471,12 +483,15 @@ def _assign_turn(turns: list[Turn], start_time: float | None) -> str | None:
     A word is assigned to the subject holding the floor when it began. Returns
     None when `start_time` is None (untimed word) or falls in a gap (silence) —
     callers should treat a silence hit as a possible timing/annotation mismatch.
-    `turns` is assumed sorted and non-overlapping (as `load_turns` returns it).
+    `turns` is assumed sorted and not overlapping by more than `TIME_TOL` (as
+    `load_turns` returns it).
     """
     if start_time is None:
         return None
     for turn in turns:
-        if turn.onset <= start_time < turn.offset:
+        # Float error can leave a time meant to land on a turn onset just short of
+        # it (0.1 + 0.7 is 0.7999999999999999), so shift it forward into that turn
+        if turn.onset <= start_time + TIME_TOL < turn.offset:
             return turn.sub
     return None
 
