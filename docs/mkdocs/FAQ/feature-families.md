@@ -81,5 +81,5 @@ points:
 
 Once you have features, [How the encoding model works](how-encoding-works.md)
 explains how they become a fitted model, and
-[Reading an encoding result](../step-by-step/encoding-results.md) explains how to read each band's
+[Reading encoding results](../step-by-step/encoding-results.md) explains how to read each band's
 score back out.
