@@ -55,10 +55,11 @@ named and discovered.
 
 !!! tip "When a command produces no output"
 
-    `No dyads found` for stimulus commands or `No subjects found` for 
-    `denoise` and `encoding` usually means that the command could not
-    find matching inputs, or that `--dyad-ids` / `--sub-ids` excluded
-    all available data. Check the dataset layout and the IDs you supplied. (If
+    `No dyads found` for stimulus commands or `No subjects found` for
+    `denoise` and `encoding` means the command found no dyads or subjects
+    where it looks for inputs. Check the dataset layout. A wrong
+    `--dyad-ids` / `--sub-ids` value fails differently: you get a per-ID
+    error and exit code `1`. (If
     `--data-filters` matches no data, see [Filter to specific runs or
     conditions](../FAQ/filter.md#when-a-filter-matches-nothing).)
 
