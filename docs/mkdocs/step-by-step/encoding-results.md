@@ -184,7 +184,7 @@ artifact.fold        # the FoldSpec, or None for a single unfolded model
 written by a different hypline version. Treat this as provenance 
 information rather than a hard incompatibility.
 
-## Reference
+## APT reference
 
 API documentation for loading, inspecting, and saving encoding results.
 
