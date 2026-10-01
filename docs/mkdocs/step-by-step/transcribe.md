@@ -105,7 +105,7 @@ Each transcript row is one word with its onset time. These onsets are what
 If your `events.tsv` files annotate speaking turns, each transcript gains a
 `turn_sub` column naming which subject held the floor when each word began.
 
-Mark turns in each subject's raw `events.tsv` with the flat `trial_type` label
+Mark turns in each subject's `events.tsv` with the flat `trial_type` label
 `turn_speaker` — one row per window where that subject is the assigned
 speaker:
 
@@ -115,21 +115,5 @@ onset   duration   trial_type
 20.0    8.0        turn_speaker
 ```
 
-- The label records whose turn it is by study design, not who was observed
-  speaking, so a turn window may still contain a word uttered by the other partner.
-- Mark only the partipant's own turns (`turn_speaker`); transcribe reads both partners'
-  events and combines them, so there is no separate "listening" label to keep in
-  sync.
-- Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
-  must not overlap — within a subject or across partners. A cross-partner
-  overlap is treated as cross-talk and raises an error. Future hypline functionality will allow for speaker overlap.
-- `turn_speaker` onsets are **run-relative** — the whole-run `events.tsv` clock,
-  the same frame as your segment (e.g. `trial-1`) rows. Write them that way even
-  when audio is split per trial; transcribe shifts each word by its segment's
-  onset before matching, so you never annotate turns in per-trial time.
-
-Each word's `turn_sub` is the bare subject label (`001`, `101`) whose window
-contains the word's run-relative start. Words that are un-timed, or fall in a gap
-between turns, get a blank `turn_sub`; gap hits are logged as a possible
-timing/annotation mismatch. Transcripts whose runs carry no `turn_speaker` rows
-still get the column, with every value null, so the schema is uniform.
+Go back to [Segments and Metadata](segments.md) for more detailed instructions about 
+`events.tsv` files.
