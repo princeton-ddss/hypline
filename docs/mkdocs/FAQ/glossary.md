@@ -104,12 +104,12 @@ are grouped by where you meet them.
 **Role (`prod` / `comp` / `both`)**
 : The turn subset a score covers, from the target's own turns: `prod` (target
   speaking), `comp` (target listening), `both` (either). An eval reports every
-  band's score for each role. See [Reading an encoding result](../step-by-step/encoding-results.md#role-which-turns-were-scored).
+  band's score for each role. See [Reading encoding results](../step-by-step/encoding-results.md#role-which-turns-were-scored).
 
 **Eval**
 : The output of `analyze` — a netCDF file of per-voxel scores indexed by fold,
   band, role, and voxel, loaded back with `load_eval`. See
-  [Reading an encoding result](../step-by-step/encoding-results.md).
+  [Reading encoding results](../step-by-step/encoding-results.md).
 
 **Split score**
 : The value stored in an eval: one band's own share of the joint model's
