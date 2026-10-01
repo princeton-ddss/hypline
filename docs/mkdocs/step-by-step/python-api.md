@@ -72,16 +72,47 @@ Use `desc="..."` to save a variant in its own
 [`embed-<desc>/` subdirectory](layout.md#desc-variants). Use
 `metadata={...}` to add custom keys to the Parquet footer.
 
-!!! note "Custom confounds need TR alignment"
 
-    `save_confound` is the corresponding function for custom confounds. Unlike 
-    a feature, a confound is regressed from the BOLD signal and must therefore
-    contain one row per fMRI volume.
-    Its `start_time` values must begin at `0.0` and advance by the run's
-    repetition time. Pass that interval explicitly as `repetition_time`, because
-    it cannot be inferred from a single-row table.
-    See [Segments and metadata](segments.md) for how the TR grid
-    relates to the duration of a run.
+## Save a custom confound
+
+`save_confound` is the corresponding function for custom confounds. Unlike 
+a feature, a confound is regressed from the BOLD signal and must therefore
+contain one row per fMRI volume.
+
+A confound DataFrame requires two columns: 
+
+- `start_time`: the time in seconds from the beginning of the stimulus
+- `confound`: an equal-width confound vector for that time point
+
+The `start_time` values must begin at `0.0` and advance by the run's
+repetition time. Pass that interval explicitly as `repetition_time`. You must also provide
+`tr_method`, a label describing how the confound was aligned to TRs. Pass None
+if it does not apply.
+
+```python
+import polars as pl
+from hypline import save_confound
+
+df = pl.DataFrame(
+    {
+        "start_time": [0.0, 1.5, 3.0],
+        "confound": [[0.9, 0.01, 0.03], [0.0, 0.2, 0.5], [0.1, 0.2, 0.6]],
+    }
+)
+
+path = save_confound(
+    df,
+    bids_root="data/",
+    dyad="030",
+    ses="1",
+    conf="newconf",
+    task="conv",
+    run="1",
+    repetition_time=1.5,
+    tr_method=None,
+)
+```
+
 
 ## Read data and metadata
 
