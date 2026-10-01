@@ -81,7 +81,7 @@ them in one place. Terms are grouped by where you meet them.
 
 **Within-brain analysis**
 : Scoring a subject's own model, driven by their own speech, against their own
-  brain (`source: self, model: self`). The baseline case.
+  brain (`source: self, model: self`). The reference case.
 
 **Cross-brain analysis**
 : Predicting one partner's brain using the shared conversation and the other

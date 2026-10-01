@@ -13,7 +13,7 @@ hypline encoding <command> <dataset-root> [OPTIONS]
 | Subcommand | Does                                                                 |
 | ---------- | ------------------------------------------------------------------- |
 | `train`    | Fit a per-subject ridge model from features (+ optional confounds)  |
-| `analyze`  | Test a model's cross-subject predictions against a target's BOLD   |
+| `analyze`  | Test a model's predictions against a target subject's BOLD, within or across subjects |
 
 Both commands read from the dataset root and write to a new `results/` area (see
 [Outputs](#outputs)). Results load back as live Python objects rather than flat
@@ -76,7 +76,7 @@ Dyad](layout.md#subject-vs-dyad).
 | `--delays`       | Comma-separated FIR delays in TRs                                                                | `0,1,2,3,4,5`        |
 | `--alphas`       | Comma-separated ridge alphas to search                                                           | `1`–`1e12` log grid (13 points) |
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
-| `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
+| `--no-split`     | Fit one shared set of weights for production and comprehension instead of a separate set for each | off                  |
 | `--sub-ids`      | Comma-separated subject IDs to train (e.g. `041,042`); omit for all                               | all                  |
 | `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Filtering guide](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
@@ -206,7 +206,7 @@ source-run or session entity):
 │   ├── sub-041_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
 │   └── sub-041_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
 └── sub-041/encodingEval-selfeval/
-    └── sub-041_result-encodingEval_desc-selfeval.nc # analyze: per-voxel correlations (netCDF-4)
+    └── sub-041_result-encodingEval_desc-selfeval.nc # analyze: per-voxel scores (netCDF-4)
 ```
 
 - **`encodingModel-<desc>/`** (`train`) — the fitted model as a `.joblib` file,

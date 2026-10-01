@@ -21,7 +21,7 @@ and (3) the **encoding branch** combines these inputs to fit and evaluate encodi
 | `confoundgen semantic` | stimulus | semantic features                      | `conf-semantic` confounds       |
 | `denoise`              | fMRIPrep | preprocessed BOLD, fMRIPrep confounds  | denoised BOLD (`desc-denoised`) |
 | `encoding train`       | encoding | features, confounds, denoised BOLD     | fitted models (`results/`)      |
-| `encoding analyze`     | encoding | fitted models, features, denoised BOLD | eval correlations (`results/`)  |
+| `encoding analyze`     | encoding | fitted models, features, denoised BOLD | eval scores (`results/`)       |
 
 The stimulus and fMRIPrep branches can be run independently. Stimulus commands
 construct the predictors used by the encoding model, while `denoise` prepares

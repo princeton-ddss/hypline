@@ -89,7 +89,7 @@ source and model is what turns the same machinery into different analyses:
 
 | source | model | What it is |
 | ------ | ----- | ---------- |
-| self | self | **Within-brain.** A subject's own speech and own model predict their own brain — the baseline "does this feature encode in this brain at all" fit. |
+| self | self | **Within-brain.** A subject's own speech and own model predict their own brain — the reference "does this feature encode in this brain at all" fit. |
 | partner | partner | **Cross-brain, partner-driven.** The partner's speech and the partner's model predict the subject's brain. This is the analysis in Zada et al. (2026). |
 | self | partner | **Cross-brain, self-driven.** The subject's *own* speech, but the *partner's* model, predicts the subject's brain — holding the stimulus fixed and testing only whether the partner's learned mapping transfers. `--source-sub` defaults to `self` for this reason. |
 | self | out-of-dyad | **Pseudo-dyad.** The subject's own speech and brain, scored with a model trained on someone they never spoke with — a baseline for what a mismatched model scores by chance, to compare the real effects against. |
