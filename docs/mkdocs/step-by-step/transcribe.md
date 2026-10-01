@@ -31,12 +31,12 @@ named and discovered.
 
 | Option           | Description                                                      | Default          |
 | ---------------- | ---------------------------------------------------------------- | ---------------- |
-| `--audio-ext`    | Extension of the audio files, e.g. `.wav` **(required)**         | —                |
+| `--audio-ext`    | Extension of the audio files, e.g. `.wav` — **required**        | —                |
 | `--model`        | Whisper model: `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3` | `large-v2` |
 | `--model-dir`    | Where to find/download model weights                             | `~/.cache/hypline/whisperx` |
 | `--device`       | Hardware target: `cpu` or `cuda`                                 | `cpu`            |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all              |
-| `--data-filters` | Narrow to specific runs/conditions — see [Filtering guide](../FAQ/filter.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing transcripts (default skips them)              | off              |
 
 !!! tip "Model size vs. speed"
@@ -94,7 +94,7 @@ beside the audio under `stimuli/`:
 Each transcript row is one word with its onset time. These onsets are what
 `featuregen phonemic` reads to place features on the timeline.
 
-!!! note "Un-timed words"
+!!! note "Untimed words"
 
     Whisper occasionally emits a token it cannot place in time (some numerals
     and symbols). Such tokens appear in the transcript with a blank time.

@@ -61,8 +61,8 @@ dataset root folder.
 
 ## 2. Add event information under `sub-*/`
 
-Hypline reads each run’s structure from BIDS `events.tsv` files stored in the
-subject’s `func` directory:
+Hypline reads each run's structure from BIDS `events.tsv` files stored in the
+subject's `func` directory:
 
 ```
 sub-041/ses-1/func/
@@ -82,14 +82,14 @@ obtains its imaging data from the fMRIPrep derivatives described in the next
 section.
 
 An `events.tsv` file can describe segments such as trials, blocks, or
-conditions, as well as the subject’s speaking turns. Hypline uses these
+conditions, as well as the subject's speaking turns. Hypline uses these
 annotations when generating segment-level features, filtering runs or
 conditions, and assigning transcript words to speakers. For an
 unsegmented whole-run dataset, `events.tsv` may be omitted for every step
 except `encoding`, which requires speaking-turn (`turn_speaker`) rows.
 
 See [Segments and metadata](segments.md) to learn how to create your `events.tsv`
-files. That page explains the required columns, hypline’s segment-labeling
+files. That page explains the required columns, hypline's segment-labeling
 convention, speaking-turn annotations, and how to attach descriptive
 metadata through `events.json`.
 

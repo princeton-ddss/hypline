@@ -1,6 +1,6 @@
-# Load features and confounds
+# Features and confounds
 
-Most Hypline workflows use the command-line interface. Hypline also exposes a small 
+Most hypline workflows use the command-line interface. Hypline also exposes a small 
 set of functions directly from the hypline package for reading and writing its Parquet files.
 
 ```python
@@ -22,7 +22,7 @@ Reading and writing work slightly differently:
 - **Reads are path-based**. You provide the path of an existing Parquet file.
 
 Both operations validate the [Hypline dataset layout](layout.md) and the expected file format. Invalid paths,
-metadata, or DataFrames raise an error instead of producing a file that Hypline
+metadata, or DataFrames raise an error instead of producing a file that hypline
 cannot read.
 
 Fitted encoding models and evaluation results use separate loaders under
@@ -39,7 +39,7 @@ A feature DataFrame requires two columns:
 - `start_time`: the time in seconds from the beginning of the stimulus
 - `feature`: an equal-width feature vector for that time point
 
-Follow the same `start_time` convention as Hypline's generated features. See the
+Follow the same `start_time` convention as hypline's generated features. See the
 [feature file format](featuregen.md#outputs).
 
 ```python
@@ -65,7 +65,7 @@ path = save_feature(
 ```
 
 This writes `data/features/dyad-040/ses-1/embed/dyad-040_ses-1_task-conv_run-1_feat-embed.parquet`.
-The saved file is now part of the Hypline dataset, and downstream commands can
+The saved file is now part of the hypline dataset, and downstream commands can
 locate it using the feature name `embed`.
 
 Use `desc="..."` to save a variant in its own
@@ -140,7 +140,7 @@ The corresponding confound functions are `read_confound` and
 
 Read operations validate the path and cross-check its entities against the
 Parquet metadata. A file that passes `read_feature` or `read_confound` therefore
-satisfies Hypline's feature- or confound-file validation.
+satisfies hypline's feature- or confound-file validation.
 
 ## API reference
 

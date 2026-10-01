@@ -2,7 +2,7 @@
 
 Hypline pulls inputs and writes outputs according to a fixed dataset structure. 
 Each data-processing command takes the **dataset root** as its main positional argument; 
-you organize files according to hypline’s conventions instead of passing each input 
+you organize files according to hypline's conventions instead of passing each input 
 and output path separately.
 
 We will explain how to prepare your data for hypline in three steps. 

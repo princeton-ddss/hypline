@@ -44,18 +44,18 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 
 | Option             | Description                                                                | Default               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------- |
-| `--columns`        | Comma-separated fMRIPrep confound columns to regress out (see below)       | Speer et al. 2024[^speer] set (when no channel given) |
+| `--columns`        | Comma-separated fMRIPrep confound columns to regress out (see below)       | Speer et al. (2024)[^speer] set (when no channel given) |
 | `--compcor`        | Comma-separated CompCor selectors (see below)                              | none                  |
 | `--custom-sources` | Comma-separated `nuisance/` sources as `<kind>[-<desc>]`; requires `--custom-columns` | none       |
 | `--custom-columns` | Column names to select from the `--custom-sources` files; requires `--custom-sources` | none       |
 | `--space`          | BOLD space to clean: `fsaverage5`, `fsaverage6`, `MNI152NLin6Asym`, `MNI152NLin2009cAsym` | `fsaverage6` |
 | `--sub-ids`        | Comma-separated subject IDs to process; omit for all                       | all                   |
 | `--desc`           | Output `desc` entity tag (alphanumeric); output lands as `desc-<desc>`. A distinct value keeps separate nuisance-config variants from overwriting (e.g. `--desc motionOnly`) | `denoised` |
-| `--data-filters`   | Narrow to specific runs/conditions — see [Filtering guide](../FAQ/filter.md) | none |
+| `--data-filters`   | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`          | Overwrite existing outputs (default skips them)                            | off                   |
 
 No nuisance channel is required. When you pass none of `--columns`, `--compcor`,
-or `--custom-sources`, `denoise` defaults to the **Speer et al. 2024[^speer]** confound
+or `--custom-sources`, `denoise` defaults to the Speer et al. (2024)[^speer] confound
 set: motion and WM/CSF signal (each with squared and derivative expansions) plus
 cosine drift. This subset of confounds was optimized through extensive testing to detect cross-brain signal. That said, you are free to select your own subset. An explicit `--compcor` or `--custom-sources` means you are picking
 your own model, so the default is left out rather than composed onto it.
@@ -108,7 +108,7 @@ from the horizontal concat of all named sources. The two must be given together.
 
 ## Example
 
-Clean BOLD for all subjects with the default Speer et al. 2024 confound set —
+Clean BOLD for all subjects with the default Speer et al. (2024) confound set —
 pass no nuisance channel at all. `--space` defaults to the surface `fsaverage6`,
 so it too can be omitted:
 

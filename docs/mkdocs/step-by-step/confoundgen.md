@@ -61,7 +61,7 @@ Phonemic feature files produced by [`featuregen phonemic`](featuregen.md):
 | Option           | Description                                                       | Default |
 | ---------------- | ---------------------------------------------------------------- | ------- |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions — see [Filtering guide](../FAQ/filter.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 ### Example

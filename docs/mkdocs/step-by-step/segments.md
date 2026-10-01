@@ -93,7 +93,7 @@ onset   duration   trial_type
   onset before matching, so you never annotate turns in per-trial time.
 
 Each word's `turn_sub` is the bare subject label (`041`, `042`) whose window
-contains the word's run-relative start. Words that are un-timed, or fall in a gap
+contains the word's run-relative start. Words that are untimed, or fall in a gap
 between turns, get a blank `turn_sub`; gap hits are logged as a possible
 timing/annotation mismatch. Transcripts whose runs carry no `turn_speaker` rows
 still get the column, with every value null, so the schema is uniform.

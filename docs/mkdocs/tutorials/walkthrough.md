@@ -1,4 +1,4 @@
-# A full run on the example dataset
+# Run the full pipeline on the example dataset
 
 This walkthrough takes a real example dataset (stimulus audio and fMRIPrep
 outputs) through the whole hypline pipeline: phonemic and syntactic
@@ -8,7 +8,7 @@ to end and seen exactly what each step reads and writes.
 
 It assumes you have hypline installed (see [Installation](../index.md#installation),
 including FFmpeg for transcription). No prior hypline experience is needed, but
-skim [The hypline dataset layout](../step-by-step/layout.md) first if a path or
+skim [Hypline dataset layout](../step-by-step/layout.md) first if a path or
 filename below is ever unclear; this tutorial shows the layout in action rather
 than re-explaining it.
 
@@ -455,7 +455,7 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 
 ## 8. Test across brains
 
-The within-subject eval is the warm-up. What hypline is built for is
+The within-brain eval is the warm-up. What hypline is built for is
 **cross-brain** analysis: because the two partners shared one conversation, you can
 drive one partner's model with the partner's speech and test it against the
 other partner's brain. Same command, different subject wiring:

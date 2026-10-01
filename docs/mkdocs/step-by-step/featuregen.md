@@ -44,7 +44,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 | `--desc`            | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen`| Write features only; do not also generate phonemic confounds | off     |
 | `--dyad-ids`        | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters`    | Narrow to specific runs/conditions — see [Filtering guide](../FAQ/filter.md) | none |
+| `--data-filters`    | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`           | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! tip "Features and confounds together"
@@ -125,14 +125,14 @@ truncating; reach for a longer-context LM instead.
 
 | Option               | Description                                                       | Default |
 | -------------------- | ---------------------------------------------------------------- | ------- |
-| `--model`            | **Required.** Hugging Face causal-LM id (e.g. `gpt2-xl`, `meta-llama/Llama-3.2-1B`) | — |
+| `--model`            | Hugging Face causal-LM id (e.g. `gpt2-xl`, `meta-llama/Llama-3.2-1B`) — **required** | — |
 | `--model-dir`        | Cache dir for downloaded weights                                 | `~/.cache/hypline/huggingface` |
 | `--device`           | Hardware target (`cpu` or `cuda`)                                | `cpu`   |
 | `--layer`            | Hidden-layer index in `0..num_hidden_layers`; omit for the middle layer | middle |
 | `--desc`             | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen` | Write features only; do not also generate semantic confounds | off     |
 | `--dyad-ids`         | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters`     | Narrow to specific runs/conditions                               | none |
+| `--data-filters`     | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`            | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! tip "Features and confounds together"
@@ -220,12 +220,12 @@ it. A dyad with no resolvable BOLD raises.
 
 | Option           | Description                                                       | Default |
 | ---------------- | ---------------------------------------------------------------- | ------- |
-| `--audio-ext`    | Extension of the audio files, e.g. `.wav` **(required)**         | —       |
+| `--audio-ext`    | Extension of the audio files, e.g. `.wav` — **required**        | —       |
 | `--model`        | Whisper model whose extractor produces the spectrogram: `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3` | `tiny` |
 | `--model-dir`    | Cache dir for downloaded weights                                 | `~/.cache/hypline/huggingface` |
 | `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions                               | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! note "No `--device`, no confounds"
@@ -294,7 +294,7 @@ their null timing into the output. Null-`word` rows are dropped and warned.
 | ---------------- | ---------------------------------------------------------------- | ------- |
 | `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions                               | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! note "Fixed model, no `--device`, no confounds"

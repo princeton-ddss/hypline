@@ -17,7 +17,7 @@ hypline encoding <command> <dataset-root> [OPTIONS]
 
 Both commands read from the dataset root and write to a new `results/` area (see
 [Outputs](#outputs)). Results load back as live Python objects rather than flat
-tables; read them for downstream analysis with the [encoding results API](encoding-results.md).
+tables; read them for downstream analysis with the [Encoding results](encoding-results.md) API.
 
 !!! note "The banded ridge model"
 
@@ -35,7 +35,7 @@ tables; read them for downstream analysis with the [encoding results API](encodi
 
 ---
 
-## `hypline encoding train`
+## `encoding train`
 
 Fit a voxelwise ridge encoding model per subject, writing one model artifact per
 subject to `results/`.
@@ -78,7 +78,7 @@ Dyad](layout.md#subject-vs-dyad).
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
 | `--no-split`     | Fit one shared set of weights for production and comprehension instead of a separate set for each | off                  |
 | `--sub-ids`      | Comma-separated subject IDs to train (e.g. `041,042`); omit for all                               | all                  |
-| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Filtering guide](../FAQ/filter.md) | none |
+| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
 !!! warning "`--fold-by` and `--n-folds`"
@@ -124,7 +124,7 @@ hypline encoding train data/ \
 
 ---
 
-## `hypline encoding analyze`
+## `encoding analyze`
 
 Test a trained model's predictions against a target subject's actual BOLD, per
 role (production / comprehension / both). Three subject roles are independent:
@@ -133,8 +133,8 @@ role (production / comprehension / both). Three subject roles are independent:
 - **source** (`--source-sub`) — whose features build the prediction inputs (X).
 - **target** (`--target-sub`) — whose actual BOLD is the comparison (Y).
 
-Any combination is valid within one study: `source == target` is a
-within-subject fit; partners in one dyad share a conversation across different
+Any combination is valid within one study: all three the same subject is a
+within-brain fit; partners in one dyad share a conversation across different
 brains; different dyads are a scramble/null control (`analyze` warns). The values
 `self` and `partner` are accepted for `--model-sub` / `--source-sub`, resolved
 relative to `--target-sub` via `participants.tsv`. For how these pairings map to
@@ -167,7 +167,7 @@ any speech-active row. A role with no rows scores `NaN` rather than zero.
 
 ### Example
 
-Test subject `041`'s own model against its own BOLD (a within-subject fit). With
+Test subject `041`'s own model against its own BOLD (a within-brain fit). With
 default `--test-on`, `analyze` tests each model's out-of-sample cells, so the
 model must be folded. A `--fold-by none` model trained on every cell has no
 held-out cells and raises here; name cells with `--test-on`, or use a folded
@@ -233,5 +233,5 @@ source-run or session entity):
 ## Loading results in Python
 
 Both commands write Python objects, not tables. Load them back for downstream
-analysis with the [encoding results API](encoding-results.md): `load_eval` for
+analysis with the [Encoding results](encoding-results.md) API: `load_eval` for
 an eval, `load_artifact` for a fitted model.

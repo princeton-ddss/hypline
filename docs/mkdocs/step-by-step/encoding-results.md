@@ -1,4 +1,4 @@
-# Reading encoding results
+# Encoding results
 
 The [`encoding`](encoding.md) CLI produces two kinds of results:
 
@@ -152,7 +152,7 @@ get wrong:
 
 !!! success "A first look at your eval"
 
-    Loaded, a typical within-subject eval subsets like this — the production
+    Loaded, a typical within-brain eval subsets like this — the production
     score for one feature, averaged over folds:
 
     ```python

@@ -4,10 +4,10 @@ You have run [`encoding analyze`](../step-by-step/encoding.md) a few times
 and have a handful of eval files. Does a model trained on one partner's brain predict 
 the other partner's brain better than a model from an unrelated subject? 
 
-We compare a within-subject fit, a cross-brain fit, and a 
+We compare a within-brain fit, a cross-brain fit, and a 
 pseudo-dyad baseline side by side.
 
-This is the applied companion to [How to work with encoding results](../step-by-step/encoding-results.md),
+This is the applied companion to [Encoding results](../step-by-step/encoding-results.md),
 which explains how to load a single eval, interpret its axes, and select the scores you need. Here we compare across several evals.
 
 ## Produce the evals to compare
@@ -95,7 +95,7 @@ valid = cross_margin.notnull()
 ```
 
 A positive value means that the matched partner's model predicts the target brain 
-better than this out-of-dyad model at that voxel. The within-subject score is not 
+better than this out-of-dyad model at that voxel. The within-brain score is not 
 part of this subtraction. It provides a reference for how well the semantic feature 
 predicts the target brain when the model is trained on that same subject.
 
@@ -107,8 +107,9 @@ predicts the target brain when the model is trained on that same subject.
     Here, the question concerns the `semantic` band specifically. Compare that band across conditions 
     rather than adding confound or other feature bands that are not part of the hypothesis.
 
-!!! important "This is a descriptive comparison"
-    A positive margin—or a large fraction of voxels with positive margins—is not by itself a statistical 
+!!! warning "This is a descriptive comparison"
+
+    A positive margin — or a large fraction of voxels with positive margins — is not by itself a statistical 
     test. Voxels within a brain are not independent observations, so they
     should not be treated as independent samples.
     For population-level inference, repeat the comparison across target subjects or dyads and use a 
