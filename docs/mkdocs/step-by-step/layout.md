@@ -162,7 +162,9 @@ between them later by name.
 Because commands discover files by convention, you select what to process using 
 identity options and `--data-filters`, rather than individual file paths. Dyad-keyed 
 commands (`transcribe`, `featuregen`, and `confoundgen`) take **`--dyad-ids`**, whereas 
-subj-keyed commands (`denoise` and `encoding`) take **`--sub-ids`**. Use --force to 
+sub-keyed commands (`denoise` and `encoding train`) take **`--sub-ids`**.
+`encoding analyze` instead names its subjects with `--target-sub`, `--model-sub`,
+and `--source-sub`, and takes no `--data-filters`. Use `--force` to
 overwrite existing outputs; otherwise, hypline skips outputs it has already generated.
 
 For how to combine these, see [Filter to specific runs or
