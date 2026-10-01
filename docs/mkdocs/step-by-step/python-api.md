@@ -109,7 +109,7 @@ Read operations validate the path and cross-check its entities against the
 Parquet metadata. A file that passes `read_feature` or `read_confound` therefore
 satisfies Hypline's feature- or confound-file validation.
 
-## Reference
+## API reference
 
 ### Writing
 
