@@ -3,7 +3,7 @@
 Fit and test **voxelwise ridge encoding models**, the step that joins the two
 sides the rest of the pipeline prepares. `train` maps stimulus features (X) onto
 denoised BOLD (Y) per subject; `analyze` tests one subject's model against
-another subject's brain (or a left out run of the own subjects brain), across production and comprehension turns. `encoding`
+another subject's brain (or a held-out run of the same subject's brain), across production and comprehension turns. `encoding`
 is a group of subcommands.
 
 ```bash

@@ -87,7 +87,7 @@ and voice-activity-detection messages.)
     the default `large-v2`, which is more accurate but a multi-GB download and
     much slower on CPU (pass `--device cuda` if you have a GPU).
 
-Each run contains two types of trials (a generate and reading condition). Here we analyze only the
+Each run contains two trial conditions: generate (G) and reading (R). Here we analyze only the
 reading condition subset from [step 1](#1-get-the-example-dataset): each run's
 audio covers only its R trials (`trial-2` and `trial-3` in run 1, `trial-5` and
 `trial-8` in run 2), so transcripts exist for
@@ -199,7 +199,7 @@ phonemic confounds) the encoding model uses as predictors.
 
 ## 4. Denoise the BOLD
 
-The other branch cleans the BOLD signal, the encoding model's target. The hypline assumes that you have preprocessed your BOLD using fMRIPrep. 
+The other branch cleans the BOLD signal, the encoding model's target. Hypline assumes that you have preprocessed your BOLD using fMRIPrep.
 `denoise` reads fMRIPrep's preprocessed BOLD and regresses out nuisance signals
 you select from fMRIPrep's own confounds table.
 
@@ -220,7 +220,7 @@ parameters (`trans_*`, `rot_*`) plus `cosine`, a prefix that expands to every
 cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
 (`MNI152NLin2009cAsym`), so we name that space explicitly — `--space` defaults to
 the surface `fsaverage6`, and your own surface data needs no `--space` at all. 
-(Omitting `--columns` entirely would fall back to hypline's default confound set, optimized as described in our prior work **Speer et al. 2024** — see the
+(Omitting `--columns` entirely would fall back to hypline's default confound set, optimized as described in our prior work, Speer et al. (2024)[^speer] — see the
 [`denoise` reference](../step-by-step/denoise.md).)
 
 This step is **sub-keyed**: it processes each partner's brain (`sub-041`,

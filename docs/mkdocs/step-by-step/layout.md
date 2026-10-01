@@ -5,11 +5,11 @@ Each data-processing command takes the **dataset root** as its main positional a
 you organize files according to hypline’s conventions instead of passing each input 
 and output path separately.
 
-We will explain how to prepare your data for the hypline in three steps. 
+We will explain how to prepare your data for hypline in three steps. 
 
 1. Overview. This page explains the data structure: how hypline organizes subject-level 
    brain data and dyad-level conversation data.
-2. Create. The second step reviews the files necessary for running the hypline, including information on how to label meaningful segments your data and provide metadata files. See [Segments and metadata](../step-by-step/segments.md).
+2. Create. The second step reviews the files necessary for running hypline, including how to label meaningful segments of your data and provide metadata files. See [Segments and metadata](../step-by-step/segments.md).
 3. Organize. To assemble your own data, files, and metadata files in the standardized hypline format, 
    see [Prepare your own dataset](../step-by-step/prepare-dataset.md).
 

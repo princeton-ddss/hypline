@@ -1,7 +1,7 @@
 # Compare cross-brain fits with a baseline
 
 You have run [`encoding analyze`](../step-by-step/encoding.md) a few times 
-and have a handful of eval files. does a model trained on one partner's brain predict 
+and have a handful of eval files. Does a model trained on one partner's brain predict 
 the other partner's brain better than a model from an unrelated subject? 
 
 We compare a within-subject fit, a cross-brain fit, and a 
@@ -25,7 +25,7 @@ hypline encoding train data/ \
 
 Two details carry into everything that follows. 
 
-- The band is named after the feature reference. Training with --features semantic produces a band called semantic. If you instead train with --features semantic-gpt3, select band="semantic-gpt3" below.
+- The band is named after the feature reference. Training with `--features semantic` produces a band called `semantic`. If you instead train with `--features semantic-gpt3`, select `band="semantic-gpt3"` below.
 - The model must be folded because the following analyses use out-of-sample scoring by default. An unfolded model has no held-out runs to score and raises an error.
 
 Run each comparison against the same target brain, changing only the source and model:
@@ -48,7 +48,8 @@ hypline encoding analyze data/ \
 ```
 
 The resulting directories appear under `results/sub-041/`:
-```bash
+
+```text
 encodingEval-within
 encodingEval-crossself
 encodingEval-pseudodyad
@@ -94,14 +95,14 @@ valid = cross_margin.notnull()
 ```
 
 A positive value means that the matched partner's model predicts the target brain 
-better than this out-of-dyad model at that voxel.  The within-subject score is not 
+better than this out-of-dyad model at that voxel. The within-subject score is not 
 part of this subtraction. It provides a reference for how well the semantic feature 
 predicts the target brain when the model is trained on that same subject.
 
 !!! note "Compare the feature band you are testing"
 
     These are himalaya *split scores*. Split scores describe each band's contribution 
-    to the joint correlation, and summing across bands recovers the whole model's score. See —
+    to the joint correlation, and summing across bands recovers the whole model's score. See
     [What the scores are](../step-by-step/encoding-results.md#what-the-scores-are-and-are-not).
     Here, the question concerns the `semantic` band specifically. Compare that band across conditions 
     rather than adding confound or other feature bands that are not part of the hypothesis.

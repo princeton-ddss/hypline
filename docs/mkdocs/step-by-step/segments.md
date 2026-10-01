@@ -18,7 +18,7 @@ beside each run in the raw tree:
 sub-041/ses-1/func/sub-041_ses-1_task-conv_run-1_events.tsv
 ```
 
-If your data are already in BIDS format, you will likely already have an events.tsv file. Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
+If your data are already in BIDS format, you will likely already have an `events.tsv` file. Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
 resolves them through [`participants.tsv`](layout.md#subject-vs-dyad) and reads
 either partner's events — segments are shared across a dyad by construction.
 
@@ -77,7 +77,7 @@ onset   duration   trial_type
 65.0    30.0       trial-3
 ```
 
-- Mark only the participant's own turns (`turn_speaker`); transcribe reads both partners'
+- Mark only the participant's own turns (`turn_speaker`); `transcribe` reads both partners'
   events and combines them, so there is no separate "listening" label to keep in
   sync.
 - If your audio file contains overlapping utterances between turns, such as backchanneling
@@ -89,7 +89,7 @@ onset   duration   trial_type
   functionality to allow for speaker overlap in the future.
 - `turn_speaker` onsets are **run-relative** — the whole-run `events.tsv` clock,
   the same frame as your segment (e.g. `trial-1`) rows. Write them that way even
-  when audio is split per trial; transcribe shifts each word by its segment's
+  when audio is split per trial; `transcribe` shifts each word by its segment's
   onset before matching, so you never annotate turns in per-trial time.
 
 Each word's `turn_sub` is the bare subject label (`041`, `042`) whose window
