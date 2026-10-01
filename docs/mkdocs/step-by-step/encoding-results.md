@@ -164,7 +164,7 @@ get wrong:
     tells you.
 
 To compare within-brain, cross-brain, and pseudo-dyad evals, see
-[Test the cross-brain effect from evals](../FAQ/analyze-evals.md).
+[Compare cross-brain fits with a baseline](../FAQ/analyze-evals.md).
 
 
 ## Load a model artifact
@@ -184,7 +184,7 @@ artifact.fold        # the FoldSpec, or None for a single unfolded model
 written by a different hypline version. Treat this as provenance 
 information rather than a hard incompatibility.
 
-## APT reference
+## API reference
 
 API documentation for loading, inspecting, and saving encoding results.
 
