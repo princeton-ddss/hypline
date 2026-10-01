@@ -56,6 +56,46 @@ The last case is an escape hatch. When a run has no internal structure but you
 still want to trim leading instructions or attach run-level metadata, add a
 single row whose `trial_type` repeats the run's task name (e.g. `task-conv`).
 
+
+## Speaker turns
+
+`events.tsv` files can also annotate speaking turns. If this is the case, each transcript gets a
+`turn_sub` column naming which subject held the floor when each word began.
+
+Mark turns in each subject's `events.tsv` with the flat `trial_type` label
+`turn_speaker` — one row per window where that subject is the assigned
+speaker:
+
+```tsv
+onset   duration   trial_type
+0.0     30.0       trial-1
+0.0     10.5       turn_speaker
+16.1    13.1       turn_speaker
+35.0    30.0       trial-2
+35.1    9.7        turn_speaker
+45.1    10.9       turn_speaker
+65.0    30.0       trial-3
+```
+
+- Mark only the partipant's own turns (`turn_speaker`); transcribe reads both partners'
+  events and combines them, so there is no separate "listening" label to keep in
+  sync.
+- Windows are `[onset, onset + duration)`. Gaps (silence) are allowed; windows
+  must not overlap — within a subject or across partners. A cross-partner
+  overlap is treated as cross-talk and raises an error. We're planning to develop hypline
+  functionality to allow for speaker overlap in the future.
+- `turn_speaker` onsets are **run-based** — the whole-run `events.tsv` clock,
+  the same frame as your segment (e.g. `trial-1`) rows. Write them that way even
+  when audio is split per trial; transcribe shifts each word by its segment's
+  onset before matching, so you never annotate turns in per-trial time.
+
+Each word's `turn_sub` is the bare subject label (`001`, `101`) whose window
+contains the word's run-relative start. Words that are un-timed, or fall in a gap
+between turns, get a blank `turn_sub`; gap hits are logged as a possible
+timing/annotation mismatch. Transcripts whose runs carry no `turn_speaker` rows
+still get the column, with every value null, so the schema is uniform.
+
+
 ## Attaching metadata: `events.json`
 
 Segment names like `trial-1` carry no meaning on their own. Descriptive
