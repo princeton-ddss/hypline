@@ -80,9 +80,9 @@ section.
 An `events.tsv` file can describe segments such as trials, blocks, or
 conditions, as well as the subject’s speaking turns. Hypline uses these
 annotations when generating segment-level features, filtering runs or
-conditions, and assigning transcript words to speakers. For an 
-unsegmented whole-run dataset, `events.tsv` may be omitted unless you 
-want to include speaking-turn annotations.
+conditions, and assigning transcript words to speakers. For an
+unsegmented whole-run dataset, `events.tsv` may be omitted for every step
+except `encoding`, which requires speaking-turn (`turn_speaker`) rows.
 
 See [Segments and metadata](segments.md) to learn how to create your `events.tsv`
 files. That page explains the required columns, hypline’s segment-labeling
