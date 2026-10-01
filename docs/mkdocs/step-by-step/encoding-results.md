@@ -20,7 +20,7 @@ An eval (`analyze`'s output) loads as an
 point for downstream analysis because it contains the per-voxel encoding scores.
 
 ```python
-ds = load_eval("data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc")
+ds = load_eval("data/results/sub-041/encodingEval-selfeval/sub-041_result-encodingEval_desc-selfeval.nc")
 ```
 
 The main variable is `corr`, a four-dimensional array:
@@ -173,7 +173,7 @@ A model artifact (`train`'s output) loads as an `EncodingArtifact`, which
 contains the fitted weights and the recipe needed to inspect or reuse the model:
 
 ```python
-artifact = load_artifact("data/results/sub-031/encodingModel-v1/sub-031_result-encodingModel_desc-v1.joblib")
+artifact = load_artifact("data/results/sub-041/encodingModel-v1/sub-041_result-encodingModel_desc-v1.joblib")
 
 artifact.recipe      # the XRecipe: features, confounds, delays, alphas, split, …
 artifact.models      # one FittedModel per fold (its pipeline + the cells it was fit on)

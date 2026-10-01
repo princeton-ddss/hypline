@@ -32,8 +32,8 @@ manner, voicing, …).
 Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/dyad-030/ses-1/transcript/
-└── dyad-030_ses-1_task-conv_run-1_transcript.csv
+<dataset-root>/stimuli/dyad-040/ses-1/transcript/
+└── dyad-040_ses-1_task-conv_run-1_transcript.csv
 ```
 
 ### Options
@@ -78,13 +78,13 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 ```
 <dataset-root>/
-├── features/dyad-030/ses-1/phonemic/
-│   └── dyad-030_ses-1_task-conv_run-1_feat-phonemic.parquet
-└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
+├── features/dyad-040/ses-1/phonemic/
+│   └── dyad-040_ses-1_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-040/ses-1/                            # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-040_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-040_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
@@ -162,13 +162,13 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
 
 ```
 <dataset-root>/
-├── features/dyad-030/ses-1/semantic/
-│   └── dyad-030_ses-1_task-conv_run-1_feat-semantic.parquet
-└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
+├── features/dyad-040/ses-1/semantic/
+│   └── dyad-040_ses-1_task-conv_run-1_feat-semantic.parquet
+└── confounds/dyad-040/ses-1/                            # from the chained confoundgen
     ├── semantic-onset/
-    │   └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
+    │   └── dyad-040_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
     └── semantic-rate/
-        └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
+        └── dyad-040_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
 ```
 
 !!! note "Causal LMs only"
@@ -208,8 +208,8 @@ Stimulus audio under `stimuli/` — the same files [`transcribe`](transcribe.md)
 reads, selected by `--audio-ext`:
 
 ```
-<dataset-root>/stimuli/dyad-030/ses-1/audio/
-└── dyad-030_ses-1_task-conv_run-1_audio.wav
+<dataset-root>/stimuli/dyad-040/ses-1/audio/
+└── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
 
 Aligning to the TR grid needs the run's BOLD timing (TR and number of frames).
@@ -247,8 +247,8 @@ hypline featuregen spectral data/ --audio-ext .wav
 A spectral feature file per stimulus, tagged `feat-spectral`, under `features/`:
 
 ```
-<dataset-root>/features/dyad-030/ses-1/spectral/
-└── dyad-030_ses-1_task-conv_run-1_feat-spectral.parquet
+<dataset-root>/features/dyad-040/ses-1/spectral/
+└── dyad-040_ses-1_task-conv_run-1_feat-spectral.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory
@@ -318,8 +318,8 @@ A syntactic feature file per transcript, tagged `feat-syntactic`, under
 `features/`:
 
 ```
-<dataset-root>/features/dyad-030/ses-1/syntactic/
-└── dyad-030_ses-1_task-conv_run-1_feat-syntactic.parquet
+<dataset-root>/features/dyad-040/ses-1/syntactic/
+└── dyad-040_ses-1_task-conv_run-1_feat-syntactic.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory

@@ -46,12 +46,12 @@ existing models were fit to the old inputs.
 | **An `events.tsv`** (segment onsets) | `transcribe` → every `featuregen` family you use |
 | **An `events.tsv`** (segment durations only) | `featuregen` `phonemic`, `semantic`, `spectral` |
 | **An `events.tsv`** (`turn_speaker` rows) | `transcribe` → `featuregen` `phonemic`, `semantic`, `syntactic` |
-| **An `events.json`** (metadata only, e.g. `cond`) | nothing to regenerate — metadata is read at filter time, not baked into outputs[^meta] |
+| **An `events.json`** (metadata only, e.g. `condition`) | nothing to regenerate — metadata is read at filter time, not baked into outputs[^meta] |
 | **fMRIPrep preprocessed BOLD or its confounds table** | `denoise` |
 | **Custom `nuisance/` files** | `denoise` |
 | **Which nuisance regressors to regress** (`--columns` / `--compcor` / `--custom-sources` on denoise) | `denoise` |
 
-[^meta]: `events.json` metadata (like `cond`) is matched by `--data-filters` when
+[^meta]: `events.json` metadata (like `condition`) is matched by `--data-filters` when
     a command runs; it is never written into a filename or output. Changing it
     changes which files a future filter selects, not the contents of files
     already generated. (Segment and turn rows in `events.tsv`, by contrast, do

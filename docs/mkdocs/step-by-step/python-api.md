@@ -56,7 +56,7 @@ df = pl.DataFrame(
 path = save_feature(
     df,
     bids_root="data/",
-    dyad="030",
+    dyad="040",
     ses="1",
     feat="embed",
     task="conv",
@@ -64,7 +64,7 @@ path = save_feature(
 )
 ```
 
-This writes `data/features/dyad-030/ses-1/embed/dyad-030_ses-1_task-conv_run-1_feat-embed.parquet`.
+This writes `data/features/dyad-040/ses-1/embed/dyad-040_ses-1_task-conv_run-1_feat-embed.parquet`.
 The saved file is now part of the Hypline dataset, and downstream commands can
 locate it using the feature name `embed`.
 
@@ -105,7 +105,7 @@ df = pl.DataFrame(
 path = save_confound(
     df,
     bids_root="data/",
-    dyad="030",
+    dyad="040",
     ses="1",
     conf="newconf",
     task="conv",

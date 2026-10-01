@@ -23,11 +23,11 @@ Pass comma-separated IDs (the value of the identity entity, without the prefix).
 Use `--dyad-ids` on the stimulus commands and `--sub-ids` on `denoise`:
 
 ```bash
-# stimulus command: only dyad 030 (pass more as a comma-separated list)
-hypline featuregen phonemic data/ --dyad-ids 030
+# stimulus command: only dyad 040 (pass more as a comma-separated list)
+hypline featuregen phonemic data/ --dyad-ids 040
 
-# denoise: only subjects 031 and 032 (the two partners of dyad-030)
-hypline denoise data/ --columns trans_x,trans_y,trans_z --sub-ids 031,032
+# denoise: only subjects 041 and 042 (the two partners of dyad-040)
+hypline denoise data/ --columns trans_x,trans_y,trans_z --sub-ids 041,042
 ```
 
 Omit the option entirely to process every dyad (or subject) found wherever that
@@ -37,7 +37,7 @@ command looks for its inputs.
 
 `--data-filters` accepts comma-separated `entity-value` tokens. A token matches
 against both filename entities (like `run`) and the metadata you defined in
-`events.json` (like `cond`), so the same option filters structural and
+`events.json` (like `condition`), so the same option filters structural and
 descriptive attributes alike.
 
 ### One run
@@ -57,18 +57,18 @@ hypline featuregen phonemic data/ --data-filters run-1,run-2
 
 ### A condition from `events.json` (metadata)
 
-`cond` never appears in a filename (it lives in the `events.json` sidecar), but
+`condition` never appears in a filename (it lives in the `events.json` sidecar), but
 you filter on it the same way:
 
 ```bash
 # only the "R" condition
-hypline featuregen phonemic data/ --data-filters cond-R
+hypline featuregen phonemic data/ --data-filters condition-R
 ```
 
 !!! warning "`denoise` and segment-level conditions"
 
     fMRIPrep BOLD files cover a whole run and carry no segment entity like
-    `trial`. So on trial-segmented runs, a `cond` filter on `denoise` fails with
+    `trial`. So on trial-segmented runs, a `condition` filter on `denoise` fails with
     `Path is missing segment entity 'trial' declared in events.tsv`. It works
     only when the run is declared with a single `task-<name>` row (see [Three
     kinds of run](../step-by-step/segments.md#three-kinds-of-run)). Otherwise,
@@ -80,7 +80,7 @@ Mixing different entities narrows the match — every named entity must hold:
 
 ```bash
 # (run 1 or run 2) AND condition R
-hypline featuregen phonemic data/ --data-filters run-1,run-2,cond-R
+hypline featuregen phonemic data/ --data-filters run-1,run-2,condition-R
 ```
 
 ## The matching rule at a glance
@@ -88,17 +88,17 @@ hypline featuregen phonemic data/ --data-filters run-1,run-2,cond-R
 | Tokens | Reads as |
 | ------ | -------- |
 | Same entity, multiple values | **OR** — `run-1,run-2` → run 1 or 2 |
-| Different entities | **AND** — `run-1,cond-R` → run 1 and condition R |
+| Different entities | **AND** — `run-1,condition-R` → run 1 and condition R |
 
-So `run-1,run-2,cond-G` means *(run 1 or run 2) and condition G*. Combine the
+So `run-1,run-2,condition-G` means *(run 1 or run 2) and condition G*. Combine the
 identity option (`--dyad-ids` / `--sub-ids`) with `--data-filters` to slice on
 both axes at once:
 
 ```bash
-# dyad 030, run 1 only, condition R
+# dyad 040, run 1 only, condition R
 hypline featuregen phonemic data/ \
-  --dyad-ids 030 \
-  --data-filters run-1,cond-R
+  --dyad-ids 040 \
+  --data-filters run-1,condition-R
 ```
 
 ## Combining with `--force`

@@ -15,7 +15,7 @@ Hypline reads run structure from the standard BIDS `events.tsv` file that sits
 beside each run in the raw tree:
 
 ```
-sub-031/ses-1/func/sub-031_ses-1_task-conv_run-1_events.tsv
+sub-041/ses-1/func/sub-041_ses-1_task-conv_run-1_events.tsv
 ```
 
 If your data are already in BIDS format, you will likely already have an events.tsv file. Events files are sub-keyed. A dyad-keyed command (`featuregen`, `confoundgen`)
@@ -92,7 +92,7 @@ onset   duration   trial_type
   when audio is split per trial; transcribe shifts each word by its segment's
   onset before matching, so you never annotate turns in per-trial time.
 
-Each word's `turn_sub` is the bare subject label (`001`, `101`) whose window
+Each word's `turn_sub` is the bare subject label (`041`, `042`) whose window
 contains the word's run-relative start. Words that are un-timed, or fall in a gap
 between turns, get a blank `turn_sub`; gap hits are logged as a possible
 timing/annotation mismatch. Transcripts whose runs carry no `turn_speaker` rows
@@ -105,35 +105,35 @@ Segment names like `trial-1` carry no meaning on their own. Descriptive
 attributes such as condition, stimulus item, or counterbalance group live in the
 companion `events.json` sidecar, under the BIDS `trial_type.Levels` field:
 
-```json title="sub-031_ses-1_task-conv_run-1_events.json"
+```json title="sub-041_ses-1_task-conv_run-1_events.json"
 {
   "trial_type": {
     "Levels": {
-      "trial-1": {"metadata": {"cond": "R", "item": "101"}},
-      "trial-2": {"metadata": {"cond": "L", "item": "102"}},
-      "trial-3": {"metadata": {"cond": "R", "item": "103"}}
+      "trial-1": {"metadata": {"condition": "G", "item": "101"}},
+      "trial-2": {"metadata": {"condition": "R", "item": "102"}},
+      "trial-3": {"metadata": {"condition": "R", "item": "103"}}
     }
   }
 }
 ```
 
-Now each segment has a condition (`cond`) and an item (`item`). Hypline merges
+Now each segment has a `condition` and an `item`. Hypline merges
 this metadata onto each segment when it processes the run, so you can filter on
-`cond` even though it never appears in any filename.
+`condition` even though it never appears in any filename.
 
 !!! note "Keep filenames structural, metadata descriptive"
 
     Filenames carry only *identity* (`sub`, `task`, `run`) and the *segment*
-    (`trial-1`). Descriptive attributes (`cond`, `item`) belong in `events.json`,
+    (`trial-1`). Descriptive attributes (`condition`, `item`) belong in `events.json`,
     not in filenames. Hypline enforces this split — it keeps the same attribute
     from being recorded in two places that could disagree.
 
 ## How segments reach `--data-filters`
 
 The segments and metadata defined here are what `--data-filters` selects on. A
-token like `cond-R` matches against both filename entities and the
+token like `condition-R` matches against both filename entities and the
 `events.json` metadata, so the segment entity (`trial`) and its descriptive
-attributes (`cond`, `item`) all become things you can filter by, even though only
+attributes (`condition`, `item`) all become things you can filter by, even though only
 the structural ones appear in filenames.
 
 For how tokens combine (OR within an entity, AND across entities) and the full

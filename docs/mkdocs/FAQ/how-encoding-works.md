@@ -99,9 +99,9 @@ only resolve within the target's own dyad:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --source-sub self \
-  --model-sub 045 \
+  --model-sub 051 \
   --model-desc v1 \
   --desc pseudodyad
 ```

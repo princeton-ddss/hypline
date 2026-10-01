@@ -77,7 +77,7 @@ Dyad](layout.md#subject-vs-dyad).
 | `--alphas`       | Comma-separated ridge alphas to search                                                           | `1`–`1e12` log grid (13 points) |
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
 | `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
-| `--sub-ids`      | Comma-separated subject IDs to train (e.g. `031,032`); omit for all                               | all                  |
+| `--sub-ids`      | Comma-separated subject IDs to train (e.g. `041,042`); omit for all                               | all                  |
 | `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Filtering guide](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
@@ -167,7 +167,7 @@ any speech-active row. A role with no rows scores `NaN` rather than zero.
 
 ### Example
 
-Test subject `031`'s own model against its own BOLD (a within-subject fit). With
+Test subject `041`'s own model against its own BOLD (a within-subject fit). With
 default `--test-on`, `analyze` tests each model's out-of-sample cells, so the
 model must be folded. A `--fold-by none` model trained on every cell has no
 held-out cells and raises here; name cells with `--test-on`, or use a folded
@@ -175,18 +175,18 @@ model as below:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --model-sub self \
   --model-desc cv \
   --desc selfeval
 ```
 
-Test subject `031`'s BOLD using the partner's model and features (a
+Test subject `041`'s BOLD using the partner's model and features (a
 cross-brain, shared-conversation eval) on run 6:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --model-sub partner \
   --source-sub partner \
   --model-desc v1 \
@@ -202,11 +202,11 @@ source-run or session entity):
 
 ```
 <dataset-root>/results/
-├── sub-031/encodingModel-v1/
-│   ├── sub-031_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
-│   └── sub-031_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
-└── sub-031/encodingEval-selfeval/
-    └── sub-031_result-encodingEval_desc-selfeval.nc # analyze: per-voxel correlations (netCDF-4)
+├── sub-041/encodingModel-v1/
+│   ├── sub-041_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
+│   └── sub-041_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
+└── sub-041/encodingEval-selfeval/
+    └── sub-041_result-encodingEval_desc-selfeval.nc # analyze: per-voxel correlations (netCDF-4)
 ```
 
 - **`encodingModel-<desc>/`** (`train`) — the fitted model as a `.joblib` file,

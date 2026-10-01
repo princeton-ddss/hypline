@@ -24,23 +24,23 @@ a few extra areas. A representative dataset tree looks like this:
 ```
 <dataset-root>/
 ├── participants.tsv                         # required: dyad ↔ subject mapping
-├── sub-031/ses-1/func/                      # raw BIDS (events files live here)
+├── sub-041/ses-1/func/                      # raw BIDS (events files live here)
 ├── derivatives/
-│   ├── fmriprep/sub-031/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
-│   └── hypline/sub-031/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
-├── stimuli/dyad-030/ses-1/                 
+│   ├── fmriprep/sub-041/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
+│   └── hypline/sub-041/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
+├── stimuli/dyad-040/ses-1/                 
 │   ├── audio/                               # audio files you supply
 │   └── transcript/                          # generated transcripts
-├── features/dyad-030/ses-1/phonemic/        # generated features
-├── confounds/dyad-030/ses-1/phonemic/       # generated confounds
-├── results/sub-031/
+├── features/dyad-040/ses-1/phonemic/        # generated features
+├── confounds/dyad-040/ses-1/phonemic/       # generated confounds
+├── results/sub-041/
 │   ├── encodingModel-v1/                    # fitted encoding models
 │   └── encodingEval-v1/                     # evaluation results
-├── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
+├── nuisance/sub-041/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
 └── logs/<command>/                          # per-ID run logs, written by every command
 ```
 
-- **`sub-031/`, `derivatives/fmriprep/`** are BIDS and BIDS-derivatives areas
+- **`sub-041/`, `derivatives/fmriprep/`** are BIDS and BIDS-derivatives areas
   that you provide. Hypline reads event timing from the raw BIDS tree and
   preprocessed BOLD data from fMRIPrep; it does not require the raw BOLD images themselves.
 - **`derivatives/hypline/`** is a BIDS derivatives tree hypline fills with its
@@ -49,7 +49,7 @@ a few extra areas. A representative dataset tree looks like this:
   `dataset_description.json`.
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by **dyad**
-  (`dyad-030/`), not subject — see [Subject vs. Dyad](#subject-vs-dyad) below.
+  (`dyad-040/`), not subject — see [Subject vs. Dyad](#subject-vs-dyad) below.
 - **`results/`** is where [`encoding`](../step-by-step/encoding.md) writes its
   analysis outputs — fitted models (`encodingModel-<desc>/`) and evaluation results
   (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
@@ -63,8 +63,8 @@ a few extra areas. A representative dataset tree looks like this:
 !!! info "Sessions are optional"
 
     Examples here use a `ses-1/` level under each subject
-    (`sub-031/ses-1/func/`) to match the tutorial dataset. Datasets without
-    sessions omit the level entirely (`sub-031/func/`). Hypline handles both cases.
+    (`sub-041/ses-1/func/`) to match the tutorial dataset. Datasets without
+    sessions omit the level entirely (`sub-041/func/`). Hypline handles both cases.
 
 ## Subject vs. Dyad
 
@@ -76,7 +76,7 @@ An artifact is keyed by what it is derived from:
 - **`dyad`-keyed** — derived from the *shared conversation* between two partners:
   `stimuli/`, `features/`, `confounds/`. Each dyadic conversation run produces one set of stimuli, features, 
   and confounds, which can later be used to fit a separate encoding model 
-  for each partner. A `dyad-030` audio file represents the shared recording, not
+  for each partner. A `dyad-040` audio file represents the shared recording, not
   either partner individually.
 
 Because the two worlds use different identity entities, hypline bridges them
@@ -85,17 +85,17 @@ the required `participant_id` column plus a custom **`dyad_id`** column:
 
 ```tsv
 participant_id   dyad_id
-sub-031          dyad-030
-sub-032          dyad-030
+sub-041          dyad-040
+sub-042          dyad-040
 ```
 
 This is the only way hypline knows which subjects make up which dyad. Here
-subjects `031` and `032` are partners in `dyad-030` (a real study has many such
+subjects `041` and `042` are partners in `dyad-040` (a real study has many such
 pairs). It is read lazily: a purely `sub`-keyed workflow (e.g. `denoise`
 alone) never needs it, but any step that joins a dyad-keyed stimulus artifact to
 a sub-keyed BOLD requires it and errors if it is missing.
 
-So a `dyad-030` feature file does not match a BOLD file by sharing `sub`;
+So a `dyad-040` feature file does not match a BOLD file by sharing `sub`;
 the two carry different identity entities. The join goes through
 `participants.tsv`: a subject's encoding model looks up its dyad, then reads that
 dyad's features.
@@ -106,7 +106,7 @@ Hypline follows BIDS filename conventions: a filename is a chain of
 `entity-value` pairs joined by `_`, ending in a suffix and extension.
 
 ```
-sub-031_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
+sub-041_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
 \____________________________________________/ \__/ \_____/
                    entities                   suffix   ext
 ```
@@ -131,16 +131,16 @@ carry one **category entity** that identifies their contents:
 | `result-<kind>` | `results/`    | `result-encodingModel`, `result-encodingEval` |
 
 The `<kind>` matches the subdirectory the file lives in. A phonemic feature
-(`feat-phonemic`) lives under `features/dyad-030/ses-1/phonemic/`. A result's
+(`feat-phonemic`) lives under `features/dyad-040/ses-1/phonemic/`. A result's
 `<kind>-<desc>` subdirectory pairs the entity with its `--desc` variant tag —
-`result-encodingModel_desc-v1` under `results/sub-031/encodingModel-v1/`.
+`result-encodingModel_desc-v1` under `results/sub-041/encodingModel-v1/`.
 
 Denoised BOLD files under `derivatives/hypline/` instead follow standard 
 BIDS-derivatives naming and use `desc-denoised`.
 
 Stimuli carry no category entity. Their kind is a trailing filename suffix
-(`_audio`, `_transcript`) instead — e.g. `dyad-030_ses-1_task-conv_run-1_audio.wav`
-under `stimuli/dyad-030/ses-1/audio/`.
+(`_audio`, `_transcript`) instead — e.g. `dyad-040_ses-1_task-conv_run-1_audio.wav`
+under `stimuli/dyad-040/ses-1/audio/`.
 
 ### `desc` variants
 
@@ -149,7 +149,7 @@ several. Variants live in their own subdirectory so they stay physically
 separate:
 
 ```
-confounds/dyad-030/ses-1/
+confounds/dyad-040/ses-1/
 ├── phonemic-onset/    # conf-phonemic_desc-onset — speech-onset indicator
 └── phonemic-rate/     # conf-phonemic_desc-rate  — speech rate per TR
 ```

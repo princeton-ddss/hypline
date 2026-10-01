@@ -35,15 +35,19 @@ standard BIDS table with the required `participant_id` column plus a custom
 
 ```tsv
 participant_id	dyad_id
-sub-031	dyad-030
-sub-032	dyad-030
-sub-033	dyad-034
-sub-034	dyad-034
+sub-041	dyad-040
+sub-042	dyad-040
+sub-051	dyad-050
+sub-052	dyad-050
 ```
 
 This is the single source of truth that lets a dyad-keyed feature reach a
 sub-keyed brain. Two subjects share a `dyad_id` exactly when they belong 
 to the same scanning pair.
+
+In these examples the tens digit numbers the pair and the last digit marks its
+role: `dyad-040` is the pair, `sub-041` and `sub-042` its two partners. Hypline
+does not require this; any IDs work as long as `participants.tsv` maps them.
 
 !!! warning "Use real tabs"
 
@@ -61,15 +65,15 @@ Hypline reads each run’s structure from BIDS `events.tsv` files stored in the
 subject’s `func` directory:
 
 ```
-sub-031/ses-1/func/
-├── sub-031_ses-1_task-conv_run-1_bold.nii.gz
-└── sub-031_ses-1_task-conv_run-1_events.tsv
+sub-041/ses-1/func/
+├── sub-041_ses-1_task-conv_run-1_bold.nii.gz
+└── sub-041_ses-1_task-conv_run-1_events.tsv
 ```
 
 !!! info "Sessions are optional"
 
     The `ses-1/` level is optional. A dataset without sessions omits it entirely
-    (`sub-031/func/`), and hypline handles both. Keep it consistent across the
+    (`sub-041/func/`), and hypline handles both. Keep it consistent across the
     dataset.
 
 The raw BOLD image may remain as part of your original BIDS dataset, but hypline
@@ -97,9 +101,9 @@ derivatives under `derivatives/fmriprep/`, in the per-subject shape it already
 produces:
 
 ```
-derivatives/fmriprep/sub-031/ses-1/func/
-├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
-└── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
+derivatives/fmriprep/sub-041/ses-1/func/
+├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+└── sub-041_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
 ```
 
 [`denoise`](../step-by-step/denoise.md) reads the preprocessed BOLD and pulls its
@@ -113,8 +117,8 @@ The conversation audio is dyad-keyed (it belongs to the pair, not either
 partner), so it goes under `stimuli/`, keyed by dyad:
 
 ```
-stimuli/dyad-030/ses-1/audio/
-└── dyad-030_ses-1_task-conv_run-1_audio.wav
+stimuli/dyad-040/ses-1/audio/
+└── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
 
 This is the only stimulus area you fill by hand. From here
@@ -128,7 +132,7 @@ Two optional inputs round out a dataset:
 
 - **`events.json` sidecars** attach descriptive metadata (condition, item,
   counterbalance group) to the segments declared in `events.tsv`. This is what
-  lets you filter on `cond-R` even though `cond` never appears in a filename. See
+  lets you filter on `condition-R` even though `condition` never appears in a filename. See
   [Attaching metadata](segments.md#attaching-metadata-eventsjson).
 - **`nuisance/` files** hold run-level regressors you supply yourself that
   fMRIPrep never produced (physiological recordings, say) for `denoise` to
@@ -144,12 +148,12 @@ Laid out, a minimal single-dyad dataset looks like this:
 ```
 data/
 ├── participants.tsv
-├── sub-031/ses-1/func/                        # raw BOLD + events (you supply; raw BOLD not required)
-├── sub-032/ses-1/func/
+├── sub-041/ses-1/func/                        # raw BOLD + events (you supply; raw BOLD not required)
+├── sub-042/ses-1/func/
 ├── derivatives/fmriprep/                      # fMRIPrep outputs (you supply)
-│   ├── sub-031/ses-1/func/                   
-│   └── sub-032/ses-1/func/
-└── stimuli/dyad-030/ses-1/audio/              # conversation audio (you supply)
+│   ├── sub-041/ses-1/func/                   
+│   └── sub-042/ses-1/func/
+└── stimuli/dyad-040/ses-1/audio/              # conversation audio (you supply)
 ```
 
 Everything else (`features/`, `confounds/`, `derivatives/hypline/`, `results/`)

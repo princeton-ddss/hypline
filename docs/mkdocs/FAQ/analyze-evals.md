@@ -33,21 +33,21 @@ Run each comparison against the same target brain, changing only the source and 
 ```bash
 # within-brain: the subject's own model and speech
 hypline encoding analyze data/ \
-  --target-sub 031 --source-sub self --model-sub self \
+  --target-sub 041 --source-sub self --model-sub self \
   --model-desc v1 --desc within
 
 # cross-brain, self-driven: own speech, partner's model
 hypline encoding analyze data/ \
-  --target-sub 031 --source-sub self --model-sub partner \
+  --target-sub 041 --source-sub self --model-sub partner \
   --model-desc v1 --desc crossself
 
 # pseudo-dyad: own speech and brain, an out-of-dyad model (named by ID)
 hypline encoding analyze data/ \
-  --target-sub 031 --source-sub self --model-sub 045 \
+  --target-sub 041 --source-sub self --model-sub 051 \
   --model-desc v1 --desc pseudodyad
 ```
 
-The resulting directories appear under `results/sub-031/`:
+The resulting directories appear under `results/sub-041/`:
 ```bash
 encodingEval-within
 encodingEval-crossself
@@ -65,7 +65,7 @@ Because the source is the target subject's own speech here, select the prod role
 from hypline.encoding import load_eval
 
 def prod_semantic(desc):
-    ds = load_eval(f"data/results/sub-031/encodingEval-{desc}/sub-031_result-encodingEval_desc-{desc}.nc")
+    ds = load_eval(f"data/results/sub-041/encodingEval-{desc}/sub-041_result-encodingEval_desc-{desc}.nc")
     return ds["corr"].sel(band="semantic", role="prod").mean("fold", skipna=True)
 
 within = prod_semantic("within")
@@ -123,7 +123,7 @@ subjects and compare the cross-brain score against the resulting *distribution*.
 ```python
 import numpy as np
 
-pseudo_ids = ["045", "047", "052", "058"]   # subjects outside 031's dyad
+pseudo_ids = ["051", "052", "061", "062"]   # subjects outside 041's dyad
 for sid in pseudo_ids:
     ...  # analyze with --model-sub <sid> --desc pseudo<sid>, then load and reduce
 

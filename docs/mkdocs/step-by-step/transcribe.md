@@ -20,8 +20,8 @@ hypline transcribe <dataset-root> --audio-ext <ext> [OPTIONS]
 Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 
 ```
-<dataset-root>/stimuli/dyad-030/ses-1/audio/
-└── dyad-030_ses-1_task-conv_run-1_audio.wav
+<dataset-root>/stimuli/dyad-040/ses-1/audio/
+└── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
 
 See [Hypline dataset layout](layout.md) for how files are
@@ -72,10 +72,10 @@ Transcribe every dyad's WAV audio with the default model:
 hypline transcribe data/ --audio-ext .wav
 ```
 
-Transcribe only dyad 030 on a GPU (pass more as a comma-separated list):
+Transcribe only dyad 040 on a GPU (pass more as a comma-separated list):
 
 ```bash
-hypline transcribe data/ --audio-ext .wav --dyad-ids 030 --device cuda
+hypline transcribe data/ --audio-ext .wav --dyad-ids 040 --device cuda
 ```
 
 ## Outputs
@@ -84,11 +84,11 @@ A word-level transcript per audio file, with the `_transcript` suffix, written
 beside the audio under `stimuli/`:
 
 ```
-<dataset-root>/stimuli/dyad-030/ses-1/
+<dataset-root>/stimuli/dyad-040/ses-1/
 ├── audio/
-│   └── dyad-030_ses-1_task-conv_run-1_audio.wav
+│   └── dyad-040_ses-1_task-conv_run-1_audio.wav
 └── transcript/
-    └── dyad-030_ses-1_task-conv_run-1_transcript.csv
+    └── dyad-040_ses-1_task-conv_run-1_transcript.csv
 ```
 
 Each transcript row is one word with its onset time. These onsets are what
