@@ -1,34 +1,34 @@
 # Hypline dataset layout
 
-Hypline pulls inputs and writes outputs according to a fixed dataset structure. 
-Each data-processing command takes the **dataset root** as its main positional argument; 
-you organize files according to hypline's conventions instead of passing each input 
+Hypline pulls inputs and writes outputs according to a fixed dataset structure.
+Each data-processing command takes the **dataset root** as its main positional argument;
+you organize files according to hypline's conventions instead of passing each input
 and output path separately.
 
-We will explain how to prepare your data for hypline in three steps. 
+We will explain how to prepare your data for hypline in three steps.
 
-1. Overview. This page explains the data structure: how hypline organizes subject-level 
+1. Overview. This page explains the data structure: how hypline organizes subject-level
    brain data and dyad-level conversation data.
-2. Create. The second step reviews the files necessary for running hypline, including how to label meaningful segments of your data and provide metadata files. See [Segments and metadata](../step-by-step/segments.md).
-3. Organize. To assemble your own data, files, and metadata files in the standardized hypline format, 
-   see [Prepare your own dataset](../step-by-step/prepare-dataset.md).
+2. Create. The second step reviews the files necessary for running hypline, including how to label meaningful segments of your data and provide metadata files. See [Segments and metadata](segments.md).
+3. Organize. To assemble your own data, files, and metadata files in the standardized hypline format,
+   see [Prepare your own dataset](prepare-dataset.md).
 
-Once your dataset is 
-ready, continue to the command-specific guides, beginning with [hypline transcribe](../step-by-step/transcribe.md). 
+Once your dataset is
+ready, continue to the command-specific guides, beginning with [hypline transcribe](transcribe.md).
 
 ## The root tree
 
 A hypline dataset extends the [BIDS](https://bids.neuroimaging.io/) standard with
 a few extra areas. A representative dataset tree looks like this:
 
-```
+```text
 <dataset-root>/
 ├── participants.tsv                         # required: dyad ↔ subject mapping
 ├── sub-041/ses-1/func/                      # raw BIDS (events files live here)
 ├── derivatives/
 │   ├── fmriprep/sub-041/ses-1/func/         # fMRIPrep outputs (preprocessed BOLD)
 │   └── hypline/sub-041/ses-1/func/          # hypline imaging derivatives (denoised BOLD)
-├── stimuli/dyad-040/ses-1/                 
+├── stimuli/dyad-040/ses-1/
 │   ├── audio/                               # audio files you supply
 │   └── transcript/                          # generated transcripts
 ├── features/dyad-040/ses-1/phonemic/        # generated features
@@ -44,18 +44,18 @@ a few extra areas. A representative dataset tree looks like this:
   that you provide. Hypline reads event timing from the raw BIDS tree and
   preprocessed BOLD data from fMRIPrep; it does not require the raw BOLD images themselves.
 - **`derivatives/hypline/`** is a BIDS derivatives tree hypline fills with its
-  imaging derivatives — currently the [`denoise`](../step-by-step/denoise.md)
+  imaging derivatives — currently the [`denoise`](denoise.md)
   output. It mirrors fMRIPrep's `sub-XX/[ses-YY/]func/` shape and carries its own
   `dataset_description.json`.
 - **`stimuli/`, `features/`, `confounds/`** are hypline additions. Hypline
   creates and fills these as you run commands. They are keyed by **dyad**
   (`dyad-040/`), not subject — see [Subject vs. Dyad](#subject-vs-dyad) below.
-- **`results/`** is where [`encoding`](../step-by-step/encoding.md) writes its
+- **`results/`** is where [`encoding`](encoding.md) writes its
   analysis outputs — fitted models (`encodingModel-<desc>/`) and evaluation results
   (`encodingEval-<desc>/`). It is keyed by **subject**, since one output
   consumes many runs across sessions.
 - **`nuisance/`** is optional and you fill it — run-level regressors (e.g.
-  physiological recordings) for [`denoise`](../step-by-step/denoise.md) to regress
+  physiological recordings) for [`denoise`](denoise.md) to regress
   out alongside fMRIPrep's confounds.
 - **`participants.tsv`** is a standard BIDS table at the dataset root, required
   to map subjects to dyads — see [Subject vs. Dyad](#subject-vs-dyad).
@@ -74,8 +74,8 @@ An artifact is keyed by what it is derived from:
   `derivatives/hypline/` (denoised), `nuisance/`, and `results/` (a subject's
   fitted encoding model, whose weights tie to that brain's voxel grid).
 - **`dyad`-keyed** — derived from the *shared conversation* between two partners:
-  `stimuli/`, `features/`, `confounds/`. Each dyadic conversation run produces one set of stimuli, features, 
-  and confounds, which can later be used to fit a separate encoding model 
+  `stimuli/`, `features/`, `confounds/`. Each dyadic conversation run produces one set of stimuli, features,
+  and confounds, which can later be used to fit a separate encoding model
   for each partner. A `dyad-040` audio file represents the shared recording, not
   either partner individually.
 
@@ -105,11 +105,12 @@ dyad's features.
 Hypline follows BIDS filename conventions: a filename is a chain of
 `entity-value` pairs joined by `_`, ending in a suffix and extension.
 
-```
+```text
 sub-041_task-conv_run-1_space-T1w_desc-preproc_bold.nii.gz
 \____________________________________________/ \__/ \_____/
                    entities                   suffix   ext
 ```
+
 ### Identity entities
 
 The **identity entities** at the beginning denote which recording a file belongs to.
@@ -120,7 +121,7 @@ files mirror the identity entities of the source they came from.
 
 ### Category entities
 
-Files stored under `features/`, `confounds/`, `nuisance/`, and `results/` 
+Files stored under `features/`, `confounds/`, `nuisance/`, and `results/`
 carry one **category entity** that identifies their contents:
 
 | Entity        | Area          | Example                         |
@@ -135,7 +136,7 @@ The `<kind>` matches the subdirectory the file lives in. A phonemic feature
 `<kind>-<desc>` subdirectory pairs the entity with its `--desc` variant tag —
 `result-encodingModel_desc-v1` under `results/sub-041/encodingModel-v1/`.
 
-Denoised BOLD files under `derivatives/hypline/` instead follow standard 
+Denoised BOLD files under `derivatives/hypline/` instead follow standard
 BIDS-derivatives naming and use `desc-denoised`.
 
 Stimuli carry no category entity. Their kind is a trailing filename suffix
@@ -148,7 +149,7 @@ Some commands accept a `--desc` label that tags an output as one *variant* among
 several. Variants live in their own subdirectory so they stay physically
 separate:
 
-```
+```text
 confounds/dyad-040/ses-1/
 ├── phonemic-onset/    # conf-phonemic_desc-onset — speech-onset indicator
 └── phonemic-rate/     # conf-phonemic_desc-rate  — speech rate per TR
@@ -159,9 +160,9 @@ between them later by name.
 
 ## Selecting subjects and runs
 
-Because commands discover files by convention, you select what to process using 
-identity options and `--data-filters`, rather than individual file paths. Dyad-keyed 
-commands (`transcribe`, `featuregen`, and `confoundgen`) take **`--dyad-ids`**, whereas 
+Because commands discover files by convention, you select what to process using
+identity options and `--data-filters`, rather than individual file paths. Dyad-keyed
+commands (`transcribe`, `featuregen`, and `confoundgen`) take **`--dyad-ids`**, whereas
 sub-keyed commands (`denoise` and `encoding train`) take **`--sub-ids`**.
 `encoding analyze` instead names its subjects with `--target-sub`, `--model-sub`,
 and `--source-sub`, and takes no `--data-filters`. Use `--force` to

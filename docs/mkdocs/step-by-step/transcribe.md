@@ -19,7 +19,7 @@ hypline transcribe <dataset-root> --audio-ext <ext> [OPTIONS]
 
 Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 
-```
+```text
 <dataset-root>/stimuli/dyad-040/ses-1/audio/
 └── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
@@ -72,7 +72,7 @@ hypline transcribe data/ --audio-ext .wav --dyad-ids 040 --device cuda
 A word-level transcript per audio file, with the `_transcript` suffix, written
 beside the audio under `stimuli/`:
 
-```
+```text
 <dataset-root>/stimuli/dyad-040/ses-1/
 ├── audio/
 │   └── dyad-040_ses-1_task-conv_run-1_audio.wav

@@ -1,6 +1,6 @@
 # Features and confounds
 
-Most hypline workflows use the command-line interface. Hypline also exposes a small 
+Most hypline workflows use the command-line interface. Hypline also exposes a small
 set of functions directly from the hypline package for reading and writing its Parquet files.
 
 ```python
@@ -31,10 +31,10 @@ Fitted encoding models and evaluation results use separate loaders under
 ## Save a custom feature
 
 The CLI can generate `phonemic`, `semantic`, `spectral`, and
-`syntactic` features. To use another set of features (e.g., prosody), 
-you can construct the feature DataFrame yourself and save it with `save_feature`. 
+`syntactic` features. To use another set of features (e.g., prosody),
+you can construct the feature DataFrame yourself and save it with `save_feature`.
 
-A feature DataFrame requires two columns: 
+A feature DataFrame requires two columns:
 
 - `start_time`: the time in seconds from the beginning of the stimulus
 - `feature`: an equal-width feature vector for that time point
@@ -72,14 +72,13 @@ Use `desc="..."` to save a variant in its own
 [`embed-<desc>/` subdirectory](layout.md#desc-variants). Use
 `metadata={...}` to add custom keys to the Parquet footer.
 
-
 ## Save a custom confound
 
-`save_confound` is the corresponding function for custom confounds. Unlike 
+`save_confound` is the corresponding function for custom confounds. Unlike
 a feature, a confound is regressed from the BOLD signal and must therefore
 contain one row per fMRI volume.
 
-A confound DataFrame requires two columns: 
+A confound DataFrame requires two columns:
 
 - `start_time`: the time in seconds from the beginning of the stimulus
 - `confound`: an equal-width confound vector for that time point
@@ -88,7 +87,7 @@ The `start_time` values must begin at `0.0` and advance by the run's
 repetition time. Mark your TR explicitly with `repetition_time`. `tr_method`
 records how the confound was converted to one row per fMRI volume (e.g., `"mean"` if you averaged
 signals within each TR), and is required. You can put `None` if it's not applicable (i.e., your confound was
-already one row per TR). For each confound, every run must have the same `tr_method` info. Otherwise, `encoding train` 
+already one row per TR). For each confound, every run must have the same `tr_method` info. Otherwise, `encoding train`
 will complain about inconsistent metadata.
 
 ```python
@@ -114,7 +113,6 @@ path = save_confound(
     tr_method="mean",
 )
 ```
-
 
 ## Read data and metadata
 

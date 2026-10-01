@@ -14,7 +14,7 @@ skip it.
 Hypline reads run structure from the standard BIDS `events.tsv` file that sits
 beside each run in the raw tree:
 
-```
+```text
 sub-041/ses-1/func/sub-041_ses-1_task-conv_run-1_events.tsv
 ```
 
@@ -56,7 +56,6 @@ The last case is an escape hatch. When a run has no internal structure but you
 still want to trim leading instructions or attach run-level metadata, add a
 single row whose `trial_type` repeats the run's task name (e.g. `task-conv`).
 
-
 ## Speaker turns
 
 `events.tsv` files can also annotate speaking turns. If this is the case, each transcript gets a
@@ -97,7 +96,6 @@ contains the word's run-relative start. Words that are untimed, or fall in a gap
 between turns, get a blank `turn_sub`; gap hits are logged as a possible
 timing/annotation mismatch. Transcripts whose runs carry no `turn_speaker` rows
 still get the column, with every value null, so the schema is uniform.
-
 
 ## Attaching metadata: `events.json`
 

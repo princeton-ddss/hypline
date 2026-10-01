@@ -2,12 +2,12 @@
 
 ## The pipeline
 
-Hypline's commands form a modular pipeline. Once your files follow the 
+Hypline's commands form a modular pipeline. Once your files follow the
 [hypline dataset layout](layout.md), each command takes the dataset root
 as its main input and automatically finds the files it needs.
 
-The workflow has three parts: (1) the **stimulus branch** prepares features 
-describing the conversation; (2) the **fMRIPrep branch** prepares denoised BOLD responses; 
+The workflow has three parts: (1) the **stimulus branch** prepares features
+describing the conversation; (2) the **fMRIPrep branch** prepares denoised BOLD responses;
 and (3) the **encoding branch** combines these inputs to fit and evaluate encoding models.
 
 | Command                | Branch   | Reads                                  | Writes                          |
@@ -31,7 +31,7 @@ when you run the [`encoding`](encoding.md) commands.
 !!! tip "Features and their confounds in one step"
 
     `featuregen phonemic` generates the corresponding phonemic confounds by
-    default, so you usually do not need to call `confoundgen phonemic` separately. 
+    default, so you usually do not need to call `confoundgen phonemic` separately.
     See the [featuregen guide](featuregen.md).
 
 You do not need to run the entire pipeline. Each command can be used
@@ -44,7 +44,7 @@ fMRIPrep BOLD data.
 For example, a basic analysis using phonemic features looks like this:
 
 ```bash
-# stimulus branch: audio → transcripts → features 
+# stimulus branch: audio → transcripts → features
 hypline transcribe data/ --audio-ext .wav
 hypline featuregen phonemic data/
 

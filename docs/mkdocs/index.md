@@ -2,7 +2,7 @@
 
 Hypline is a command-line toolbox for analyzing fMRI hyperscanning data collected during dyadic conversation. These interactions are complex and dynamic, and analyzing them often requires coordinating multiple steps across behavioral and neuroimaging data. Hypline provides a standardized workflow for structuring hyperscanning datasets, preparing and denoising fMRI data, and running analyses.
 
-Hypline currently supports encoding analyses. Over time, we aim to expand the toolbox, with development from our team and yours, to support additional approaches including hyperalignment and shared response modeling, intersubject correlation, mental state decoding, hyper-hidden Markov modeling, natural language processing, and more. The pipeline provides defaults developed through extensive testing while allowing researchers to customize individual analysis choices. 
+Hypline currently supports encoding analyses. Over time, we aim to expand the toolbox, with development from our team and yours, to support additional approaches including hyperalignment and shared response modeling, intersubject correlation, mental state decoding, hyper-hidden Markov modeling, natural language processing, and more. The pipeline provides defaults developed through extensive testing while allowing researchers to customize individual analysis choices.
 
 What is an encoding model? An encoding model learns a mapping from features of a stimulus or behavior
 to measured brain activity, then tests how well those features predict responses
@@ -10,9 +10,9 @@ in held-out fMRI data. Encoding models are widely used in naturalistic fMRI to s
 
 Hypline supports the main steps needed to run an encoding analysis on dyadic
 conversation data: transcribing recorded speech, generating stimulus features
-and their confounds, denoising [fMRIPrep](https://fmriprep.org/en/stable/index.html) 
-BOLD data, and fitting and evaluating encoding models. Its commands are modular: 
-each performs one step and can be run independently, while all commands operate 
+and their confounds, denoising [fMRIPrep](https://fmriprep.org/en/stable/index.html)
+BOLD data, and fitting and evaluating encoding models. Its commands are modular:
+each performs one step and can be run independently, while all commands operate
 within the same [BIDS](https://bids.neuroimaging.io/)-style dataset.
 
 [^zada]: Zada, Z., Nastase, S. A., Speer, S., Mwilambwe-Tshilobo, L., Tsoi, L.,
@@ -55,7 +55,7 @@ hypline --help
     `hypline transcribe` decodes audio through [FFmpeg](https://ffmpeg.org/),
     which must be installed separately. Other commands do not need it.
 
-For example: 
+For example:
 
 === "macOS"
 
@@ -63,20 +63,20 @@ For example:
     brew install ffmpeg
     ```
 
-=== "Ubuntu / Debian" 
+=== "Ubuntu / Debian"
 
-    ```bash 
+    ```bash
     sudo apt update
     sudo apt install ffmpeg
     ```
-    
-=== "Conda" 
 
-    ```bash 
+=== "Conda"
+
+    ```bash
     conda install -c conda-forge ffmpeg
     ```
 
-After installation, confirm that FFmpeg is available: 
+After installation, confirm that FFmpeg is available:
 
 ```bash
 ffmpeg -version

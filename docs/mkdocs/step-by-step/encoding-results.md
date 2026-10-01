@@ -2,9 +2,9 @@
 
 The [`encoding`](encoding.md) CLI produces two kinds of results:
 
-- **evals** from `analyze`, containing the per-voxel encoding scores used 
+- **evals** from `analyze`, containing the per-voxel encoding scores used
   for downstream analysis;
-- **model artifacts** from `train`, 
+- **model artifacts** from `train`,
   containing fitted models and the recipe used to construct them.
 
 Load both from `hypline.encoding`:
@@ -16,7 +16,7 @@ from hypline.encoding import load_eval, load_artifact
 ## Load an eval
 
 An eval (`analyze`'s output) loads as an
-[`xarray.Dataset`](https://docs.xarray.dev/). This is the usual starting 
+[`xarray.Dataset`](https://docs.xarray.dev/). This is the usual starting
 point for downstream analysis because it contains the per-voxel encoding scores.
 
 ```python
@@ -37,7 +37,7 @@ ds["corr"].dims      # ('fold', 'band', 'role', 'voxel')
 | `voxel` | One location in the brain.                                              |
 
 Three of the four carry named labels you can select on; `voxel` is a bare
-integer index, since an eval has no real voxel identifiers to attach. The sections 
+integer index, since an eval has no real voxel identifiers to attach. The sections
 below explain these dimensions and how to select the scores needed for an analysis.
 
 ### `band`: the parts of the model
@@ -131,8 +131,8 @@ ds.attrs["delays"]       # the FIR delays the model used, in TRs
 ds.attrs["bold_space"]   # the BOLD space it was scored in
 ```
 
-The identities of `source`, `model`, and `target` determine what an eval means. 
-The same model file says very different things depending on how `source`, `model`, 
+The identities of `source`, `model`, and `target` determine what an eval means.
+The same model file says very different things depending on how `source`, `model`,
 and `target` line up, and that choice has its own page:
 [Choosing source and model](../FAQ/how-encoding-works.md#choosing-source-and-model).
 
@@ -166,10 +166,9 @@ get wrong:
 To compare within-brain, cross-brain, and pseudo-dyad evals, see
 [Compare cross-brain fits with a baseline](../FAQ/analyze-evals.md).
 
-
 ## Load a model artifact
 
-A model artifact (`train`'s output) loads as an `EncodingArtifact`, which 
+A model artifact (`train`'s output) loads as an `EncodingArtifact`, which
 contains the fitted weights and the recipe needed to inspect or reuse the model:
 
 ```python
@@ -180,8 +179,8 @@ artifact.models      # one FittedModel per fold (its pipeline + the cells it was
 artifact.fold        # the FoldSpec, or None for a single unfolded model
 ```
 
-`load_artifact` warns, but does not fail, if the artifact was 
-written by a different hypline version. Treat this as provenance 
+`load_artifact` warns, but does not fail, if the artifact was
+written by a different hypline version. Treat this as provenance
 information rather than a hard incompatibility.
 
 ## API reference
@@ -208,7 +207,7 @@ The artifact structure and its parts.
 
 ### Saving
 
-The CLI commands write results for you. Use these functions directly 
+The CLI commands write results for you. Use these functions directly
 if you need to save an eval or model artifact yourself.
 
 ::: hypline.encoding.save_eval

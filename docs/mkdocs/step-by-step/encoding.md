@@ -200,7 +200,7 @@ Both commands write to a new top-level `results/` folder, keyed by subject
 (one analysis output consumes many runs across sessions, so results carry no
 source-run or session entity):
 
-```
+```text
 <dataset-root>/results/
 ├── sub-041/encodingModel-v1/
 │   ├── sub-041_result-encodingModel_desc-v1.joblib   # train: fitted model artifact

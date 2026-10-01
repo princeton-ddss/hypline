@@ -30,7 +30,7 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 - **Custom nuisance files** under `nuisance/` — read only when you pass
   `--custom-sources`.
 
-```
+```text
 <dataset-root>/
 ├── derivatives/fmriprep/sub-041/ses-1/func/
 │   ├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
@@ -149,7 +149,7 @@ fMRIPrep's `sub-XX/[ses-YY/]func/` shape and preserving the source's full BOLD
 identity — only the `desc` entity (`desc-denoised`) and the root differ from the
 source:
 
-```
+```text
 <dataset-root>/derivatives/hypline/sub-041/ses-1/func/
 ├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # volumetric output
 └── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar

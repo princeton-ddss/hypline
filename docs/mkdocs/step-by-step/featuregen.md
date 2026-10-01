@@ -1,7 +1,7 @@
 # `hypline featuregen`
 
-Generate stimulus-derived **features**, predictors that an encoding model 
-uses to model the BOLD signal. `featuregen` provides one subcommand for each 
+Generate stimulus-derived **features**, predictors that an encoding model
+uses to model the BOLD signal. `featuregen` provides one subcommand for each
 feature family. For what each family captures and how to choose among them, see
 [Feature families](../FAQ/feature-families.md).
 
@@ -31,7 +31,7 @@ manner, voicing, …).
 
 Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
-```
+```text
 <dataset-root>/stimuli/dyad-040/ses-1/transcript/
 └── dyad-040_ses-1_task-conv_run-1_transcript.csv
 ```
@@ -76,7 +76,7 @@ A phonemic feature file per transcript, tagged `feat-phonemic`, under
 `features/`. With `--skip-confoundgen` omitted, the matching `conf-phonemic`
 confounds appear too (see [`confoundgen`](confoundgen.md)):
 
-```
+```text
 <dataset-root>/
 ├── features/dyad-040/ses-1/phonemic/
 │   └── dyad-040_ses-1_task-conv_run-1_feat-phonemic.parquet
@@ -160,7 +160,7 @@ vector, and (for any non-zero layer) per-token LM metrics (`rank`,
 `layer`. With `--skip-confoundgen` omitted, the matching `conf-semantic`
 confounds appear too (see [`confoundgen`](confoundgen.md)):
 
-```
+```text
 <dataset-root>/
 ├── features/dyad-040/ses-1/semantic/
 │   └── dyad-040_ses-1_task-conv_run-1_feat-semantic.parquet
@@ -207,7 +207,7 @@ TR, ready to feed an encoding model without a downstream binning step.
 Stimulus audio under `stimuli/` — the same files [`transcribe`](transcribe.md)
 reads, selected by `--audio-ext`:
 
-```
+```text
 <dataset-root>/stimuli/dyad-040/ses-1/audio/
 └── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
@@ -246,7 +246,7 @@ hypline featuregen spectral data/ --audio-ext .wav
 
 A spectral feature file per stimulus, tagged `feat-spectral`, under `features/`:
 
-```
+```text
 <dataset-root>/features/dyad-040/ses-1/spectral/
 └── dyad-040_ses-1_task-conv_run-1_feat-spectral.parquet
 ```
@@ -317,7 +317,7 @@ hypline featuregen syntactic data/
 A syntactic feature file per transcript, tagged `feat-syntactic`, under
 `features/`:
 
-```
+```text
 <dataset-root>/features/dyad-040/ses-1/syntactic/
 └── dyad-040_ses-1_task-conv_run-1_feat-syntactic.parquet
 ```

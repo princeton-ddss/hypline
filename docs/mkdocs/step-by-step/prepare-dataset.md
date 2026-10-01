@@ -42,7 +42,7 @@ sub-052	dyad-050
 ```
 
 This is the single source of truth that lets a dyad-keyed feature reach a
-sub-keyed brain. Two subjects share a `dyad_id` exactly when they belong 
+sub-keyed brain. Two subjects share a `dyad_id` exactly when they belong
 to the same scanning pair.
 
 In these examples the tens digit numbers the pair and the last digit marks its
@@ -64,7 +64,7 @@ dataset root folder.
 Hypline reads each run's structure from BIDS `events.tsv` files stored in the
 subject's `func` directory:
 
-```
+```text
 sub-041/ses-1/func/
 ├── sub-041_ses-1_task-conv_run-1_bold.nii.gz
 └── sub-041_ses-1_task-conv_run-1_events.tsv
@@ -100,13 +100,13 @@ Hypline does not preprocess BOLD; it takes in the output of
 derivatives under `derivatives/fmriprep/`, in the per-subject shape it already
 produces:
 
-```
+```text
 derivatives/fmriprep/sub-041/ses-1/func/
 ├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
 └── sub-041_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
 ```
 
-[`denoise`](../step-by-step/denoise.md) reads the preprocessed BOLD and pulls its
+[`denoise`](denoise.md) reads the preprocessed BOLD and pulls its
 nuisance regressors from fMRIPrep's own `desc-confounds` table, so both must be
 present. The BOLD `space` you preprocessed into is the one you will pass to
 `denoise` and `encoding` later.
@@ -116,14 +116,14 @@ present. The BOLD `space` you preprocessed into is the one you will pass to
 The conversation audio is dyad-keyed (it belongs to the pair, not either
 partner), so it goes under `stimuli/`, keyed by dyad:
 
-```
+```text
 stimuli/dyad-040/ses-1/audio/
 └── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
 
 This is the only stimulus area you fill by hand. From here
-[`transcribe`](../step-by-step/transcribe.md) writes the transcripts and
-[`featuregen`](../step-by-step/featuregen.md) writes the features, both back under
+[`transcribe`](transcribe.md) writes the transcripts and
+[`featuregen`](featuregen.md) writes the features, both back under
 `stimuli/` and `features/` at the same dyad key.
 
 ## 5. (Optional) Describe conditions and custom nuisance
@@ -137,7 +137,7 @@ Two optional inputs round out a dataset:
 - **`nuisance/` files** hold run-level regressors you supply yourself that
   fMRIPrep never produced (physiological recordings, say) for `denoise` to
   regress out alongside the fMRIPrep columns. See the
-  [`denoise` reference](../step-by-step/denoise.md).
+  [`denoise` reference](denoise.md).
 
 Both are optional. A dataset with neither still runs the full pipeline.
 
@@ -145,13 +145,13 @@ Both are optional. A dataset with neither still runs the full pipeline.
 
 Laid out, a minimal single-dyad dataset looks like this:
 
-```
+```text
 data/
 ├── participants.tsv
 ├── sub-041/ses-1/func/                        # raw BOLD + events (you supply; raw BOLD not required)
 ├── sub-042/ses-1/func/
 ├── derivatives/fmriprep/                      # fMRIPrep outputs (you supply)
-│   ├── sub-041/ses-1/func/                   
+│   ├── sub-041/ses-1/func/
 │   └── sub-042/ses-1/func/
 └── stimuli/dyad-040/ses-1/audio/              # conversation audio (you supply)
 ```

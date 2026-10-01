@@ -219,7 +219,7 @@ Here `--columns` names confound columns from fMRIPrep's table: the six head-moti
 parameters (`trans_*`, `rot_*`) plus `cosine`, a prefix that expands to every
 cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
 (`MNI152NLin2009cAsym`), so we name that space explicitly — `--space` defaults to
-the surface `fsaverage6`, and your own surface data needs no `--space` at all. 
+the surface `fsaverage6`, and your own surface data needs no `--space` at all.
 (Omitting `--columns` entirely would fall back to hypline's default confound set, optimized as described in our prior work, Speer et al. (2024)[^speer] — see the
 [`denoise` reference](../step-by-step/denoise.md).)
 
