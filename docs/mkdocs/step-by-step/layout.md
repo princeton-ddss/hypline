@@ -36,7 +36,8 @@ a few extra areas. A representative dataset tree looks like this:
 ├── results/sub-031/
 │   ├── encodingModel-v1/                    # fitted encoding models
 │   └── encodingEval-v1/                     # evaluation results
-└── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
+├── nuisance/sub-031/ses-1/physio-v1/        # optional, user-supplied nuisance regressors
+└── logs/<command>/                          # per-ID run logs, written by every command
 ```
 
 - **`sub-031/`, `derivatives/fmriprep/`** are BIDS and BIDS-derivatives areas
