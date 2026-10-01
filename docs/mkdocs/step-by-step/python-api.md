@@ -85,9 +85,11 @@ A confound DataFrame requires two columns:
 - `confound`: an equal-width confound vector for that time point
 
 The `start_time` values must begin at `0.0` and advance by the run's
-repetition time. Pass that interval explicitly as `repetition_time`. You must also provide
-`tr_method`, a label describing how the confound was aligned to TRs. Pass None
-if it does not apply.
+repetition time. Mark your TR explicitly with `repetition_time`. `tr_method`
+records how the confound was converted to one row per fMRI volume (e.g., `"mean"` if you averaged
+signals within each TR), and is required. You can put `None` if it's not applicable (i.e., your confound was
+already one row per TR). For each confound, every run must have the same `tr_method` info. Otherwise, `encoding train` 
+will complain about inconsistent metadata.
 
 ```python
 import polars as pl
@@ -109,7 +111,7 @@ path = save_confound(
     task="conv",
     run="1",
     repetition_time=1.5,
-    tr_method=None,
+    tr_method="mean",
 )
 ```
 
