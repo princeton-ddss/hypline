@@ -57,7 +57,7 @@ hypline encoding train data/ \
   --data-filters task-conv \
   --features phonemic \
   --desc v1 \
-  --fold-by none
+  --fold-by run
 ```
 
 After these steps, `data/` contains the phonemic predictors, denoised BOLD responses
