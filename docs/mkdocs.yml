@@ -104,6 +104,6 @@ nav:
     - Feature families: FAQ/feature-families.md
     - Filter to specific runs or conditions: FAQ/filter.md
     - Regenerate outputs after a fix: FAQ/regenerate.md
-    - Test cross-brain effects from evaluation results: FAQ/analyze-evals.md
+    - Compare cross-brain fits with a baseline: FAQ/analyze-evals.md
     - Glossary: FAQ/glossary.md
 
