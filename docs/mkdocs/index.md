@@ -23,8 +23,8 @@ within the same [BIDS](https://bids.neuroimaging.io/)-style dataset.
 
 ## Installation
 
-Hypline currently supports Python 3.11. We recommend installing it in a
-dedicated Python 3.11 environment.
+Hypline supports Python 3.11 and later; testing covers 3.11 through 3.13. We recommend
+installing it in a dedicated environment.
 
 === "pip"
 
