@@ -1,0 +1,2032 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../denoise/">
+      
+      
+        <link rel="next" href="../python-api/">
+      
+      
+      <link rel="icon" href="../../images/favicon.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
+    
+    
+      
+        <title>hypline encoding - Hypline</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#hypline-encoding" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Hypline" class="md-header__button md-logo" aria-label="Hypline" data-md-component="logo">
+      
+  <img src="../../images/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hypline
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              hypline encoding
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/princeton-ddss/hypline" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    princeton-ddss/hypline
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/walkthrough/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../layout/" class="md-tabs__link">
+          
+  
+  
+  Step-by-step guides
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../FAQ/how-encoding-works/" class="md-tabs__link">
+          
+  
+  
+  FAQ
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Hypline" class="md-nav__button md-logo" aria-label="Hypline" data-md-component="logo">
+      
+  <img src="../../images/logo.svg" alt="logo">
+
+    </a>
+    Hypline
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/princeton-ddss/hypline" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    princeton-ddss/hypline
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tutorials
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Run the full pipeline on the example dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Step-by-step guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Step-by-step guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Step 1. Prepare your data
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            Step 1. Prepare your data
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Hypline dataset layout
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Segments and metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prepare-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Prepare your own dataset
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Step 2. Run the hypline pipeline (CLI)
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            Step 2. Run the hypline pipeline (CLI)
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_2" id="__nav_3_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Generate features and confounds
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            Generate features and confounds
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transcribe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    hypline transcribe
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../featuregen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    hypline featuregen
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../confoundgen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    hypline confoundgen
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_3" id="__nav_3_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Denoise fMRI data
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            Denoise fMRI data
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../denoise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    hypline denoise
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_4" id="__nav_3_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Run encoding models
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            Run encoding models
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    hypline encoding
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#encoding-train" class="md-nav__link">
+    <span class="md-ellipsis">
+      encoding train
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="encoding train">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#encoding-analyze" class="md-nav__link">
+    <span class="md-ellipsis">
+      encoding analyze
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="encoding analyze">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loading-results-in-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      Loading results in Python
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    Step 3. Review your features and results (Python API)
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            Step 3. Review your features and results (Python API)
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../python-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Features and confounds
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoding-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Encoding results
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    FAQ
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            FAQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FAQ/how-encoding-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    How the encoding model works
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FAQ/feature-families/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Feature families
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FAQ/filter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Filter to specific runs or conditions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FAQ/regenerate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Regenerate outputs after a fix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FAQ/analyze-evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Compare cross-brain fits with a baseline
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../FAQ/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Glossary
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#encoding-train" class="md-nav__link">
+    <span class="md-ellipsis">
+      encoding train
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="encoding train">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Inputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#encoding-analyze" class="md-nav__link">
+    <span class="md-ellipsis">
+      encoding analyze
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="encoding analyze">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Outputs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common errors
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loading-results-in-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      Loading results in Python
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="hypline-encoding"><code>hypline encoding</code><a class="headerlink" href="#hypline-encoding" title="Permanent link">&para;</a></h1>
+<p>Fit and test <strong>voxelwise ridge encoding models</strong>, the step that joins the two
+sides the rest of the pipeline prepares. <code>train</code> maps stimulus features (X) onto
+denoised BOLD (Y) per subject; <code>analyze</code> tests one subject's model against
+another subject's brain (or a held-out run of the same subject's brain), across production and comprehension turns. <code>encoding</code>
+is a group of subcommands.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>&lt;command&gt;<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>train</code></td>
+<td>Fit a per-subject ridge model from features (+ optional confounds)</td>
+</tr>
+<tr>
+<td><code>analyze</code></td>
+<td>Test a model's predictions against a target subject's BOLD, within or across subjects</td>
+</tr>
+</tbody>
+</table>
+<p>Both commands read from the dataset root and write to a new <code>results/</code> area (see
+<a href="#outputs">Outputs</a>). Results load back as live Python objects rather than flat
+tables; read them for downstream analysis with the <a href="../encoding-results/">Encoding results</a> API.</p>
+<div class="admonition note">
+<p class="admonition-title">The banded ridge model</p>
+<p>Each feature becomes its own ridge band (its own regularization strength);
+all confounds share one trailing band, partialled out in the same fit so a
+feature cannot claim variance a confound explains. In a dyadic conversation
+a subject alternates between <strong>producing</strong> speech and <strong>comprehending</strong> the
+partner's, so by default <code>train</code> duplicates every feature and confound
+regressor into a production copy and a comprehension copy and learns separate
+weights for each (<code>--no-split</code> keeps one shared copy). Either way, two
+intercept-like production/comprehension task boxcars always ride a reserved
+band that absorbs the mean BOLD offset between the two states — <code>--no-split</code>
+drops the per-regressor duplication, not this band. <a href="../../FAQ/how-encoding-works/">How the encoding model
+works</a> unpacks this at more length.</p>
+</div>
+<hr />
+<h2 id="encoding-train"><code>encoding train</code><a class="headerlink" href="#encoding-train" title="Permanent link">&para;</a></h2>
+<p>Fit a voxelwise ridge encoding model per subject, writing one model artifact per
+subject to <code>results/</code>.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--features<span class="w"> </span>…<span class="w"> </span>--desc<span class="w"> </span>…<span class="w"> </span>--fold-by<span class="w"> </span>…<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div>
+<h3 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Features</strong> under <code>features/</code> — the predictors, generated by
+  <a href="../featuregen/"><code>featuregen</code></a>. Named by <code>--features</code> as <code>&lt;kind&gt;[-&lt;desc&gt;]</code>
+  refs; each ref becomes its own ridge band.</li>
+<li><strong>Confounds</strong> under <code>confounds/</code> (optional) — stimulus-derived nuisance
+  regressors, generated by <a href="../confoundgen/"><code>confoundgen</code></a>. Named by
+  <code>--confounds</code>; all share one band. Must be saved at TR level.</li>
+<li><strong>Denoised BOLD</strong> under <code>derivatives/hypline/</code> — the target, produced by
+  <a href="../denoise/"><code>denoise</code></a>. Selected by <code>--bold-space</code> and <code>--bold-desc</code>
+  (default <code>denoised</code>).</li>
+</ul>
+<p>Features are dyad-keyed and BOLD is subject-keyed, so <code>train</code> bridges them
+through <code>participants.tsv</code> — see <a href="../layout/#subject-vs-dyad">Subject vs.
+Dyad</a>.</p>
+<h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--features</code></td>
+<td>Comma-separated feature refs as <code>&lt;kind&gt;[-&lt;desc&gt;]</code> (e.g. <code>semantic-gpt3,phonemic-noArt</code>); each becomes its own ridge band — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--desc</code></td>
+<td>Variant label for this model (alphanumeric); output lands under <code>results/sub-XX/encodingModel-&lt;desc&gt;/</code> — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--fold-by</code></td>
+<td>Cross-validation grouping axis: a BIDS entity to fold on (e.g. <code>run</code>), or <code>none</code> for a single unfolded model — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--n-folds</code></td>
+<td>Number of folds: an integer (<code>&gt;=2</code>) or <code>loo</code>. Defaults to <code>loo</code> with <code>--fold-by &lt;entity&gt;</code>; omit with <code>--fold-by none</code></td>
+<td><code>loo</code> (with <code>--fold-by &lt;entity&gt;</code>)</td>
+</tr>
+<tr>
+<td><code>--confounds</code></td>
+<td>Comma-separated confound refs as <code>&lt;kind&gt;[-&lt;desc&gt;]</code> (e.g. <code>phonemic-onset,phonemic-rate</code>); all share one band</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--bold-space</code></td>
+<td>BOLD space to train on: <code>fsaverage5</code>, <code>fsaverage6</code>, <code>MNI152NLin6Asym</code>, <code>MNI152NLin2009cAsym</code></td>
+<td><code>fsaverage6</code></td>
+</tr>
+<tr>
+<td><code>--bold-desc</code></td>
+<td>BOLD <code>desc</code> entity selecting the input runs</td>
+<td><code>denoised</code></td>
+</tr>
+<tr>
+<td><code>--downsample</code></td>
+<td>Feature-to-TR downsampling: <code>mean</code> or <code>sum</code></td>
+<td><code>mean</code></td>
+</tr>
+<tr>
+<td><code>--delays</code></td>
+<td>Comma-separated FIR delays in TRs</td>
+<td><code>0,1,2,3,4,5</code></td>
+</tr>
+<tr>
+<td><code>--alphas</code></td>
+<td>Comma-separated ridge alphas to search</td>
+<td><code>1</code>–<code>1e12</code> log grid (13 points)</td>
+</tr>
+<tr>
+<td><code>--device</code></td>
+<td>Compute device for the fit: <code>cpu</code> or <code>cuda</code></td>
+<td><code>cpu</code></td>
+</tr>
+<tr>
+<td><code>--no-split</code></td>
+<td>Fit one shared set of weights for production and comprehension instead of a separate set for each</td>
+<td>off</td>
+</tr>
+<tr>
+<td><code>--sub-ids</code></td>
+<td>Comma-separated subject IDs to train (e.g. <code>041,042</code>); omit for all</td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>--data-filters</code></td>
+<td>Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. <code>task-conv</code>) — there is no dedicated task flag; see <a href="../../FAQ/filter/">Filter to specific runs or conditions</a></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title"><code>--fold-by</code> and <code>--n-folds</code></p>
+<p><code>--fold-by &lt;entity&gt;</code> defaults to leave-one-out (<code>n_folds='loo'</code>), so
+<code>--n-folds</code> is optional there — pass it only to override the count. The one
+invalid pairing is <code>--fold-by none</code> with an explicit <code>--n-folds</code>, which
+raises an error. <code>--fold-by none</code> fits a single model over the whole corpus;
+<code>--fold-by run --n-folds 5</code> fits five cross-validated models grouped by run.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Pooling multiple tasks</p>
+<p>A fit that spans more than one task shares one set of ridge weights across
+them, collapsing task-specific responses. <code>train</code> warns when it detects this
+without a task-level opt-in. To fit one task, narrow via
+<code>--data-filters task-&lt;label&gt;</code>. To pool tasks on purpose, name them with a
+<code>task-*</code> filter or fold across them with <code>--fold-by task</code>.</p>
+</div>
+<h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h3>
+<p>Fit a single model per subject from semantic features plus phonemic-timing
+confounds, over the <code>conv</code> task:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--features<span class="w"> </span>semantic-gpt3<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--confounds<span class="w"> </span>phonemic-onset,phonemic-rate<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold-by<span class="w"> </span>none
+</code></pre></div>
+<p>Cross-validate by run — leave-one-out by default, on a GPU:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>train<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--data-filters<span class="w"> </span>task-conv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--features<span class="w"> </span>semantic-gpt3<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--desc<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold-by<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--device<span class="w"> </span>cuda
+</code></pre></div>
+<hr />
+<h2 id="encoding-analyze"><code>encoding analyze</code><a class="headerlink" href="#encoding-analyze" title="Permanent link">&para;</a></h2>
+<p>Test a trained model's predictions against a target subject's actual BOLD, per
+role (production / comprehension / both). Three subject roles are independent:</p>
+<ul>
+<li><strong>model</strong> (<code>--model-sub</code>) — whose trained weights are loaded.</li>
+<li><strong>source</strong> (<code>--source-sub</code>) — whose features build the prediction inputs (X).</li>
+<li><strong>target</strong> (<code>--target-sub</code>) — whose actual BOLD is the comparison (Y).</li>
+</ul>
+<p>Any combination is valid within one study: all three the same subject is a
+within-brain fit; partners in one dyad share a conversation across different
+brains; different dyads are a scramble/null control (<code>analyze</code> warns). The values
+<code>self</code> and <code>partner</code> are accepted for <code>--model-sub</code> / <code>--source-sub</code>, resolved
+relative to <code>--target-sub</code> via <code>participants.tsv</code>. For how these pairings map to
+within-brain, cross-brain, and pseudo-dyad analyses, see <a href="../../FAQ/how-encoding-works/#choosing-source-and-model">Choosing source and
+model</a>.</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>analyze<span class="w"> </span>&lt;dataset-root&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--target-sub<span class="w"> </span>…<span class="w"> </span>--model-sub<span class="w"> </span>…<span class="w"> </span>--model-desc<span class="w"> </span>…<span class="w"> </span>--desc<span class="w"> </span>…<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</code></pre></div>
+<h3 id="options_1">Options<a class="headerlink" href="#options_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--target-sub</code></td>
+<td>Subject whose actual BOLD and production/comprehension turns are tested against — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--model-sub</code></td>
+<td>Subject whose trained model is loaded: an ID, or <code>self</code>/<code>partner</code> (relative to <code>--target-sub</code>) — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--model-desc</code></td>
+<td>The <code>--desc</code> passed to <code>encoding train</code> (its <code>encodingModel-&lt;desc&gt;</code> tag) — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--desc</code></td>
+<td>Variant label for this eval (alphanumeric); output lands under <code>results/sub-&lt;target&gt;/encodingEval-&lt;desc&gt;/</code> — <strong>required</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--source-sub</code></td>
+<td>Subject whose regressors drive the prediction: an ID, or <code>self</code>/<code>partner</code></td>
+<td><code>self</code></td>
+</tr>
+<tr>
+<td><code>--test-on</code></td>
+<td>Comma-separated BIDS entity filters naming which cells to test (e.g. <code>run-6</code>, or <code>run-6,run-8</code>); omit to test each model's out-of-sample cells</td>
+<td>out-of-sample cells</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite existing outputs (default skips them)</td>
+<td>off</td>
+</tr>
+</tbody>
+</table>
+<p>The output is per-fold, per-band, per-role, per-voxel scores. These are himalaya
+<em>split</em> scores (each band's own contribution to the joint prediction), so a
+band's value is not a plain Pearson correlation and need not fall in <code>[-1, 1]</code>.
+Roles are derived from the target's turns: <code>prod</code> and <code>comp</code> are the
+exclusive pure-production / pure-comprehension rows, and <code>both</code> is the union of
+any speech-active row. A role with no rows scores <code>NaN</code> rather than zero.</p>
+<h3 id="example_1">Example<a class="headerlink" href="#example_1" title="Permanent link">&para;</a></h3>
+<p>Test subject <code>041</code>'s own model against its own BOLD (a within-brain fit). With
+default <code>--test-on</code>, <code>analyze</code> tests each model's out-of-sample cells, so the
+model must be folded. A <code>--fold-by none</code> model trained on every cell has no
+held-out cells and raises here; name cells with <code>--test-on</code>, or use a folded
+model as below:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>analyze<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--target-sub<span class="w"> </span><span class="m">041</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-sub<span class="w"> </span>self<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-desc<span class="w"> </span>cv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--desc<span class="w"> </span>selfeval
+</code></pre></div>
+<p>Test subject <code>041</code>'s BOLD using the partner's model and features (a
+cross-brain, shared-conversation eval) on run 6:</p>
+<div class="highlight"><pre><span></span><code>hypline<span class="w"> </span>encoding<span class="w"> </span>analyze<span class="w"> </span>data/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--target-sub<span class="w"> </span><span class="m">041</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-sub<span class="w"> </span>partner<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--source-sub<span class="w"> </span>partner<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-desc<span class="w"> </span>v1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--desc<span class="w"> </span>crosseval<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--test-on<span class="w"> </span>run-6
+</code></pre></div>
+<h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
+<p>Both commands write to a new top-level <code>results/</code> folder, keyed by subject
+(one analysis output consumes many runs across sessions, so results carry no
+source-run or session entity):</p>
+<div class="highlight"><pre><span></span><code>&lt;dataset-root&gt;/results/
+├── sub-041/encodingModel-v1/
+│   ├── sub-041_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
+│   └── sub-041_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
+└── sub-041/encodingEval-selfeval/
+    └── sub-041_result-encodingEval_desc-selfeval.nc # analyze: per-voxel scores (netCDF-4)
+</code></pre></div>
+<ul>
+<li><strong><code>encodingModel-&lt;desc&gt;/</code></strong> (<code>train</code>) — the fitted model as a <code>.joblib</code> file,
+  plus a JSON sidecar mirroring the recipe and provenance without unpickling.</li>
+<li><strong><code>encodingEval-&lt;desc&gt;/</code></strong> (<code>analyze</code>) — the eval as a self-describing
+  netCDF-4 file any tool can read, carrying provenance (<code>model_sub</code>,
+  <code>source_sub</code>, <code>target_sub</code>, <code>delays</code>, <code>bold_space</code>, <code>test_on</code>, …) in its
+  attributes.</li>
+</ul>
+<h2 id="common-errors">Common errors<a class="headerlink" href="#common-errors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>omit --n-folds with --fold-by none</code></td>
+<td><code>--n-folds</code> was given alongside <code>--fold-by none</code>, which fits a single unfolded model.</td>
+<td>Drop <code>--n-folds</code>, or fold on an entity with <code>--fold-by &lt;entity&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>n_folds='loo' needs &gt;= 2 groups to fold; got 1</code></td>
+<td><code>--fold-by</code> names an entity with only one value in the training corpus, so there is nothing to leave out.</td>
+<td>Widen the corpus (task/filters), or fit unfolded with <code>--fold-by none</code>.</td>
+</tr>
+<tr>
+<td><code>n_folds=N exceeds the M group(s) found for the fold_by entity</code> (<code>train</code>)</td>
+<td><code>--n-folds</code> is larger than the number of distinct <code>--fold-by</code> values available.</td>
+<td>Lower <code>--n-folds</code> to at most the group count, or use <code>loo</code>.</td>
+</tr>
+<tr>
+<td><code>No regressor files match the given filters</code> / <code>No BOLD files match the given filters</code> (<code>train</code>)</td>
+<td><code>--features</code>, <code>--data-filters</code>, <code>--bold-space</code>, or <code>--bold-desc</code> selected nothing.</td>
+<td>Confirm the features and <code>desc-denoised</code> BOLD exist and that the filters are not too narrow.</td>
+</tr>
+<tr>
+<td><code>empty out-of-sample set — pass test_on to name cells</code> (<code>analyze</code>)</td>
+<td>The model was trained unfolded (<code>--fold-by none</code>), so it has no held-out cells to test.</td>
+<td>Test a folded model, or name cells explicitly with <code>--test-on</code>.</td>
+</tr>
+<tr>
+<td><code>test_on matched no available cells: …</code> (<code>analyze</code>)</td>
+<td><code>--test-on</code> names cells the source subject does not have.</td>
+<td>Check the <code>--test-on</code> filter against the runs/conditions that exist.</td>
+</tr>
+<tr>
+<td><code>test_on entities […] not found on any available cell … check for a typo</code> (<code>analyze</code>)</td>
+<td>A <code>--test-on</code> filter uses an entity that no cell carries.</td>
+<td>Fix the entity name (e.g. <code>run-6</code>, not <code>ses-1</code>).</td>
+</tr>
+<tr>
+<td>Log warns <code>source (…) and target (…) are different dyads</code> (<code>analyze</code>)</td>
+<td>The source and target belong to different dyads — a scramble/null control.</td>
+<td>Expected for a null control; otherwise fix <code>--source-sub</code> so it shares the target's dyad.</td>
+</tr>
+<tr>
+<td><code>No subjects found</code> (<code>train</code>)</td>
+<td>No subjects under <code>derivatives/fmriprep/</code>; <code>train</code> discovers subjects there, not in <code>derivatives/hypline/</code> (a missing <code>desc-denoised</code> BOLD shows up as a per-subject failure instead).</td>
+<td>Confirm the fMRIPrep outputs are under <code>derivatives/fmriprep/</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="loading-results-in-python">Loading results in Python<a class="headerlink" href="#loading-results-in-python" title="Permanent link">&para;</a></h2>
+<p>Both commands write Python objects, not tables. Load them back for downstream
+analysis with the <a href="../encoding-results/">Encoding results</a> API: <code>load_eval</code> for
+an eval, <code>load_artifact</code> for a fitted model.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../denoise/" class="md-footer__link md-footer__link--prev" aria-label="Previous: hypline denoise">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                hypline denoise
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../python-api/" class="md-footer__link md-footer__link--next" aria-label="Next: Features and confounds">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Features and confounds
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025–2026 The Trustees of Princeton University
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.annotate", "content.code.copy", "content.tabs.link", "navigation.instant", "navigation.sections", "navigation.tabs", "navigation.top", "navigation.tracking", "navigation.footer", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
