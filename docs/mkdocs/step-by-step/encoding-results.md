@@ -1,24 +1,31 @@
-# Reading an encoding result
+# Encoding results
 
-When `hypline encoding analyze` scores a model, it writes an **eval**: a small
-netCDF file of per-voxel scores. You load it back with
-[`load_eval`](../reference/encoding-results.md) and get an
-[`xarray.Dataset`](https://docs.xarray.dev/) with a single variable, `corr`.
-This page explains what `corr` holds, so you can subset it to the exact scores a
-question needs and read them correctly.
+The [`encoding`](encoding.md) CLI produces two kinds of results:
 
-If you have not run an analysis yet, the [tutorial](../tutorials/walkthrough.md)
-walks through producing one; come back here when you have an eval in hand.
+- **evals** from `analyze`, containing the per-voxel encoding scores used
+  for downstream analysis;
+- **model artifacts** from `train`,
+  containing fitted models and the recipe used to construct them.
 
-## The shape of `corr`
-
-`corr` is a four-dimensional array. Every score in it sits at one point along
-each of these axes:
+Load both from `hypline.encoding`:
 
 ```python
-from hypline.encoding import load_eval
+from hypline.encoding import load_eval, load_artifact
+```
 
-ds = load_eval("data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc")
+## Load an eval
+
+An eval (`analyze`'s output) loads as an
+[`xarray.Dataset`](https://docs.xarray.dev/). This is the usual starting
+point for downstream analysis because it contains the per-voxel encoding scores.
+
+```python
+ds = load_eval("data/results/sub-041/encodingEval-selfeval/sub-041_result-encodingEval_desc-selfeval.nc")
+```
+
+The main variable is `corr`, a four-dimensional array:
+
+```python
 ds["corr"].dims      # ('fold', 'band', 'role', 'voxel')
 ```
 
@@ -30,8 +37,8 @@ ds["corr"].dims      # ('fold', 'band', 'role', 'voxel')
 | `voxel` | One location in the brain.                                              |
 
 Three of the four carry named labels you can select on; `voxel` is a bare
-integer index, since an eval has no real voxel identifiers to attach. The rest
-of this page takes the labelled axes one at a time.
+integer index, since an eval has no real voxel identifiers to attach. The sections
+below explain these dimensions and how to select the scores needed for an analysis.
 
 ### `band`: the parts of the model
 
@@ -85,7 +92,7 @@ ds["corr"].sel(role="prod")   # scores during the target's own speech
 ```
 
 `prod` and `comp` are kept strictly separate. The model's
-[FIR delays](how-encoding-works.md) let one turn's signal spill onto the first
+[FIR delays](../FAQ/how-encoding-works.md) let one turn's signal spill onto the first
 rows of the next, and those boundary rows are dropped from both so neither role
 is contaminated. `both` keeps them, which is why it is not simply `prod` plus
 `comp`. A role with no rows in a fold (a run where the target never listened,
@@ -109,7 +116,7 @@ To collapse the folds into one score per voxel, average across them — and use 
 ds["corr"].mean("fold", skipna=True)
 ```
 
-## The attributes: what analysis this is
+### The attributes: what analysis this is
 
 The scores alone do not say whose model, whose speech, or whose brain produced
 them. That provenance rides along in `ds.attrs`, so an eval file is
@@ -124,12 +131,12 @@ ds.attrs["delays"]       # the FIR delays the model used, in TRs
 ds.attrs["bold_space"]   # the BOLD space it was scored in
 ```
 
-The three subject roles are what fix an eval's meaning. The same model file says
-very different things depending on how `source`, `model`, and `target` line up,
-and that choice has its own page:
-[Choosing source and model](how-encoding-works.md#choosing-source-and-model).
+The identities of `source`, `model`, and `target` determine what an eval means.
+The same model file says very different things depending on how `source`, `model`,
+and `target` line up, and that choice has its own page:
+[Choosing source and model](../FAQ/how-encoding-works.md#choosing-source-and-model).
 
-## What the scores are, and are not
+### What the scores are, and are not
 
 The values in `corr` are himalaya **split scores**: each band's own share of the
 joint prediction's accuracy. Two things follow from that, and both are easy to
@@ -145,13 +152,64 @@ get wrong:
 
 !!! success "A first look at your eval"
 
-    Loaded, a typical within-subject eval subsets like this — the production
+    Loaded, a typical within-brain eval subsets like this — the production
     score for one feature, averaged over folds:
 
     ```python
     ds["corr"].sel(band="semantic", role="prod").mean("fold", skipna=True)
     ```
 
-    From here, [Choosing source and model](how-encoding-works.md#choosing-source-and-model)
+    From here, [Choosing source and model](../FAQ/how-encoding-works.md#choosing-source-and-model)
     explains how the subject wiring behind an eval changes what a score like this
     tells you.
+
+To compare within-brain, cross-brain, and pseudo-dyad evals, see
+[Compare cross-brain fits with a baseline](../FAQ/analyze-evals.md).
+
+## Load a model artifact
+
+A model artifact (`train`'s output) loads as an `EncodingArtifact`, which
+contains the fitted weights and the recipe needed to inspect or reuse the model:
+
+```python
+artifact = load_artifact("data/results/sub-041/encodingModel-v1/sub-041_result-encodingModel_desc-v1.joblib")
+
+artifact.recipe      # the XRecipe: features, confounds, delays, alphas, split, …
+artifact.models      # one FittedModel per fold (its pipeline + the cells it was fit on)
+artifact.fold        # the FoldSpec, or None for a single unfolded model
+```
+
+`load_artifact` warns, but does not fail, if the artifact was
+written by a different hypline version. Treat this as provenance
+information rather than a hard incompatibility.
+
+## API reference
+
+API documentation for loading, inspecting, and saving encoding results.
+
+### Loading
+
+::: hypline.encoding.load_eval
+
+::: hypline.encoding.load_artifact
+
+### Result types
+
+The artifact structure and its parts.
+
+::: hypline.encoding.EncodingArtifact
+
+::: hypline.encoding.XRecipe
+
+::: hypline.encoding.FittedModel
+
+::: hypline.encoding.FoldSpec
+
+### Saving
+
+The CLI commands write results for you. Use these functions directly
+if you need to save an eval or model artifact yourself.
+
+::: hypline.encoding.save_eval
+
+::: hypline.encoding.save_artifact

@@ -72,7 +72,7 @@ for transcripts, or `denoise` alone to clean fMRIPrep BOLD.
 ## Quick start
 
 Once your files sit where hypline expects (see
-[the dataset layout](https://princeton-ddss.github.io/hypline/latest/concepts/layout/)),
+[the dataset layout](https://princeton-ddss.github.io/hypline/latest/step-by-step/layout/)),
 you only ever point a command at the dataset root — it finds its own inputs from
 there, so you never pass file paths. End to end, the whole pipeline is four
 commands:
@@ -107,9 +107,9 @@ Full guides and per-command reference live at the project
 hypline? Walk through
 [a full run on the example dataset](https://princeton-ddss.github.io/hypline/latest/tutorials/walkthrough/),
 or read
-[The hypline dataset layout](https://princeton-ddss.github.io/hypline/latest/concepts/layout/) —
+[The hypline dataset layout](https://princeton-ddss.github.io/hypline/latest/step-by-step/layout/) —
 every command depends on it. To load a fitted model or eval back into Python, see
-the [encoding results API](https://princeton-ddss.github.io/hypline/latest/reference/encoding-results/).
+the [encoding results API](https://princeton-ddss.github.io/hypline/latest/step-by-step/encoding-results/).
 
 ## License
 

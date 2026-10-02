@@ -1,9 +1,9 @@
 # `hypline featuregen`
 
-Generate stimulus-derived **features**, the predictors (X) an encoding model
-maps onto the BOLD signal. `featuregen` is a group of subcommands, one per
-feature kind. For what each kind captures and how to choose among them, see
-[Feature families](../concepts/feature-families.md).
+Generate stimulus-derived **features**, predictors that an encoding model
+uses to model the BOLD signal. `featuregen` provides one subcommand for each
+feature family. For what each family captures and how to choose among them, see
+[Feature families](../FAQ/feature-families.md).
 
 ```bash
 hypline featuregen <kind> <dataset-root> [OPTIONS]
@@ -12,9 +12,11 @@ hypline featuregen <kind> <dataset-root> [OPTIONS]
 | Subcommand | Generates                                            |
 | ---------- | ---------------------------------------------------- |
 | `phonemic` | phoneme-level articulatory features from transcripts |
-| `semantic` | contextual word embeddings from a Hugging Face causal LM |
+| `semantic` | contextual language-model embeddings for each token |
 | `spectral` | Whisper log-Mel spectrogram from stimulus audio, aligned to the BOLD TR grid |
-| `syntactic` | per-token POS, dependency, and stopword features from transcripts |
+| `syntactic` | part-of-speech, dependency, and stopword features for each token |
+
+After generating features, you can inspect the resulting files using hypline's [Python API](python-api.md).
 
 ---
 
@@ -29,9 +31,9 @@ manner, voicing, …).
 
 Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 
-```
-<dataset-root>/stimuli/dyad-030/ses-1/transcript/
-└── dyad-030_ses-1_task-conv_run-1_transcript.csv
+```text
+<dataset-root>/stimuli/dyad-040/ses-1/transcript/
+└── dyad-040_ses-1_task-conv_run-1_transcript.csv
 ```
 
 ### Options
@@ -42,7 +44,7 @@ Transcripts produced by [`transcribe`](transcribe.md), under `stimuli/`:
 | `--desc`            | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen`| Write features only; do not also generate phonemic confounds | off     |
 | `--dyad-ids`        | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters`    | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters`    | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`           | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! tip "Features and confounds together"
@@ -74,20 +76,20 @@ A phonemic feature file per transcript, tagged `feat-phonemic`, under
 `features/`. With `--skip-confoundgen` omitted, the matching `conf-phonemic`
 confounds appear too (see [`confoundgen`](confoundgen.md)):
 
-```
+```text
 <dataset-root>/
-├── features/dyad-030/ses-1/phonemic/
-│   └── dyad-030_ses-1_task-conv_run-1_feat-phonemic.parquet
-└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
+├── features/dyad-040/ses-1/phonemic/
+│   └── dyad-040_ses-1_task-conv_run-1_feat-phonemic.parquet
+└── confounds/dyad-040/ses-1/                            # from the chained confoundgen
     ├── phonemic-onset/
-    │   └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
+    │   └── dyad-040_ses-1_task-conv_run-1_conf-phonemic_desc-onset.parquet
     └── phonemic-rate/
-        └── dyad-030_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
+        └── dyad-040_ses-1_task-conv_run-1_conf-phonemic_desc-rate.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
 (`phonemic-<label>/`), keeping variants separate. See
-[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#desc-variants).
 
 !!! note "Feature file format"
 
@@ -123,14 +125,14 @@ truncating; reach for a longer-context LM instead.
 
 | Option               | Description                                                       | Default |
 | -------------------- | ---------------------------------------------------------------- | ------- |
-| `--model`            | **Required.** Hugging Face causal-LM id (e.g. `gpt2-xl`, `meta-llama/Llama-3.2-1B`) | — |
+| `--model`            | Hugging Face causal-LM id (e.g. `gpt2-xl`, `meta-llama/Llama-3.2-1B`) — **required** | — |
 | `--model-dir`        | Cache dir for downloaded weights                                 | `~/.cache/hypline/huggingface` |
 | `--device`           | Hardware target (`cpu` or `cuda`)                                | `cpu`   |
 | `--layer`            | Hidden-layer index in `0..num_hidden_layers`; omit for the middle layer | middle |
 | `--desc`             | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--skip-confoundgen` | Write features only; do not also generate semantic confounds | off     |
 | `--dyad-ids`         | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters`     | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters`     | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`            | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! tip "Features and confounds together"
@@ -158,15 +160,15 @@ vector, and (for any non-zero layer) per-token LM metrics (`rank`,
 `layer`. With `--skip-confoundgen` omitted, the matching `conf-semantic`
 confounds appear too (see [`confoundgen`](confoundgen.md)):
 
-```
+```text
 <dataset-root>/
-├── features/dyad-030/ses-1/semantic/
-│   └── dyad-030_ses-1_task-conv_run-1_feat-semantic.parquet
-└── confounds/dyad-030/ses-1/                            # from the chained confoundgen
+├── features/dyad-040/ses-1/semantic/
+│   └── dyad-040_ses-1_task-conv_run-1_feat-semantic.parquet
+└── confounds/dyad-040/ses-1/                            # from the chained confoundgen
     ├── semantic-onset/
-    │   └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
+    │   └── dyad-040_ses-1_task-conv_run-1_conf-semantic_desc-onset.parquet
     └── semantic-rate/
-        └── dyad-030_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
+        └── dyad-040_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
 ```
 
 !!! note "Causal LMs only"
@@ -205,9 +207,9 @@ TR, ready to feed an encoding model without a downstream binning step.
 Stimulus audio under `stimuli/` — the same files [`transcribe`](transcribe.md)
 reads, selected by `--audio-ext`:
 
-```
-<dataset-root>/stimuli/dyad-030/ses-1/audio/
-└── dyad-030_ses-1_task-conv_run-1_audio.wav
+```text
+<dataset-root>/stimuli/dyad-040/ses-1/audio/
+└── dyad-040_ses-1_task-conv_run-1_audio.wav
 ```
 
 Aligning to the TR grid needs the run's BOLD timing (TR and number of frames).
@@ -218,12 +220,12 @@ it. A dyad with no resolvable BOLD raises.
 
 | Option           | Description                                                       | Default |
 | ---------------- | ---------------------------------------------------------------- | ------- |
-| `--audio-ext`    | Extension of the audio files, e.g. `.wav` **(required)**         | —       |
+| `--audio-ext`    | Extension of the audio files, e.g. `.wav` — **required**        | —       |
 | `--model`        | Whisper model whose extractor produces the spectrogram: `tiny`, `base`, `small`, `medium`, `large-v2`, `large-v3` | `tiny` |
 | `--model-dir`    | Cache dir for downloaded weights                                 | `~/.cache/hypline/huggingface` |
 | `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! note "No `--device`, no confounds"
@@ -244,14 +246,14 @@ hypline featuregen spectral data/ --audio-ext .wav
 
 A spectral feature file per stimulus, tagged `feat-spectral`, under `features/`:
 
-```
-<dataset-root>/features/dyad-030/ses-1/spectral/
-└── dyad-030_ses-1_task-conv_run-1_feat-spectral.parquet
+```text
+<dataset-root>/features/dyad-040/ses-1/spectral/
+└── dyad-040_ses-1_task-conv_run-1_feat-spectral.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory
 (`spectral-<label>/`). See
-[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#desc-variants).
 
 !!! note "Feature file format"
 
@@ -292,7 +294,7 @@ their null timing into the output. Null-`word` rows are dropped and warned.
 | ---------------- | ---------------------------------------------------------------- | ------- |
 | `--desc`         | Tag outputs as a named variant (alphanumeric), e.g. `--desc v2` → `desc-v2` | none |
 | `--dyad-ids`     | Comma-separated dyad IDs to process; omit for all                | all     |
-| `--data-filters` | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters` | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                  | off     |
 
 !!! note "Fixed model, no `--device`, no confounds"
@@ -315,14 +317,14 @@ hypline featuregen syntactic data/
 A syntactic feature file per transcript, tagged `feat-syntactic`, under
 `features/`:
 
-```
-<dataset-root>/features/dyad-030/ses-1/syntactic/
-└── dyad-030_ses-1_task-conv_run-1_feat-syntactic.parquet
+```text
+<dataset-root>/features/dyad-040/ses-1/syntactic/
+└── dyad-040_ses-1_task-conv_run-1_feat-syntactic.parquet
 ```
 
 A `--desc` label lands as `desc-<label>` in its own subdirectory
 (`syntactic-<label>/`). See
-[The hypline dataset layout](../concepts/layout.md#variants-with-desc).
+[Hypline dataset layout](layout.md#desc-variants).
 
 !!! note "Feature file format"
 

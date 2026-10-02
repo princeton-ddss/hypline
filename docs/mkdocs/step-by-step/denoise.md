@@ -6,7 +6,7 @@ nuisance regressors you select, and produces a `desc-denoised` BOLD under the
 `derivatives/hypline/` tree.
 
 ```bash
-hypline denoise <dataset-root> [--columns … | --compcor … | --custom-sources …] [OPTIONS]
+hypline denoise <dataset-root> [--columns …] [--compcor …] [--custom-sources … --custom-columns …] [OPTIONS]
 ```
 
 Nuisance regressors come from two channels, stacked into one regressor matrix:
@@ -30,35 +30,38 @@ Nuisance regressors come from two channels, stacked into one regressor matrix:
 - **Custom nuisance files** under `nuisance/` — read only when you pass
   `--custom-sources`.
 
-```
+```text
 <dataset-root>/
-├── derivatives/fmriprep/sub-031/ses-1/func/
-│   ├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
-│   ├── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
-│   └── sub-031_ses-1_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
-└── nuisance/sub-031/ses-1/physio-v1/                                  # optional, user-supplied
-    └── sub-031_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
+├── derivatives/fmriprep/sub-041/ses-1/func/
+│   ├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+│   ├── sub-041_ses-1_task-conv_run-1_desc-confounds_timeseries.tsv
+│   └── sub-041_ses-1_task-conv_run-1_desc-confounds_timeseries.json   # required with --columns/--compcor
+└── nuisance/sub-041/ses-1/physio-v1/                                  # optional, user-supplied
+    └── sub-041_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv
 ```
 
 ## Options
 
 | Option             | Description                                                                | Default               |
 | ------------------ | -------------------------------------------------------------------------- | --------------------- |
-| `--columns`        | Comma-separated fMRIPrep confound columns to regress out (see below)       | Speer et al. 2024 set (when no channel given) |
+| `--columns`        | Comma-separated fMRIPrep confound columns to regress out (see below)       | Speer et al. (2024)[^speer] set (when no channel given) |
 | `--compcor`        | Comma-separated CompCor selectors (see below)                              | none                  |
 | `--custom-sources` | Comma-separated `nuisance/` sources as `<kind>[-<desc>]`; requires `--custom-columns` | none       |
 | `--custom-columns` | Column names to select from the `--custom-sources` files; requires `--custom-sources` | none       |
 | `--space`          | BOLD space to clean: `fsaverage5`, `fsaverage6`, `MNI152NLin6Asym`, `MNI152NLin2009cAsym` | `fsaverage6` |
 | `--sub-ids`        | Comma-separated subject IDs to process; omit for all                       | all                   |
 | `--desc`           | Output `desc` entity tag (alphanumeric); output lands as `desc-<desc>`. A distinct value keeps separate nuisance-config variants from overwriting (e.g. `--desc motionOnly`) | `denoised` |
-| `--data-filters`   | Narrow to specific runs/conditions — see [Segments and metadata](../concepts/segments.md) | none |
+| `--data-filters`   | Narrow to specific runs/conditions — see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`          | Overwrite existing outputs (default skips them)                            | off                   |
 
 No nuisance channel is required. When you pass none of `--columns`, `--compcor`,
-or `--custom-sources`, `denoise` falls back to the **Speer et al. 2024** default
+or `--custom-sources`, `denoise` defaults to the Speer et al. (2024)[^speer] confound
 set: motion and WM/CSF signal (each with squared and derivative expansions) plus
-cosine drift. An explicit `--compcor` or `--custom-sources` means you are picking
+cosine drift. This subset of confounds was optimized through extensive testing to detect cross-brain signal. That said, you are free to select your own subset. An explicit `--compcor` or `--custom-sources` means you are picking
 your own model, so the default is left out rather than composed onto it.
+
+[^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
+    [https://doi.org/10.1038/s41467-024-51990-7](https://doi.org/10.1038/s41467-024-51990-7)
 
 **`--columns`** accepts exact column names from the fMRIPrep table (`trans_x`,
 `rot_x`, …) plus *group prefixes* that expand to every matching column
@@ -87,11 +90,11 @@ from the horizontal concat of all named sources. The two must be given together.
     Custom nuisance files are yours to create — hypline never writes them. Each
     must be a **tab-separated `.tsv`** with the `_timeseries` suffix and a
     `nuis-<kind>` entity, e.g.
-    `sub-031_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv`, placed in
-    `nuisance/sub-031/ses-1/<kind>[-<desc>]/`. It is a **wide** table: one named column
+    `sub-041_ses-1_task-conv_run-1_nuis-physio_desc-v1_timeseries.tsv`, placed in
+    `nuisance/sub-041/ses-1/<kind>[-<desc>]/`. It is a **wide** table: one named column
     per regressor, one row per TR (row count must match the BOLD run). Every
     value must be **finite** — unlike the fMRIPrep table, there is no `n/a`
-    convention, so a blank or non-numeric cell raises rather than being filled.
+    convention, so a blank or non-numeric cell raises an error rather than being filled.
 
 !!! warning "Things that must line up"
 
@@ -105,7 +108,7 @@ from the horizontal concat of all named sources. The two must be given together.
 
 ## Example
 
-Clean BOLD for all subjects with the default Speer et al. 2024 confound set —
+Clean BOLD for all subjects with the default Speer et al. (2024) confound set —
 pass no nuisance channel at all. `--space` defaults to the surface `fsaverage6`,
 so it too can be omitted:
 
@@ -130,12 +133,12 @@ hypline denoise data/ \
   --custom-columns resp,cardiac
 ```
 
-Clean only run 1 of subjects 031 and 032:
+Clean only run 1 of subjects 041 and 042:
 
 ```bash
 hypline denoise data/ \
   --columns trans_x,trans_y,trans_z,rot_x,rot_y,rot_z,cosine \
-  --sub-ids 031,032 \
+  --sub-ids 041,042 \
   --data-filters run-1
 ```
 
@@ -146,15 +149,15 @@ fMRIPrep's `sub-XX/[ses-YY/]func/` shape and preserving the source's full BOLD
 identity — only the `desc` entity (`desc-denoised`) and the root differ from the
 source:
 
-```
-<dataset-root>/derivatives/hypline/sub-031/ses-1/func/
-├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # volumetric output
-└── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
+```text
+<dataset-root>/derivatives/hypline/sub-041/ses-1/func/
+├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz    # volumetric output
+└── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json      # sidecar
 ```
 
 A surface run (`--space fsaverage6`, the default) instead writes a per-hemisphere
 `.func.gii` pair carrying the source's `space`/`hemi` entities plus `desc-denoised`,
-e.g. `sub-031_ses-1_task-conv_run-1_hemi-L_space-fsaverage6_desc-denoised_bold.func.gii`.
+e.g. `sub-041_ses-1_task-conv_run-1_hemi-L_space-fsaverage6_desc-denoised_bold.func.gii`.
 
 The output keeps the input's dimensions; only the signal values change. Each run
 gets a per-file `.json` sidecar recording its `Sources` (a `bids:` URI to the
@@ -164,8 +167,7 @@ On first output, hypline stamps a `derivatives/hypline/dataset_description.json`
 
 Denoised BOLD lives in its own tree rather than beside its fMRIPrep source
 because denoising is hypline's own pipeline, not a continuation of fMRIPrep. A
-separate tree carries an honest `GeneratedBy: hypline` provenance instead of
-inheriting fMRIPrep's.
+separate tree denotes the hypline rather than fMRIPrep provenance.
 
 ## Common errors
 
@@ -174,5 +176,5 @@ inheriting fMRIPrep's.
 | `--custom-sources and --custom-columns must be given together` | One of the custom-nuisance options was passed without the other. | Supply both, or neither. |
 | A `--custom-sources` source resolves to 0 (or multiple) files | A source names a `nuisance/<kind>[-<desc>]/` directory that does not exist (or matches more than one file per run). | Check the source spelling against your `nuisance/` directories. |
 | `Unequal number of TRs between BOLD and nuisance` | A regressor channel has a different row count than the BOLD it is paired with. | Confirm the fMRIPrep confounds table and any custom nuisance files span every TR of the run. |
-| Command finishes, but no `desc-denoised` files appear | `--space` names a valid space that is absent from your fMRIPrep outputs, so nothing matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
-| `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` / `--data-filters` excluded them all. | Confirm fMRIPrep outputs exist and that your filters are not too narrow. |
+| Every subject logs `sub-… failed: …` with a `FileNotFoundError`, and the command exits `1` | `--space` names a valid space that is absent from your fMRIPrep outputs, so no BOLD file matched. | Pass a `--space` you actually preprocessed (check the `space-` entity on your fMRIPrep BOLD files). |
+| `No subjects found — nothing to denoise` | No subjects under `derivatives/fmriprep/`. | Confirm the fMRIPrep outputs are under `derivatives/fmriprep/`. |

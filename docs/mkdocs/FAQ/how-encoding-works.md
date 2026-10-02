@@ -1,12 +1,12 @@
 # How the encoding model works
 
-The [`encoding`](../reference/encoding.md) commands are the point of the whole
+The `encoding` commands are the point of the whole
 pipeline: everything before them prepares the two sides of one fit. This page
 explains what that fit *is* (the model `train` builds and `analyze` scores) and
 then the choice that gives an analysis its meaning: whose speech, whose model,
 and whose brain you line up.
 
-You do not need this page to run the commands; the [reference](../reference/encoding.md)
+You do not need this page to run the commands; the [`encoding` guide](../step-by-step/encoding.md)
 covers every option. Read it to understand what the numbers mean.
 
 ## What an encoding model predicts
@@ -52,7 +52,7 @@ Two bands are special:
 
     The confound band is stimulus-derived nuisance (speech onset and rate, say),
     partialled out *inside* the encoding fit. That is separate from
-    [`denoise`](../reference/denoise.md), which cleans run-level nuisance (motion,
+    [`denoise`](../step-by-step/denoise.md), which cleans run-level nuisance (motion,
     drift) out of the BOLD before encoding ever sees it. The same stimulus-derived
     signal can be a feature band in one fit and a confound band in another; the
     role is a choice you make per fit, not a fixed property.
@@ -67,7 +67,7 @@ a speaking copy and a listening copy of every feature — but does not add bands
 Pass `--no-split` to fit one shared set of weights instead.
 
 This is worth keeping distinct from the roles you *score* on. The split is about
-how the model is *fit*; the [`prod`/`comp`/`both` roles](reading-an-eval.md#role-which-turns-were-scored)
+how the model is *fit*; the [`prod`/`comp`/`both` roles](../step-by-step/encoding-results.md#role-which-turns-were-scored)
 in an eval are about which rows are *scored* afterward. Both come from the same
 speaking turns, but they are separate mechanisms.
 
@@ -89,7 +89,7 @@ source and model is what turns the same machinery into different analyses:
 
 | source | model | What it is |
 | ------ | ----- | ---------- |
-| self | self | **Within-brain.** A subject's own speech and own model predict their own brain — the baseline "does this feature encode in this brain at all" fit. |
+| self | self | **Within-brain.** A subject's own speech and own model predict their own brain — the reference "does this feature encode in this brain at all" fit. |
 | partner | partner | **Cross-brain, partner-driven.** The partner's speech and the partner's model predict the subject's brain. This is the analysis in Zada et al. (2026). |
 | self | partner | **Cross-brain, self-driven.** The subject's *own* speech, but the *partner's* model, predicts the subject's brain — holding the stimulus fixed and testing only whether the partner's learned mapping transfers. `--source-sub` defaults to `self` for this reason. |
 | self | out-of-dyad | **Pseudo-dyad.** The subject's own speech and brain, scored with a model trained on someone they never spoke with — a baseline for what a mismatched model scores by chance, to compare the real effects against. |
@@ -99,9 +99,9 @@ only resolve within the target's own dyad:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --source-sub self \
-  --model-sub 045 \
+  --model-sub 051 \
   --model-desc v1 \
   --desc pseudodyad
 ```
@@ -122,7 +122,7 @@ mechanically valid but not a fit, and `analyze` warns to flag it.
 ## Where to go next
 
 - **Read the scores an analysis produces** —
-  [Reading an encoding result](reading-an-eval.md).
-- **Every option in full** — the [`encoding` reference](../reference/encoding.md).
+  [Encoding results](../step-by-step/encoding-results.md).
+- **Every option in full** — the [`encoding` guide](../step-by-step/encoding.md).
 - **See it run once** — the [tutorial](../tutorials/walkthrough.md) fits a model
   and scores it within and across brains.

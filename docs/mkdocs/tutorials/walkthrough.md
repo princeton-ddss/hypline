@@ -1,4 +1,4 @@
-# A full run on the example dataset
+# Run the full pipeline on the example dataset
 
 This walkthrough takes a real example dataset (stimulus audio and fMRIPrep
 outputs) through the whole hypline pipeline: phonemic and syntactic
@@ -8,16 +8,16 @@ to end and seen exactly what each step reads and writes.
 
 It assumes you have hypline installed (see [Installation](../index.md#installation),
 including FFmpeg for transcription). No prior hypline experience is needed, but
-skim [The hypline dataset layout](../concepts/layout.md) first if a path or
+skim [Hypline dataset layout](../step-by-step/layout.md) first if a path or
 filename below is ever unclear; this tutorial shows the layout in action rather
 than re-explaining it.
 
 Expect about 30 minutes start to finish. A few steps dominate: the
-one-time ~2.8 GB dataset download, transcription ([step 2](#2-transcribe-the-audio)),
+one-time ~2.9 GB dataset download, transcription ([step 2](#2-transcribe-the-audio)),
 a few minutes on CPU with the `small` model, and the encoding fit
 ([step 6](#6-fit-the-encoding-model)), a whole-brain ridge model that runs ~4–5
 minutes per subject on CPU. Generating syntactic features
-([step 3](#3-generate-features)) also triggers a one-time ~560 MB
+([step 3](#3-generate-features)) also triggers a one-time ~430 MB
 spaCy model download. Every other step runs in seconds. Transcription and
 the fit both run on CPU so the tutorial works anywhere; if you have a GPU,
 `--device cuda` makes them far faster.
@@ -34,15 +34,15 @@ unzip hypline-tutorial-data.zip -d data/
 ```
 
 The dataset is a [BIDS](https://bids.neuroimaging.io/)-style tree for one dyad:
-two partners (`sub-031` and `sub-032`) who held a conversation while both were
+two partners (`sub-041` and `sub-042`) who held a conversation while both were
 scanned. It already contains the inputs hypline needs: stimulus audio under
 `stimuli/`, raw events and BOLD under each `sub-*/`, and fMRIPrep outputs under
 `derivatives/fmriprep/`.
 
 !!! info "What the example dataset covers"
 
-    It is a faithful subset of a real hyperscanning study (about 2.8 GB),
-    trimmed so it is small enough to download and run quickly:
+    It is a dyad from a real hyperscanning study[^speer]
+    trimmed so it is small enough to download and run quickly (a ~2.9 GB download, ~3.1 GB unpacked):
 
     - **Two of the study's five runs** are included (`run-1`, `run-2`). The
       per-run file set and the dyad structure are otherwise complete.
@@ -56,6 +56,9 @@ scanned. It already contains the inputs hypline needs: stimulus audio under
 Every command below takes `data/` as its only positional argument and discovers
 its inputs from the directory layout; you never pass individual file paths.
 
+[^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
+    [https://doi.org/10.1038/s41467-024-51990-7](https://doi.org/10.1038/s41467-024-51990-7)
+
 ## 2. Transcribe the audio
 
 `transcribe` turns each stimulus `.wav` into a word-level transcript using a
@@ -66,10 +69,10 @@ hypline transcribe data/ --audio-ext .wav --model small
 ```
 
 ```text
-Transcribing dyad-030_ses-1_task-conv_run-1_trial-1_audio.wav
-Transcribing dyad-030_ses-1_task-conv_run-1_trial-3_audio.wav
-Transcribing dyad-030_ses-1_task-conv_run-2_trial-1_audio.wav
-Transcribing dyad-030_ses-1_task-conv_run-2_trial-3_audio.wav
+Transcribing dyad-040_ses-1_task-conv_run-1_trial-2_audio.wav
+Transcribing dyad-040_ses-1_task-conv_run-1_trial-3_audio.wav
+Transcribing dyad-040_ses-1_task-conv_run-2_trial-5_audio.wav
+Transcribing dyad-040_ses-1_task-conv_run-2_trial-8_audio.wav
 ```
 
 (Log lines are abridged here; a first run also prints a one-time model download
@@ -81,40 +84,42 @@ and voice-activity-detection messages.)
     minutes on a laptop CPU, with a modest one-time model download. It still mis-hears
     the occasional word, which is fine here, since you are learning the workflow
     rather than analyzing the transcripts. For a real analysis, omit `--model` to use
-    the default `large-v2`, which is more accurate still but a multi-GB download and
+    the default `large-v2`, which is more accurate but a multi-GB download and
     much slower on CPU (pass `--device cuda` if you have a GPU).
 
-Only four files are transcribed, not one per run. These are the
-reading-condition subset from [step 1](#1-get-the-example-dataset): each run's
-audio covers only its R trials (`trial-1`, `trial-3`), so transcripts exist for
-those trials and not the others. The run's `events.tsv` still describes every
+Each run contains two trial conditions: generate (G) and reading (R). Here we analyze only the
+reading condition subset from [step 1](#1-get-the-example-dataset): each run's
+audio covers only its R trials (`trial-2` and `trial-3` in run 1, `trial-5` and
+`trial-8` in run 2), so transcripts exist for
+those trials and not the others. That is, only four files are transcribed, not one per run. The run's `events.tsv` still describes every
 trial; hypline transcribes whatever audio is present.
 
 The transcripts land beside the audio, under a new `transcript/` subdirectory:
 
 ```text
-data/stimuli/dyad-030/ses-1/transcript/
-├── dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
-├── dyad-030_ses-1_task-conv_run-1_trial-3_transcript.csv
-├── dyad-030_ses-1_task-conv_run-2_trial-1_transcript.csv
-└── dyad-030_ses-1_task-conv_run-2_trial-3_transcript.csv
+data/stimuli/dyad-040/ses-1/transcript/
+├── dyad-040_ses-1_task-conv_run-1_trial-2_transcript.csv
+├── dyad-040_ses-1_task-conv_run-1_trial-3_transcript.csv
+├── dyad-040_ses-1_task-conv_run-2_trial-5_transcript.csv
+└── dyad-040_ses-1_task-conv_run-2_trial-8_transcript.csv
 ```
 
-Each CSV is one row per word, with its timing and the partner who spoke it:
+Each CSV is one row per word, with its timing and the partner whose turn it was
+(`turn_sub`, from the `turn_speaker` rows in `events.tsv`):
 
 ```csv
 word,start_time,end_time,confidence_score,turn_sub
-Thank,5.714,6.095,0.368,031
-you.,6.195,6.416,0.326,031
+"Okay,",4.038,4.378,0.78,042
+given,4.698,4.938,0.48,042
 ```
 
-These transcripts are **dyad-keyed** (`dyad-030`), because the conversation
+These transcripts are **dyad-keyed** (`dyad-040`), because the conversation
 belongs to the pair rather than to either partner. See
-[Subject vs. dyad](../concepts/layout.md#subject-vs-dyad) for why.
+[Subject vs. Dyad](../step-by-step/layout.md#subject-vs-dyad) for why.
 
 !!! success "Check"
 
-    `ls data/stimuli/dyad-030/ses-1/transcript/` lists four `_transcript.csv`
+    `ls data/stimuli/dyad-040/ses-1/transcript/` lists four `_transcript.csv`
     files, and each opens with the `word,start_time,end_time,…` header above. If
     no transcripts appear, the audio was not found: confirm you passed `--audio-ext
     .wav` and that `data/` is the unpacked dataset root.
@@ -134,35 +139,35 @@ hypline featuregen phonemic data/
 ```
 
 ```text
-Generating phonemic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
+Generating phonemic features for dyad-040_ses-1_task-conv_run-1_trial-2_transcript.csv
 ...
-Generating phonemic confounds for dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet
+Generating phonemic confounds for dyad-040_ses-1_task-conv_run-1_trial-2_feat-phonemic.parquet
 ...
 ```
 
 By default this step also generates the matching **phonemic confounds**
 (speech-onset and speech-rate regressors derived from the same features), so you
 get both in one command. Pass `--skip-confoundgen` to suppress that, or run
-[`confoundgen phonemic`](../reference/confoundgen.md) on its own later.
+[`confoundgen phonemic`](../step-by-step/confoundgen.md) on its own later.
 
-Two new areas appear, both dyad-keyed:
+Two new folders appear, both dyad-keyed:
 
 ```text
 data/
-├── features/dyad-030/ses-1/phonemic/
-│   └── dyad-030_ses-1_task-conv_run-1_trial-1_feat-phonemic.parquet   # … one per transcript (4)
-└── confounds/dyad-030/ses-1/
+├── features/dyad-040/ses-1/phonemic/
+│   └── dyad-040_ses-1_task-conv_run-1_trial-2_feat-phonemic.parquet   # … one per transcript (4)
+└── confounds/dyad-040/ses-1/
     ├── phonemic-onset/
-    │   └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-onset.parquet   # … (4)
+    │   └── dyad-040_ses-1_task-conv_run-1_trial-2_conf-phonemic_desc-onset.parquet   # … (4)
     └── phonemic-rate/
-        └── dyad-030_ses-1_task-conv_run-1_trial-1_conf-phonemic_desc-rate.parquet    # … (4)
+        └── dyad-040_ses-1_task-conv_run-1_trial-2_conf-phonemic_desc-rate.parquet    # … (4)
 ```
 
-The two confound flavors live in their own subdirectories because they are
+The two confound features live in their own subdirectories because they are
 `desc` variants of the same `conf-phonemic` kind — see
-[Variants with `desc`](../concepts/layout.md#variants-with-desc).
+[Variants with `desc`](../step-by-step/layout.md#desc-variants).
 
-Now add a second family. `featuregen syntactic` reads the same transcripts and
+Now add a second feature family. `featuregen syntactic` reads the same transcripts and
 computes per-token part-of-speech, dependency, and stopword features:
 
 ```bash
@@ -170,16 +175,16 @@ hypline featuregen syntactic data/
 ```
 
 ```text
-Generating syntactic features for dyad-030_ses-1_task-conv_run-1_trial-1_transcript.csv
+Generating syntactic features for dyad-040_ses-1_task-conv_run-1_trial-2_transcript.csv
 ...
 ```
 
-The first run downloads a spaCy language model (~560 MB, one time) before it
+The first run downloads a spaCy language model (~430 MB, one time) before it
 begins. Unlike phonemic, syntactic generates no confounds — just the features:
 
 ```text
-data/features/dyad-030/ses-1/syntactic/
-└── dyad-030_ses-1_task-conv_run-1_trial-1_feat-syntactic.parquet   # … one per transcript (4)
+data/features/dyad-040/ses-1/syntactic/
+└── dyad-040_ses-1_task-conv_run-1_trial-2_feat-syntactic.parquet   # … one per transcript (4)
 ```
 
 That completes the **stimulus branch**: from audio to the features (and
@@ -194,7 +199,7 @@ phonemic confounds) the encoding model uses as predictors.
 
 ## 4. Denoise the BOLD
 
-The other branch cleans the BOLD signal, the encoding model's target.
+The other branch cleans the BOLD signal, the encoding model's target. Hypline assumes that you have preprocessed your BOLD using fMRIPrep.
 `denoise` reads fMRIPrep's preprocessed BOLD and regresses out nuisance signals
 you select from fMRIPrep's own confounds table.
 
@@ -205,8 +210,8 @@ hypline denoise data/ \
 ```
 
 ```text
-Denoising starting: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
-Denoising complete: sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+Denoising starting: sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+Denoising complete: sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
 ...
 ```
 
@@ -215,33 +220,33 @@ parameters (`trans_*`, `rot_*`) plus `cosine`, a prefix that expands to every
 cosine-drift regressor. The example dataset's fMRIPrep outputs are volumetric
 (`MNI152NLin2009cAsym`), so we name that space explicitly — `--space` defaults to
 the surface `fsaverage6`, and your own surface data needs no `--space` at all.
-(Omitting `--columns` entirely would fall back to hypline's default
-**Speer et al. 2024** confound set — see the
-[`denoise` reference](../reference/denoise.md).)
+(Omitting `--columns` entirely would fall back to hypline's default confound set, optimized as described in our prior work, Speer et al. (2024)[^speer] — see the
+[`denoise` reference](../step-by-step/denoise.md).)
 
-This step is **sub-keyed**: it processes each partner's brain (`sub-031`,
-`sub-032`) independently, so all four run × subject combinations are denoised.
+This step is **sub-keyed**: it processes each partner's brain (`sub-041`,
+`sub-042`) independently, so all four run × subject combinations are denoised.
 The output goes to hypline's own derivatives tree, leaving fMRIPrep's untouched:
 
 ```text
-data/derivatives/hypline/sub-031/ses-1/func/
-├── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz
-└── sub-031_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json
+data/derivatives/hypline/sub-041/ses-1/func/
+├── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.nii.gz
+└── sub-041_ses-1_task-conv_run-1_space-MNI152NLin2009cAsym_desc-denoised_bold.json
 ```
 
-The same pair is written for each run and subject — `sub-031` and `sub-032`,
+The same pair is written for each run and subject — `sub-041` and `sub-042`,
 `run-1` and `run-2`.
 
 Each denoised BOLD carries a `.json` sidecar recording exactly how it was made
 (the `desc-preproc` source it came from, the resolved regressor columns, and the
 hypline version), so the result is reproducible. See the
-[`denoise` reference](../reference/denoise.md) for CompCor selectors, custom
+[`denoise` reference](../step-by-step/denoise.md) for CompCor selectors, custom
 `nuisance/` regressors, and surface spaces.
 
 !!! success "Check"
 
     `derivatives/hypline/` now holds a `desc-denoised` `.nii.gz` + `.json` pair
-    for each subject and run: eight files total (2 subjects × 2 runs × 2). If
+    for each subject and run: eight files total (2 subjects × 2 runs × 2), plus
+    a `dataset_description.json` at the top of `derivatives/hypline/`. If
     the command logged `No subjects found`, check that `derivatives/fmriprep/`
     unpacked correctly under `data/`.
 
@@ -250,21 +255,22 @@ hypline version), so the result is reproducible. See the
 So far `denoise` pulled every regressor from fMRIPrep's confounds table via
 `--columns`. The other channel is **custom nuisance files** under `nuisance/`:
 run-level regressors you supply yourself that fMRIPrep never produced (e.g.
-physiological recordings). The example dataset ships a small set so you can try
+physiological recordings). The example dataset includes a small set so you can try
 this path:
 
 ```text
-data/nuisance/sub-031/ses-1/demo/
-└── sub-031_ses-1_task-conv_run-1_nuis-demo_timeseries.tsv   # … one per subject × run (4)
+data/nuisance/sub-041/ses-1/demo/
+├── README.txt                                               # notes that the regressors are synthetic
+└── sub-041_ses-1_task-conv_run-1_nuis-demo_timeseries.tsv   # … one per subject × run (4)
 ```
 
 !!! info "These are synthetic"
 
-    The shipped `nuis-demo` files hold synthetic placeholder regressors
+    The `nuis-demo` files hold synthetic placeholder regressors
     (`demo_regressor1`, `demo_regressor2`) rather than real signals, so the tutorial
     can exercise `--custom-sources` without needing physiological data. In a real
     analysis you author these yourself; the
-    [`denoise` reference](../reference/denoise.md#options) documents the
+    [`denoise` guide](../step-by-step/denoise.md#options) documents the
     `nuisance/` file format under `--custom-sources`.
 
 Re-run `denoise` adding the custom source. `--custom-sources` names the
@@ -309,12 +315,12 @@ hypline encoding train data/ \
 ```
 
 ```text
-Fitting starting: sub-031 fold 1/2 — training on 1 cells / … rows
-Fitting starting: sub-031 fold 2/2 — training on 1 cells / … rows
-Fitting complete: sub-031 (2 folds)
-Fitting starting: sub-032 fold 1/2 — training on 1 cells / … rows
-Fitting starting: sub-032 fold 2/2 — training on 1 cells / … rows
-Fitting complete: sub-032 (2 folds)
+Fitting starting: sub-041 fold 1/2 — training on 2 cells / 240 rows
+Fitting starting: sub-041 fold 2/2 — training on 2 cells / 240 rows
+Fitting complete: sub-041 (2 folds)
+Fitting starting: sub-042 fold 1/2 — training on 2 cells / 240 rows
+Fitting starting: sub-042 fold 2/2 — training on 2 cells / 240 rows
+Fitting complete: sub-042 (2 folds)
 ```
 
 `--features phonemic,syntactic` uses both feature families from step 3 as the
@@ -324,8 +330,8 @@ scopes the fit to the `conv` task. We pass `--bold-space MNI152NLin2009cAsym` to
 match the volumetric BOLD denoised in step 4; `--bold-space` otherwise defaults
 to the surface `fsaverage6`. `--fold-by run` cross-validates by run,
 leave-one-out by default (`n_folds='loo'`), leaving one run out per fold. This is
-the common setup, and the one that lets you score held-out data in
-[step 7](#7-score-a-model-within-a-subject).
+a common setup, and the one that lets you score held-out data in
+[step 7](#7-test-a-model-within-a-subject).
 With two runs, `loo` yields two folds. `--desc v1` tags this model variant so its
 output lands in its own subdirectory.
 
@@ -341,37 +347,39 @@ The step is sub-keyed like `denoise`, one model per brain. Outputs go to a
 new `results/` area:
 
 ```text
-data/results/sub-031/encodingModel-v1/
-├── sub-031_result-encodingModel_desc-v1.joblib   # the fitted model
-└── sub-031_result-encodingModel_desc-v1.json     # provenance sidecar
+data/results/sub-041/encodingModel-v1/
+├── sub-041_result-encodingModel_desc-v1.joblib   # the fitted model
+└── sub-041_result-encodingModel_desc-v1.json     # provenance sidecar
 ```
 
 !!! success "Check"
 
-    `results/` now holds an `encodingModel-v1/` directory for `sub-031` and
-    `sub-032`, each with a `.joblib` + `.json` pair. If the command logged
-    `No subjects found`, check that step 4 wrote `desc-denoised` BOLD.
+    `results/` now holds an `encodingModel-v1/` directory for `sub-041` and
+    `sub-042`, each with a `.joblib` + `.json` pair. If the command logged
+    `No subjects found`, check that `derivatives/fmriprep/` unpacked correctly
+    under `data/`. If a subject fails instead, check that step 4 wrote its
+    `desc-denoised` BOLD.
 
 ### Load the result back
 
-The model saves as a `.joblib` blob you load back into Python for downstream
-analysis, the same way [`read_feature`](../reference/python-api.md) reads a
+The model saves as a `.joblib` file you load back into Python for downstream
+analysis, the same way [`read_feature`](../step-by-step/python-api.md) reads a
 feature file:
 
 ```python
 from hypline.encoding import load_artifact
 
 artifact = load_artifact(
-    "data/results/sub-031/encodingModel-v1/sub-031_result-encodingModel_desc-v1.joblib"
+    "data/results/sub-041/encodingModel-v1/sub-041_result-encodingModel_desc-v1.joblib"
 )
 artifact.recipe   # the features, delays, alphas, and split the model was fit with
 artifact.models   # the fitted pipeline(s)
 ```
 
-The fitted model is a starting point: the next two steps use it, scoring its
-predictions against a real brain.
+The fitted model is a starting point: the next two steps use it, comparing its
+predictions against real brain activity.
 
-## 7. Score a model within a subject
+## 7. Test a model within a subject
 
 `encoding analyze` scores a model's predictions against a subject's actual BOLD.
 It takes three subject roles, independent by design:
@@ -381,20 +389,20 @@ It takes three subject roles, independent by design:
 - **model** (`--model-sub`) — whose trained weights are loaded.
 - **source** (`--source-sub`) — whose features build the prediction inputs.
 
-Start with the simplest case, all three the same subject: `sub-031`'s own model,
-scored against `sub-031`'s own brain.
+Start with the simplest case, all three the same subject: `sub-041`'s own model,
+scored against `sub-041`'s own brain.
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --model-sub self \
   --model-desc v1 \
   --desc selfeval
 ```
 
 ```text
-Analyzing: target sub-031, model sub-031, source sub-031 (OOS)
-Analysis complete: target sub-031 — scored 2 folds
+Analyzing: target sub-041, model sub-041, source sub-041 (OOS)
+Analysis complete: target sub-041 — scored 2 folds
 ```
 
 `--model-desc v1` names the model from [step 6](#6-fit-the-encoding-model), and
@@ -415,8 +423,8 @@ overall.
 The eval lands in its own `results/` subdirectory, keyed by the target subject:
 
 ```text
-data/results/sub-031/encodingEval-selfeval/
-└── sub-031_result-encodingEval_desc-selfeval.nc   # per-voxel scores (netCDF-4)
+data/results/sub-041/encodingEval-selfeval/
+└── sub-041_result-encodingEval_desc-selfeval.nc   # per-voxel scores (netCDF-4)
 ```
 
 It is a self-describing netCDF-4 file; load it back as an
@@ -426,7 +434,7 @@ It is a self-describing netCDF-4 file; load it back as an
 from hypline.encoding import load_eval
 
 ds = load_eval(
-    "data/results/sub-031/encodingEval-selfeval/sub-031_result-encodingEval_desc-selfeval.nc"
+    "data/results/sub-041/encodingEval-selfeval/sub-041_result-encodingEval_desc-selfeval.nc"
 )
 ds["corr"].sel(band="phonemic", role="prod")   # phonemic scores during the target's own speech
 ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
@@ -441,20 +449,20 @@ ds.attrs["model_sub"], ds.attrs["target_sub"]   # provenance rides along
 
 !!! success "Check"
 
-    `results/sub-031/` gains an `encodingEval-selfeval/` directory with one
+    `results/sub-041/` gains an `encodingEval-selfeval/` directory with one
     `.nc` file, and the log reads `scored 2 folds`. An `empty out-of-sample set`
     error means the model wasn't folded; re-run step 6 with `--fold-by run`.
 
-## 8. Score across brains
+## 8. Test across brains
 
-The within-subject eval is the warm-up. What hypline is built for is
+The within-brain eval is the warm-up. What hypline is built for is
 **cross-brain** analysis: because the two partners shared one conversation, you can
-drive one partner's model with the partner's speech and score it against the
+drive one partner's model with the partner's speech and test it against the
 other partner's brain. Same command, different subject wiring:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --model-sub partner \
   --source-sub partner \
   --model-desc v1 \
@@ -462,21 +470,21 @@ hypline encoding analyze data/ \
 ```
 
 ```text
-Analyzing: target sub-031, model sub-032, source sub-032 (OOS)
-Analysis complete: target sub-031 — scored 2 folds
+Analyzing: target sub-041, model sub-042, source sub-042 (OOS)
+Analysis complete: target sub-041 — scored 2 folds
 ```
 
-`--target-sub 031` keeps `sub-031`'s brain as the comparison, but `--model-sub
-partner` and `--source-sub partner` swap in `sub-032`'s model and features (hypline
+`--target-sub 041` keeps `sub-041`'s brain as the comparison, but `--model-sub
+partner` and `--source-sub partner` swap in `sub-042`'s model and features (hypline
 resolves `partner` through `participants.tsv`). The output structure is identical
 to step 7 (a `.nc` under `encodingEval-crosseval/`), so `load_eval` reads it the
 same way.
 
 This pairs the partner's model *and* speech, the cross-brain form used in Zada et
-al. (2026). It is not the only one: pairing your own speech with the partner's
+al. (2026). It is not the only cross-brain model: pairing your own speech with the partner's
 model (`--source-sub self --model-sub partner`) is often preferred, since it holds
 the stimulus fixed and varies only the model. [How the encoding model
-works](../concepts/how-encoding-works.md#choosing-source-and-model) lays out the
+works](../FAQ/how-encoding-works.md#choosing-source-and-model) lays out the
 choices side by side.
 
 !!! info "What this step demonstrates"
@@ -490,9 +498,9 @@ choices side by side.
 
 !!! success "Check"
 
-    `results/sub-031/` now also holds `encodingEval-crosseval/`, and the log
-    shows `model sub-032, source sub-032` — the partner's model and features
-    scored against `sub-031`'s brain.
+    `results/sub-041/` now also holds `encodingEval-crosseval/`, and the log
+    shows `model sub-042, source sub-042` — the partner's model and features
+    scored against `sub-041`'s brain.
 
 ## What you have now
 
@@ -500,10 +508,10 @@ choices side by side.
 
 | Side       | Where                                  | From          |
 | ---------- | -------------------------------------- | ------------- |
-| Predictors | `features/dyad-030/…/{phonemic,syntactic}/` | steps 2–3 |
+| Predictors | `features/dyad-040/…/{phonemic,syntactic}/` | steps 2–3 |
 | Target     | `derivatives/hypline/sub-*/…/func/`    | step 4        |
 | Model      | `results/sub-*/encodingModel-v1/`      | step 6        |
-| Eval       | `results/sub-031/encodingEval-*/`      | steps 7–8     |
+| Eval       | `results/sub-041/encodingEval-*/`      | steps 7–8     |
 
 Each command read only what the previous steps wrote — no file paths, just the
 dataset root. To regenerate a step after changing an option, re-run it with
@@ -514,14 +522,11 @@ dataset root. To regenerate a step after changing an option, re-run it with
 - **Add richer features** — this run used phonemic and syntactic features, both
   CPU-only. For LLM-derived **semantic** features (contextual word embeddings,
   the representation central to Zada et al.), see
-  [`featuregen semantic`](../reference/featuregen.md) and add `semantic` to
+  [`featuregen semantic`](../step-by-step/featuregen.md) and add `semantic` to
   `--features`.
-- **Process only some runs or conditions** — [Filter to specific runs or
-  conditions](../how-to/filter.md).
-- **Regenerate outputs after a fix** — [Regenerate outputs](../how-to/regenerate.md).
-- **Per-command options** — the Reference pages:
-  [transcribe](../reference/transcribe.md) ·
-  [featuregen](../reference/featuregen.md) ·
-  [confoundgen](../reference/confoundgen.md) ·
-  [denoise](../reference/denoise.md) ·
-  [encoding](../reference/encoding.md).
+- **Per-command options** — Follow the step-by-step guides:
+  [transcribe](../step-by-step/transcribe.md) ·
+  [featuregen](../step-by-step/featuregen.md) ·
+  [confoundgen](../step-by-step/confoundgen.md) ·
+  [denoise](../step-by-step/denoise.md) ·
+  [encoding](../step-by-step/encoding.md).

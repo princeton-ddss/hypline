@@ -1,9 +1,9 @@
 # `hypline encoding`
 
-Fit and score **voxelwise ridge encoding models**, the step that joins the two
+Fit and test **voxelwise ridge encoding models**, the step that joins the two
 sides the rest of the pipeline prepares. `train` maps stimulus features (X) onto
-denoised BOLD (Y) per subject; `analyze` scores one subject's model against
-another subject's brain, across production and comprehension turns. `encoding`
+denoised BOLD (Y) per subject; `analyze` tests one subject's model against
+another subject's brain (or a held-out run of the same subject's brain), across production and comprehension turns. `encoding`
 is a group of subcommands.
 
 ```bash
@@ -13,11 +13,11 @@ hypline encoding <command> <dataset-root> [OPTIONS]
 | Subcommand | Does                                                                 |
 | ---------- | ------------------------------------------------------------------- |
 | `train`    | Fit a per-subject ridge model from features (+ optional confounds)  |
-| `analyze`  | Score a model's cross-subject predictions against a target's BOLD   |
+| `analyze`  | Test a model's predictions against a target subject's BOLD, within or across subjects |
 
-Both read from the dataset root and write to a new `results/` area (see
+Both commands read from the dataset root and write to a new `results/` area (see
 [Outputs](#outputs)). Results load back as live Python objects rather than flat
-tables; read them for downstream analysis with the [encoding results API](encoding-results.md).
+tables; read them for downstream analysis with the [Encoding results](encoding-results.md) API.
 
 !!! note "The banded ridge model"
 
@@ -31,11 +31,11 @@ tables; read them for downstream analysis with the [encoding results API](encodi
     intercept-like production/comprehension task boxcars always ride a reserved
     band that absorbs the mean BOLD offset between the two states — `--no-split`
     drops the per-regressor duplication, not this band. [How the encoding model
-    works](../concepts/how-encoding-works.md) unpacks this at more length.
+    works](../FAQ/how-encoding-works.md) unpacks this at more length.
 
 ---
 
-## `hypline encoding train`
+## `encoding train`
 
 Fit a voxelwise ridge encoding model per subject, writing one model artifact per
 subject to `results/`.
@@ -59,7 +59,7 @@ hypline encoding train <dataset-root> \
 
 Features are dyad-keyed and BOLD is subject-keyed, so `train` bridges them
 through `participants.tsv` — see [Subject vs.
-dyad](../concepts/layout.md#subject-vs-dyad).
+Dyad](layout.md#subject-vs-dyad).
 
 ### Options
 
@@ -76,9 +76,9 @@ dyad](../concepts/layout.md#subject-vs-dyad).
 | `--delays`       | Comma-separated FIR delays in TRs                                                                | `0,1,2,3,4,5`        |
 | `--alphas`       | Comma-separated ridge alphas to search                                                           | `1`–`1e12` log grid (13 points) |
 | `--device`       | Compute device for the fit: `cpu` or `cuda`                                                      | `cpu`                |
-| `--no-split`     | Fit one model over all screens instead of separate production/comprehension models              | off                  |
-| `--sub-ids`      | Comma-separated subject IDs to train (e.g. `031,032`); omit for all                               | all                  |
-| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Segments and metadata](../concepts/segments.md) | none |
+| `--no-split`     | Fit one shared set of weights for production and comprehension instead of a separate set for each | off                  |
+| `--sub-ids`      | Comma-separated subject IDs to train (e.g. `041,042`); omit for all                               | all                  |
+| `--data-filters` | Comma-separated BIDS entity filters bounding the training corpus, including task selection (e.g. `task-conv`) — there is no dedicated task flag; see [Filter to specific runs or conditions](../FAQ/filter.md) | none |
 | `--force`        | Overwrite existing outputs (default skips them)                                                  | off                  |
 
 !!! warning "`--fold-by` and `--n-folds`"
@@ -86,7 +86,7 @@ dyad](../concepts/layout.md#subject-vs-dyad).
     `--fold-by <entity>` defaults to leave-one-out (`n_folds='loo'`), so
     `--n-folds` is optional there — pass it only to override the count. The one
     invalid pairing is `--fold-by none` with an explicit `--n-folds`, which
-    raises. `--fold-by none` fits a single model over the whole corpus;
+    raises an error. `--fold-by none` fits a single model over the whole corpus;
     `--fold-by run --n-folds 5` fits five cross-validated models grouped by run.
 
 !!! warning "Pooling multiple tasks"
@@ -124,22 +124,22 @@ hypline encoding train data/ \
 
 ---
 
-## `hypline encoding analyze`
+## `encoding analyze`
 
-Score a trained model's predictions against a target subject's actual BOLD, per
+Test a trained model's predictions against a target subject's actual BOLD, per
 role (production / comprehension / both). Three subject roles are independent:
 
 - **model** (`--model-sub`) — whose trained weights are loaded.
 - **source** (`--source-sub`) — whose features build the prediction inputs (X).
 - **target** (`--target-sub`) — whose actual BOLD is the comparison (Y).
 
-Any combination is valid within one study: `source == target` is a
-within-subject fit; partners in one dyad share a conversation across different
+Any combination is valid within one study: all three the same subject is a
+within-brain fit; partners in one dyad share a conversation across different
 brains; different dyads are a scramble/null control (`analyze` warns). The values
 `self` and `partner` are accepted for `--model-sub` / `--source-sub`, resolved
 relative to `--target-sub` via `participants.tsv`. For how these pairings map to
 within-brain, cross-brain, and pseudo-dyad analyses, see [Choosing source and
-model](../concepts/how-encoding-works.md#choosing-source-and-model).
+model](../FAQ/how-encoding-works.md#choosing-source-and-model).
 
 ```bash
 hypline encoding analyze <dataset-root> \
@@ -150,12 +150,12 @@ hypline encoding analyze <dataset-root> \
 
 | Option          | Description                                                                                    | Default |
 | --------------- | ---------------------------------------------------------------------------------------------- | ------- |
-| `--target-sub`  | Subject whose actual BOLD and production/comprehension turns are scored against — **required**  | —       |
+| `--target-sub`  | Subject whose actual BOLD and production/comprehension turns are tested against — **required**  | —       |
 | `--model-sub`   | Subject whose trained model is loaded: an ID, or `self`/`partner` (relative to `--target-sub`) — **required** | — |
 | `--model-desc`  | The `--desc` passed to `encoding train` (its `encodingModel-<desc>` tag) — **required**         | —       |
 | `--desc`        | Variant label for this eval (alphanumeric); output lands under `results/sub-<target>/encodingEval-<desc>/` — **required** | — |
 | `--source-sub`  | Subject whose regressors drive the prediction: an ID, or `self`/`partner`                        | `self`  |
-| `--test-on`     | Comma-separated BIDS entity filters naming which cells to score (e.g. `run-6`, or `run-6,run-8`); omit to score each model's out-of-sample cells | out-of-sample cells |
+| `--test-on`     | Comma-separated BIDS entity filters naming which cells to test (e.g. `run-6`, or `run-6,run-8`); omit to test each model's out-of-sample cells | out-of-sample cells |
 | `--force`       | Overwrite existing outputs (default skips them)                                                  | off     |
 
 The output is per-fold, per-band, per-role, per-voxel scores. These are himalaya
@@ -167,26 +167,26 @@ any speech-active row. A role with no rows scores `NaN` rather than zero.
 
 ### Example
 
-Score subject `031`'s own model against its own BOLD (a within-subject fit). With
-default `--test-on`, `analyze` scores each model's out-of-sample cells, so the
+Test subject `041`'s own model against its own BOLD (a within-brain fit). With
+default `--test-on`, `analyze` tests each model's out-of-sample cells, so the
 model must be folded. A `--fold-by none` model trained on every cell has no
 held-out cells and raises here; name cells with `--test-on`, or use a folded
 model as below:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --model-sub self \
   --model-desc cv \
   --desc selfeval
 ```
 
-Score subject `031`'s BOLD using the partner's model and features (a
+Test subject `041`'s BOLD using the partner's model and features (a
 cross-brain, shared-conversation eval) on run 6:
 
 ```bash
 hypline encoding analyze data/ \
-  --target-sub 031 \
+  --target-sub 041 \
   --model-sub partner \
   --source-sub partner \
   --model-desc v1 \
@@ -196,20 +196,20 @@ hypline encoding analyze data/ \
 
 ## Outputs
 
-Both commands write to a new top-level `results/` area, keyed by subject
+Both commands write to a new top-level `results/` folder, keyed by subject
 (one analysis output consumes many runs across sessions, so results carry no
 source-run or session entity):
 
-```
+```text
 <dataset-root>/results/
-├── sub-031/encodingModel-v1/
-│   ├── sub-031_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
-│   └── sub-031_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
-└── sub-031/encodingEval-selfeval/
-    └── sub-031_result-encodingEval_desc-selfeval.nc # analyze: per-voxel correlations (netCDF-4)
+├── sub-041/encodingModel-v1/
+│   ├── sub-041_result-encodingModel_desc-v1.joblib   # train: fitted model artifact
+│   └── sub-041_result-encodingModel_desc-v1.json     # provenance sidecar (greppable)
+└── sub-041/encodingEval-selfeval/
+    └── sub-041_result-encodingEval_desc-selfeval.nc # analyze: per-voxel scores (netCDF-4)
 ```
 
-- **`encodingModel-<desc>/`** (`train`) — the fitted model as a `.joblib` blob,
+- **`encodingModel-<desc>/`** (`train`) — the fitted model as a `.joblib` file,
   plus a JSON sidecar mirroring the recipe and provenance without unpickling.
 - **`encodingEval-<desc>/`** (`analyze`) — the eval as a self-describing
   netCDF-4 file any tool can read, carrying provenance (`model_sub`,
@@ -224,14 +224,14 @@ source-run or session entity):
 | `n_folds='loo' needs >= 2 groups to fold; got 1` | `--fold-by` names an entity with only one value in the training corpus, so there is nothing to leave out. | Widen the corpus (task/filters), or fit unfolded with `--fold-by none`. |
 | `n_folds=N exceeds the M group(s) found for the fold_by entity` (`train`) | `--n-folds` is larger than the number of distinct `--fold-by` values available. | Lower `--n-folds` to at most the group count, or use `loo`. |
 | `No regressor files match the given filters` / `No BOLD files match the given filters` (`train`) | `--features`, `--data-filters`, `--bold-space`, or `--bold-desc` selected nothing. | Confirm the features and `desc-denoised` BOLD exist and that the filters are not too narrow. |
-| `empty out-of-sample set — pass test_on to name cells` (`analyze`) | The model was trained unfolded (`--fold-by none`), so it has no held-out cells to score. | Score a folded model, or name cells explicitly with `--test-on`. |
+| `empty out-of-sample set — pass test_on to name cells` (`analyze`) | The model was trained unfolded (`--fold-by none`), so it has no held-out cells to test. | Test a folded model, or name cells explicitly with `--test-on`. |
 | `test_on matched no available cells: …` (`analyze`) | `--test-on` names cells the source subject does not have. | Check the `--test-on` filter against the runs/conditions that exist. |
 | `test_on entities […] not found on any available cell … check for a typo` (`analyze`) | A `--test-on` filter uses an entity that no cell carries. | Fix the entity name (e.g. `run-6`, not `ses-1`). |
-| Log warns `source (…) and target (…) are different dyads` (`analyze`) | The model/source and target belong to different dyads — a scramble/null control. | Expected for a null control; otherwise fix `--source-sub` / `--model-sub` so they share the target's dyad. |
-| `No subjects found` | No subjects under `derivatives/fmriprep/`, or `--sub-ids` excluded them all. | Confirm denoised BOLD exists and that filters are not too narrow. |
+| Log warns `source (…) and target (…) are different dyads` (`analyze`) | The source and target belong to different dyads — a scramble/null control. | Expected for a null control; otherwise fix `--source-sub` so it shares the target's dyad. |
+| `No subjects found` (`train`) | No subjects under `derivatives/fmriprep/`; `train` discovers subjects there, not in `derivatives/hypline/` (a missing `desc-denoised` BOLD shows up as a per-subject failure instead). | Confirm the fMRIPrep outputs are under `derivatives/fmriprep/`. |
 
 ## Loading results in Python
 
 Both commands write Python objects, not tables. Load them back for downstream
-analysis with the [encoding results API](encoding-results.md): `load_eval` for
+analysis with the [Encoding results](encoding-results.md) API: `load_eval` for
 an eval, `load_artifact` for a fitted model.
