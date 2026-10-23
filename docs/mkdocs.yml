@@ -82,7 +82,8 @@ nav:
   - Tutorials:
     - Run the full pipeline on the example dataset: tutorials/walkthrough.md
   - User guide:
-    - Install hypline: step-by-step/install.md
+    - Install hypline: 
+      - Install hypline: step-by-step/install.md
     - Prepare your data:
       - Hypline dataset layout: step-by-step/layout.md
       - Segments and metadata: step-by-step/segments.md
