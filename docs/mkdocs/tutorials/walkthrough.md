@@ -33,11 +33,29 @@ curl -L -o hypline-tutorial-data.zip "<ZENODO-DOI>"
 unzip hypline-tutorial-data.zip -d data/
 ```
 
-The dataset is a [BIDS](https://bids.neuroimaging.io/)-style tree for one dyad:
-two partners (`sub-041` and `sub-042`) who held a conversation while both were
-scanned. It already contains the inputs hypline needs: stimulus audio under
-`stimuli/`, raw events and BOLD under each `sub-*/`, and fMRIPrep outputs under
-`derivatives/fmriprep/`.
+The dataset contains one dyad (`dyad-040`): two partners (`sub-041` and
+`sub-042`) scanned during the same conversation. After unpacking, its main
+input directories look like this:
+
+```text
+data/
+├── participants.tsv                    # maps both subjects to dyad-040
+├── sub-041/ses-1/func/                  # raw BOLD and events for runs 1–2
+├── sub-042/ses-1/func/                  # raw BOLD and events for runs 1–2
+├── derivatives/fmriprep/
+│   ├── sub-041/ses-1/func/              # preprocessed BOLD and confounds
+│   └── sub-042/ses-1/func/              # preprocessed BOLD and confounds
+├── stimuli/dyad-040/ses-1/audio/        # four reading-trial audio files
+└── nuisance/
+    ├── sub-041/ses-1/demo/              # synthetic regressors for optional step 5
+    └── sub-042/ses-1/demo/
+```
+
+This simplified tree shows the inputs included in the download. Brain data
+and events are organized by subject; the audio is shared by the dyad.
+Hypline reads the preprocessed BOLD from `derivatives/fmriprep/`, so the raw
+BOLD files are not needed for this walkthrough. Later steps add transcripts,
+features, denoised BOLD, and analysis results under the same `data/` root.
 
 !!! info "What the example dataset covers"
 
