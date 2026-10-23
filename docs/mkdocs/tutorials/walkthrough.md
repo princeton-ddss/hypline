@@ -33,11 +33,29 @@ curl -L -o hypline-tutorial-data.zip "<ZENODO-DOI>"
 unzip hypline-tutorial-data.zip -d data/
 ```
 
-The dataset is a [BIDS](https://bids.neuroimaging.io/)-style tree for one dyad:
-two partners (`sub-041` and `sub-042`) who held a conversation while both were
-scanned. It already contains the inputs hypline needs: stimulus audio under
-`stimuli/`, raw events and BOLD under each `sub-*/`, and fMRIPrep outputs under
-`derivatives/fmriprep/`.
+The dataset contains one dyad (`dyad-040`): two partners (`sub-041` and
+`sub-042`) scanned during the same conversation. After unpacking, its main
+input directories look like this:
+
+```text
+data/
+├── participants.tsv                    # maps both subjects to dyad-040
+├── sub-041/ses-1/func/                  # raw BOLD and events for runs 1–2
+├── sub-042/ses-1/func/                  # raw BOLD and events for runs 1–2
+├── derivatives/fmriprep/
+│   ├── sub-041/ses-1/func/              # preprocessed BOLD and confounds
+│   └── sub-042/ses-1/func/              # preprocessed BOLD and confounds
+├── stimuli/dyad-040/ses-1/audio/        # four reading-trial audio files
+└── nuisance/
+    ├── sub-041/ses-1/demo/              # synthetic regressors for optional step 5
+    └── sub-042/ses-1/demo/
+```
+
+This simplified tree shows the inputs included in the download. Brain data
+and events are organized by subject; the audio is shared by the dyad.
+Hypline reads the preprocessed BOLD from `derivatives/fmriprep/`, so the raw
+BOLD files are not needed for this walkthrough. Later steps add transcripts,
+features, denoised BOLD, and analysis results under the same `data/` root.
 
 !!! info "What the example dataset covers"
 
@@ -46,14 +64,17 @@ scanned. It already contains the inputs hypline needs: stimulus audio under
 
     - **Two of the study's five runs** are included (`run-1`, `run-2`). The
       per-run file set and the dyad structure are otherwise complete.
-    - **Audio is released for the reading-condition (R) trials only**, for
-      privacy. The `events.tsv` files still list every trial, so each run's
-      audio covers only a subset of its events (see
+    - **Audio is available only for the reading-condition (R) trials**, to protect
+      participants' privacy. The `events.tsv` files still list every trial, so the released
+      audio covers only a subset of each run's events (see
       [step 2](#2-transcribe-the-audio)).
+    - **The audio was processed to reduce noise and alter voices** to help prevent identification. 
+      Voice alteration can make the two conversation partners sound similar, so you may hear what 
+      sounds like a single speaker even though both participants are speaking.
 
     Otherwise the dataset mirrors the structure and design of the original study.
 
-Every command below takes `data/` as its only positional argument and discovers
+Every command below takes `data/` as its only positional argument and finds
 its inputs from the directory layout; you never pass individual file paths.
 
 [^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.
