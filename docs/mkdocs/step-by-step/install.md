@@ -1,4 +1,4 @@
-# Installation
+# Install guide
 
 Hypline supports Python 3.11 and later; testing covers 3.11 through 3.13. We recommend
 installing it in a dedicated environment.
