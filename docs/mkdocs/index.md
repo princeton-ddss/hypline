@@ -24,7 +24,7 @@ within the same [BIDS](https://bids.neuroimaging.io/)-style dataset.
 
 ## Where to go next
 
-- **Haven't installed yet?** Follow the [Install guide](step-by-step/install.md) to install the package.
+- **Haven't installed yet?** Quickly [Install hypline](step-by-step/install.md) here.
 - **Want to try it now?** Follow the [Tutorial](tutorials/walkthrough.md) for a complete
   run on a downloadable example dataset.
 - **New to hypline?** Start with [Hypline dataset layout](step-by-step/layout.md)
