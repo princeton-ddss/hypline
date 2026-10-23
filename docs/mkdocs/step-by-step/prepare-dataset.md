@@ -126,28 +126,6 @@ This is the only stimulus area you fill by hand. From here
 [`featuregen`](featuregen.md) writes the features, both back under
 `stimuli/` and `features/` at the same dyad key.
 
-!!! note "Match filename entities to your event metadata"
-
-    Before running the pipeline, check that any additional segmentation
-    entities in your audio filenames are declared in the `Levels`
-    metadata in `events.json`.
-
-    For example, if `events.json` declares only the `trial` level,
-    a filename such as `..._block-1_trial-3_audio.wav` contains an
-    undeclared entity, `block`. Either declare `block` and add the
-    corresponding metadata in `events.json`, or remove it from the
-    filename if it is unnecessary. Make sure removing an entity does
-    not create duplicate filenames.
-
-    These entities are carried into transcript and feature filenames.
-    An undeclared entity can therefore cause an error during
-    `encoding train`.
-
-    Descriptive attributes, such as condition or counterbalance group,
-    should be stored in `events.json` rather than added to filenames.
-    See [Segments and metadata](segments.md) for how to declare
-    segmentation levels and attach descriptive metadata.
-
 ## 5. (Optional) Describe conditions and custom nuisance
 
 Two optional inputs round out a dataset:

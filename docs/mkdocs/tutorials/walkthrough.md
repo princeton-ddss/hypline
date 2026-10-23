@@ -46,17 +46,14 @@ scanned. It already contains the inputs hypline needs: stimulus audio under
 
     - **Two of the study's five runs** are included (`run-1`, `run-2`). The
       per-run file set and the dyad structure are otherwise complete.
-    - **Audio is available only for the reading-condition (R) trials**, to protect
-      participants' privacy. The `events.tsv` files still list every trial, so the released
-      audio covers only a subset of each run's events (see
+    - **Audio is released for the reading-condition (R) trials only**, for
+      privacy. The `events.tsv` files still list every trial, so each run's
+      audio covers only a subset of its events (see
       [step 2](#2-transcribe-the-audio)).
-    - **The audio was processed to reduce noise and alter voices** to help prevent identification. 
-      Voice alteration can make the two conversation partners sound similar, so you may hear what 
-      sounds like a single speaker even though both participants are speaking.
 
     Otherwise the dataset mirrors the structure and design of the original study.
 
-Every command below takes `data/` as its only positional argument and finds
+Every command below takes `data/` as its only positional argument and discovers
 its inputs from the directory layout; you never pass individual file paths.
 
 [^speer]: Speer, S. P., Mwilambwe-Tshilobo, L., Tsoi, L., Burns, S. M., Falk, E. B., & Tamir, D. I. (2024). Hyperscanning shows friends explore and strangers converge in conversation. *Nature Communications*, *15*(1), 7781.

@@ -61,31 +61,6 @@ Features are dyad-keyed and BOLD is subject-keyed, so `train` bridges them
 through `participants.tsv` — see [Subject vs.
 Dyad](layout.md#subject-vs-dyad).
 
-!!! note "Extra entities in feature filenames"
-
-    Hypline uses `events.json` to interpret how your data are segmented.
-    Additional segmentation entities in feature filenames must be
-    declared in its `Levels` metadata.
-
-    For example, if `events.json` declares only the `trial` level,
-    a filename such as `..._block-1_trial-3_feat-semantic.parquet`
-    contains an undeclared entity, `block`. In this case,
-    `encoding train` stops with an error such as
-    `Filename carries entities ['block'] absent from events.json Levels metadata`.
-
-    If you encounter this error, inspect the **feature filenames**
-    selected by `--features`. To resolve it, either:
-
-    - Declare `block` in `events.json` and add the corresponding metadata. See
-      [Segments and metadata](segments.md).
-    - Remove the extra entity from filenames if it is unnecessary.
-      Keep filenames consistent across features covering the same
-      time window, and make sure removing the entity does not create
-      duplicate filenames.
-
-    If the label originated in your audio or transcript filenames,
-    update those too before regenerating features.
-
 ### Options
 
 | Option           | Description                                                                                     | Default              |
