@@ -104,11 +104,10 @@ A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
 
 ## `featuregen semantic`
 
-Derive **contextual word embeddings** from any Hugging Face causal (decoder) LM.
+Derive **contextual word embeddings** from a Hugging Face causal (decoder) language model.
 The transcript is tokenized and run through the model; each sub-word token's
-hidden state at a chosen `--layer` becomes its `feature` vector. The model id is
-passed verbatim to `from_pretrained`, so the hub is open and unbounded: any
-causal LM with a fast (Rust) tokenizer and a BOS token works.
+hidden state at a chosen `--layer` becomes its `feature` vector. The model ID 
+supplied through `--model` is passed directly to `from_pretrained`.
 
 ### Inputs
 
@@ -118,8 +117,14 @@ but carry their null timing into the output; null-`word` rows are skipped.
 
 The whole transcript is encoded in one forward pass, so it must fit the model's
 context window (tokens + a BOS prefix ≤ `max_position_embeddings`). A long
-transcript on a short-context model (gpt-2 caps at 1024) raises rather than
-truncating; reach for a longer-context LM instead.
+transcript on a short-context model (gpt-2 caps at 1024) produces an error rather than
+being truncated; Use a model with a longer context window instead.
+
+!!! note "Causal LMs only"
+
+    The model must be a causal/decoder LM with a fast tokenizer and 
+    a beginning-of-sequence (BOS) token. Encoder models
+    such as BERT are not supported.
 
 ### Options
 
@@ -141,13 +146,59 @@ truncating; reach for a longer-context LM instead.
     [`confoundgen semantic`](confoundgen.md) by default. Pass `--skip-confoundgen`
     for features without confounds.
 
-### Example
+### Examples
 
-Generate gpt-2 semantic features (and their confounds) for all dyads:
+Generate GPT-2 XL semantic features (and their confounds) for all dyads:
 
 ```bash
 hypline featuregen semantic data/ --model gpt2-xl
 ```
+
+Use the exact model ID shown on the model's Hugging Face page, including
+the owner prefix where present. For example, use
+`--model meta-llama/Llama-3.2-1B`, not `--model Llama-3.2-1B`.
+
+!!! note "Using gated models"
+
+    Some models require access approval and authentication before their
+    files can be downloaded. To use
+    [Llama-3.2-1B](https://huggingface.co/meta-llama/Llama-3.2-1B):
+
+    1. Create a [Hugging Face account](https://huggingface.co/join), or
+       sign in to your existing account.
+    2. Request access on the model's page, accept the required terms,
+       and wait until access is granted.
+    3. Under the **same Hugging Face account**, open
+       [Access Tokens](https://huggingface.co/settings/tokens) and create
+       a token with **read** access to the model.
+
+    In the terminal where you will run Hypline, set `HF_TOKEN`, replacing
+    `hf_...` with your actual token. This identifies your Hugging Face
+    account when downloading the model.
+
+    **macOS/Linux:**
+
+    ```bash
+    export HF_TOKEN=hf_...
+    hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
+    ```
+
+    **Windows PowerShell:**
+
+    ```powershell
+    $env:HF_TOKEN = "hf_..."
+    hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
+    ```
+
+    The Hugging Face libraries used by Hypline read `HF_TOKEN`
+    automatically, so no additional Hypline flag is needed. These
+    commands set the token for the current terminal session; set it
+    again when using a new terminal.
+
+    If you receive an error saying you are trying to access a gated
+    repository, check that model access has been granted to the account
+    that created your token and that the token has permission to read
+    the model.
 
 ### Outputs
 
@@ -171,25 +222,6 @@ confounds appear too (see [`confoundgen`](confoundgen.md)):
         └── dyad-040_ses-1_task-conv_run-1_conf-semantic_desc-rate.parquet
 ```
 
-!!! note "Causal LMs only"
-
-    The model must be a causal/decoder LM with a fast tokenizer and a BOS token.
-    Encoder checkpoints (BERT and the like) are rejected up front, because
-    `from_pretrained` would otherwise load them silently and emit garbage.
-
-!!! note "Gated models"
-
-    Some models (e.g. Llama) are license-gated. Request access on the model's
-    Hugging Face page, then set an [access token](https://huggingface.co/settings/tokens)
-    so the download can authenticate:
-
-    ```bash
-    export HF_TOKEN=hf_...
-    hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
-    ```
-
-    `transformers` reads `HF_TOKEN` automatically — no extra flag. Access must be
-    granted to the same account that issued the token, or the download fails.
 
 ---
 
