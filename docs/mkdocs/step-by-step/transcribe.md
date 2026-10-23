@@ -27,6 +27,27 @@ Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 See [Hypline dataset layout](layout.md) for how files are
 named and discovered.
 
+!!! note "Extra entities in audio filenames"
+
+    Before transcribing, check that any additional segmentation entities
+    in your audio filenames are declared in the `Levels` metadata in
+    `events.json`.
+
+    For example, if `events.json` declares only the `trial` level,
+    a filename such as `..._block-1_trial-3_audio.wav` contains an
+    undeclared entity, `block`. Either declare `block` and add the
+    corresponding metadata in `events.json`, or remove it from the
+    filename if it is unnecessary. Make sure removing an entity does
+    not create duplicate filenames.
+
+    These labels are carried into transcript and feature filenames,
+    so an undeclared entity can cause an error later during
+    `encoding train`. Correct the audio filenames or metadata before
+    generating transcripts and features.
+
+    See [Segments and metadata](segments.md) for how to declare
+    segmentation levels.
+
 ## Options
 
 | Option           | Description                                                      | Default          |
