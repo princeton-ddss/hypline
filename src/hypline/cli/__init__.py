@@ -18,6 +18,31 @@ app.add_typer(confoundgen_app, name="confoundgen")
 app.add_typer(encoding_app, name="encoding")
 
 
+# Set by the callback so `main` can decide whether to show the full traceback
+_verbose = False
+
+
+def main():
+    """Run the CLI, showing an uncaught error as its message plus a hint.
+
+    Errors inside `run_per_id` are already logged per ID. This covers setup
+    that runs before it (e.g., model download), which would otherwise print a
+    long library traceback. `typer.Exit` and usage errors raise `SystemExit`,
+    which this does not catch.
+    """
+    try:
+        app()
+    except Exception as exc:
+        if _verbose:
+            raise
+        name = type(exc).__name__
+        reason = str(exc).strip()
+        # Pass as an argument so braces in the message print as-is
+        logger.error("{}", f"{name}: {reason}" if reason else name)
+        logger.info("Rerun as `hypline --verbose <command> ...` for the full traceback")
+        sys.exit(1)
+
+
 def _version_callback(value: bool):
     if value:
         from hypline._version import __version__
@@ -53,6 +78,9 @@ def callback(
     data cleaning and analysis in hyperscanning studies
     involving dyadic conversations.
     """
+    global _verbose
+    _verbose = verbose
+
     logger.remove()
     logger.add(
         sys.stderr,
