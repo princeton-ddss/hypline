@@ -1,9 +1,9 @@
 # Segments and metadata
 
 A single BOLD run often contains several parts you want to analyze separately, such
-as trials or blocks. Hypline calls these **segments**. You define each segment's 
+as trials or blocks. Hypline calls these **segments**. You define each segment's
 start time and duration in an `events.tsv` file and can attach descriptive metadata,
-such as its condition, in a companion `events.json` file. 
+such as its condition, in a companion `events.json` file.
 
 This page explains how to define segments, annotate speaker turns, and attach
 metadata. If you want to analyze an entire run as one window, you do not need
@@ -12,7 +12,7 @@ optional additions.
 
 ## Define segments in `events.tsv`
 
-Hypline reads event timing from the BIDS `*_events.tsv` file under 
+Hypline reads event timing from the BIDS `*_events.tsv` file under
 each subject's `func/` directory:
 
 ```text
@@ -45,8 +45,8 @@ Events files are organized by **subject**, while commands such as `featuregen`
 and `confoundgen` process the shared conversation by **dyad**. Hypline uses
 `participants.tsv` to find the partners' events
 files and can read the segment definitions from either partner. Keep segment
-labels, onsets, and durations consistent across both partners' files. Their
-speaker-turn rows, described below, differ by participant.
+labels, onsets, durations, and `events.json` metadata consistent across both
+partners' files. Their speaker-turn rows, described below, differ by subject.
 
 !!! info "One segment entity per run"
 
@@ -55,13 +55,13 @@ speaker-turn rows, described below, differ by participant.
     **segment entity**. Choose the finest level you need to analyze; put
     broader groupings, such as condition, in metadata.
 
-### Three ways to define the analysis window within runs
+### Three kinds of analysis window
 
-| Run type             | `events.tsv` contains                       | Result                          |
-| -------------------- | ------------------------------------------- | ------------------------------- |
-| **Unsegmented**      | no file, or no `entity-value` rows          | one window covering the entire run      |
-| **Segmented**        | one or more `entity-value` rows  (e.g., `trial-1`, `trial-2`)           | one window per segment          |
-| **Single-window**    | exactly one `task-<name>` row               | one window with the specified onset and duration  |
+| Run type             | `events.tsv` contains                                        | Result                                           |
+| -------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| **Unsegmented**      | no file, or no `entity-value` rows                           | one window covering the entire run               |
+| **Segmented**        | one or more `entity-value` rows (e.g., `trial-1`, `trial-2`) | one window per segment                           |
+| **Single-window**    | exactly one `task-<name>` row                                | one window with the specified onset and duration |
 
 Use one explicit window when you want to exclude leading instructions or
 trailing padding, or attach metadata to an otherwise unsegmented run. Its
@@ -77,9 +77,9 @@ This selects the 120 seconds beginning 10 seconds into the run.
 
 ## Annotate speaker turns
 
-You can also use `events.tsv` to indicate when each participant is the assigned speaker. 
-In each participant's own events file, add one row with `trial_type` set to `turn_speaker` for
-each of their turns.
+You can also use `events.tsv` to indicate when each subject is the assigned
+speaker. In each subject's own events file, add one row with `trial_type` set to
+`turn_speaker` for each of their turns.
 
 For example, in `sub-041_ses-1_task-conv_run-1_events.tsv`:
 
@@ -94,32 +94,31 @@ onset   duration   trial_type
 70.0    30.0       trial-3
 ```
 
-Here, the `turn_speaker` rows mark **subject 041's turns**, because the filename
-identifies `sub-041`. Subject 042's turns belong in subject 042's events file.
-You do not need a separate label for listening: `transcribe` reads both
-partners' files and combines their turn annotations.
+A `turn_speaker` row means "the subject named in this events filename is the
+assigned speaker," so these rows mark **subject 041's turns**. Subject 042's
+turns belong in subject 042's events file. You do not need a separate label for
+listening: `transcribe` reads both partners' files and combines their turn
+annotations.
 
 - Use the run's clock. If a trial starts 35 seconds into the run and a
   turn starts 5 seconds into that trial, write `onset = 40`, not `5`.
   Use run-relative times even when your audio is split into per-trial files;
   hypline accounts for the segment offset when matching transcript words to turns.
-- Windows are `[onset, onset + duration)`. Windows
-  must not overlap — within a subject or across partners. A cross-partner
-  overlap is treated as cross-talk and raises an error. Gaps with no assigned speaker are allowed.
-  We're planning to develop hypline functionality to allow for speaker overlap in the future.
-
-The input label `turn_speaker` means "the participant named in this events
-filename is the assigned speaker." The output column `turn_sub` identifies
-that participant in the transcript.
+- Each turn covers `[onset, onset + duration)`: it includes the onset but not
+  the end time.
+- Turns must not overlap, within a subject or across partners. Overlap across
+  partners is treated as cross-talk and raises an error. We're planning to
+  develop hypline functionality to allow for speaker overlap in the future.
+- Gaps with no assigned speaker are allowed.
 
 For each word, hypline checks which annotated turn contains the word's start
-time and writes that participant's subject label, without the `sub-` prefix,
-to `turn_sub`. For example, a word beginning during subject 041's turn gets
+time and writes that subject's label, without the `sub-` prefix, to the
+transcript's `turn_sub` column. For example, a word beginning during subject 041's turn gets
 `turn_sub = "041"`; one beginning during subject 042's turn gets `"042"`.
 
 The value is missing when the word has no start time or begins in a gap between
-annotated turns. Hypline logs words beginning in gaps so you can check for
-timing or annotation mismatches. If neither partner's events file contains
+annotated turns. Hypline logs a warning with the number of gap words in each
+file so you can check for timing or annotation mismatches. If neither partner's events file contains
 `turn_speaker` rows, the transcript still has a `turn_sub` column, but all its
 values are missing.
 
@@ -162,13 +161,41 @@ Here, trial 1 has condition `G`, while trials 2 and 3 have condition `R`.
     not in filenames. Hypline enforces this split — it keeps the same attribute
     from being recorded in two places that could disagree.
 
+### Extra entities in filenames
+
+Besides identity entities (`sub` or `dyad`, `ses`, `task`, `run`), the segment
+entity, category entities (`feat`, `conf`, `nuis`, `result`), and variant
+entities (`desc`, `space`, `res`, `den`), every entity in a filename must also appear as a key in the segment's
+`metadata` in `events.json`. For example, if a run's segments are `trial-*`, an
+audio file named `..._run-1_block-1_trial-3_audio.wav` carries an extra entity,
+`block`. If no Levels entry has a `block` key, hypline stops with:
+
+```text
+Filename carries entities ['block'] absent from events.json Levels metadata — descriptive attributes must live in events.json, not filenames
+```
+
+This check runs during `encoding train` and whenever you pass `--data-filters`.
+Entities in audio filenames carry into transcript and feature filenames, so fix
+them before running `transcribe`. Either:
+
+- Remove the entity from the filenames if you do not need it. Make sure the
+  shorter names do not collide.
+- Or record it in `events.json`: add `"block": "1"` (with the right value) to
+  the `metadata` of every Levels entry. The value must match the filename, or
+  hypline stops with `Filename and events.json disagree on 'block'`.
+
+An unsegmented run has no Levels entries to hold the key. Either remove the
+entity, or add a single `task-<name>` window row (see
+[Three kinds of analysis window](#three-kinds-of-analysis-window))
+and record the attribute in its metadata.
+
 ## Use segments in later analyses
 
 These definitions let later commands process individual segments or select
 them by metadata. For example, you can select trials in condition `G`
 without adding the condition to their filenames.
 
-See [Filter to specific runs or conditions](../FAQ/filter.md) for 
+See [Filter to specific runs or conditions](../FAQ/filter.md) for
 command syntax and filtering examples.
 
 ## Why segment boundaries must be explicit

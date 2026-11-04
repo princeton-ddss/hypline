@@ -128,25 +128,13 @@ This is the only stimulus area you fill by hand. From here
 
 !!! note "Match filename entities to your event metadata"
 
-    Before running the pipeline, check that any additional segmentation
-    entities in your audio filenames are declared in the `Levels`
-    metadata in `events.json`.
-
-    For example, if `events.json` declares only the `trial` level,
-    a filename such as `..._block-1_trial-3_audio.wav` contains an
-    undeclared entity, `block`. Either declare `block` and add the
-    corresponding metadata in `events.json`, or remove it from the
-    filename if it is unnecessary. Make sure removing an entity does
-    not create duplicate filenames.
-
-    These entities are carried into transcript and feature filenames.
-    An undeclared entity can therefore cause an error during
-    `encoding train`.
-
-    Descriptive attributes, such as condition or counterbalance group,
-    should be stored in `events.json` rather than added to filenames.
-    See [Segments and metadata](segments.md) for how to declare
-    segmentation levels and attach descriptive metadata.
+    Before running the pipeline, check your audio filenames for entities
+    beyond identity and the segment entity (for example, `block` in
+    `..._block-1_trial-3_audio.wav`). These carry into transcript and
+    feature filenames and must be recorded in `events.json`, or later
+    steps stop with an error. Store descriptive attributes, such as
+    condition, in `events.json` rather than in filenames. See
+    [Extra entities in filenames](segments.md#extra-entities-in-filenames).
 
 ## 5. (Optional) Describe conditions and custom nuisance
 
@@ -155,7 +143,7 @@ Two optional inputs round out a dataset:
 - **`events.json` sidecars** attach descriptive metadata (condition, item,
   counterbalance group) to the segments declared in `events.tsv`. This is what
   lets you filter on `condition-R` even though `condition` never appears in a filename. See
-  [Attaching metadata](segments.md#attaching-metadata-eventsjson).
+  [Attaching metadata](segments.md#attach-metadata-in-eventsjson).
 - **`nuisance/` files** hold run-level regressors you supply yourself that
   fMRIPrep never produced (physiological recordings, say) for `denoise` to
   regress out alongside the fMRIPrep columns. See the

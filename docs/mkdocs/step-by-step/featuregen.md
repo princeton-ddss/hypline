@@ -106,7 +106,7 @@ A `--desc` label lands as `desc-<label>` and lives in its own subdirectory
 
 Derive **contextual word embeddings** from a Hugging Face causal (decoder) language model.
 The transcript is tokenized and run through the model; each sub-word token's
-hidden state at a chosen `--layer` becomes its `feature` vector. The model ID 
+hidden state at a chosen `--layer` becomes its `feature` vector. The model ID
 supplied through `--model` is passed directly to `from_pretrained`.
 
 ### Inputs
@@ -118,12 +118,12 @@ but carry their null timing into the output; null-`word` rows are skipped.
 The whole transcript is encoded in one forward pass, so it must fit the model's
 context window (tokens + a BOS prefix ≤ `max_position_embeddings`). A long
 transcript on a short-context model (gpt-2 caps at 1024) produces an error rather than
-being truncated; Use a model with a longer context window instead.
+being truncated; use a model with a longer context window instead.
 
-!!! note "Causal LMs only"
+!!! note "Causal language models only"
 
-    The model must be a causal/decoder LM with a fast tokenizer and 
-    a beginning-of-sequence (BOS) token. Encoder models
+    The model must be a causal (decoder) language model with a fast tokenizer
+    and a beginning-of-sequence (BOS) token. Encoder models
     such as BERT are not supported.
 
 ### Options
@@ -172,26 +172,26 @@ the owner prefix where present. For example, use
        [Access Tokens](https://huggingface.co/settings/tokens) and create
        a token with **read** access to the model.
 
-    In the terminal where you will run Hypline, set `HF_TOKEN`, replacing
+    In the terminal where you will run hypline, set `HF_TOKEN`, replacing
     `hf_...` with your actual token. This identifies your Hugging Face
     account when downloading the model.
 
-    **macOS/Linux:**
+    === "macOS / Linux"
 
-    ```bash
-    export HF_TOKEN=hf_...
-    hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
-    ```
+        ```bash
+        export HF_TOKEN=hf_...
+        hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
+        ```
 
-    **Windows PowerShell:**
+    === "Windows PowerShell"
 
-    ```powershell
-    $env:HF_TOKEN = "hf_..."
-    hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
-    ```
+        ```powershell
+        $env:HF_TOKEN = "hf_..."
+        hypline featuregen semantic data/ --model meta-llama/Llama-3.2-1B
+        ```
 
-    The Hugging Face libraries used by Hypline read `HF_TOKEN`
-    automatically, so no additional Hypline flag is needed. These
+    The Hugging Face libraries used by hypline read `HF_TOKEN`
+    automatically, so no additional hypline flag is needed. These
     commands set the token for the current terminal session; set it
     again when using a new terminal.
 

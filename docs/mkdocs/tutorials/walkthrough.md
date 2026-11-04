@@ -6,7 +6,7 @@ features and denoised BOLD, then a fitted encoding model joining the
 two sides, using one command per step. By the end you will have run hypline end
 to end and seen exactly what each step reads and writes.
 
-It assumes you have hypline installed (see [Installation](../index.md#installation),
+It assumes you have hypline installed (see [Installation](../step-by-step/install.md),
 including FFmpeg for transcription). No prior hypline experience is needed, but
 skim [Hypline dataset layout](../step-by-step/layout.md) first if a path or
 filename below is ever unclear; this tutorial shows the layout in action rather
@@ -68,8 +68,8 @@ features, denoised BOLD, and analysis results under the same `data/` root.
       participants' privacy. The `events.tsv` files still list every trial, so the released
       audio covers only a subset of each run's events (see
       [step 2](#2-transcribe-the-audio)).
-    - **The audio was processed to reduce noise and alter voices** to help prevent identification. 
-      Voice alteration can make the two conversation partners sound similar, so you may hear what 
+    - **The audio was processed to reduce noise and alter voices** to help prevent identification.
+      Voice alteration can make the two conversation partners sound similar, so you may hear what
       sounds like a single speaker even though both participants are speaking.
 
     Otherwise the dataset mirrors the structure and design of the original study.

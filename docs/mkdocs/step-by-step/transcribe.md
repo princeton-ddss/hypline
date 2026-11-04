@@ -29,24 +29,12 @@ named and discovered.
 
 !!! note "Extra entities in audio filenames"
 
-    Before transcribing, check that any additional segmentation entities
-    in your audio filenames are declared in the `Levels` metadata in
-    `events.json`.
-
-    For example, if `events.json` declares only the `trial` level,
-    a filename such as `..._block-1_trial-3_audio.wav` contains an
-    undeclared entity, `block`. Either declare `block` and add the
-    corresponding metadata in `events.json`, or remove it from the
-    filename if it is unnecessary. Make sure removing an entity does
-    not create duplicate filenames.
-
-    These labels are carried into transcript and feature filenames,
-    so an undeclared entity can cause an error later during
-    `encoding train`. Correct the audio filenames or metadata before
-    generating transcripts and features.
-
-    See [Segments and metadata](segments.md) for how to declare
-    segmentation levels.
+    Audio filename entities carry into transcript and feature filenames.
+    Any entity beyond identity and the segment entity (for example,
+    `block` in `..._block-1_trial-3_audio.wav`) must be recorded in
+    `events.json`, or later steps stop with an error. Fix this before
+    transcribing; see
+    [Extra entities in filenames](segments.md#extra-entities-in-filenames).
 
 ## Options
 
@@ -118,4 +106,4 @@ Each transcript row is one word with its onset time. These onsets are what
 `encoding` requires speaking-turn annotations in your `events.tsv` files; the
 other steps work without them. When they are present, each transcript gains a
 `turn_sub` column naming which subject held the floor when each word began.
-See [Speaker turns](segments.md#speaker-turns) for how to mark them.
+See [Speaker turns](segments.md#annotate-speaker-turns) for how to mark them.

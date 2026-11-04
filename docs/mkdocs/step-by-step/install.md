@@ -61,11 +61,7 @@ ffmpeg -version
 
 ## Where to go next
 
-- **Want to try it now?** Follow the [Tutorial](tutorials/walkthrough.md) for a complete
+- **Want to try it now?** Follow the [Tutorial](../tutorials/walkthrough.md) for a complete
   run on a downloadable example dataset.
-- **New to hypline?** Start with [Hypline dataset layout](step-by-step/layout.md)
+- **Ready to use your own data?** Start with [Hypline dataset layout](layout.md)
   to learn how a dataset is organized.
-- **Want command details?** See the [Step-by-step guides](step-by-step/overview.md) for each
-  command's arguments and options.
-- **Want to understand the analysis better?** [How the encoding model works](FAQ/how-encoding-works.md)
-  and [Feature families](FAQ/feature-families.md) cover what you can predict and how the analysis is set up.
