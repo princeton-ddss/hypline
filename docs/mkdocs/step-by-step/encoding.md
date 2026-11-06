@@ -61,6 +61,16 @@ Features are dyad-keyed and BOLD is subject-keyed, so `train` bridges them
 through `participants.tsv` — see [Subject vs.
 Dyad](layout.md#subject-vs-dyad).
 
+!!! note "Extra entities in feature filenames"
+
+    If `encoding train` stops with
+    `Filename carries entities [...] absent from events.json Levels metadata`,
+    a feature filename selected by `--features` carries an entity that
+    `events.json` does not record. See
+    [Extra entities in filenames](segments.md#extra-entities-in-filenames)
+    for how to fix it. If the entity came from your audio filenames, fix
+    those too and regenerate the transcripts and features.
+
 ### Options
 
 | Option           | Description                                                                                     | Default              |

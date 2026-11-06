@@ -27,6 +27,15 @@ Stimulus audio files under the `stimuli/` area, with the `_audio` suffix:
 See [Hypline dataset layout](layout.md) for how files are
 named and discovered.
 
+!!! note "Extra entities in audio filenames"
+
+    Audio filename entities carry into transcript and feature filenames.
+    Any entity beyond identity and the segment entity (for example,
+    `block` in `..._block-1_trial-3_audio.wav`) must be recorded in
+    `events.json`, or later steps stop with an error. Fix this before
+    transcribing; see
+    [Extra entities in filenames](segments.md#extra-entities-in-filenames).
+
 ## Options
 
 | Option           | Description                                                      | Default          |
@@ -97,4 +106,4 @@ Each transcript row is one word with its onset time. These onsets are what
 `encoding` requires speaking-turn annotations in your `events.tsv` files; the
 other steps work without them. When they are present, each transcript gains a
 `turn_sub` column naming which subject held the floor when each word began.
-See [Speaker turns](segments.md#speaker-turns) for how to mark them.
+See [Speaker turns](segments.md#annotate-speaker-turns) for how to mark them.
