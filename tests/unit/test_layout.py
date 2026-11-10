@@ -712,6 +712,37 @@ class TestFindFmriprep:
         assert len(results) == 1
         assert results[0].entities.get("run") == "1"
 
+    def test_descriptive_filter_on_segmented_run_raises(self, tree: BIDSTree):
+        # BOLD cannot name a trial, so the error must not suggest adding one
+        tree.add_bold(space=SPACE, sub=SUB, task=TASK, run="1")
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[
+                {"trial_type": "trial-1", "onset": 0.0, "duration": 10.0},
+                {"trial_type": "trial-2", "onset": 10.0, "duration": 10.0},
+            ],
+            sidecar_json={
+                "trial_type": {
+                    "Levels": {
+                        "trial-1": {"metadata": {"cond": "R"}},
+                        "trial-2": {"metadata": {"cond": "L"}},
+                    }
+                }
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(
+            ValueError,
+            match=r"^[^:]*_bold\.nii\.gz: This file covers the whole run, but "
+            r"events\.tsv splits the run into 'trial' segments, so 'cond-R'",
+        ) as exc:
+            layout.find.fmriprep(
+                sub=SUB, suffix="bold", ext=".nii.gz", bids_filters=["cond-R"]
+            )
+        assert "Add one of" not in str(exc.value)
+
 
 class TestPathRaw:
     def test_derives_output_path(self, tmp_path: Path):

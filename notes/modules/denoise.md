@@ -80,3 +80,6 @@ columns **silently** — no raise, unlike a missing literal. No glob support
 - **fmriprep vs. custom NaN policy differs.** fmriprep derivative columns carry
   leading `n/a` by design, so the native read backfills them; custom nuisance
   TSV has no such convention, so `read_nuisance` raises on any non-finite cell.
+- **Descriptive `--data-filters` raise on runs events.tsv splits** (e.g. by
+  `trial`); filter by `run`. See
+  [../decisions/layout.md](../decisions/layout.md#bids_filters--structural-vs-descriptive).

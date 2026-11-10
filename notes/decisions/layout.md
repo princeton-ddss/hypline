@@ -127,4 +127,10 @@ explicitly rather than expect an empty list.
   `events.resolve_entities`. Empty descriptive matches raise `FileNotFoundError`
   with a diagnostic; resolve failures re-raise as `ValueError`.
 
+Whole-run func derivatives (`find.fmriprep`/`find.hypline`, e.g. BOLD) carry
+no segment entity, so a descriptive filter cannot pick out one segment of them:
+if events.tsv splits the run (e.g. by `trial`), the filter raises `ValueError`.
+A single `task-<name>` row is exempt (see [semantic-entity.md](semantic-entity.md)).
+Filter such runs by `run`.
+
 Same-key filter values OR-match; different keys AND-match.

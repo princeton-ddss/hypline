@@ -20,7 +20,7 @@ from hypline.bids import (
     validate_extension,
     validate_suffix,
 )
-from hypline.events import resolve_entities
+from hypline.events import load_segments, resolve_entities
 
 Area = Literal[
     "stimuli",
@@ -275,6 +275,25 @@ def _require_task(results: list[BIDSPath]) -> None:
         )
 
 
+def _require_whole_run_window(
+    layout: BIDSLayout, bids: BIDSPath, filters: list[str]
+) -> None:
+    """Raise if `bids` spans a run that events.tsv splits by an entity it lacks.
+
+    A single `task-<name>` window passes, since whole-run filenames carry `task`.
+    """
+    segments = load_segments(layout, bids)
+    if segments and segments[0].entity not in bids.entities:
+        entity = segments[0].entity
+        pairs = ", ".join(repr(f) for f in filters)
+        raise ValueError(
+            f"This file covers the whole run, but events.tsv splits the run into "
+            f"{entity!r} segments, so {pairs} cannot select it. Filter by 'run' "
+            f"instead, or declare the run with a single 'task-<name>' row in "
+            f"events.tsv"
+        )
+
+
 class _Find:
     """File discovery within a BIDS area.
 
@@ -362,6 +381,7 @@ class _Find:
         *,
         filters: list[str],
         where: str,
+        whole_run: bool = False,
     ) -> list[BIDSPath]:
         """Narrow candidates by descriptive filters resolved against events.json.
 
@@ -369,6 +389,10 @@ class _Find:
         `FileNotFoundError` if every candidate is filtered out; `where` is the
         human-readable path fragment for the error message. Resolve failures
         are re-raised as `ValueError` with filename context.
+
+        `whole_run` marks candidates that span a whole run (BOLD). If events.tsv
+        splits the run by an entity the filename lacks, raise a whole-run error
+        instead of hinting to add that entity.
         """
         if not filters:
             return candidates
@@ -377,6 +401,8 @@ class _Find:
         results: list[BIDSPath] = []
         for bids in candidates:
             try:
+                if whole_run:
+                    _require_whole_run_window(self._layout, bids, filters)
                 entities = resolve_entities(self._layout, bids)
             except ValueError as err:
                 raise ValueError(f"{bids.path.name}: {err}") from None
@@ -611,6 +637,7 @@ class _Find:
             candidates,
             filters=descriptive,
             where=f"derivatives/{area}/sub-{sub}/[ses-*/]func/",
+            whole_run=True,
         )
 
 
