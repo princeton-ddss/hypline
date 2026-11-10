@@ -20,7 +20,7 @@ from hypline.bold import (
 from hypline.downsample import FeatureDownsampleMethod, downsample
 from hypline.events import (
     Turn,
-    merge_filename_and_sidecar,
+    resolve_filename_entities,
     segment_tr_slice,
 )
 from hypline.io import (
@@ -584,9 +584,10 @@ class _EncodingContext:
         """Validate and resolve regressor CellKeys against BOLD segment metadata.
 
         For each cell, locates the matching BOLD run and segment, then merges
-        segment.metadata into the CellKey. Filename entities beyond ses, run, and the
-        segment entity are rejected unless they echo a metadata key from events.json
-        — descriptive metadata must live in events.json, not filenames.
+        segment.metadata into the CellKey. Filename entities beyond ses, task, run, and
+        the segment entity are rejected unless they echo a metadata key from
+        events.json — descriptive metadata must live in events.json, not filenames. An
+        unsegmented run allows only ses, task, and run.
 
         Does not assume a uniform segment-metadata schema across runs: resolution is
         fully per-run — each cell reads segments off its own BOLD meta — so it
@@ -603,12 +604,8 @@ class _EncodingContext:
                 space=self._recipe.bold_space,
             )
 
-        cell_keys_by_bold_key: dict[BoldKey, set[CellKey]] = {}
-        for regressor_key in regressor_bids:
-            bold_key = regressor_key.cell.to_bold_key()
-            cell_keys_by_bold_key.setdefault(bold_key, set()).add(regressor_key.cell)
-
-        orphan_bold_keys = cell_keys_by_bold_key.keys() - bold_metas.keys()
+        regressor_bold_keys = {key.cell.to_bold_key() for key in regressor_bids}
+        orphan_bold_keys = regressor_bold_keys - bold_metas.keys()
         if orphan_bold_keys:
             bold_key = next(iter(orphan_bold_keys))
             msg = f"No BOLD file found for regressor at {_loc(bold_key)}"
@@ -622,57 +619,19 @@ class _EncodingContext:
             bold_key = cell_key.to_bold_key()
             bold_meta = bold_metas[bold_key]
 
-            if not bold_meta.segments:
-                run_cell_keys = cell_keys_by_bold_key[bold_key]
-                if len(run_cell_keys) > 1:
-                    raise ValueError(
-                        f"Run is unsegmented but has {len(run_cell_keys)} regressor "
-                        f"files at {_loc(bold_key)} — provide an events.tsv with "
-                        f"BIDS key-value entities to segment the run"
-                    )
-                illegal_keys = cell_key.keys() - {"ses", "task", "run"}
-                if illegal_keys:
-                    raise ValueError(
-                        f"Unsegmented run at {_loc(bold_key)} has a filename "
-                        f"with unexpected entities {sorted(illegal_keys)} — only "
-                        f"ses, task, and run are valid on filenames for "
-                        f"unsegmented runs. To attach metadata, declare a segment "
-                        f"row in events.tsv and add descriptive attributes to "
-                        f"events.json Levels."
-                    )
-                resolved_regressor_bids[regressor_key] = bids
-                continue
-
-            segment_entity = bold_meta.segments[0].entity
-            segment_values = {segment.value for segment in bold_meta.segments}
-
-            # Validate the cell carries a known segment value for this run
-            segment_value = cell_key.get(segment_entity)
-            if segment_value is None:
-                raise ValueError(
-                    f"Filename at {_loc(bold_key)} is missing segment "
-                    f"entity {segment_entity!r} declared in events"
-                )
-            if segment_value not in segment_values:
-                raise ValueError(
-                    f"Segment value {segment_entity}-{segment_value} at "
-                    f"{_loc(bold_key)} not found in events — valid values: "
-                    f"{sorted(segment_values)}"
-                )
-
-            segment = next(
-                seg for seg in bold_meta.segments if seg.value == segment_value
-            )
-
+            # Several cells on one unsegmented run must differ by an entity beyond
+            # ses, task, and run, so the merge already rejects them
             filename_entities = dict(cell_key.items())
             try:
-                merged = merge_filename_and_sidecar(
+                merged = resolve_filename_entities(
                     filename_entities=filename_entities,
-                    sidecar_metadata=segment.metadata,
-                    structural_keys=frozenset({"ses", "task", "run", segment_entity}),
+                    segments=bold_meta.segments,
+                    structural_keys=frozenset(BoldKey._fields),
                 )
             except ValueError as err:
-                raise ValueError(f"{err} (at {_loc(bold_key)})") from None
+                # Regressor filenames carry dyad, not sub. At predict, `sub_id` is
+                # the source subject, which the CLI log does not name.
+                raise ValueError(f"sub-{sub_id} {bids.path.name}: {err}") from None
             if merged == filename_entities:
                 resolved_regressor_bids[regressor_key] = bids
             else:

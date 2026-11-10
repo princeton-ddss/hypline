@@ -58,12 +58,9 @@ A single `train(sub_id)` call is scoped to:
 
 Features and confounds are two independent regressor streams. Each is discovered
 (filename scan only — no schema, metadata, or coverage validation),
-resolved against BOLD **before** merging, then combined into one regressor dict
+resolved against BOLD, then combined into one regressor dict
 that filter/enrich/build run over once (shape and coverage validation is deferred —
-see step 5). The per-stream resolve is load-bearing:
-resolution's unsegmented-run guard allows only one file per run, but a feature and
-a confound legitimately share one run — resolving the merged dict would miscount
-and falsely reject. `train(sub_id)` executes these steps in order:
+see step 5). `train(sub_id)` executes these steps in order:
 
 1. **`_discover_features`** — resolves `sub_id`'s dyad via `dyad_of`
    (participants.tsv; features are dyad-keyed — see
@@ -85,7 +82,7 @@ and falsely reject. `train(sub_id)` executes these steps in order:
    `BoldMeta` (raises `FileNotFoundError` if not — required to read segments for
    enrichment). Then merges `Segment.metadata` onto each cell's `CellKey`.
    Rejects illegal filename entities. Raises on value mismatch between filename and
-   sidecar. Applied to each stream separately (see above), then the two resolved dicts
+   sidecar. Applied to each stream separately, then the two resolved dicts
    are merged into one `dict[RegressorKey, Path]`.
 4. **`_apply_filters`** — applies user `bids_filters` to both enriched regressor cells
    and BOLD runs. Raises on typo (filter key absent from enriched schema). Returns

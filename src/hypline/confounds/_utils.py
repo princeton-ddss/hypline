@@ -2,7 +2,7 @@ from loguru import logger
 
 from hypline.bids import BIDSPath
 from hypline.bold import BoldMeta
-from hypline.events import segment_tr_slice
+from hypline.events import lookup_segment, segment_tr_slice
 
 
 def pick_timing_source(feature_files: list[BIDSPath]) -> list[BIDSPath]:
@@ -46,21 +46,9 @@ def segment_n_trs(feat_file: BIDSPath, bold_meta: BoldMeta) -> int:
     if not bold_meta.segments:
         return bold_meta.n_trs
 
-    segment_entity = bold_meta.segments[0].entity
-    segment_value = feat_file.entities.get(segment_entity)
-    if segment_value is None:
-        raise ValueError(
-            f"Feature file {feat_file.path.name!r} is missing segment entity "
-            f"{segment_entity!r} declared in events"
-        )
-
-    for seg in bold_meta.segments:
-        if seg.value == segment_value:
-            tr_slice = segment_tr_slice(seg, bold_meta.repetition_time)
-            return tr_slice.stop - tr_slice.start
-
-    valid = sorted(seg.value for seg in bold_meta.segments)
-    raise ValueError(
-        f"Segment value {segment_entity}-{segment_value} from "
-        f"{feat_file.path.name!r} not found in events — valid values: {valid}"
-    )
+    try:
+        segment = lookup_segment(bold_meta.segments, feat_file.entities)
+    except ValueError as err:
+        raise ValueError(f"{feat_file.path.name}: {err}") from None
+    tr_slice = segment_tr_slice(segment, bold_meta.repetition_time)
+    return tr_slice.stop - tr_slice.start

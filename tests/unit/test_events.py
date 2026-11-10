@@ -8,8 +8,8 @@ from hypline.events import (
     frame_onset,
     load_segments,
     load_turns,
-    merge_filename_and_sidecar,
     resolve_entities,
+    resolve_filename_entities,
     segment_tr_slice,
     stamp_turns,
 )
@@ -212,7 +212,8 @@ class TestFrameOnset:
             rows=_SEGMENT_ROWS,
             sidecar_json=_SEGMENT_LEVELS,
         )
-        with pytest.raises(ValueError, match="missing segment entity 'block'"):
+        # The filename prefix must appear once, with nothing before it
+        with pytest.raises(ValueError, match=r"^[^:]*\.wav: Filename has no 'block'"):
             frame_onset(BIDSLayout(tree.root), BIDSPath(stim))
 
     def test_unknown_segment_value_raises(self, tree: BIDSTree):
@@ -232,17 +233,27 @@ class TestFrameOnset:
             rows=_SEGMENT_ROWS,
             sidecar_json=_SEGMENT_LEVELS,
         )
-        with pytest.raises(ValueError, match="block-9 not found"):
+        with pytest.raises(
+            ValueError, match=r"^[^:]*\.wav: Filename has 'block-9', which is not"
+        ):
             frame_onset(BIDSLayout(tree.root), BIDSPath(stim))
 
 
-class TestMergeFilenameAndSidecar:
-    STRUCTURAL = frozenset({"ses", "run", "trial"})
+class TestResolveFilenameEntities:
+    STRUCTURAL = frozenset({"ses", "run"})
+
+    @staticmethod
+    def _segments(metadata: dict[str, str]) -> list[Segment]:
+        return [
+            Segment(
+                entity="trial", value="3", onset=0.0, duration=10.0, metadata=metadata
+            )
+        ]
 
     def test_sidecar_only_key_adopted(self):
-        merged = merge_filename_and_sidecar(
+        merged = resolve_filename_entities(
             filename_entities={"ses": "1", "run": "2", "trial": "3"},
-            sidecar_metadata={"cond": "R", "item": "101"},
+            segments=self._segments({"cond": "R", "item": "101"}),
             structural_keys=self.STRUCTURAL,
         )
         assert merged == {
@@ -254,52 +265,80 @@ class TestMergeFilenameAndSidecar:
         }
 
     def test_both_same_allowed(self):
-        merged = merge_filename_and_sidecar(
+        merged = resolve_filename_entities(
             filename_entities={"ses": "1", "run": "2", "trial": "3", "cond": "R"},
-            sidecar_metadata={"cond": "R"},
+            segments=self._segments({"cond": "R"}),
             structural_keys=self.STRUCTURAL,
         )
         assert merged == {"ses": "1", "run": "2", "trial": "3", "cond": "R"}
 
-    def test_structural_only_filename_returns_as_is(self):
-        merged = merge_filename_and_sidecar(
+    def test_segment_with_empty_metadata_returns_as_is(self):
+        merged = resolve_filename_entities(
             filename_entities={"ses": "1", "run": "2", "trial": "3"},
-            sidecar_metadata={},
+            segments=self._segments({}),
             structural_keys=self.STRUCTURAL,
         )
         assert merged == {"ses": "1", "run": "2", "trial": "3"}
 
-    def test_both_differ_raises(self):
-        with pytest.raises(ValueError, match="disagree on .cond."):
-            merge_filename_and_sidecar(
-                filename_entities={"run": "2", "trial": "3", "cond": "R"},
-                sidecar_metadata={"cond": "L"},
-                structural_keys=self.STRUCTURAL,
-            )
+    def test_unsegmented_structural_only_returns_as_is(self):
+        merged = resolve_filename_entities(
+            filename_entities={"ses": "1", "run": "2"},
+            segments=[],
+            structural_keys=self.STRUCTURAL,
+        )
+        assert merged == {"ses": "1", "run": "2"}
 
-    def test_error_names_offending_key_and_values(self):
+    def test_both_differ_raises(self):
         with pytest.raises(
-            ValueError, match=r"'cond'.*filename has 'R'.*sidecar has 'L'"
+            ValueError, match=r"'cond-R', but events.json sets 'cond' to 'L'"
         ):
-            merge_filename_and_sidecar(
-                filename_entities={"run": "7", "cond": "R"},
-                sidecar_metadata={"cond": "L"},
+            resolve_filename_entities(
+                filename_entities={"run": "2", "trial": "3", "cond": "R"},
+                segments=self._segments({"cond": "L"}),
                 structural_keys=self.STRUCTURAL,
             )
 
     def test_filename_only_descriptive_raises(self):
-        with pytest.raises(ValueError, match="absent from events.json"):
-            merge_filename_and_sidecar(
+        with pytest.raises(ValueError, match="events.json does not define 'item'"):
+            resolve_filename_entities(
                 filename_entities={"run": "2", "trial": "3", "item": "101"},
-                sidecar_metadata={"cond": "R"},
+                segments=self._segments({"cond": "R"}),
                 structural_keys=self.STRUCTURAL,
             )
 
-    def test_empty_sidecar_with_descriptive_filename_raises(self):
-        with pytest.raises(ValueError, match="absent from events.json"):
-            merge_filename_and_sidecar(
+    def test_unsegmented_with_descriptive_filename_raises(self):
+        with pytest.raises(ValueError, match="'cond-R', but the run has no segments"):
+            resolve_filename_entities(
                 filename_entities={"run": "2", "cond": "R"},
-                sidecar_metadata={},
+                segments=[],
+                structural_keys=self.STRUCTURAL,
+            )
+
+    def test_missing_segment_entity_raises(self):
+        with pytest.raises(ValueError, match="no 'trial' entity"):
+            resolve_filename_entities(
+                filename_entities={"run": "2"},
+                segments=self._segments({}),
+                structural_keys=self.STRUCTURAL,
+            )
+
+    def test_unknown_segment_value_raises(self):
+        with pytest.raises(ValueError, match="'trial-9', which is not a segment"):
+            resolve_filename_entities(
+                filename_entities={"run": "2", "trial": "9"},
+                segments=self._segments({}),
+                structural_keys=self.STRUCTURAL,
+            )
+
+    def test_valid_values_listed_in_events_order(self):
+        segments = [
+            Segment(entity="trial", value=v, onset=0.0, duration=10.0, metadata={})
+            for v in ("3", "1")
+        ]
+        with pytest.raises(ValueError, match="Use one of 'trial-3', 'trial-1'$"):
+            resolve_filename_entities(
+                filename_entities={"run": "2", "trial": "9"},
+                segments=segments,
                 structural_keys=self.STRUCTURAL,
             )
 
@@ -397,7 +436,7 @@ class TestResolveEntities:
             rows=_SEGMENT_ROWS,
             sidecar_json=_SEGMENT_LEVELS,
         )
-        with pytest.raises(ValueError, match="missing segment entity 'block'"):
+        with pytest.raises(ValueError, match="no 'block' entity"):
             resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
 
     def test_unknown_segment_value_raises(self, tree: BIDSTree):
@@ -417,7 +456,7 @@ class TestResolveEntities:
             rows=_SEGMENT_ROWS,
             sidecar_json=_SEGMENT_LEVELS,
         )
-        with pytest.raises(ValueError, match=r"block-9.*not found"):
+        with pytest.raises(ValueError, match="'block-9', which is not a segment"):
             resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
 
     def test_filename_descriptive_entity_absent_from_sidecar_raises(
@@ -446,7 +485,7 @@ class TestResolveEntities:
                 }
             },
         )
-        with pytest.raises(ValueError, match="absent from events.json"):
+        with pytest.raises(ValueError, match="events.json does not define"):
             resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
 
     def test_filename_sidecar_disagreement_raises(self, tree: BIDSTree):
@@ -466,7 +505,7 @@ class TestResolveEntities:
             rows=_SEGMENT_ROWS,
             sidecar_json=_SEGMENT_LEVELS,
         )
-        with pytest.raises(ValueError, match=r"disagree on 'cond'"):
+        with pytest.raises(ValueError, match="events.json sets 'cond'"):
             resolve_entities(BIDSLayout(tree.root), BIDSPath(stim))
 
 

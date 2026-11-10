@@ -282,7 +282,7 @@ class _Find:
     (BIDS identity, category, image-variant descriptors) match against filenames
     on disk; descriptive filters (e.g. `cond-R`) match against each file's
     resolved entities — filename merged with `events.json` `Levels.metadata` for
-    the matching segment. See `events.resolve_entities` for the merge contract.
+    the matching segment. See `events.resolve_filename_entities` for the merge rules.
     """
 
     def __init__(self, layout: BIDSLayout):
@@ -379,7 +379,7 @@ class _Find:
             try:
                 entities = resolve_entities(self._layout, bids)
             except ValueError as err:
-                raise ValueError(f"{err} (at {bids.path.name})") from None
+                raise ValueError(f"{bids.path.name}: {err}") from None
             if all(entities.get(k) in vals for k, vals in groups.items()):
                 results.append(bids)
 

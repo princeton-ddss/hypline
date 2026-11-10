@@ -268,8 +268,8 @@ def load_segments(layout: BIDSLayout, source: BIDSPath) -> list[Segment]:
     return segments
 
 
-def _lookup_segment(segments: list[Segment], source: BIDSPath) -> Segment:
-    """Find the segment whose value matches `source`'s segment-entity value.
+def lookup_segment(segments: list[Segment], entities: Mapping[str, str]) -> Segment:
+    """Find the segment whose value matches the segment-entity value in `entities`.
 
     `segments` is assumed non-empty (the unsegmented case is handled by callers,
     where empty segments mean the source spans the whole run). Raises ValueError
@@ -277,18 +277,19 @@ def _lookup_segment(segments: list[Segment], source: BIDSPath) -> Segment:
     value events.tsv does not declare.
     """
     segment_entity = segments[0].entity
-    value = source.entities.get(segment_entity)
+    valid = ", ".join(f"'{segment_entity}-{s.value}'" for s in segments)
+    value = entities.get(segment_entity)
     if value is None:
         raise ValueError(
-            f"Path is missing segment entity {segment_entity!r} declared in events.tsv"
+            f"Filename has no {segment_entity!r} entity, which events.tsv uses "
+            f"to split the run. Add one of {valid}"
         )
 
     matching = [s for s in segments if s.value == value]
     if not matching:
-        valid = sorted(s.value for s in segments)
         raise ValueError(
-            f"Segment value {segment_entity}-{value} not found in events.tsv "
-            f"— valid values: {valid}"
+            f"Filename has '{segment_entity}-{value}', which is not a segment in "
+            f"events.tsv. Use one of {valid}"
         )
     return matching[0]
 
@@ -299,43 +300,63 @@ def frame_onset(layout: BIDSLayout, source: BIDSPath) -> float:
     Empty segments mean the source spans the whole run, so its frame-local times
     are already run-relative and no offset applies. A segmented run whose segment
     value is absent from the filename or unknown to events.tsv is malformed and
-    raises (see `_lookup_segment`).
+    raises (see `lookup_segment`).
     """
     segments = load_segments(layout, source)
     if not segments:
         return 0.0
-    return _lookup_segment(segments, source).onset
+    try:
+        return lookup_segment(segments, source.entities).onset
+    except ValueError as err:
+        raise ValueError(f"{source.path.name}: {err}") from None
 
 
-def merge_filename_and_sidecar(
+def resolve_filename_entities(
     *,
     filename_entities: Mapping[str, str],
-    sidecar_metadata: Mapping[str, str],
+    segments: list[Segment],
     structural_keys: frozenset[str],
 ) -> dict[str, str]:
-    """Merge filename entities with sidecar metadata under the four-case contract.
+    """Merge filename entities with their segment's metadata from events.json.
 
-    Cases:
-      - sidecar-only (key in sidecar, absent from filename) → adopt sidecar value
-      - both-same → keep one
-      - both-differ → raise
-      - filename-only descriptive (key on filename, absent from sidecar, not in
-        `structural_keys`) → raise
+    Empty `segments` means an unsegmented run: there is no metadata to merge,
+    so only `structural_keys` may appear on the filename. Otherwise the
+    filename must name one of `segments` (raises if not), and its entities
+    merge with that segment's metadata:
+      - A key only in events.json is added
+      - A key in both must have the same value, or it raises
+      - Any other filename key raises unless it is in `structural_keys` or
+        is the segment entity
 
-    `structural_keys` are filename entities that may appear without a sidecar
-    counterpart (e.g. {"ses", "run", segment_entity}).
+    `structural_keys` are filename entities that need no events.json
+    counterpart (e.g. {"ses", "task", "run"}).
 
-    Precondition: sidecar keys are disjoint from raw BOLD identity entities
-    (enforced upstream in events.json validation).
+    Precondition: events.json metadata keys are disjoint from raw BOLD identity
+    entities (enforced upstream in events.json validation).
     """
-    descriptive_filename_keys = (
-        set(filename_entities) - structural_keys - set(sidecar_metadata)
-    )
-    if descriptive_filename_keys:
+    sidecar_metadata: Mapping[str, str] = {}
+    allowed_keys = set(structural_keys)
+    if segments:
+        segment = lookup_segment(segments, filename_entities)
+        sidecar_metadata = segment.metadata
+        allowed_keys |= {segment.entity, *sidecar_metadata}
+
+    extra_keys = sorted(set(filename_entities) - allowed_keys)
+    if extra_keys:
+        pairs = ", ".join(f"'{k}-{filename_entities[k]}'" for k in extra_keys)
+        keys = ", ".join(repr(k) for k in extra_keys)
+        # An unsegmented run has no segments to define keys on, so it needs its
+        # own fix hint
+        if not segments:
+            raise ValueError(
+                f"Filename has {pairs}, but the run has no segments. Remove "
+                f"{pairs}, or add segment rows to events.tsv and define {keys} "
+                f"in events.json"
+            )
         raise ValueError(
-            f"Filename carries entities {sorted(descriptive_filename_keys)} "
-            f"absent from events.json Levels metadata — descriptive attributes "
-            f"must live in events.json, not filenames"
+            f"Filename has {pairs}, but events.json does not define {keys}. "
+            f"Add {keys} to each segment's metadata in events.json, or remove "
+            f"{pairs} from the filename"
         )
 
     merged: dict[str, str] = dict(filename_entities)
@@ -345,8 +366,9 @@ def merge_filename_and_sidecar(
             merged[key] = sidecar_value
         elif filename_value != sidecar_value:
             raise ValueError(
-                f"Filename and events.json disagree on {key!r}: "
-                f"filename has {filename_value!r}, sidecar has {sidecar_value!r}"
+                f"Filename has '{key}-{filename_value}', but events.json sets "
+                f"{key!r} to {sidecar_value!r}. Change it to "
+                f"'{key}-{sidecar_value}', or remove it from the filename"
             )
     return merged
 
@@ -354,31 +376,14 @@ def merge_filename_and_sidecar(
 def resolve_entities(layout: BIDSLayout, source: BIDSPath) -> dict[str, str]:
     """Resolve a path's full entity set by merging filename with events.json.
 
-    Locates the run's events sidecars via `(sub, ses, task, run)`, finds the
-    segment matching the filename's segment-entity value, and merges its
-    `metadata` onto the filename entities under the four-case contract
-    (see `merge_filename_and_sidecar`).
-
-    For unsegmented runs, only `STRUCTURAL_ENTITIES` are allowed on the filename.
-
-    Raises ValueError if the filename lacks the segment entity declared in
-    events.tsv, names a segment value not present in events.tsv, or if
-    `merge_filename_and_sidecar` rejects the entity set.
+    Locates the run's events sidecars via `(sub, ses, task, run)` and resolves
+    the filename against them, allowing `STRUCTURAL_ENTITIES` on the filename
+    (see `resolve_filename_entities` for the merge rules).
     """
-    filename_entities = dict(source.entities)
-    segments = load_segments(layout, source)
-    if not segments:
-        return merge_filename_and_sidecar(
-            filename_entities=filename_entities,
-            sidecar_metadata={},
-            structural_keys=STRUCTURAL_ENTITIES,
-        )
-
-    segment = _lookup_segment(segments, source)
-    return merge_filename_and_sidecar(
-        filename_entities=filename_entities,
-        sidecar_metadata=segment.metadata,
-        structural_keys=STRUCTURAL_ENTITIES | {segment.entity},
+    return resolve_filename_entities(
+        filename_entities=dict(source.entities),
+        segments=load_segments(layout, source),
+        structural_keys=STRUCTURAL_ENTITIES,
     )
 
 

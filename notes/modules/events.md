@@ -66,7 +66,7 @@ takes a required `frame_onset` and lifts each word's time by it before matching
 — never compare the two frames directly. `frame_onset(layout, source)` supplies
 it: the matching segment's run-relative onset, or `0.0` for an unsegmented
 whole-run source (times already run-relative). A segmented source whose segment
-value is missing/unknown is malformed and raises (mirrors `resolve_entities`).
+value is missing/unknown is malformed and raises.
 
 Adding `frame_onset` can introduce float error, so a word whose lifted time
 falls just short of a turn onset still belongs to that turn (`TIME_TOL`).
@@ -75,11 +75,13 @@ falls just short of a turn onset still belongs to that turn (`TIME_TOL`).
 
 The four-case merge contract between filename entities and `events.json`
 `Levels.metadata` (sidecar-only adopted, both-same kept, both-differ raises,
-filename-only descriptive raises) lives here as `merge_filename_and_sidecar`.
-`resolve_entities(layout, source)` wraps it for arbitrary BIDSPaths, locating
-the segment by the filename's segment-entity value. Encoding's
+filename-only descriptive raises) lives here as `resolve_filename_entities`.
+An unsegmented run (empty `segments`) allows only structural keys.
+`resolve_entities(layout, source)` wraps it for arbitrary BIDSPaths. Encoding's
 `_resolve_cell_keys` and `BIDSLayout.find.*` descriptive-filter matching both
-delegate here — do not re-implement the cases at the call site.
+delegate here, and segment lookup (`lookup_segment`) is shared with
+`frame_onset` and confounds' `segment_n_trs` — do not re-implement either at
+the call site.
 
 See [../decisions/feature-files.md](../decisions/feature-files.md#filename-entity-vs-eventsjson-metadata)
 for the contract statement.

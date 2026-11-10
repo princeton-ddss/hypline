@@ -64,7 +64,7 @@ Dyad](layout.md#subject-vs-dyad).
 !!! note "Extra entities in feature filenames"
 
     If `encoding train` stops with
-    `Filename carries entities [...] absent from events.json Levels metadata`,
+    `Filename has '<key>-<value>', but events.json does not define '<key>'`,
     a feature filename selected by `--features` carries an entity that
     `events.json` does not record. See
     [Extra entities in filenames](segments.md#extra-entities-in-filenames)

@@ -591,6 +591,7 @@ class TestResolveCellKeys:
         assert len(feature_paths) == 1
 
     def test_unsegmented_run_multiple_cells_raises(self, tree: BIDSTree):
+        # Rejected by the extra-entity check
         tree.add_participants({SUB: DYAD})
         tree.add_bold(
             sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised"
@@ -604,21 +605,10 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="unsegmented but has 2 regressor files"):
-            enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
-
-    def test_extra_entity_on_unsegmented_run_raises(self, tree: BIDSTree):
-        tree.add_participants({SUB: DYAD})
-        tree.add_bold(
-            sub=SUB, task=TASK, space=SPACE, run="1", tr=2.0, desc="denoised"
-        )  # no events → unsegmented
-        tree.add_feature(
-            dyad=DYAD, task=TASK, kind="mfcc", run="1", extra_entities={"trial": "1"}
-        )
-        enc = _make_encoding(tree, ["mfcc"])
-        feature_paths = enc._discover_features(SUB)
-        bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="only ses, task, and run are valid"):
+        # Either file may be checked first
+        with pytest.raises(
+            ValueError, match="'trial-[12]', but the run has no segments"
+        ):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     # Segmented run cases
@@ -665,7 +655,11 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="missing segment entity"):
+        # The location prefix must appear once, with nothing before it
+        with pytest.raises(
+            ValueError,
+            match=rf"^sub-{SUB} [^:]*_feat-mfcc[^:]*: Filename has no 'block' entity",
+        ):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_cell_value_not_in_events_raises(self, tree: BIDSTree):
@@ -686,7 +680,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="not found in events"):
+        with pytest.raises(ValueError, match="'block-3', which is not a segment"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     def test_extra_entity_on_segmented_run_raises(self, tree: BIDSTree):
@@ -710,7 +704,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="absent from events.json"):
+        with pytest.raises(ValueError, match="events.json does not define 'extra'"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
     # Metadata merge cases (filename × sidecar)
@@ -809,7 +803,7 @@ class TestResolveCellKeys:
         enc = _make_encoding(tree, ["mfcc"])
         feature_paths = enc._discover_features(SUB)
         bold_metas = enc._discover_bold(SUB)
-        with pytest.raises(ValueError, match="disagree on"):
+        with pytest.raises(ValueError, match="events.json sets 'cond' to 'R'"):
             enc._resolve_cell_keys(SUB, feature_paths, bold_metas)
 
 

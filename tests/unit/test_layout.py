@@ -206,6 +206,34 @@ class TestFindStimuli:
                 dyad=DYAD, kind="audio", ext=".wav", bids_filters=["cond-L"]
             )
 
+    def test_malformed_file_error_names_file(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            dyad=DYAD,
+            task=TASK,
+            run="1",
+            extra_entities={"trial": "9"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[{"trial_type": "trial-1", "onset": 0.0, "duration": 10.0}],
+            sidecar_json={
+                "trial_type": {"Levels": {"trial-1": {"metadata": {"cond": "R"}}}}
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        # The filename prefix must appear once, with nothing before it
+        with pytest.raises(
+            ValueError, match=r"^[^:]*_trial-9[^:]*\.wav: Filename has 'trial-9'"
+        ):
+            layout.find.stimuli(
+                dyad=DYAD, kind="audio", ext=".wav", bids_filters=["cond-R"]
+            )
+
     def test_descriptive_filter_or_within_key(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})
         for trial in ("1", "2", "3"):
