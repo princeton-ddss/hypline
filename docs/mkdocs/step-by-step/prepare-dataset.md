@@ -131,10 +131,10 @@ This is the only stimulus area you fill by hand. From here
     Before running the pipeline, check your audio filenames for entities
     beyond identity and the segment entity (for example, `block` in
     `..._block-1_trial-3_audio.wav`). These carry into transcript and
-    feature filenames and must be recorded in `events.json`, or later
-    steps stop with an error. Store descriptive attributes, such as
-    condition, in `events.json` rather than in filenames. See
-    [Extra entities in filenames](segments.md#extra-entities-in-filenames).
+    feature filenames and must be recorded in `events.json`, or
+    `transcribe` and `featuregen` stop with an error. Store descriptive
+    attributes, such as condition, in `events.json` rather than in
+    filenames. See [Extra entities in filenames](segments.md#extra-entities-in-filenames).
 
 ## 5. (Optional) Describe conditions and custom nuisance
 

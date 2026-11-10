@@ -134,3 +134,9 @@ A single `task-<name>` row is exempt (see [semantic-entity.md](semantic-entity.m
 Filter such runs by `run`.
 
 Same-key filter values OR-match; different keys AND-match.
+
+`find.stimuli` resolves every candidate's entities even with no descriptive
+filter, so a filename entity that events.json does not define raises
+`ValueError` at discovery rather than at encoding, after features inherit it.
+Stimulus discovery therefore needs participants.tsv to map the dyad (see
+[dyad-keyed.md](dyad-keyed.md)).

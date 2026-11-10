@@ -45,7 +45,8 @@ the same way — **pick the dyad's first subject** (`subjects_of(dyad)[0]`):
 1. **Discovery sidecar resolution** (`events.py`). A dyad-keyed path has no
    `sub`, but `events.tsv`/`events.json` are sub-keyed. Any `--data-filters`
    carrying an events-backed entity (e.g. `cond-G`, `item-101`) must resolve
-   against a real subject's sidecar.
+   against a real subject's sidecar. `find.stimuli` triggers this on every
+   call, so stimulus discovery needs participants.tsv.
 2. **confoundgen TR source** (`phonemic.py`). Downsampling needs `n_trs`/TR from
    a real BOLD; a dyad feature has none. Synthesize a sub-keyed source from the
    first subject (`BIDSPath.with_identity`) and run the existing

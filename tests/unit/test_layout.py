@@ -28,6 +28,7 @@ class TestBIDSLayoutConstruction:
 
 class TestFindStimuli:
     def test_returns_matching_files(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK)
         layout = BIDSLayout(tree.root)
         results = layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
@@ -35,6 +36,7 @@ class TestFindStimuli:
         assert results[0].dyad == DYAD
 
     def test_ses_filter_via_bids_filters(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="2", task=TASK)
         layout = BIDSLayout(tree.root)
@@ -45,6 +47,7 @@ class TestFindStimuli:
         assert results[0].ses == "1"
 
     def test_arbitrary_bids_filter(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task="conv")
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task="rest")
         layout = BIDSLayout(tree.root)
@@ -61,6 +64,7 @@ class TestFindStimuli:
             )
 
     def test_run_filter_via_bids_filters(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="1")
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="2")
         layout = BIDSLayout(tree.root)
@@ -71,6 +75,7 @@ class TestFindStimuli:
         assert results[0].entities.get("run") == "1"
 
     def test_cross_session_aggregation_sorted(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="2", task=TASK)
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
         layout = BIDSLayout(tree.root)
@@ -79,6 +84,7 @@ class TestFindStimuli:
         assert results == sorted(results)
 
     def test_multiple_ses_filters(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="1", task=TASK)
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="2", task=TASK)
         tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, ses="3", task=TASK)
@@ -233,6 +239,78 @@ class TestFindStimuli:
             layout.find.stimuli(
                 dyad=DYAD, kind="audio", ext=".wav", bids_filters=["cond-R"]
             )
+
+    def test_undeclared_entity_raises_without_filters(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            dyad=DYAD,
+            task=TASK,
+            run="1",
+            extra_entities={"trial": "1", "first": "A"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[{"trial_type": "trial-1", "onset": 0.0, "duration": 10.0}],
+            sidecar_json={
+                "trial_type": {"Levels": {"trial-1": {"metadata": {"cond": "R"}}}}
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(
+            ValueError,
+            match=r"^[^:]*_first-A[^:]*\.wav: Filename has 'first-A', but "
+            r"events\.json does not define 'first'",
+        ):
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
+
+    def test_declared_entity_passes(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_stimulus(
+            kind="audio",
+            ext=".wav",
+            dyad=DYAD,
+            task=TASK,
+            run="1",
+            extra_entities={"trial": "1", "first": "A"},
+        )
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[{"trial_type": "trial-1", "onset": 0.0, "duration": 10.0}],
+            sidecar_json={
+                "trial_type": {"Levels": {"trial-1": {"metadata": {"first": "A"}}}}
+            },
+        )
+        layout = BIDSLayout(tree.root)
+        results = layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
+        assert len(results) == 1
+
+    def test_unmapped_dyad_error_names_file(self, tree: BIDSTree):
+        tree.add_participants({SUB: "999"})
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK)
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(
+            KeyError, match=rf"_audio\.wav: dyad-{DYAD} not in participants\.tsv"
+        ):
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
+
+    def test_whole_run_stimulus_in_segmented_run_raises(self, tree: BIDSTree):
+        tree.add_participants({SUB: DYAD})
+        tree.add_stimulus(kind="audio", ext=".wav", dyad=DYAD, task=TASK, run="1")
+        tree.add_events(
+            sub=SUB,
+            task=TASK,
+            run="1",
+            rows=[{"trial_type": "trial-1", "onset": 0.0, "duration": 10.0}],
+        )
+        layout = BIDSLayout(tree.root)
+        with pytest.raises(ValueError, match="Filename has no 'trial' entity"):
+            layout.find.stimuli(dyad=DYAD, kind="audio", ext=".wav")
 
     def test_descriptive_filter_or_within_key(self, tree: BIDSTree):
         tree.add_participants({SUB: DYAD})

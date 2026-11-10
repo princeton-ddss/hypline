@@ -11,6 +11,7 @@ from hypline.layout import BIDSLayout
 
 from ..conftest import BIDSTree
 
+SUB = "001"
 DYAD = "101"
 TASK = "conv"
 
@@ -48,8 +49,16 @@ def _write_transcript(
     dyad: str = DYAD,
     task: str = TASK,
     turns: list[str | None] | None = None,
+    extra_entities: dict[str, str] | None = None,
 ) -> Path:
-    path = tree.add_stimulus(dyad=dyad, task=task, kind="transcript", ext=".csv")
+    tree.add_participants({SUB: dyad})
+    path = tree.add_stimulus(
+        dyad=dyad,
+        task=task,
+        kind="transcript",
+        ext=".csv",
+        extra_entities=extra_entities,
+    )
     df = pl.DataFrame(
         {
             "start_time": [r[0] for r in rows],
@@ -247,6 +256,7 @@ class TestPhonemicDesc:
 
 class TestPhonemicMultiTranscript:
     def test_generates_one_feature_per_transcript(self, tree: BIDSTree, fake_cmudict):
+        tree.add_participants({SUB: DYAD})
         tree.add_stimulus(dyad=DYAD, task=TASK, run="1", kind="transcript", ext=".csv")
         tree.add_stimulus(dyad=DYAD, task=TASK, run="2", kind="transcript", ext=".csv")
         layout = BIDSLayout(tree.root)
@@ -256,3 +266,11 @@ class TestPhonemicMultiTranscript:
         PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(DYAD)
         outs = layout.find.features(dyad=DYAD, kind="phonemic")
         assert len(outs) == 2
+
+
+class TestPhonemicUndeclaredEntity:
+    def test_undeclared_entity_raises(self, tree: BIDSTree, fake_cmudict):
+        _write_transcript(tree, [(0.0, "cat")], extra_entities={"first": "A"})
+        with pytest.raises(ValueError, match="_first-A_transcript.csv: .*'first-A'"):
+            PhonemicFeature(bids_root=tree.root, use_articulatory=False).generate(DYAD)
+        assert not (tree.root / "features").exists()

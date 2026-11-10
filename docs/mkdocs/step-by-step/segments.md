@@ -175,7 +175,8 @@ that names the file, followed by:
 Filename has 'block-1', but events.json does not define 'block'. Add 'block' to each segment's metadata in events.json, or remove 'block-1' from the filename
 ```
 
-This check runs during `encoding train` and whenever you pass `--data-filters`.
+This check runs during `transcribe`, `featuregen`, and `encoding train`, and
+whenever you pass `--data-filters`.
 Entities in audio filenames carry into transcript and feature filenames, so fix
 them before running `transcribe`. Either:
 

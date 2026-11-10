@@ -448,6 +448,13 @@ class _Find:
             user_filters=structural,
         )
         _require_task(candidates)
+        # Transcripts and features copy these entities, so reject any
+        # missing from events.json now rather than at encoding
+        for bids in candidates:
+            try:
+                resolve_entities(self._layout, bids)
+            except (KeyError, ValueError) as err:
+                raise type(err)(f"{bids.path.name}: {err.args[0]}") from None
         return self._apply_metadata_filters(
             candidates,
             filters=descriptive,
