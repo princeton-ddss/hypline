@@ -1671,10 +1671,12 @@ entity, category entities (<code>feat</code>, <code>conf</code>, <code>nuis</cod
 entities (<code>desc</code>, <code>space</code>, <code>res</code>, <code>den</code>), every entity in a filename must also appear as a key in the segment's
 <code>metadata</code> in <code>events.json</code>. For example, if a run's segments are <code>trial-*</code>, an
 audio file named <code>..._run-1_block-1_trial-3_audio.wav</code> carries an extra entity,
-<code>block</code>. If no Levels entry has a <code>block</code> key, hypline stops with:</p>
-<div class="highlight"><pre><span></span><code>Filename carries entities [&#39;block&#39;] absent from events.json Levels metadata — descriptive attributes must live in events.json, not filenames
+<code>block</code>. If no Levels entry has a <code>block</code> key, hypline stops with an error
+that names the file, followed by:</p>
+<div class="highlight"><pre><span></span><code>Filename has &#39;block-1&#39;, but events.json does not define &#39;block&#39;. Add &#39;block&#39; to each segment&#39;s metadata in events.json, or remove &#39;block-1&#39; from the filename
 </code></pre></div>
-<p>This check runs during <code>encoding train</code> and whenever you pass <code>--data-filters</code>.
+<p>This check runs during <code>transcribe</code>, <code>featuregen</code>, and <code>encoding train</code>, and
+whenever you pass <code>--data-filters</code>.
 Entities in audio filenames carry into transcript and feature filenames, so fix
 them before running <code>transcribe</code>. Either:</p>
 <ul>
@@ -1682,9 +1684,12 @@ them before running <code>transcribe</code>. Either:</p>
   shorter names do not collide.</li>
 <li>Or record it in <code>events.json</code>: add <code>"block": "1"</code> (with the right value) to
   the <code>metadata</code> of every Levels entry. The value must match the filename, or
-  hypline stops with <code>Filename and events.json disagree on 'block'</code>.</li>
+  hypline stops with <code>Filename has 'block-1', but events.json sets 'block' to '2'</code>.</li>
 </ul>
-<p>An unsegmented run has no Levels entries to hold the key. Either remove the
+<p>An unsegmented run has no Levels entries to hold the key, so hypline stops with:</p>
+<div class="highlight"><pre><span></span><code>Filename has &#39;block-1&#39;, but the run has no segments. Remove &#39;block-1&#39;, or add segment rows to events.tsv and define &#39;block&#39; in events.json
+</code></pre></div>
+<p>Either remove the
 entity, or add a single <code>task-&lt;name&gt;</code> window row (see
 <a href="#three-kinds-of-analysis-window">Three kinds of analysis window</a>)
 and record the attribute in its metadata.</p>

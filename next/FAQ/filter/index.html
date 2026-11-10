@@ -1577,7 +1577,7 @@ hypline<span class="w"> </span>featuregen<span class="w"> </span>phonemic<span c
 <p class="admonition-title"><code>denoise</code> and segment-level conditions</p>
 <p>fMRIPrep BOLD files cover a whole run and carry no segment entity like
 <code>trial</code>. So on trial-segmented runs, a <code>condition</code> filter on <code>denoise</code> fails with
-<code>Path is missing segment entity 'trial' declared in events.tsv</code>. It works
+<code>This file covers the whole run, but events.tsv splits the run into 'trial' segments</code>. It works
 only when the run is declared with a single <code>task-&lt;name&gt;</code> row (see <a href="../../step-by-step/segments/#three-kinds-of-analysis-window">Three kinds
 of analysis window</a>). Otherwise,
 filter <code>denoise</code> by <code>run</code>.</p>

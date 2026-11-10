@@ -1637,12 +1637,15 @@ Dyad</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Extra entities in feature filenames</p>
 <p>If <code>encoding train</code> stops with
-<code>Filename carries entities [...] absent from events.json Levels metadata</code>,
+<code>Filename has '&lt;key&gt;-&lt;value&gt;', but events.json does not define '&lt;key&gt;'</code>,
 a feature filename selected by <code>--features</code> carries an entity that
-<code>events.json</code> does not record. See
+<code>events.json</code> does not record. <code>transcribe</code> and <code>featuregen</code> run the
+same check, so this usually means <code>events.json</code> changed after the
+features were generated. See
 <a href="../segments/#extra-entities-in-filenames">Extra entities in filenames</a>
-for how to fix it. If the entity came from your audio filenames, fix
-those too and regenerate the transcripts and features.</p>
+for how to fix it. If you remove the entity instead and it came from
+your audio filenames, rename those too and regenerate the transcripts
+and features.</p>
 </div>
 <h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
 <table>
