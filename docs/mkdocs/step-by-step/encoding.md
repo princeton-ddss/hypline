@@ -64,12 +64,15 @@ Dyad](layout.md#subject-vs-dyad).
 !!! note "Extra entities in feature filenames"
 
     If `encoding train` stops with
-    `Filename carries entities [...] absent from events.json Levels metadata`,
+    `Filename has '<key>-<value>', but events.json does not define '<key>'`,
     a feature filename selected by `--features` carries an entity that
-    `events.json` does not record. See
+    `events.json` does not record. `transcribe` and `featuregen` run the
+    same check, so this usually means `events.json` changed after the
+    features were generated. See
     [Extra entities in filenames](segments.md#extra-entities-in-filenames)
-    for how to fix it. If the entity came from your audio filenames, fix
-    those too and regenerate the transcripts and features.
+    for how to fix it. If you remove the entity instead and it came from
+    your audio filenames, rename those too and regenerate the transcripts
+    and features.
 
 ### Options
 

@@ -359,5 +359,9 @@ class TestPhonemicConfoundGenerate:
             ],
         )
 
-        with pytest.raises(ValueError, match="trial-9"):
+        # Raised by segment_n_trs, whose filename prefix must appear once
+        with pytest.raises(
+            ValueError,
+            match=r"^[^:]*_trial-9_feat-phonemic\.parquet: Filename has 'trial-9'",
+        ):
             PhonemicConfound(bids_root=tree.root).generate(DYAD)

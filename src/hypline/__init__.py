@@ -11,7 +11,7 @@ warnings.filterwarnings(
 )
 
 from ._version import __version__  # noqa: E402,F401
-from .cli import app  # noqa: E402
+from .cli import app, main  # noqa: E402,F401
 from .io import (  # noqa: E402
     read_confound,
     read_confound_metadata,
@@ -29,7 +29,3 @@ __all__ = [
     "save_confound",
     "save_feature",
 ]
-
-
-def main():
-    app()

@@ -168,13 +168,15 @@ entity, category entities (`feat`, `conf`, `nuis`, `result`), and variant
 entities (`desc`, `space`, `res`, `den`), every entity in a filename must also appear as a key in the segment's
 `metadata` in `events.json`. For example, if a run's segments are `trial-*`, an
 audio file named `..._run-1_block-1_trial-3_audio.wav` carries an extra entity,
-`block`. If no Levels entry has a `block` key, hypline stops with:
+`block`. If no Levels entry has a `block` key, hypline stops with an error
+that names the file, followed by:
 
 ```text
-Filename carries entities ['block'] absent from events.json Levels metadata — descriptive attributes must live in events.json, not filenames
+Filename has 'block-1', but events.json does not define 'block'. Add 'block' to each segment's metadata in events.json, or remove 'block-1' from the filename
 ```
 
-This check runs during `encoding train` and whenever you pass `--data-filters`.
+This check runs during `transcribe`, `featuregen`, and `encoding train`, and
+whenever you pass `--data-filters`.
 Entities in audio filenames carry into transcript and feature filenames, so fix
 them before running `transcribe`. Either:
 
@@ -182,9 +184,15 @@ them before running `transcribe`. Either:
   shorter names do not collide.
 - Or record it in `events.json`: add `"block": "1"` (with the right value) to
   the `metadata` of every Levels entry. The value must match the filename, or
-  hypline stops with `Filename and events.json disagree on 'block'`.
+  hypline stops with `Filename has 'block-1', but events.json sets 'block' to '2'`.
 
-An unsegmented run has no Levels entries to hold the key. Either remove the
+An unsegmented run has no Levels entries to hold the key, so hypline stops with:
+
+```text
+Filename has 'block-1', but the run has no segments. Remove 'block-1', or add segment rows to events.tsv and define 'block' in events.json
+```
+
+Either remove the
 entity, or add a single `task-<name>` window row (see
 [Three kinds of analysis window](#three-kinds-of-analysis-window))
 and record the attribute in its metadata.

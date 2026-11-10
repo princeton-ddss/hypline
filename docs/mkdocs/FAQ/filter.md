@@ -69,7 +69,7 @@ hypline featuregen phonemic data/ --data-filters condition-R
 
     fMRIPrep BOLD files cover a whole run and carry no segment entity like
     `trial`. So on trial-segmented runs, a `condition` filter on `denoise` fails with
-    `Path is missing segment entity 'trial' declared in events.tsv`. It works
+    `This file covers the whole run, but events.tsv splits the run into 'trial' segments`. It works
     only when the run is declared with a single `task-<name>` row (see [Three kinds
     of analysis window](../step-by-step/segments.md#three-kinds-of-analysis-window)). Otherwise,
     filter `denoise` by `run`.

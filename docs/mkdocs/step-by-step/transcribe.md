@@ -32,8 +32,8 @@ named and discovered.
     Audio filename entities carry into transcript and feature filenames.
     Any entity beyond identity and the segment entity (for example,
     `block` in `..._block-1_trial-3_audio.wav`) must be recorded in
-    `events.json`, or later steps stop with an error. Fix this before
-    transcribing; see
+    `events.json`, or `transcribe` stops with an error that names the
+    file; see
     [Extra entities in filenames](segments.md#extra-entities-in-filenames).
 
 ## Options
