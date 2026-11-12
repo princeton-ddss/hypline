@@ -24,13 +24,15 @@ the fit both run on CPU so the tutorial works anywhere; if you have a GPU,
 
 ## 1. Get the example dataset
 
-Download the example dataset and unpack it. Throughout this tutorial we call the
-unpacked dataset root `data/`.
+Download the example dataset
+([Zenodo](https://doi.org/10.5281/zenodo.24167317)) and unpack it. It unpacks
+to `hypline-tutorial-data/data/`. Throughout this tutorial we call the dataset
+root `data/`, so run every command from `hypline-tutorial-data/`.
 
 ```bash
-# TODO: replace with the published Zenodo record on release
-curl -L -o hypline-tutorial-data.zip "<ZENODO-DOI>"
-unzip hypline-tutorial-data.zip -d data/
+curl -L -o hypline-tutorial-data.zip "https://zenodo.org/records/24167317/files/hypline-tutorial-data.zip?download=1"
+unzip hypline-tutorial-data.zip
+cd hypline-tutorial-data
 ```
 
 The dataset contains one dyad (`dyad-040`): two partners (`sub-041` and
