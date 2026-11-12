@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/princeton-ddss/hypline/actions/workflows/ci.yml/badge.svg)](https://github.com/princeton-ddss/hypline/actions/workflows/ci.yml)
 [![CD](https://github.com/princeton-ddss/hypline/actions/workflows/cd.yml/badge.svg)](https://github.com/princeton-ddss/hypline/actions/workflows/cd.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24170111.svg)](https://doi.org/10.5281/zenodo.24170111)
 
 Hypline is a command-line toolbox for cleaning and analyzing data from
 hyperscanning studies involving dyadic conversations. Its commands are modular:
@@ -110,6 +111,19 @@ or read
 [The hypline dataset layout](https://princeton-ddss.github.io/hypline/latest/step-by-step/layout/) —
 every command depends on it. To load a fitted model or eval back into Python, see
 the [encoding results API](https://princeton-ddss.github.io/hypline/latest/step-by-step/encoding-results/).
+
+## Citing Hypline
+
+If you use Hypline in your research, please cite it:
+
+1. Open Hypline's [Zenodo record](https://doi.org/10.5281/zenodo.24170111).
+2. Pick the version you used under **Versions** (the latest is shown by
+   default).
+3. Copy the citation from **Citation**, in the format you need (APA, BibTeX,
+   and others).
+
+If you use the encoding model, please also cite
+[Zada et al. (2026)](https://doi.org/10.1016/j.neuron.2025.11.004).
 
 ## License
 
