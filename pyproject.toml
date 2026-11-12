@@ -1,10 +1,12 @@
 [project]
 name = "hypline"
-version = "0.3.0a3"
+version = "0.3.0"
 description = "Data Cleaning and Analysis Pipeline for Hyperscanning Research"
 readme = "README.md"
 authors = [
-    { name = "Sangyoon Park", email = "datumvitae@gmail.com" }
+    { name = "Sangyoon Park", email = "datumvitae@gmail.com" },
+    { name = "Zaid Zada", email = "zada@berkeley.edu" },
+    { name = "Yeaju Kim", email = "ydkim@princeton.edu" },
 ]
 requires-python = ">=3.11"
 dependencies = [
