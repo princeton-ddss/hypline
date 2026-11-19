@@ -1,5 +1,10 @@
 # Hypline
 
+> [!IMPORTANT]
+> **Hypline has moved to [Princeton-Social-Neuroscience-Lab/hypline](https://github.com/Princeton-Social-Neuroscience-Lab/hypline).**
+> This repo is archived and no longer updated. Docs are now at
+> [princeton-social-neuroscience-lab.github.io/hypline](https://princeton-social-neuroscience-lab.github.io/hypline/latest/).
+
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/princeton-ddss/hypline/actions/workflows/ci.yml/badge.svg)](https://github.com/princeton-ddss/hypline/actions/workflows/ci.yml)
