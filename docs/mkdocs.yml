@@ -6,6 +6,7 @@ copyright: Copyright &copy; 2025–2026 The Trustees of Princeton University
 
 theme:
   name: material
+  custom_dir: overrides
   logo: images/logo.svg
   favicon: images/favicon.svg
   palette:
